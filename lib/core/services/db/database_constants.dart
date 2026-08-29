@@ -1,6 +1,7 @@
 // 📁 lib/core/services/db/database_constants.dart
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 class DatabaseConstants {
@@ -46,6 +47,13 @@ class DatabaseConstants {
       }
 
       return _ensureDatabaseDirectory('$base/Yalla Accounts/data');
+    }
+
+    // Mobile platforms run inside an application sandbox. Environment HOME is
+    // not a reliable application-data location on iOS/Android.
+    if (Platform.isIOS || Platform.isAndroid) {
+      final appSupport = await getApplicationSupportDirectory();
+      return _ensureDatabaseDirectory('${appSupport.path}/data');
     }
 
     final home = Platform.environment['HOME']?.trim();
