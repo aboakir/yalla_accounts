@@ -36,6 +36,34 @@ jobs:
           flutter config --no-enable-swift-package-manager
           flutter config --list | grep -i swift || true
 
+      - name: Remove unused speech_to_text from iPhone test snapshot
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("pubspec.yaml")
+          s = p.read_text()
+
+          matches = re.findall(r"(?m)^\s*speech_to_text\s*:\s*\^?6\.6\.0\s*$", s)
+          if len(matches) != 1:
+              raise SystemExit(f"Expected exactly one speech_to_text 6.6.0 dependency line; found {len(matches)}")
+
+          s2 = re.sub(
+              r"(?m)^\s*speech_to_text\s*:\s*\^?6\.6\.0\s*\n?",
+              "",
+              s,
+              count=1,
+          )
+          p.write_text(s2)
+          PY
+
+          if grep -n "speech_to_text" pubspec.yaml; then
+            echo "ERROR: speech_to_text still present in pubspec.yaml"
+            exit 1
+          fi
+
       - name: Clean and resolve Flutter dependencies
         run: |
           set -euo pipefail
@@ -53,6 +81,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+
           p = Path("ios/Runner.xcodeproj/project.pbxproj")
           s = p.read_text()
           s = re.sub(
@@ -79,7 +108,7 @@ jobs:
           add_plist_string NSCameraUsageDescription "Yalla Accounts uses the camera to attach business documents and images."
           add_plist_string NSPhotoLibraryUsageDescription "Yalla Accounts uses your photo library to attach business documents and images."
           add_plist_string NSMicrophoneUsageDescription "Yalla Accounts may use the microphone for supported voice input."
-          add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts uses speech recognition for supported voice input."
+          add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts may use speech recognition for supported voice input."
 
           grep -n "platform :ios" ios/Podfile
           grep -n "use_modular_headers!" ios/Podfile
@@ -99,10 +128,20 @@ jobs:
         run: |
           set -euo pipefail
           test -d ios/Pods
-          test -d ios/.symlinks/plugins/speech_to_text
           test -f ios/Podfile.lock
-          grep -n "speech_to_text" ios/Podfile.lock | head || true
+
+          if grep -n "speech_to_text" ios/Podfile.lock; then
+            echo "ERROR: speech_to_text unexpectedly present in iOS Podfile.lock"
+            exit 1
+          fi
+
+          if [ -e ios/.symlinks/plugins/speech_to_text ]; then
+            echo "ERROR: speech_to_text plugin symlink unexpectedly exists"
+            exit 1
+          fi
+
           grep -n "sqlite3_flutter_libs" ios/Podfile.lock | head || true
+
           if grep -R "FlutterGeneratedPluginSwiftPackage" ios/Runner.xcodeproj/project.pbxproj >/dev/null 2>&1; then
             echo "ERROR: SwiftPM integration still present in Xcode project"
             exit 1
