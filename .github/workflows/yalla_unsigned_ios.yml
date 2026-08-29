@@ -35,23 +35,27 @@ jobs:
           set -euo pipefail
           flutter pub get
 
-      - name: Prepare iOS project
+      - name: Force iOS 15 deployment target
         run: |
           set -euo pipefail
+          rm -f ios/Podfile
+          cp ci/Podfile ios/Podfile
 
-          if [ ! -f ios/Podfile ]; then
-            cp ci/Podfile ios/Podfile
-          fi
-
-          # Current desktop project used iOS 12. Raise only the build snapshot
-          # to iOS 13 for contemporary Flutter/plugin compatibility.
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path("ios/Runner.xcodeproj/project.pbxproj")
           s = p.read_text()
-          s = s.replace("IPHONEOS_DEPLOYMENT_TARGET = 12.0;", "IPHONEOS_DEPLOYMENT_TARGET = 13.0;")
+          s = re.sub(
+              r"IPHONEOS_DEPLOYMENT_TARGET\s*=\s*[0-9.]+\s*;",
+              "IPHONEOS_DEPLOYMENT_TARGET = 15.0;",
+              s,
+          )
           p.write_text(s)
           PY
+
+          grep -n "platform :ios" ios/Podfile
+          grep -n "IPHONEOS_DEPLOYMENT_TARGET = 15.0;" ios/Runner.xcodeproj/project.pbxproj | head
 
           PLIST="ios/Runner/Info.plist"
           add_plist_string () {
@@ -71,6 +75,7 @@ jobs:
         run: |
           set -euo pipefail
           cd ios
+          rm -rf Pods Podfile.lock
           pod install --repo-update
 
       - name: Build unsigned iOS release
@@ -88,8 +93,9 @@ jobs:
           test -d "$APP"
           test -f "$APP/Info.plist"
           echo "Built app: $APP"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" "$APP/Info.plist" || true
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
           /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist"
 
@@ -101,19 +107,6 @@ jobs:
           cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
           ditto -c -k --sequesterRsrc --keepParent Payload dist/Yalla_Accounts_Unsigned_iPhone.ipa
           shasum -a 256 dist/Yalla_Accounts_Unsigned_iPhone.ipa | tee dist/SHA256.txt
-
-          python3 - <<'PY'
-          import json, os
-          manifest = {
-            "product": "Yalla Accounts",
-            "artifact": "Yalla_Accounts_Unsigned_iPhone.ipa",
-            "codesigned": False,
-            "build_mode": "release",
-            "github_run_number": os.environ.get("GITHUB_RUN_NUMBER"),
-            "source_commit": os.environ.get("GITHUB_SHA"),
-          }
-          open("dist/build_manifest.json","w").write(json.dumps(manifest, indent=2))
-          PY
 
       - name: Upload unsigned iPhone artifact
         uses: actions/upload-artifact@v4
