@@ -1,21 +1,21 @@
-// 📁 lib/core/services/db/database_migration.dart
+// ًں“پ lib/core/services/db/database_migration.dart
 //
-// FINAL VERSION — مع نظام مشتريات كامل (Purchase Invoices)
+// FINAL VERSION â€” ظ…ط¹ ظ†ط¸ط§ظ… ظ…ط´طھط±ظٹط§طھ ظƒط§ظ…ظ„ (Purchase Invoices)
 // -----------------------------------------------------------
-// يحتوي على:
-// ✔ purchase_invoices
-// ✔ purchase_invoice_lines
-// ✔ purchase_payments
-// ✔ ensurePurchaseSchema
-// ✔ متكامل مع GL + Suppliers + Vouchers
-// ✔ متوافق مع DB v40+
+// ظٹط­طھظˆظٹ ط¹ظ„ظ‰:
+// âœ” purchase_invoices
+// âœ” purchase_invoice_lines
+// âœ” purchase_payments
+// âœ” ensurePurchaseSchema
+// âœ” ظ…طھظƒط§ظ…ظ„ ظ…ط¹ GL + Suppliers + Vouchers
+// âœ” ظ…طھظˆط§ظپظ‚ ظ…ط¹ DB v40+
 // -----------------------------------------------------------
 
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_constants.dart';
 
-// الجداول الحالية
+// ط§ظ„ط¬ط¯ط§ظˆظ„ ط§ظ„ط­ط§ظ„ظٹط©
 import 'tables/user_tables.dart';
 import 'tables/organization_identity_tables.dart';
 import 'tables/device_identity_tables.dart';
@@ -43,19 +43,20 @@ class DatabaseMigration {
   static Future<Database>? _opening;
 
 // ---------------------------------------------------------------
-// 🧩 إضافة مورد افتراضي S0000 للمصاريف العامة (مرة واحدة فقط)
+// ًں§© ط¥ط¶ط§ظپط© ظ…ظˆط±ط¯ ط§ظپطھط±ط§ط¶ظٹ S0000 ظ„ظ„ظ…طµط§ط±ظٹظپ ط§ظ„ط¹ط§ظ…ط© (ظ…ط±ط© ظˆط§ط­ط¯ط© ظپظ‚ط·)
 // ---------------------------------------------------------------
   static Future<void> _ensureGeneralSupplier(Database db) async {
     final res = await db.query(
       'suppliers',
       where: 'name = ?',
-      whereArgs: ['المصاريف العامة'],
+      whereArgs: ['ط§ظ„ظ…طµط§ط±ظٹظپ ط§ظ„ط¹ط§ظ…ط©'],
       limit: 1,
     );
 
     if (res.isEmpty) {
-      await db.insert('suppliers', {'name': 'المصاريف العامة'});
-      debugPrint("✔ تم إنشاء المورد الافتراضي S0000 للمصاريف العامة");
+      await db.insert('suppliers', {'name': 'ط§ظ„ظ…طµط§ط±ظٹظپ ط§ظ„ط¹ط§ظ…ط©'});
+      debugPrint(
+          "âœ” طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظˆط±ط¯ ط§ظ„ط§ظپطھط±ط§ط¶ظٹ S0000 ظ„ظ„ظ…طµط§ط±ظٹظپ ط§ظ„ط¹ط§ظ…ط©");
     }
   }
 
@@ -88,7 +89,7 @@ class DatabaseMigration {
   // ============================================================
   static Future<Database> initDatabase({String? pathOverride}) async {
     final path = pathOverride ?? await DatabaseConstants.dbFilePath();
-    debugPrint('🚀 [DB] opening v${DatabaseConstants.dbVersion} @ $path');
+    debugPrint('ًںڑ€ [DB] opening v${DatabaseConstants.dbVersion} @ $path');
 
     final db = await openDatabase(
       path,
@@ -111,16 +112,20 @@ class DatabaseMigration {
   // ============================================================
   static Future<void> _onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON;');
-    await db.execute('PRAGMA journal_mode = WAL;');
+    // SqfliteDarwin may reject journal_mode=WAL during onConfigure on iOS.
+    // Preserve the existing WAL policy on Windows/other platforms.
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      await db.execute('PRAGMA journal_mode = WAL;');
+    }
     await db.execute('PRAGMA synchronous = NORMAL;');
     await db.execute('PRAGMA busy_timeout = 5000;');
   }
 
   // ============================================================
-  // 🧱 CREATE ALL
+  // ًں§± CREATE ALL
   // ============================================================
   static Future<void> _onCreate(Database db, int version) async {
-    debugPrint('🆕 [DB] onCreate FULL INIT');
+    debugPrint('ًں†• [DB] onCreate FULL INIT');
 
     await UserTables.createAllTables(db);
     await UserTables.createActivationCodesTable(db);
@@ -136,27 +141,27 @@ class DatabaseMigration {
     await PaymentsTables.createAllTables(db);
     await VoucherTables.createAllTables(db);
 
-    // الجــديــد: إنشاء نظام مشتريات كامل
+    // ط§ظ„ط¬ظ€ظ€ط¯ظٹظ€ظ€ط¯: ط¥ظ†ط´ط§ط، ظ†ط¸ط§ظ… ظ…ط´طھط±ظٹط§طھ ظƒط§ظ…ظ„
     await _createPurchaseSchema(db);
     await InsuranceTables.createAllTables(db);
 
-    // P0.010 — permanent data-health infrastructure + canonical settlement schema.
+    // P0.010 â€” permanent data-health infrastructure + canonical settlement schema.
     await _ensureDataHealthSchema(db);
     await _ensureCommercialConfigurationSchema(db);
 
     await AccountingViews.createAllViews(db);
 
-    // P1.001 — create-time normalization finishes inside onCreate.
+    // P1.001 â€” create-time normalization finishes inside onCreate.
     await _postInit(db);
 
-    debugPrint('✅ All tables created successfully');
+    debugPrint('âœ… All tables created successfully');
   }
 
   // ============================================================
-  // 🔼 UPGRADE
+  // ًں”¼ UPGRADE
   // ============================================================
   static Future<void> _onUpgrade(Database db, int oldV, int newV) async {
-    debugPrint('🔼 Upgrade $oldV → $newV');
+    debugPrint('ًں”¼ Upgrade $oldV â†’ $newV');
 
     await UserTables.onUpgrade(db, oldV, newV);
     await RepairTables.onUpgrade(db, oldV, newV);
@@ -172,15 +177,15 @@ class DatabaseMigration {
 
     await InsuranceTables.createAllTables(db);
 
-    // إعادة بناء جدول السندات
+    // ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط¬ط¯ظˆظ„ ط§ظ„ط³ظ†ط¯ط§طھ
     await VoucherTables.createAllTables(db);
 
-    // إضافة نظام المشتريات الجديد
+    // ط¥ط¶ط§ظپط© ظ†ط¸ط§ظ… ط§ظ„ظ…ط´طھط±ظٹط§طھ ط§ظ„ط¬ط¯ظٹط¯
     await _createPurchaseSchema(db);
     await InsuranceTables.createAllTables(db);
 
     // ------------------------------------------------------------
-    // ✅ Upgrade v50 — add remaining to purchases
+    // âœ… Upgrade v50 â€” add remaining to purchases
     // ------------------------------------------------------------
     if (oldV < 50) {
       final info = await db.rawQuery("PRAGMA table_info(purchases)");
@@ -188,16 +193,16 @@ class DatabaseMigration {
           info.any((c) => (c['name'] as String) == 'remaining');
 
       if (!hasRemaining) {
-        debugPrint("🛠 Adding remaining column to purchases…");
+        debugPrint("ًں›  Adding remaining column to purchasesâ€¦");
         await db.execute(
             "ALTER TABLE purchases ADD COLUMN remaining REAL DEFAULT 0;");
-        debugPrint("✅ remaining added to purchases");
+        debugPrint("âœ… remaining added to purchases");
       } else {
-        debugPrint("ℹ remaining already exists — skipping");
+        debugPrint("â„¹ remaining already exists â€” skipping");
       }
     }
 // ------------------------------------------------------------
-    // 🔼 Upgrade v51 — finalize purchase & cheque schema
+    // ًں”¼ Upgrade v51 â€” finalize purchase & cheque schema
     // ------------------------------------------------------------
     if (oldV < 51) {
       await SupplierTables.ensureSuppliersSchema(db);
@@ -206,21 +211,21 @@ class DatabaseMigration {
 
       await ChequeTables.ensureChequesSchema(db);
 
-      // نظام فواتير المشتريات الجديد بالكامل
+      // ظ†ط¸ط§ظ… ظپظˆط§طھظٹط± ط§ظ„ظ…ط´طھط±ظٹط§طھ ط§ظ„ط¬ط¯ظٹط¯ ط¨ط§ظ„ظƒط§ظ…ظ„
       await PurchaseInvoicesTable.createAllTables(db);
       await PurchasePaymentsTable.createAllTables(db);
 
-      // P1.001 — preserve historical purchase detail during upgrade.
+      // P1.001 â€” preserve historical purchase detail during upgrade.
       // Legacy columns may be unused by a newer UI, but migration must never
       // erase customer data merely because a new schema exists.
       debugPrint(
-        "ℹ Upgrade v51: preserving legacy purchase detail columns unchanged",
+        "â„¹ Upgrade v51: preserving legacy purchase detail columns unchanged",
       );
 
-      debugPrint("✅ Upgrade v51 applied successfully");
+      debugPrint("âœ… Upgrade v51 applied successfully");
     }
 // ------------------------------------------------------------
-// 🔼 Upgrade V53 — add remaining to purchase_invoices
+// ًں”¼ Upgrade V53 â€” add remaining to purchase_invoices
 // ------------------------------------------------------------
     if (oldV < 53) {
       final info = await db.rawQuery("PRAGMA table_info(purchase_invoices)");
@@ -228,27 +233,27 @@ class DatabaseMigration {
           info.any((c) => (c['name'] as String) == 'remaining');
 
       if (!hasRemaining) {
-        debugPrint("🛠 Adding remaining column to purchase_invoices…");
+        debugPrint("ًں›  Adding remaining column to purchase_invoicesâ€¦");
         await db.execute(
             "ALTER TABLE purchase_invoices ADD COLUMN remaining REAL DEFAULT 0;");
-        debugPrint("✅ remaining added to purchase_invoices");
+        debugPrint("âœ… remaining added to purchase_invoices");
       } else {
-        debugPrint("ℹ remaining already exists — skipping");
+        debugPrint("â„¹ remaining already exists â€” skipping");
       }
     }
-    // P0.008 — canonical cheque schema/lifecycle upgrade.
+    // P0.008 â€” canonical cheque schema/lifecycle upgrade.
     if (oldV < 56) {
       await ChequeTables.ensureChequesSchema(db);
-      debugPrint("✅ Upgrade v56 cheque lifecycle schema applied");
+      debugPrint("âœ… Upgrade v56 cheque lifecycle schema applied");
     }
 
-    // P0.010 — permanent health/repair infrastructure.
+    // P0.010 â€” permanent health/repair infrastructure.
     if (oldV < 58) {
       await _ensureDataHealthSchema(db);
-      debugPrint("✅ Upgrade v58 data-health schema applied");
+      debugPrint("âœ… Upgrade v58 data-health schema applied");
     }
 
-    // P1.002 — authentication/session/first-owner hardening.
+    // P1.002 â€” authentication/session/first-owner hardening.
     if (oldV < 59) {
       await UserTables.ensureAuthSecuritySchema(db);
 
@@ -261,49 +266,50 @@ class DatabaseMigration {
         WHERE password NOT LIKE 'pbkdf2_sha256$%'
       """);
 
-      debugPrint("✅ Upgrade v59 authentication security schema applied");
+      debugPrint("âœ… Upgrade v59 authentication security schema applied");
     }
 
     if (oldV < 60) {
       await _ensureCommercialConfigurationSchema(db);
-      debugPrint("✅ Upgrade v60 commercial configuration schema applied");
+      debugPrint("âœ… Upgrade v60 commercial configuration schema applied");
     }
 
     // SEC.005 - installation/device identity metadata foundation.
     if (oldV < 64) {
       await DeviceIdentityTables.ensure(db);
-      debugPrint("✅ Upgrade v64 device identity schema applied");
+      debugPrint("âœ… Upgrade v64 device identity schema applied");
     }
 
     // SEC.006 - verified online activation receipt/state.
     if (oldV < 65) {
       await LicenseActivationTables.ensure(db);
-      debugPrint("✅ Upgrade v65 activation state schema applied");
+      debugPrint("âœ… Upgrade v65 activation state schema applied");
     }
 
     // SEC.007 - one-time First Owner bootstrap lifecycle.
     if (oldV < 66) {
       await OwnerBootstrapTables.ensure(db);
-      debugPrint("✅ Upgrade v66 First Owner bootstrap schema applied");
+      debugPrint("âœ… Upgrade v66 First Owner bootstrap schema applied");
     }
 
     // SEC.008 - canonical roles, permissions and enforcement catalog.
     if (oldV < 67) {
       await UserAuthorizationTables.ensure(db);
-      debugPrint("✅ Upgrade v67 users/roles/permissions schema applied");
+      debugPrint("âœ… Upgrade v67 users/roles/permissions schema applied");
     }
 
     // SEC.011 - runtime license projection + DB-level operational write guards.
     if (oldV < 68) {
       await LicenseRuntimeTables.ensure(db);
-      debugPrint("✅ Upgrade v68 expiry/read-only lifecycle guards applied");
+      debugPrint("âœ… Upgrade v68 expiry/read-only lifecycle guards applied");
     }
 
     // SEC.012 - periodic online validation + offline grace enforcement.
     if (oldV < 69) {
       await LicenseValidationTables.ensure(db);
       await LicenseRuntimeTables.upgradeForSec012(db);
-      debugPrint("✅ Upgrade v69 periodic validation/grace enforcement applied");
+      debugPrint(
+          "âœ… Upgrade v69 periodic validation/grace enforcement applied");
     }
 
     await UserTables.createActivationCodesTable(db);
@@ -312,10 +318,10 @@ class DatabaseMigration {
   }
 
   // ============================================================
-  // ♻️ POST INIT
+  // â™»ï¸ڈ POST INIT
   // ============================================================
   static Future<void> _postInit(Database db) async {
-    // P1.001 — this method runs only from onCreate/onUpgrade.
+    // P1.001 â€” this method runs only from onCreate/onUpgrade.
     // Never replay the full historical upgrade chain on every normal startup.
     await SupplierTables.ensureSuppliersSchema(db);
     await RepairTables.ensureRepairsSchema(db);
@@ -349,7 +355,7 @@ class DatabaseMigration {
     await _ensureDataHealthSchema(db);
 
     // ============================================================
-    // 🛠 FIX OLD EMPLOYEE PAYMENTS → EMPLOYEE ADVANCES
+    // ًں›  FIX OLD EMPLOYEE PAYMENTS â†’ EMPLOYEE ADVANCES
     // ============================================================
     await db.execute('''
       UPDATE vouchers
@@ -365,7 +371,7 @@ class DatabaseMigration {
     await AccountingTables.ensureDefaultAccounts(db);
     await _ensureGeneralSupplier(db);
 
-    // ✅ الحل هنا
+    // âœ… ط§ظ„ط­ظ„ ظ‡ظ†ط§
     await UserTables.createActivationCodesTable(db);
 
     await _fixLinkedPaymentIds(db);
@@ -373,7 +379,7 @@ class DatabaseMigration {
   }
 
   // ============================================================
-  // P1.003 — commercial country/currency/VAT/numbering schema
+  // P1.003 â€” commercial country/currency/VAT/numbering schema
   // ============================================================
   static Future<void> _ensureCommercialColumn(
     DatabaseExecutor db,
@@ -411,7 +417,7 @@ class DatabaseMigration {
       SET
         country_code = COALESCE(NULLIF(TRIM(country_code), ''), 'PS'),
         base_currency_code = COALESCE(NULLIF(TRIM(base_currency_code), ''), 'ILS'),
-        currency_symbol = COALESCE(NULLIF(TRIM(currency_symbol), ''), '₪'),
+        currency_symbol = COALESCE(NULLIF(TRIM(currency_symbol), ''), 'â‚ھ'),
         currency_decimals = COALESCE(currency_decimals, 2),
         default_vat_rate = COALESCE(default_vat_rate, 0),
         prices_include_vat = COALESCE(prices_include_vat, 0),
@@ -546,7 +552,7 @@ class DatabaseMigration {
   }
 
   // ============================================================
-  // P0.010 — permanent data-health infrastructure
+  // P0.010 â€” permanent data-health infrastructure
   // ============================================================
   static Future<void> _ensureDataHealthSchema(Database db) async {
     await _ensureCanonicalSettlementSchema(db);
@@ -669,7 +675,7 @@ class DatabaseMigration {
   }
 
   // ============================================================
-  // P1.001 — lifecycle validation / close / reopen
+  // P1.001 â€” lifecycle validation / close / reopen
   // ============================================================
   static Future<void> _validateDatabase(Database db) async {
     final version = Sqflite.firstIntValue(
@@ -732,7 +738,7 @@ class DatabaseMigration {
       try {
         await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
       } catch (e) {
-        debugPrint('⚠️ WAL checkpoint before close failed: $e');
+        debugPrint('âڑ ï¸ڈ WAL checkpoint before close failed: $e');
       }
     }
 
@@ -756,25 +762,25 @@ class DatabaseMigration {
     final path = await DatabaseConstants.dbFilePath();
     await deleteDatabase(path);
     await database;
-    debugPrint('✅ Development DB reset completed');
+    debugPrint('âœ… Development DB reset completed');
   }
 
   // ============================================================
-  // 🧐 Debug
+  // ًں§گ Debug
   // ============================================================
   static Future<void> _debugDump(Database db) async {
     final tables = await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-    debugPrint('📋 DB Tables:');
+    debugPrint('ًں“‹ DB Tables:');
     for (final t in tables) {
       final name = t['name'] as String;
       final count = await db.rawQuery("SELECT COUNT(*) c FROM $name");
-      debugPrint('  • $name: ${count.first['c']}');
+      debugPrint('  â€¢ $name: ${count.first['c']}');
     }
   }
 
   // ============================================================
-  // 🛠 FIX old column
+  // ًں›  FIX old column
   // ============================================================
   static Future<void> _fixLinkedPaymentIds(Database db) async {
     final info = await db.rawQuery("PRAGMA table_info(cheques)");
@@ -785,21 +791,21 @@ class DatabaseMigration {
 
     if (hasCorrect) return;
 
-    debugPrint("🛠 إصلاح linked_payment_ids…");
+    debugPrint("ًں›  ط¥طµظ„ط§ط­ linked_payment_idsâ€¦");
 
     if (hasOld) {
       await db.execute(
           "ALTER TABLE cheques RENAME COLUMN linked_payment_id TO linked_payment_ids;");
-      debugPrint("✔ إعادة تسمية العمود تمت بنجاح");
+      debugPrint("âœ” ط¥ط¹ط§ط¯ط© طھط³ظ…ظٹط© ط§ظ„ط¹ظ…ظˆط¯ طھظ…طھ ط¨ظ†ط¬ط§ط­");
       return;
     }
 
     await db.execute("ALTER TABLE cheques ADD COLUMN linked_payment_ids TEXT;");
-    debugPrint("✔ تم إنشاء linked_payment_ids");
+    debugPrint("âœ” طھظ… ط¥ظ†ط´ط§ط، linked_payment_ids");
   }
 
   // ============================================================
-  // 📦 نظام المشتريات الجديد — CREATE
+  // ًں“¦ ظ†ط¸ط§ظ… ط§ظ„ظ…ط´طھط±ظٹط§طھ ط§ظ„ط¬ط¯ظٹط¯ â€” CREATE
   // ============================================================
   static Future<void> _createPurchaseSchema(DatabaseExecutor db) async {
     await PurchaseInvoicesTable.createAllTables(db);
@@ -807,7 +813,7 @@ class DatabaseMigration {
   }
 
   // ============================================================
-// 🧩 Ensure vouchers.source & source_id (BACKWARD COMPATIBLE)
+// ًں§© Ensure vouchers.source & source_id (BACKWARD COMPATIBLE)
 // ============================================================
   static Future<void> _ensureVoucherExtraColumns(Database db) async {
     final cols = await db.rawQuery("PRAGMA table_info(vouchers)");
@@ -816,12 +822,12 @@ class DatabaseMigration {
     final hasSourceId = cols.any((c) => c['name']?.toString() == 'source_id');
 
     if (!hasSource) {
-      debugPrint("🛠 Adding column vouchers.source");
+      debugPrint("ًں›  Adding column vouchers.source");
       await db.execute("ALTER TABLE vouchers ADD COLUMN source TEXT;");
     }
 
     if (!hasSourceId) {
-      debugPrint("🛠 Adding column vouchers.source_id");
+      debugPrint("ًں›  Adding column vouchers.source_id");
       await db.execute("ALTER TABLE vouchers ADD COLUMN source_id TEXT;");
     }
   }
