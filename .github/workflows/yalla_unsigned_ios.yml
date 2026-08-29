@@ -171,14 +171,28 @@ jobs:
             exit 1
           fi
 
+      - name: Verify licensing build configuration
+        run: |
+          set -euo pipefail
+          if grep -R "https://f061271c2ec96c.lhr.life\|aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091" .github/workflows/yalla_unsigned_ios.yml; then
+            echo "ERROR: licensing placeholders were not replaced"
+            exit 1
+          fi
+          echo "Test licensing build configuration: PRESENT"
+
       - name: Build unsigned iOS release
         run: |
           set -euo pipefail
           flutter config --no-enable-swift-package-manager
+          echo "Licensing endpoint: https://f061271c2ec96c.lhr.life"
+          echo "Pinned test signing-key SHA256: aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091"
+
           flutter build ios \
             --release \
             --no-codesign \
-            --build-number "${GITHUB_RUN_NUMBER}"
+            --build-number "${GITHUB_RUN_NUMBER}" \
+            --dart-define=YALLA_LICENSING_BASE_URL=https://f061271c2ec96c.lhr.life \
+            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091
 
       - name: Verify app and brand
         run: |
