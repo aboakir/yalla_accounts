@@ -36,31 +36,50 @@ jobs:
           flutter config --no-enable-swift-package-manager
           flutter config --list | grep -i swift || true
 
-      - name: Remove unused speech_to_text from iPhone test snapshot
+      - name: Remove unused speech_to_text safely from iPhone test snapshot
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           p = Path("pubspec.yaml")
-          s = p.read_text()
+          text = p.read_text()
+          lines = text.splitlines(keepends=True)
 
-          matches = re.findall(r"(?m)^\s*speech_to_text\s*:\s*\^?6\.6\.0\s*$", s)
+          target = "  speech_to_text: ^6.6.0"
+          matches = [
+              i for i, line in enumerate(lines)
+              if line.rstrip("\r\n") == target
+          ]
+
           if len(matches) != 1:
-              raise SystemExit(f"Expected exactly one speech_to_text 6.6.0 dependency line; found {len(matches)}")
+              raise SystemExit(
+                  f"Expected exactly one exact dependency line {target!r}; found {len(matches)}"
+              )
 
-          s2 = re.sub(
-              r"(?m)^\s*speech_to_text\s*:\s*\^?6\.6\.0\s*\n?",
-              "",
-              s,
-              count=1,
-          )
-          p.write_text(s2)
+          idx = matches[0]
+          del lines[idx]
+          updated = "".join(lines)
+
+          # Guard against the R5 failure mode: never damage indentation
+          # of the following dependency or any other top-level dependency line.
+          if "\nflutter_slidable:" in updated or updated.startswith("flutter_slidable:"):
+              raise SystemExit("Indentation guard failed: flutter_slidable lost dependency indentation")
+
+          if "  flutter_slidable: ^3.1.0" not in updated:
+              raise SystemExit("Expected flutter_slidable dependency line not preserved exactly")
+
+          if "speech_to_text:" in updated:
+              raise SystemExit("speech_to_text dependency still present after exact line removal")
+
+          p.write_text(updated)
           PY
 
-          if grep -n "speech_to_text" pubspec.yaml; then
-            echo "ERROR: speech_to_text still present in pubspec.yaml"
+          echo "Dependency edit verification:"
+          grep -n -E "badges:|flutter_slidable:|url_launcher:" pubspec.yaml
+
+          if grep -n "^flutter_slidable:" pubspec.yaml; then
+            echo "ERROR: malformed pubspec indentation detected"
             exit 1
           fi
 
