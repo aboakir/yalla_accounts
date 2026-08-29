@@ -1,0 +1,15 @@
+﻿.dart_tool/
+build/
+coverage/
+.flutter-plugins-dependencies
+**/ephemeral/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+.env
+.env.*
+*.p12
+*.pfx
+*.pem
+*.mobileprovision

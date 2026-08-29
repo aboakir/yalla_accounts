@@ -1,0 +1,124 @@
+name: Yalla Accounts Unsigned iPhone
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_unsigned_ios:
+    name: build_unsigned_ios
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Toolchain diagnostics
+        run: |
+          set -euo pipefail
+          flutter --version
+          dart --version
+          xcodebuild -version
+          pod --version
+
+      - name: Resolve Flutter dependencies
+        run: |
+          set -euo pipefail
+          flutter pub get
+
+      - name: Prepare iOS project
+        run: |
+          set -euo pipefail
+
+          if [ ! -f ios/Podfile ]; then
+            cp ci/Podfile ios/Podfile
+          fi
+
+          # Current desktop project used iOS 12. Raise only the build snapshot
+          # to iOS 13 for contemporary Flutter/plugin compatibility.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("ios/Runner.xcodeproj/project.pbxproj")
+          s = p.read_text()
+          s = s.replace("IPHONEOS_DEPLOYMENT_TARGET = 12.0;", "IPHONEOS_DEPLOYMENT_TARGET = 13.0;")
+          p.write_text(s)
+          PY
+
+          PLIST="ios/Runner/Info.plist"
+          add_plist_string () {
+            local key="$1"
+            local value="$2"
+            if ! /usr/libexec/PlistBuddy -c "Print :$key" "$PLIST" >/dev/null 2>&1; then
+              /usr/libexec/PlistBuddy -c "Add :$key string $value" "$PLIST"
+            fi
+          }
+
+          add_plist_string NSCameraUsageDescription "Yalla Accounts uses the camera to attach business documents and images."
+          add_plist_string NSPhotoLibraryUsageDescription "Yalla Accounts uses your photo library to attach business documents and images."
+          add_plist_string NSMicrophoneUsageDescription "Yalla Accounts may use the microphone for supported voice input."
+          add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts may use speech recognition for supported voice input."
+
+      - name: Install CocoaPods
+        run: |
+          set -euo pipefail
+          cd ios
+          pod install --repo-update
+
+      - name: Build unsigned iOS release
+        run: |
+          set -euo pipefail
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --build-number "${GITHUB_RUN_NUMBER}"
+
+      - name: Verify app and brand
+        run: |
+          set -euo pipefail
+          APP="build/ios/iphoneos/Runner.app"
+          test -d "$APP"
+          test -f "$APP/Info.plist"
+          echo "Built app: $APP"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist"
+
+      - name: Create unsigned IPA
+        run: |
+          set -euo pipefail
+          rm -rf dist Payload
+          mkdir -p dist Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+          ditto -c -k --sequesterRsrc --keepParent Payload dist/Yalla_Accounts_Unsigned_iPhone.ipa
+          shasum -a 256 dist/Yalla_Accounts_Unsigned_iPhone.ipa | tee dist/SHA256.txt
+
+          python3 - <<'PY'
+          import json, os
+          manifest = {
+            "product": "Yalla Accounts",
+            "artifact": "Yalla_Accounts_Unsigned_iPhone.ipa",
+            "codesigned": False,
+            "build_mode": "release",
+            "github_run_number": os.environ.get("GITHUB_RUN_NUMBER"),
+            "source_commit": os.environ.get("GITHUB_SHA"),
+          }
+          open("dist/build_manifest.json","w").write(json.dumps(manifest, indent=2))
+          PY
+
+      - name: Upload unsigned iPhone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yalla-Accounts-Unsigned-iPhone
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
