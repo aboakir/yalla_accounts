@@ -10,7 +10,6 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
-import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class YallaScaffold extends StatelessWidget {
@@ -30,6 +29,7 @@ class YallaScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final routeName = currentRoute ?? ModalRoute.of(context)?.settings.name;
+    final isDesktop = context.isDesktopWidth;
 
     return Scaffold(
       appBar: YallaAppBar(
@@ -38,15 +38,24 @@ class YallaScaffold extends StatelessWidget {
         showSearch: true,
         showUserAvatar: true,
       ),
-      drawer: Responsive.isMobile(context)
-          ? Drawer(child: YallaSidebar(currentRoute: routeName))
+      drawer: !isDesktop
+          ? Drawer(
+              child: SafeArea(
+                child: YallaSidebar(currentRoute: routeName),
+              ),
+            )
           : null,
-      body: AdaptiveRow(
-        children: [
-          if (Responsive.isDesktop(context))
-            SizedBox(width: 280, child: YallaSidebar(currentRoute: routeName)),
-          Expanded(child: body),
-        ],
+      body: SafeArea(
+        child: AdaptiveRow(
+          children: [
+            if (isDesktop)
+              SizedBox(
+                width: 300,
+                child: YallaSidebar(currentRoute: routeName),
+              ),
+            Expanded(child: body),
+          ],
+        ),
       ),
     );
   }

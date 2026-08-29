@@ -9,11 +9,13 @@ import 'package:yalla_accounts/features/settings/providers/workshop_settings_pro
 class SidebarHeader extends ConsumerStatefulWidget {
   final bool isCollapsed;
   final VoidCallback onToggle;
+  final bool showToggle;
 
   const SidebarHeader({
     super.key,
     required this.isCollapsed,
     required this.onToggle,
+    this.showToggle = true,
   });
 
   @override
@@ -57,33 +59,34 @@ class _SidebarHeaderState extends ConsumerState<SidebarHeader> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // زر الطيّ
-          Align(
-            alignment: Alignment.centerLeft,
-            child: InkWell(
-              onTap: widget.onToggle,
-              borderRadius: BorderRadius.circular(8),
-              child: Ink(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: AnimatedRotation(
-                    turns: widget.isCollapsed ? 0 : 0.5,
-                    duration: const Duration(milliseconds: 160),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 17,
+          // زر الطيّ — Desktop only. Mobile/tablet drawers stay expanded.
+          if (widget.showToggle)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: InkWell(
+                onTap: widget.onToggle,
+                borderRadius: BorderRadius.circular(8),
+                child: Ink(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: AnimatedRotation(
+                      turns: widget.isCollapsed ? 0 : 0.5,
+                      duration: const Duration(milliseconds: 160),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 17,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
 
           if (!widget.isCollapsed) ...[
             const SizedBox(height: 4),

@@ -209,4 +209,101 @@ void main() {
       reason: 'Quick actions must use one column on mobile.',
     );
   });
+
+  test('mobile navigation remains reachable on phone and tablet', () {
+    final dashboard = File(
+      'lib/features/home/screens/dashboard_screen.dart',
+    ).readAsStringSync();
+    final appBar = File(
+      'lib/core/widgets/yalla_appbar.dart',
+    ).readAsStringSync();
+    final sidebar = File(
+      'lib/core/widgets/sidebar/yalla_sidebar.dart',
+    ).readAsStringSync();
+    final sidebarHeader = File(
+      'lib/core/widgets/sidebar/sidebar_header.dart',
+    ).readAsStringSync();
+    final yallaScaffold = File(
+      'lib/core/widgets/yalla_scaffold.dart',
+    ).readAsStringSync();
+    final responsiveScaffold = File(
+      'lib/shared/widgets/responsive_scaffold.dart',
+    ).readAsStringSync();
+
+    expect(
+      dashboard,
+      contains("Key('yalla_mobile_menu_button')"),
+      reason: 'Dashboard must expose a visible phone/tablet menu button.',
+    );
+    expect(
+      dashboard,
+      contains('Scaffold.of(headerContext).openDrawer()'),
+      reason: 'Dashboard menu button must actually open the drawer.',
+    );
+    expect(
+      dashboard,
+      contains('body: SafeArea('),
+      reason: 'Dashboard content/header must stay below the iOS status bar.',
+    );
+
+    expect(
+      RegExp(r'scaffold\.widget\.drawer\s*!=\s*null').hasMatch(appBar),
+      isTrue,
+    );
+    expect(
+      RegExp(r'scaffold\.widget\.endDrawer\s*!=\s*null').hasMatch(appBar),
+      isTrue,
+    );
+    expect(
+      RegExp(r'scaffold\s*\.\s*openDrawer\s*\(\s*\)').hasMatch(appBar),
+      isTrue,
+    );
+    expect(
+      RegExp(r'scaffold\s*\.\s*openEndDrawer\s*\(\s*\)').hasMatch(appBar),
+      isTrue,
+    );
+
+    expect(
+      RegExp(
+        r'scaffoldState\?\s*\.\s*isEndDrawerOpen\s*==\s*true',
+        multiLine: true,
+      ).hasMatch(sidebar),
+      isTrue,
+      reason: 'Sidebar must detect and close an open endDrawer too.',
+    );
+    expect(
+      RegExp(
+        r'navigator\s*\.\s*pushReplacementNamed\s*\(\s*route\s*\)',
+        multiLine: true,
+      ).hasMatch(sidebar),
+      isTrue,
+      reason:
+          'Sidebar must preserve stable route replacement after the drawer closes.',
+    );
+    expect(
+      RegExp(r'context\.isDesktopWidth\s*\?').hasMatch(sidebar),
+      isTrue,
+    );
+    expect(
+      sidebarHeader,
+      contains('if (widget.showToggle)'),
+      reason: 'Mobile drawer must not expose the desktop collapse control.',
+    );
+
+    expect(
+      RegExp(r'drawer\s*:\s*!isDesktop').hasMatch(yallaScaffold),
+      isTrue,
+      reason: 'Tablet widths below 1024 must retain drawer navigation.',
+    );
+    expect(
+      RegExp(r'drawer\s*:\s*!isWide').hasMatch(responsiveScaffold),
+      isTrue,
+      reason: 'ResponsiveScaffold compact navigation must use a real drawer.',
+    );
+    expect(
+      RegExp(r'endDrawer\s*:\s*!isWide').hasMatch(responsiveScaffold),
+      isFalse,
+      reason: 'Do not split compact navigation between drawer conventions.',
+    );
+  });
 }

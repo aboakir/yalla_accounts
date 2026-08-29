@@ -80,12 +80,23 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   Widget _defaultLeading(BuildContext context) {
     final scaffold = Scaffold.maybeOf(context);
-    final hasDrawer = scaffold?.hasDrawer ?? false;
-    if (!hasDrawer) return const SizedBox.shrink();
+    if (scaffold == null) return const SizedBox.shrink();
+
+    final hasDrawer = scaffold.widget.drawer != null;
+    final hasEndDrawer = scaffold.widget.endDrawer != null;
+    if (!hasDrawer && !hasEndDrawer) return const SizedBox.shrink();
+
     return IconButton(
+      key: const Key('yalla_appbar_mobile_menu_button'),
       icon: const Icon(Icons.menu, color: Colors.white),
       tooltip: 'القائمة الجانبية',
-      onPressed: () => _handle(scaffold?.openDrawer),
+      onPressed: () => _handle(() {
+        if (hasDrawer) {
+          scaffold.openDrawer();
+        } else {
+          scaffold.openEndDrawer();
+        }
+      }),
     );
   }
 

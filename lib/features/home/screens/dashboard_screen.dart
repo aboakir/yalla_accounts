@@ -186,7 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 1100;
+    final isDesktop = context.isDesktopWidth;
 
     if (_loading) {
       return const Scaffold(
@@ -196,34 +196,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FA),
-      drawer: isDesktop ? null : const YallaSidebar(),
-      body: AdaptiveRow(
-        children: [
-          if (isDesktop) const YallaSidebar(),
-          Expanded(
-            child: Column(
-              children: [
-                _buildHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const QuickStats(),
-                        const SizedBox(height: 32),
-                        _buildProfitAndShortcuts(),
-                        const SizedBox(height: 32),
-                        _buildMonthlyChart(),
-                      ],
+      drawer: isDesktop
+          ? null
+          : const Drawer(
+              child: SafeArea(
+                child: YallaSidebar(currentRoute: AppRoutes.dashboard),
+              ),
+            ),
+      body: SafeArea(
+        child: AdaptiveRow(
+          children: [
+            if (isDesktop)
+              const SizedBox(
+                width: 300,
+                child: YallaSidebar(currentRoute: AppRoutes.dashboard),
+              ),
+            Expanded(
+              child: Column(
+                children: [
+                  _buildHeader(isDesktop),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const QuickStats(),
+                          const SizedBox(height: 32),
+                          _buildProfitAndShortcuts(),
+                          const SizedBox(height: 32),
+                          _buildMonthlyChart(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -231,7 +243,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ---------------------------------------------------------------------------
   // HEADER
   // ---------------------------------------------------------------------------
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isDesktop) {
     return Container(
       height: 65,
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -248,11 +260,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: AdaptiveRow(
         children: [
-          const Text(
-            "لوحة التحكم",
-            style: TextStyle(color: Colors.white, fontSize: 20),
+          Expanded(
+            child: AdaptiveRow(
+              children: [
+                if (!isDesktop)
+                  Builder(
+                    builder: (headerContext) => IconButton(
+                      key: const Key('yalla_mobile_menu_button'),
+                      tooltip: 'القائمة',
+                      onPressed: () => Scaffold.of(headerContext).openDrawer(),
+                      icon: const Icon(Icons.menu, color: Colors.white),
+                    ),
+                  ),
+                const Text(
+                  "لوحة التحكم",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white, fontSize: 20),
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
           IconButton(
             onPressed: _loadAll,
             icon: const Icon(Icons.refresh, color: Colors.white),

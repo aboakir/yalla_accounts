@@ -50,12 +50,12 @@ class ResponsiveScaffold extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: appBarActions,
-        // عند الشاشات الضيقة نُظهر زر الفتح من اليمين (endDrawer)
+        // عند الشاشات الضيقة نُظهر زر فتح القائمة الجانبية
         leading: !isWide
             ? Builder(
                 builder: (ctx) => IconButton(
                   icon: const Icon(Icons.menu),
-                  onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                  onPressed: () => Scaffold.of(ctx).openDrawer(),
                   tooltip: 'القائمة',
                 ),
               )
@@ -63,7 +63,7 @@ class ResponsiveScaffold extends StatelessWidget {
       ),
 
       // Drawer يظهر على الشاشات الضيقة فقط
-      endDrawer: !isWide
+      drawer: !isWide
           ? Drawer(
               child: SafeArea(
                 child: YallaSidebar(currentRoute: currentRoute),

@@ -182,7 +182,14 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   Future<void> _restoreCollapse() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getBool('sidebar_collapsed') ?? false;
+    if (!mounted) return;
+
+    // Collapse is a desktop-only affordance. A saved collapsed desktop state
+    // must never turn the phone/tablet drawer into an icon-only strip.
+    final saved = context.isDesktopWidth
+        ? (prefs.getBool('sidebar_collapsed') ?? false)
+        : false;
+
     setState(() {
       _isCollapsed = saved;
       if (_isCollapsed) {
@@ -199,6 +206,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   }
 
   void _toggleCollapse() {
+    if (!context.isDesktopWidth) return;
+
     setState(() {
       _isCollapsed = !_isCollapsed;
       if (_isCollapsed) {
@@ -211,9 +220,9 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   }
 
   void _navigate(String route) async {
-    print("NAVIGATING TO: $route"); // <===== هذا الذي كنت أطلبه
+    print("NAVIGATING TO: $route");
 
-    if (_isNavigating) return;
+    if (_isNavigating || route.isEmpty) return;
 
     // ✅ شرط خاص بإضافة إصلاح جديد
     if (route == rRepairsAdd) {
@@ -222,21 +231,37 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       if (!allowed) return;
     }
 
+    if (!mounted) return;
+
+    final navigator = Navigator.of(context);
+    final scaffoldState = Scaffold.maybeOf(context);
+    final drawerIsOpen = scaffoldState?.isDrawerOpen == true ||
+        scaffoldState?.isEndDrawerOpen == true;
     final current =
         ModalRoute.of(context)?.settings.name ?? widget.currentRoute;
-    if (route.isEmpty || current == route) return;
+
+    // Even when the requested route is already active, tapping it from the
+    // drawer must close the drawer instead of appearing to do nothing.
+    if (current == route) {
+      if (drawerIsOpen) navigator.pop();
+      return;
+    }
 
     _isNavigating = true;
-
-    final scaffoldState = Scaffold.maybeOf(context);
-    if (scaffoldState?.isDrawerOpen == true) {
-      Navigator.of(context).pop();
+    if (drawerIsOpen) {
+      navigator.pop();
     }
+
     print(">>> SIDEBAR NAVIGATE TO: $route");
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Navigator.of(context)
-          .popAndPushNamed(route)
+      if (!mounted) {
+        _isNavigating = false;
+        return;
+      }
+
+      navigator
+          .pushReplacementNamed(route)
           .catchError((_) {})
           .whenComplete(() => _isNavigating = false);
     });
@@ -480,6 +505,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
               SidebarHeader(
                 isCollapsed: _isCollapsed,
                 onToggle: _toggleCollapse,
+                showToggle: context.isDesktopWidth,
               ),
 // إخفاء مربع البحث بدون حذفه
               Visibility(
