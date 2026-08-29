@@ -174,24 +174,39 @@ jobs:
       - name: Verify licensing build configuration
         run: |
           set -euo pipefail
-          if grep -R "https://f061271c2ec96c.lhr.life\|aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091" .github/workflows/yalla_unsigned_ios.yml; then
-            echo "ERROR: licensing placeholders were not replaced"
+
+          # Split the marker literals so the verifier cannot match its own
+          # source line after the workflow template is rendered.
+          base_marker="__YALLA""_BASE_URL__"
+          key_marker="__YALLA""_KEY_HASH__"
+
+          if grep -F "$base_marker" .github/workflows/yalla_unsigned_ios.yml; then
+            echo "ERROR: YALLA licensing URL placeholder was not replaced"
             exit 1
           fi
+
+          if grep -F "$key_marker" .github/workflows/yalla_unsigned_ios.yml; then
+            echo "ERROR: YALLA signing-key placeholder was not replaced"
+            exit 1
+          fi
+
+          grep -F -- "--dart-define=YALLA_LICENSING_BASE_URL=https://" .github/workflows/yalla_unsigned_ios.yml >/dev/null
+          grep -E -- "--dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=[0-9a-f]{64}" .github/workflows/yalla_unsigned_ios.yml >/dev/null
+
           echo "Test licensing build configuration: PRESENT"
 
       - name: Build unsigned iOS release
         run: |
           set -euo pipefail
           flutter config --no-enable-swift-package-manager
-          echo "Licensing endpoint: https://f061271c2ec96c.lhr.life"
+          echo "Licensing endpoint: https://48171af98adfd7.lhr.life"
           echo "Pinned test signing-key SHA256: aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091"
 
           flutter build ios \
             --release \
             --no-codesign \
             --build-number "${GITHUB_RUN_NUMBER}" \
-            --dart-define=YALLA_LICENSING_BASE_URL=https://f061271c2ec96c.lhr.life \
+            --dart-define=YALLA_LICENSING_BASE_URL=https://48171af98adfd7.lhr.life \
             --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091
 
       - name: Verify app and brand
