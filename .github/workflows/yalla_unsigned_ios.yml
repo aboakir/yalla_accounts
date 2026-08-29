@@ -90,6 +90,11 @@ jobs:
           rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
           flutter pub get
 
+      - name: Verify iOS database architecture contract
+        run: |
+          set -euo pipefail
+          flutter test test/commercial/ios_database_architecture_contract_test.dart
+
       - name: Force iOS 15 CocoaPods modular headers
         run: |
           set -euo pipefail

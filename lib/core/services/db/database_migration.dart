@@ -14,6 +14,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_constants.dart';
+import 'database_platform_policy.dart';
 
 // ط·آ§ط¸â€‍ط·آ¬ط·آ¯ط·آ§ط¸ث†ط¸â€‍ ط·آ§ط¸â€‍ط·آ­ط·آ§ط¸â€‍ط¸ظ¹ط·آ©
 import 'tables/user_tables.dart';
@@ -116,18 +117,7 @@ class DatabaseMigration {
 
   // ============================================================
   static Future<void> _onConfigure(Database db) async {
-    await db.execute('PRAGMA foreign_keys = ON;');
-    // SqfliteDarwin may reject journal_mode=WAL during onConfigure on iOS.
-    // Preserve the existing WAL policy on Windows/other platforms.
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      await db.execute('PRAGMA journal_mode = WAL;');
-    }
-    await db.execute('PRAGMA synchronous = NORMAL;');
-    // SqfliteDarwin can surface Code=0 ('not an error') for busy_timeout
-    // during onConfigure. Preserve the existing timeout policy elsewhere.
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      await db.execute('PRAGMA busy_timeout = 5000;');
-    }
+    await DatabasePlatformPolicy.configure(db);
   }
 
   // ============================================================
@@ -747,9 +737,9 @@ class DatabaseMigration {
 
     if (checkpoint) {
       try {
-        await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
+        await DatabasePlatformPolicy.checkpoint(db);
       } catch (e) {
-        debugPrint('أ¢ع‘آ أ¯آ¸عˆ WAL checkpoint before close failed: $e');
+        debugPrint('⚠️ WAL checkpoint before close failed: $e');
       }
     }
 

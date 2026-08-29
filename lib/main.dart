@@ -101,10 +101,7 @@ Future<void> _bootstrap() async {
       },
     );
 
-    await db.execute('PRAGMA journal_mode=WAL;');
-    await db.execute('PRAGMA busy_timeout=8000;');
-    await db.execute('PRAGMA foreign_keys=ON;');
-
+    // SQLite runtime configuration is owned by DatabaseMigration.
     await WorkshopSettingsService.createTable(db);
     await DBService.ensureDefaultAccountsExist();
     await CommercialSettingsService.instance.get();

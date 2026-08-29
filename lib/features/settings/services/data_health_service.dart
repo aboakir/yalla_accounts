@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db/database_constants.dart';
+import 'package:yalla_accounts/core/services/db/database_platform_policy.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 
 enum DataHealthStatus {
@@ -1603,14 +1604,14 @@ class DataHealthService {
     final backupPath = '${backupDir.path}${Platform.pathSeparator}'
         'yalla_accounts_health_${_fileStamp(DateTime.now())}.db';
 
-    await db.rawQuery('PRAGMA wal_checkpoint(FULL)');
+    await DatabasePlatformPolicy.checkpoint(db, mode: 'FULL');
 
     final escapedBackupPath = backupPath.replaceAll("'", "''");
 
     try {
       await db.execute("VACUUM INTO '$escapedBackupPath'");
     } catch (_) {
-      await db.rawQuery('PRAGMA wal_checkpoint(TRUNCATE)');
+      await DatabasePlatformPolicy.checkpoint(db);
       final sourcePath = await DatabaseConstants.dbFilePath();
       await File(sourcePath).copy(backupPath);
     }
