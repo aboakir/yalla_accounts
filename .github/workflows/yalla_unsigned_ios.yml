@@ -30,32 +30,48 @@ jobs:
           xcodebuild -version
           pod --version
 
-      - name: Resolve Flutter dependencies
+      - name: Disable Flutter Swift Package Manager
         run: |
           set -euo pipefail
+          flutter config --no-enable-swift-package-manager
+          flutter config --list | grep -i swift || true
+
+      - name: Clean and resolve Flutter dependencies
+        run: |
+          set -euo pipefail
+          flutter clean
+          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
           flutter pub get
 
-      - name: Force iOS 15 deployment target
+      - name: Force iOS 15 and CocoaPods-only project
         run: |
           set -euo pipefail
+
           rm -f ios/Podfile
           cp ci/Podfile ios/Podfile
 
           python3 - <<'PY'
           from pathlib import Path
           import re
+
           p = Path("ios/Runner.xcodeproj/project.pbxproj")
           s = p.read_text()
+
+          # iOS 15 minimum.
           s = re.sub(
               r"IPHONEOS_DEPLOYMENT_TARGET\s*=\s*[0-9.]+\s*;",
               "IPHONEOS_DEPLOYMENT_TARGET = 15.0;",
               s,
           )
-          p.write_text(s)
-          PY
 
-          grep -n "platform :ios" ios/Podfile
-          grep -n "IPHONEOS_DEPLOYMENT_TARGET = 15.0;" ios/Runner.xcodeproj/project.pbxproj | head
+          # Remove any transient FlutterGeneratedPluginSwiftPackage references
+          # if the project snapshot ever acquired them.
+          lines = [
+              line for line in s.splitlines()
+              if "FlutterGeneratedPluginSwiftPackage" not in line
+          ]
+          p.write_text("\n".join(lines) + "\n")
+          PY
 
           PLIST="ios/Runner/Info.plist"
           add_plist_string () {
@@ -69,18 +85,39 @@ jobs:
           add_plist_string NSCameraUsageDescription "Yalla Accounts uses the camera to attach business documents and images."
           add_plist_string NSPhotoLibraryUsageDescription "Yalla Accounts uses your photo library to attach business documents and images."
           add_plist_string NSMicrophoneUsageDescription "Yalla Accounts may use the microphone for supported voice input."
-          add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts may use speech recognition for supported voice input."
+          add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts uses speech recognition for supported voice input."
 
-      - name: Install CocoaPods
+          echo "Podfile platform:"
+          grep -n "platform :ios" ios/Podfile
+          echo "Deployment targets:"
+          grep -n "IPHONEOS_DEPLOYMENT_TARGET = 15.0;" ios/Runner.xcodeproj/project.pbxproj | head
+
+      - name: Install CocoaPods cleanly
         run: |
           set -euo pipefail
           cd ios
-          rm -rf Pods Podfile.lock
+          pod deintegrate || true
+          rm -rf Pods Podfile.lock .symlinks
+          cd ..
+          flutter pub get
+          cd ios
           pod install --repo-update
+
+      - name: Verify speech_to_text CocoaPods integration
+        run: |
+          set -euo pipefail
+          test -d ios/Pods
+          test -d ios/.symlinks/plugins/speech_to_text
+          grep -n "speech_to_text" ios/Podfile.lock | head || true
+          if grep -R "FlutterGeneratedPluginSwiftPackage" ios/Runner.xcodeproj/project.pbxproj >/dev/null 2>&1; then
+            echo "ERROR: SwiftPM integration still present in Xcode project"
+            exit 1
+          fi
 
       - name: Build unsigned iOS release
         run: |
           set -euo pipefail
+          flutter config --no-enable-swift-package-manager
           flutter build ios \
             --release \
             --no-codesign \
