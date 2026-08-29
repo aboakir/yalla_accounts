@@ -12,6 +12,7 @@ import 'package:yalla_accounts/features/finance/purchases/screens/purchase_detai
 import 'package:yalla_accounts/features/finance/purchases/screens/purchase_create_screen.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 // ============================================================================
 // FIXED BEHAVIOR — Scroll works with mouse & keyboard
@@ -120,7 +121,7 @@ ORDER BY pi.date DESC;
       child: Scaffold(
         backgroundColor: const Color(0xFFF9FFF6),
         drawer: isDesktop ? null : const Drawer(child: YallaSidebar()),
-        body: Row(
+        body: AdaptiveRow(
           children: [
             if (isDesktop) const YallaSidebar(),
             Expanded(
@@ -175,7 +176,7 @@ ORDER BY pi.date DESC;
 
   // SUMMARY
   Widget _buildSummary() {
-    return Row(
+    return AdaptiveRow(
       children: [
         _sum('إجمالي المشتريات', totalAmount),
         const SizedBox(width: 12),
@@ -243,7 +244,7 @@ ORDER BY pi.date DESC;
               controller: horizontalCtrl,
               scrollDirection: Axis.horizontal,
               primary: false, // ← مهم جداً
-              child: DataTable(
+              child: AdaptiveDataTable(
                 columns: const [
                   DataColumn(label: Text("عرض")),
                   DataColumn(label: Text("المورد")),

@@ -20,6 +20,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 // الاعتماد الجديد والوحيد للـ PDF
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// ============================================================================
 /// DESKTOP SCROLL BEHAVIOR — MUST BE OUTSIDE THE CLASS
@@ -233,7 +234,7 @@ WHERE v.voucher_type = 'PAYMENT'
         showThemeToggle: false,
         showSearch: false,
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const YallaSidebar(currentRoute: '/finance/payment-vouchers'),
@@ -254,7 +255,7 @@ WHERE v.voucher_type = 'PAYMENT'
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
+        return AdaptiveAlertDialog(
           title: const Text("تأكيد الحذف"),
           content: const Text(
             "يمكن حذف السند غير المرحّل فقط. السند المرحّل لا يُحذف؛ "
@@ -358,7 +359,7 @@ WHERE v.voucher_type = 'PAYMENT'
   // KPI CARDS
   // =============================================================================
   Widget _kpiCards() {
-    return Row(
+    return AdaptiveRow(
       children: [
         _kpi("عدد السندات", filtered.length.toString(), Icons.receipt_long),
         const SizedBox(width: 12),
@@ -405,7 +406,7 @@ WHERE v.voucher_type = 'PAYMENT'
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Expanded(
               child: TextField(
@@ -480,7 +481,7 @@ WHERE v.voucher_type = 'PAYMENT'
                 top: Radius.circular(16),
               ),
             ),
-            child: Row(
+            child: AdaptiveRow(
               children: const [
                 Expanded(flex: 1, child: Text("PDF")),
                 Expanded(flex: 1, child: Text("حذف")),
@@ -546,7 +547,7 @@ WHERE v.voucher_type = 'PAYMENT'
                   return Container(
                     padding: const EdgeInsets.symmetric(
                         vertical: 14, horizontal: 18),
-                    child: Row(
+                    child: AdaptiveRow(
                       children: [
                         Expanded(
                           flex: 1,

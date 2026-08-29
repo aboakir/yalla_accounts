@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import '../providers/insurance_calculator_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ResultCard extends StatelessWidget {
   const ResultCard({super.key});
@@ -91,7 +92,7 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(

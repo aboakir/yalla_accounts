@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// شاشة عرض وتحرير صور المركبة.
 /// - تدعم تكبير وتصغير كل صورة (InteractiveViewer).
@@ -86,7 +87,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
   void _deleteImage(int index) async {
     final confirmed = await showDialog<bool>(
           context: context,
-          builder: (_) => AlertDialog(
+          builder: (_) => AdaptiveAlertDialog(
             title: const Text('تأكيد الحذف'),
             content: const Text('هل تريد حذف هذه الصورة؟'),
             actions: [
@@ -149,7 +150,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
     if (!widget.canEdit || !_hasChanges) return true;
     final discard = await showDialog<bool>(
           context: context,
-          builder: (_) => AlertDialog(
+          builder: (_) => AdaptiveAlertDialog(
             title: const Text('إلغاء التعديلات؟'),
             content: const Text('هل تريد الخروج دون حفظ الصور؟'),
             actions: [
@@ -201,7 +202,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
-                      child: Row(
+                      child: AdaptiveRow(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
@@ -271,7 +272,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
-                      child: Row(
+                      child: AdaptiveRow(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
                           _images.length,
@@ -296,7 +297,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
               ? SafeArea(
                   minimum:
                       const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       Expanded(
                         child: OutlinedButton(

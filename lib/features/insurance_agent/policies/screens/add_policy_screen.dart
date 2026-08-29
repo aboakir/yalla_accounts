@@ -18,6 +18,7 @@ import 'package:yalla_accounts/features/insurance_agent/policies/widgets/steps/s
 import 'package:yalla_accounts/features/insurance_agent/policies/widgets/steps/step_review_submit.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/services/insurance_policy_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddPolicyScreen extends StatefulWidget {
   const AddPolicyScreen({super.key});
@@ -174,7 +175,7 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
+              AdaptiveRow(
                 children: [
                   Text(
                     _titleForStep(_step),
@@ -207,7 +208,7 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
 
                     return Padding(
                       padding: const EdgeInsets.only(top: 16),
-                      child: Row(
+                      child: AdaptiveRow(
                         children: [
                           Expanded(
                             child: ElevatedButton(

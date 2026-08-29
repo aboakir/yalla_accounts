@@ -13,6 +13,7 @@ import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/models/salary.dart';
 import 'package:yalla_accounts/features/employees/services/salary_database_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SalaryDetailsScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -119,7 +120,7 @@ class _SalaryDetailsScreenState extends ConsumerState<SalaryDetailsScreen> {
                           _buildHeader(widget.employee, netSalary),
                           const SizedBox(height: 20),
                           isWide
-                              ? Row(
+                              ? AdaptiveRow(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
@@ -151,7 +152,7 @@ class _SalaryDetailsScreenState extends ConsumerState<SalaryDetailsScreen> {
       color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             CircleAvatar(
               radius: 40,
@@ -264,7 +265,7 @@ class _SalaryDetailsScreenState extends ConsumerState<SalaryDetailsScreen> {
   Widget _infoRow(String title, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           const SizedBox(width: 6),
           Expanded(

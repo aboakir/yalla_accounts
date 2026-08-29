@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RecentActivityList extends StatelessWidget {
   const RecentActivityList({super.key});
@@ -131,7 +132,7 @@ class RecentActivityList extends StatelessWidget {
                       size: 22,
                     ),
                   ),
-                  title: Row(
+                  title: AdaptiveRow(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       if (isNew)

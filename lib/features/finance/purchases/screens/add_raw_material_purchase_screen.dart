@@ -16,6 +16,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_invoice_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddRawMaterialPurchaseScreen extends StatefulWidget {
   const AddRawMaterialPurchaseScreen({super.key});
@@ -242,7 +243,7 @@ class _AddRawMaterialPurchaseScreenState
               const SizedBox(height: 16),
 
               // Items header
-              Row(
+              AdaptiveRow(
                 children: [
                   Text('البنود',
                       style: Theme.of(context).textTheme.titleMedium),
@@ -385,7 +386,7 @@ class _AddRawMaterialPurchaseScreenState
               child: YallaSidebar(currentRoute: '/purchases/raw/add'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,
@@ -408,7 +409,7 @@ class _ItemsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(fontWeight: FontWeight.bold);
-    return Row(
+    return AdaptiveRow(
       children: const [
         Expanded(flex: 4, child: Text('اسم المادة', style: style)),
         SizedBox(width: 8),
@@ -444,7 +445,7 @@ class _ItemRowWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = MoneyFormatter.number(_lineTotal());
-    return Row(
+    return AdaptiveRow(
       children: [
         Expanded(
           flex: 4,

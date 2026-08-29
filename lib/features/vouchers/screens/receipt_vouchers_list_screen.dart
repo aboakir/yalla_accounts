@@ -16,6 +16,7 @@ import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/models/workshop_settings.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// ============================================================================
 /// DESKTOP SCROLL BEHAVIOR — MUST BE OUTSIDE ANY CLASS
@@ -181,7 +182,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
         showThemeToggle: false,
         showSearch: false,
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const YallaSidebar(currentRoute: AppRoutes.receiptVouchersList),
@@ -222,7 +223,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   // KPI CARDS
   // =============================================================================
   Widget _kpiCards() {
-    return Row(
+    return AdaptiveRow(
       children: [
         _kpi("عدد السندات", filtered.length.toString(), Icons.receipt_long),
         const SizedBox(width: 12),
@@ -269,7 +270,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Expanded(
               child: TextField(
@@ -342,7 +343,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                 top: Radius.circular(16),
               ),
             ),
-            child: Row(
+            child: AdaptiveRow(
               children: const [
                 Expanded(flex: 1, child: Text("PDF")),
                 Expanded(
@@ -385,7 +386,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                       ),
                     ),
                   ),
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       // PDF
                       Expanded(

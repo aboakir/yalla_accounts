@@ -24,6 +24,7 @@ import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
 import 'cheque_add_screen.dart';
 import 'cheque_details_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesOutgoingScreen extends ConsumerWidget {
   const ChequesOutgoingScreen({super.key});
@@ -49,7 +50,7 @@ class ChequesOutgoingScreen extends ConsumerWidget {
       drawer: isDesktop
           ? null
           : const YallaSidebar(currentRoute: '/cheques/outgoing'),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(currentRoute: '/cheques/outgoing'),
           Expanded(
@@ -110,7 +111,7 @@ class ChequesOutgoingScreen extends ConsumerWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columnSpacing: 22,
         headingRowColor:
             MaterialStateColor.resolveWith((_) => AppColors.primary),
@@ -143,7 +144,7 @@ class ChequesOutgoingScreen extends ConsumerWidget {
               DataCell(Text(df.format(c.dueDate))),
               DataCell(_endorsementStatusCell(c)),
               DataCell(
-                Row(
+                AdaptiveRow(
                   children: [
                     IconButton(
                       icon: const Icon(Icons.visibility),
@@ -202,7 +203,7 @@ class ChequesOutgoingScreen extends ConsumerWidget {
                 const SizedBox(height: 6),
                 _endorsementStatusCell(c),
                 const SizedBox(height: 12),
-                Row(
+                AdaptiveRow(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
@@ -267,7 +268,7 @@ class ChequesOutgoingScreen extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref, Cheque c) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text("حذف الشيك"),
         content: const Text("سيتم حذف الشيك نهائيًا. هل أنت متأكد؟"),
         actions: [

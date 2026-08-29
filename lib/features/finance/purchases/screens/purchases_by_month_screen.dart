@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchasesByMonthScreen extends StatefulWidget {
   const PurchasesByMonthScreen({super.key});
@@ -163,7 +164,7 @@ class _PurchasesByMonthScreenState extends State<PurchasesByMonthScreen> {
                   child: Column(
                     children: [
                       // KPIs
-                      Row(
+                      AdaptiveRow(
                         children: [
                           _kpi('الفترة', periodLabel),
                           const SizedBox(width: 16),

@@ -5,6 +5,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/features/reports/services/export_report_service.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ExportReportScreen extends StatefulWidget {
   const ExportReportScreen({super.key});
@@ -82,7 +83,7 @@ class _ExportReportScreenState extends State<ExportReportScreen> {
               child: YallaSidebar(currentRoute: '/reports/export'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

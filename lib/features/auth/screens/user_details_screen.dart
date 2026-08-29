@@ -9,6 +9,7 @@ import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class UserDetailsScreen extends ConsumerStatefulWidget {
   final AppUser user;
@@ -135,7 +136,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
   }
 
   Widget _buildPhoneNumberField(int index) {
-    return Row(
+    return AdaptiveRow(
       children: [
         Expanded(
           child: TextFormField(
@@ -191,7 +192,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
@@ -287,7 +288,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           scrollDirection: Axis.vertical,
-          child: Row(
+          child: AdaptiveRow(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -390,7 +391,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                           border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
-                    Row(
+                    AdaptiveRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(

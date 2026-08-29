@@ -30,6 +30,7 @@ import 'package:yalla_accounts/features/repairs/services/repair_save_service.dar
 import 'package:yalla_accounts/features/cheques/widgets/cheque_dialog.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddRepairScreen extends ConsumerStatefulWidget {
   const AddRepairScreen({super.key});
@@ -97,7 +98,7 @@ class _AddRepairScreenState extends ConsumerState<AddRepairScreen> {
   void _showImageDialog() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('اختيار الصورة'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -144,7 +145,7 @@ class _AddRepairScreenState extends ConsumerState<AddRepairScreen> {
   }
 
   Widget _stepIndicator() {
-    return Row(
+    return AdaptiveRow(
       children: List.generate(_stepsTitles.length, (i) {
         final active = i <= _currentStep;
         return Expanded(
@@ -274,7 +275,7 @@ class _AddRepairScreenState extends ConsumerState<AddRepairScreen> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تأكيد الحفظ'),
         content: const Text('هل تريد حفظ البيانات بدون نشر GL الآن؟'),
         actions: [
@@ -498,7 +499,7 @@ class _AddRepairScreenState extends ConsumerState<AddRepairScreen> {
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-                child: Row(
+                child: AdaptiveRow(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (_currentStep > 0)

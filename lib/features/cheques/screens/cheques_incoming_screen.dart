@@ -20,6 +20,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 
 import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesIncomingScreen extends ConsumerStatefulWidget {
   const ChequesIncomingScreen({super.key});
@@ -80,7 +81,7 @@ class _ChequesIncomingScreenState extends ConsumerState<ChequesIncomingScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setStateDialog) {
-            return AlertDialog(
+            return AdaptiveAlertDialog(
               title: const Text("تظهير الشيك", textAlign: TextAlign.center),
               content: SizedBox(
                 width: 350,
@@ -107,7 +108,7 @@ class _ChequesIncomingScreenState extends ConsumerState<ChequesIncomingScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    Row(
+                    AdaptiveRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text("تاريخ التظهير:"),
@@ -224,7 +225,7 @@ ORDER BY name ASC
       drawer: isDesktop
           ? null
           : const YallaSidebar(currentRoute: '/cheques/incoming'),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(currentRoute: '/cheques/incoming'),
           Expanded(
@@ -292,7 +293,7 @@ ORDER BY name ASC
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   scrollDirection: Axis.horizontal,
-                  child: DataTable(
+                  child: AdaptiveDataTable(
                     columns: const [
                       DataColumn(label: Text("رقم الشيك")),
                       DataColumn(label: Text("اسم المحرر")),

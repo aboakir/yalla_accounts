@@ -24,6 +24,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ARAgingScreen extends StatefulWidget {
   const ARAgingScreen({super.key});
@@ -379,7 +380,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
           )
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (!isDesktop)
             Builder(
@@ -499,7 +500,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
               ),
             )
           : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop && _showSidebar)
             const SizedBox(
@@ -552,7 +553,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
       return DataColumn(
         label: InkWell(
           onTap: () => _toggleSort(key),
-          child: Row(
+          child: AdaptiveRow(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(title),
@@ -578,7 +579,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
             thumbVisibility: true,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(12),
-              child: DataTable(
+              child: AdaptiveDataTable(
                 headingTextStyle: const TextStyle(fontWeight: FontWeight.bold),
                 columns: [
                   col('العميل', 'client'),
@@ -678,7 +679,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
   Widget _stat(String label, double value, Color color, {bool bold = false}) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -703,7 +704,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
       child: Chip(
         backgroundColor: AppColors.primary,
         labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: Row(
+        label: AdaptiveRow(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: Colors.white),

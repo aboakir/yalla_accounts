@@ -10,6 +10,7 @@ import 'package:yalla_accounts/features/auth/services/auth_session_service.dart'
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/widgets/add_user_dialog.dart';
 import 'package:yalla_accounts/features/auth/widgets/edit_user_dialog.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -111,7 +112,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   Future<void> _deleteUser(AppUser user) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تأكيد التعطيل'),
         content: Text('هل تريد تعطيل المستخدم ${user.name}؟'),
         actions: [
@@ -145,7 +146,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       DataCell(Text(user.email)),
       DataCell(_buildRoleChip(user.role)),
       DataCell(Text(_translateStatus(user.status))),
-      DataCell(Row(children: [
+      DataCell(AdaptiveRow(children: [
         if (_currentView == 'pending')
           IconButton(
             icon: const Icon(Icons.check, color: Colors.green),
@@ -249,7 +250,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: DataTable(
+                child: AdaptiveDataTable(
                   columns: const [
                     DataColumn(label: Text('الاسم')),
                     DataColumn(label: Text('البريد')),

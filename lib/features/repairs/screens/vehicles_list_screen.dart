@@ -11,6 +11,7 @@ import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/features/repairs/screens/add_repair_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/repair_details_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairThumbSmall extends StatelessWidget {
   final String repairId;
@@ -181,7 +182,7 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
         list.fold(0, (s, r) => s + (r.totalFileValue - r.totalPaidAmount));
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           _buildStatsCard('أفراد', ind.length, sumRemaining(ind)),
           _buildStatsCard('تأمين', ins.length, sumRemaining(ins)),
@@ -301,14 +302,14 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(children: [
+      body: AdaptiveRow(children: [
         const YallaSidebar(currentRoute: '/vehicles_list'),
         Expanded(
           child: Column(children: [
             _buildStats(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(children: [
+              child: AdaptiveRow(children: [
                 Expanded(
                   child: TextField(
                     decoration: const InputDecoration(

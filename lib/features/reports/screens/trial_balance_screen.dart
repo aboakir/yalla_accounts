@@ -24,6 +24,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class TrialBalanceScreen extends StatefulWidget {
   const TrialBalanceScreen({super.key});
@@ -261,7 +262,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           )
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (isMobile)
             IconButton(
@@ -278,7 +279,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           ),
           const Spacer(),
           // الرصيد الصافي
-          Row(
+          AdaptiveRow(
             children: [
               const Text('الرصيد الصافي',
                   style: TextStyle(color: Colors.white)),
@@ -291,7 +292,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           ),
           const SizedBox(width: 8),
           // إخفاء الحسابات الصفرية
-          Row(
+          AdaptiveRow(
             children: [
               const Text('إخفاء الصفوف الصفرية',
                   style: TextStyle(color: Colors.white)),
@@ -421,7 +422,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       drawer: Responsive.isMobile(context)
           ? const Drawer(child: YallaSidebar())
           : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!Responsive.isMobile(context))
             const YallaSidebar(currentRoute: '/reports/trial-balance'),
@@ -464,7 +465,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(12),
-        child: DataTable(
+        child: AdaptiveDataTable(
           columns: cols,
           rows: _rows.map((r) {
             final net = r.debit - r.credit;
@@ -582,7 +583,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
   Widget _stat(String label, double value, Color color) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -604,7 +605,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       child: Chip(
         backgroundColor: AppColors.primary,
         labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: Row(
+        label: AdaptiveRow(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: Colors.white),

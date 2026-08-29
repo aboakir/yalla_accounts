@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepPricingPayment extends StatefulWidget {
   final PolicyDraft draft;
@@ -218,7 +219,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
           // ----------------------------
           // Pricing
           // ----------------------------
-          Row(
+          AdaptiveRow(
             children: [
               Expanded(
                 child: _moneyField(
@@ -531,7 +532,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: Text(
@@ -548,7 +549,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               ],
             ),
             const SizedBox(height: 10),
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -586,7 +587,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: TextFormField(
@@ -626,7 +627,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: TextFormField(
@@ -684,7 +685,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: Text(
@@ -701,7 +702,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               ],
             ),
             const SizedBox(height: 10),
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -773,7 +774,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: Text(
@@ -790,7 +791,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               ],
             ),
             const SizedBox(height: 10),
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(

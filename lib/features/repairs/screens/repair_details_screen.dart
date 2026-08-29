@@ -27,6 +27,7 @@ import 'package:yalla_accounts/features/finance/payments/services/payment_servic
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairDetailsScreen extends StatefulWidget {
   final Repair repair;
@@ -231,7 +232,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   Future<void> _confirmFinalApproval() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('اعتماد السعر النهائي'),
         content:
             const Text('هل تريد اعتماد السعر النهائي وتسجيل القيد المحاسبي؟'),
@@ -283,7 +284,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setM) => AlertDialog(
+        builder: (ctx, setM) => AdaptiveAlertDialog(
           title: const Text('إضافة دفعة'),
           content: SingleChildScrollView(
             child: Column(
@@ -308,7 +309,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   decoration: InputDecoration(labelText: 'طريقة الدفع'),
                 ),
                 const SizedBox(height: 10),
-                Row(
+                AdaptiveRow(
                   children: [
                     const Text('التاريخ: '),
                     TextButton(
@@ -554,7 +555,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   onInvoke: (intent) async {
                     final ok = await showDialog<bool>(
                       context: dlgCtx,
-                      builder: (_) => AlertDialog(
+                      builder: (_) => AdaptiveAlertDialog(
                         title: const Text('حذف الصورة'),
                         content: const Text('هل تريد حذف هذه الصورة نهائيًا؟'),
                         actions: [
@@ -745,7 +746,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
+          child: AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('📷 صور المركبة',
@@ -767,7 +768,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('📷 صور المركبة',
@@ -818,7 +819,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                 onTap: () async {
                                   final ok = await showDialog<bool>(
                                     context: context,
-                                    builder: (_) => AlertDialog(
+                                    builder: (_) => AdaptiveAlertDialog(
                                       title: const Text('حذف الصورة'),
                                       content:
                                           const Text('تأكيد حذف هذه الصورة؟'),
@@ -872,7 +873,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             // حالة التأمين
             Expanded(
@@ -948,7 +949,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       margin: const EdgeInsets.only(top: 16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Expanded(
               child: Text(
@@ -999,7 +1000,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         (_repair.invoiceId != null && _repair.invoiceId!.trim().isNotEmpty);
 
     return Scaffold(
-      body: Row(
+      body: AdaptiveRow(
         children: [
           const YallaSidebar(currentRoute: AppRoutes.repairDetail),
           Expanded(
@@ -1041,7 +1042,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // الصف العلوي
-                          Row(
+                          AdaptiveRow(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // العمود الأيسر: المالية + لوحة الحالة

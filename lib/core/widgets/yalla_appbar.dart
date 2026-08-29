@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String workshopName;
@@ -110,7 +111,7 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       titleSpacing: 16,
       leading: leading ?? _defaultLeading(context),
-      title: Row(
+      title: AdaptiveRow(
         children: [
           if (showUserAvatar)
             CircleAvatar(

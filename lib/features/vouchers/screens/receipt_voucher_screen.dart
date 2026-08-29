@@ -25,6 +25,7 @@ import '../../finance/payments/models/payment.dart';
 import '../../finance/payments/services/payment_service.dart';
 
 import 'package:yalla_accounts/features/cheques/widgets/steps/cheque_step_entry.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 // ============================================================================
 
@@ -128,7 +129,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) {
-          return AlertDialog(
+          return AdaptiveAlertDialog(
             title: const Text("اختر الملفات المطلوب سدادها",
                 textAlign: TextAlign.center),
             content: SizedBox(
@@ -148,7 +149,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Row(
+                    child: AdaptiveRow(
                       children: [
                         _buildRepairImage(r["thumbnail_path"]?.toString()),
                         const SizedBox(width: 16),
@@ -399,7 +400,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
         showSearch: false,
       ),
       drawer: isDesktop ? null : const YallaSidebar(),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(),
           Expanded(
@@ -484,7 +485,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setD) {
-            return AlertDialog(
+            return AdaptiveAlertDialog(
               title: const Text("اختر العميل", textAlign: TextAlign.center),
               content: SizedBox(
                 width: 500,
@@ -578,7 +579,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          AdaptiveRow(
             children: [
               ElevatedButton(
                 onPressed: _openRepairsPicker,

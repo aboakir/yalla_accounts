@@ -21,6 +21,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/employees/services/salary_database_service.dart';
 import 'package:yalla_accounts/features/employees/models/salary.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PayrollReportScreen extends ConsumerStatefulWidget {
   const PayrollReportScreen({super.key});
@@ -164,7 +165,7 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
           ],
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const SizedBox(width: 260, child: YallaSidebar()),
           Expanded(
@@ -215,7 +216,7 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
                 labelText: 'الشهر',
                 border: OutlineInputBorder(),
               ),
-              child: Row(
+              child: AdaptiveRow(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(DateFormat('MMMM yyyy', 'ar').format(_month)),
@@ -326,7 +327,7 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('Employee Name')),
           DataColumn(label: Text('Employee ID')),

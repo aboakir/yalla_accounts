@@ -17,6 +17,7 @@ import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesReturnedScreen extends ConsumerWidget {
   const ChequesReturnedScreen({super.key});
@@ -34,7 +35,7 @@ class ChequesReturnedScreen extends ConsumerWidget {
       drawer: isDesktop
           ? null
           : const YallaSidebar(currentRoute: '/cheques/returned'),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(currentRoute: '/cheques/returned'),
           const Expanded(child: _ReturnedBody()),
@@ -148,7 +149,7 @@ class _ReturnedBody extends StatelessWidget {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           scrollDirection: Axis.horizontal,
-          child: DataTable(
+          child: AdaptiveDataTable(
             headingRowHeight: 40,
             dataRowMinHeight: 38,
             dataRowMaxHeight: 44,

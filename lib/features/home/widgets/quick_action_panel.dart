@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/providers/quick_actions_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// Panel لعرض الإجراءات السريعة بصورة Docked أسفل الشاشة
 class QuickActionPanel extends ConsumerWidget {
@@ -26,7 +27,7 @@ class QuickActionPanel extends ConsumerWidget {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // إجراءات مرئية

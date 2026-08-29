@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_form_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepEmployeeBasicData extends ConsumerStatefulWidget {
   final void Function()? onNext;
@@ -134,7 +135,7 @@ class _StepEmployeeBasicDataState extends ConsumerState<StepEmployeeBasicData> {
                 const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Row(
+                  child: AdaptiveRow(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(

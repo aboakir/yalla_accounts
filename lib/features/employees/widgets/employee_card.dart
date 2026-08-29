@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EmployeeCard extends StatelessWidget {
   final Employee employee;
@@ -62,7 +63,7 @@ class EmployeeCard extends StatelessWidget {
                 color: isDark ? Colors.grey[400] : Colors.grey[700],
               ),
             ),
-            trailing: Row(
+            trailing: AdaptiveRow(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
@@ -83,7 +84,7 @@ class EmployeeCard extends StatelessWidget {
           if (onMonthlyReport != null || onSalarySlip != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 10, right: 12, left: 12),
-              child: Row(
+              child: AdaptiveRow(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   if (onMonthlyReport != null)

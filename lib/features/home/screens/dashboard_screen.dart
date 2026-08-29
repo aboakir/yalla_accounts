@@ -23,6 +23,7 @@ import '../widgets/section_title.dart';
 import '../widgets/quick_stats.dart';
 
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -46,7 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       await showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => AdaptiveAlertDialog(
           title: const Text('🔒 انتهاء النسخة التجريبية'),
           content: const Text(
             'لقد وصلت إلى الحد الأقصى للنسخة التجريبية (10 ملفات إصلاح).\n\n'
@@ -196,7 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FA),
       drawer: isDesktop ? null : const YallaSidebar(),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(),
           Expanded(
@@ -245,7 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           const Text(
             "لوحة التحكم",
@@ -265,7 +266,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // PROFIT + SHORTCUTS
   // ---------------------------------------------------------------------------
   Widget _buildProfitAndShortcuts() {
-    return Row(
+    return AdaptiveRow(
       children: [
         Expanded(
           child: Container(
@@ -291,7 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 const SectionTitle("اختصارات سريعة"),
                 const SizedBox(height: 14),
-                Row(
+                AdaptiveRow(
                   children: [
                     Expanded(
                       child: ActionShortcutButton(
@@ -344,7 +345,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           height: 420,
           padding: const EdgeInsets.all(24),
           decoration: _boxStyle(),
-          child: Row(
+          child: AdaptiveRow(
             children: [
               Expanded(
                 child: MonthlyPieChart(
@@ -413,7 +414,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final formatted =
         percent ? "${value.toStringAsFixed(2)}%" : f.format(value);
 
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Text(

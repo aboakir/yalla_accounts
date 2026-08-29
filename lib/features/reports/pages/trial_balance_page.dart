@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/reports/providers/trial_balance_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class TrialBalancePage extends StatefulWidget {
   const TrialBalancePage({super.key});
@@ -66,7 +67,7 @@ class _TrialBalancePageState extends State<TrialBalancePage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(8),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: OutlinedButton(

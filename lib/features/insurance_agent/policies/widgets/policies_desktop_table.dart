@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/utils/policy_filters.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PoliciesDesktopTable extends StatelessWidget {
   final List<Map<String, dynamic>> items;
@@ -188,7 +189,7 @@ class PoliciesDesktopTable extends StatelessWidget {
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: DataTable(
+        child: AdaptiveDataTable(
           headingRowColor: WidgetStateProperty.all(const Color(0xFFF4F6F8)),
           dataRowMinHeight: 52,
           dataRowMaxHeight: 60,
@@ -291,7 +292,7 @@ class PoliciesDesktopTable extends StatelessWidget {
                 ),
                 DataCell(Text(vip, textAlign: TextAlign.right)),
                 DataCell(
-                  Row(
+                  AdaptiveRow(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(

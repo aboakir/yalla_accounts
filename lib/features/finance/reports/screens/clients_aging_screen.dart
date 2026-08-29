@@ -16,6 +16,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/finance/reports/providers/reports_providers.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ClientsAgingScreen extends ConsumerWidget {
   const ClientsAgingScreen({super.key});
@@ -29,7 +30,7 @@ class ClientsAgingScreen extends ConsumerWidget {
 
     return Scaffold(
       drawer: isDesktop ? null : const Drawer(child: YallaSidebar()),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const SizedBox(width: 260, child: YallaSidebar()),
           Expanded(
@@ -62,7 +63,7 @@ class ClientsAgingScreen extends ConsumerWidget {
                               thumbVisibility: true,
                               child: SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
-                                child: DataTable(
+                                child: AdaptiveDataTable(
                                   columns: const [
                                     DataColumn(label: Text('العميل')),
                                     DataColumn(label: Text('النوع')),
@@ -125,7 +126,7 @@ class ClientsAgingScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: SafeArea(
         bottom: false,
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Text(
               title,
@@ -171,7 +172,7 @@ class ClientsAgingScreen extends ConsumerWidget {
     return Container(
       color: Colors.grey.shade100,
       padding: const EdgeInsets.all(12),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Text('إجمالي الذمم: ',
               style:

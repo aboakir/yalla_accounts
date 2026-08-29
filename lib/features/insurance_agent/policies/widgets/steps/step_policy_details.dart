@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepPolicyDates extends StatefulWidget {
   final PolicyDraft draft;
@@ -125,7 +126,7 @@ class _StepPolicyDatesState extends State<StepPolicyDates> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey.shade300),
         ),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Icon(icon),
             const SizedBox(width: 12),

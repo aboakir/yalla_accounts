@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SellRepairScreen extends StatelessWidget {
   const SellRepairScreen({super.key});
@@ -39,7 +40,7 @@ class SellRepairScreen extends StatelessWidget {
           : const Drawer(
               child: YallaSidebar(currentRoute: '/sales/sell_repair')),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

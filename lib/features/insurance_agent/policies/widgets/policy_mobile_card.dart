@@ -10,6 +10,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 
 import '../utils/policy_date_utils.dart';
 import 'policy_action_icon.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyMobileCard extends StatelessWidget {
   final Map<String, dynamic> row;
@@ -60,7 +61,7 @@ class PolicyMobileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Row(
+          AdaptiveRow(
             children: [
               if (isVip)
                 Container(
@@ -91,7 +92,7 @@ class PolicyMobileCard extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Actions
-          Row(
+          AdaptiveRow(
             children: [
               PolicyActionIcon(
                 tip: 'حذف',

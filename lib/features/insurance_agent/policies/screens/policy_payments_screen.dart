@@ -24,6 +24,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyPaymentsScreen extends StatefulWidget {
   final dynamic policyId; // id / uuid / policy_id
@@ -189,7 +190,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('إضافة دفعة', textAlign: TextAlign.right),
         content: SizedBox(
           width: 520,
@@ -257,7 +258,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.black12),
                   ),
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       const Icon(Icons.date_range),
                       const Spacer(),
@@ -381,7 +382,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تأكيد الحذف', textAlign: TextAlign.right),
         content:
             const Text('هل تريد حذف هذه الدفعة؟', textAlign: TextAlign.right),
@@ -450,7 +451,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Container(
             width: 44,
@@ -528,7 +529,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
+              AdaptiveRow(
                 children: [
                   IconButton(
                     tooltip: 'حذف',
@@ -651,7 +652,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                             return SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               reverse: true,
-                              child: Row(
+                              child: AdaptiveRow(
                                 children: [
                                   SizedBox(
                                     width: cardW,

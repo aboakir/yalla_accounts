@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/insurance/providers/insurance_invoice_provider.dart';
 import 'insurance_invoice_edit_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InsuranceInvoiceListScreen extends ConsumerWidget {
   const InsuranceInvoiceListScreen({super.key});
@@ -40,7 +41,7 @@ class InsuranceInvoiceListScreen extends ConsumerWidget {
                   title: Text(invoice.invoiceNumber),
                   subtitle: Text(
                       '${invoice.clientName} - ${invoice.insuranceCompany}'),
-                  trailing: Row(
+                  trailing: AdaptiveRow(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(

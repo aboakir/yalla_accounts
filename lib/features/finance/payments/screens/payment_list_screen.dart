@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
 import 'package:yalla_accounts/features/finance/payments/screens/add_payment_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PaymentListScreen extends StatefulWidget {
   const PaymentListScreen({super.key});
@@ -173,7 +174,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
           // -----------------------------------------------
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: TextField(
@@ -232,7 +233,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
           // -----------------------------------------------
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -263,7 +264,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
           // -----------------------------------------------
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Text('الإجمالي: $totalTxt'),
                 const Spacer(),

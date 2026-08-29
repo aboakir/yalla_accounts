@@ -15,6 +15,7 @@ import 'package:yalla_accounts/features/finance/payments/services/payment_servic
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/finance/services/invoice_database_service.dart';
 import 'package:yalla_accounts/features/finance/models/invoice.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InvoiceAddPaymentButton extends StatefulWidget {
   final String invoiceId;
@@ -71,7 +72,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setM) => AlertDialog(
+        builder: (ctx, setM) => AdaptiveAlertDialog(
           title: const Text('Add Payment'),
           content: Form(
             key: formKey,
@@ -99,7 +100,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
                     },
                   ),
                   const SizedBox(height: 10),
-                  Row(
+                  AdaptiveRow(
                     children: [
                       const Text('Date: '),
                       TextButton(
@@ -154,7 +155,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
                 if (remaining.isFinite && amt - remaining > 0.0001) {
                   final cont = await showDialog<bool>(
                     context: ctx,
-                    builder: (_) => AlertDialog(
+                    builder: (_) => AdaptiveAlertDialog(
                       title: const Text('Confirm'),
                       content: Text(
                           'Amount exceeds remaining (${_money(remaining)}). Continue?'),

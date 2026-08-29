@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart'
     show EmployeeContractType, ContractStatus;
 import 'package:yalla_accounts/features/employees/providers/employee_form_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepEmployeeSalaryData extends ConsumerStatefulWidget {
   final void Function()? onNext;
@@ -256,7 +257,7 @@ class _StepEmployeeSalaryDataState
                         validator: _vNonNegativeMoney,
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      AdaptiveRow(
                         children: [
                           Expanded(
                             child: _dateField(
@@ -294,7 +295,7 @@ class _StepEmployeeSalaryDataState
                         validator: _vNonNegativeMoney,
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      AdaptiveRow(
                         children: [
                           Expanded(
                             child: _numField(
@@ -331,7 +332,7 @@ class _StepEmployeeSalaryDataState
                             .updateContractDesc(v),
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      AdaptiveRow(
                         children: [
                           Expanded(
                             child: _dateField(
@@ -393,7 +394,7 @@ class _StepEmployeeSalaryDataState
                     const SizedBox(height: 16),
 
                     // بدلات/خصومات + طريقة الدفع
-                    Row(
+                    AdaptiveRow(
                       children: [
                         Expanded(
                           child: _numField(

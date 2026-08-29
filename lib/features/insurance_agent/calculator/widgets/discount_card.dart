@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import '../providers/insurance_calculator_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class DiscountCard extends StatelessWidget {
   const DiscountCard({super.key});
@@ -85,7 +86,7 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return AdaptiveRow(
       children: [
         Text(
           value,

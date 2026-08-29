@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/inventory/models/inventory_item.dart';
 import 'package:yalla_accounts/features/inventory/services/inventory_service.dart';
 import 'inventory_edit_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InventoryListScreen extends StatefulWidget {
   const InventoryListScreen({super.key});
@@ -75,7 +76,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                       title: Text(item.name),
                       subtitle: Text(
                           'الكمية: ${item.quantity} - السعر: ${item.unitPrice}'),
-                      trailing: Row(
+                      trailing: AdaptiveRow(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(

@@ -14,6 +14,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairReportsScreen extends ConsumerStatefulWidget {
   const RepairReportsScreen({super.key});
@@ -187,7 +188,7 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
               onPressed: () {
                 showDialog(
                   context: context,
-                  builder: (_) => AlertDialog(
+                  builder: (_) => AdaptiveAlertDialog(
                     title: const Text('تنبيه الملفات غير المسددة'),
                     content: Text(
                         'يوجد $unpaidCount ملف غير مسدد في النتائج الحالية.'),
@@ -205,7 +206,7 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          return Row(
+          return AdaptiveRow(
             children: [
               if (isDesktop)
                 const SizedBox(
@@ -217,7 +218,7 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: ListView(
                     children: [
-                      Row(
+                      AdaptiveRow(
                         children: [
                           DropdownButton<String>(
                             value: filterType,

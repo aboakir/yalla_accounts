@@ -11,6 +11,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class DebtsScreen extends StatefulWidget {
   const DebtsScreen({super.key});
@@ -179,7 +180,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
+      body: AdaptiveRow(
         children: [
           const YallaSidebar(currentRoute: '/repairs/debts'),
           Expanded(

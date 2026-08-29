@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_payment_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchasePaymentDialog extends StatefulWidget {
   final String purchaseId;
@@ -113,7 +114,7 @@ class _PurchasePaymentDialogState extends State<PurchasePaymentDialog> {
   Widget build(BuildContext context) {
     final df = DateFormat('yyyy-MM-dd');
 
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text("سداد فاتورة مشتريات"),
       content: Form(
         key: _formKey,

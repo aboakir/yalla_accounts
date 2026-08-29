@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesCancelledScreen extends ConsumerWidget {
   const ChequesCancelledScreen({super.key});
@@ -33,7 +34,7 @@ class ChequesCancelledScreen extends ConsumerWidget {
           ? null
           : const YallaSidebar(currentRoute: '/cheques/cancelled'),
 
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(currentRoute: '/cheques/cancelled'),
           Expanded(

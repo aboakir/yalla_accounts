@@ -11,6 +11,7 @@ import 'package:yalla_accounts/features/employees/screens/employee_details_scree
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EmployeesListScreen extends ConsumerStatefulWidget {
   const EmployeesListScreen({super.key});
@@ -107,7 +108,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                         onChanged: (val) => setState(() => searchQuery = val),
                       ),
                       const SizedBox(height: 8),
-                      Row(
+                      AdaptiveRow(
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
@@ -159,7 +160,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Row(
+                      AdaptiveRow(
                         children: [
                           Expanded(
                             child: _buildDatePicker(
@@ -385,7 +386,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
       builder: (_) {
         bool deleting = false;
         return StatefulBuilder(
-          builder: (c, setSt) => AlertDialog(
+          builder: (c, setSt) => AdaptiveAlertDialog(
             title: const Text('تأكيد الحذف'),
             content: const Text('هل تريد حذف هذا الموظف؟'),
             actions: [

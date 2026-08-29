@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_form_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepEmployeeNotesPhoto extends ConsumerStatefulWidget {
   final VoidCallback? onSave;
@@ -113,7 +114,7 @@ class _StepEmployeeNotesPhotoState
                     ],
                   ),
                 const SizedBox(height: 20),
-                Row(
+                AdaptiveRow(
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(

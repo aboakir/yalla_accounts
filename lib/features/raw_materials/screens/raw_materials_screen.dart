@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RawMaterialsScreen extends StatefulWidget {
   const RawMaterialsScreen({super.key});
@@ -84,7 +85,7 @@ class _RawMaterialsScreenState extends State<RawMaterialsScreen> {
             ),
 
       body: isLargeScreen
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

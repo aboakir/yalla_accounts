@@ -10,6 +10,7 @@ import 'package:yalla_accounts/features/repairs/providers/repair_stats_provider.
 import 'package:yalla_accounts/features/repairs/widgets/payment_status_pie_chart.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairAnalyticsScreen extends ConsumerWidget {
   const RepairAnalyticsScreen({super.key});
@@ -33,7 +34,7 @@ class RepairAnalyticsScreen extends ConsumerWidget {
             style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(

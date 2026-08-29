@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey; // ← مهم
 import 'package:yalla_accounts/core/models/menu_item.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SidebarSubTile extends StatefulWidget {
   final MenuItem item;
@@ -81,7 +82,7 @@ class _SidebarSubTileState extends State<SidebarSubTile> {
           color: bgColor,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
+        child: AdaptiveRow(
           textDirection: TextDirection.rtl,
           children: [
             Icon(Icons.circle, size: 6, color: dotColor),

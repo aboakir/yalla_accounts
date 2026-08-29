@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InsuranceAgentHomeScreen extends StatelessWidget {
   const InsuranceAgentHomeScreen({super.key});
@@ -52,7 +53,7 @@ class InsuranceAgentHomeScreen extends StatelessWidget {
                     border: Border.all(color: Colors.green.shade200),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
+                  child: const AdaptiveRow(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.info_outline),

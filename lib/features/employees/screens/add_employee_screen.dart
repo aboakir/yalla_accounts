@@ -16,6 +16,7 @@ import 'package:yalla_accounts/features/employees/widgets/steps/step_employee_sa
 import 'package:yalla_accounts/features/employees/widgets/steps/step_employee_notes_photo.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart'
     show EmployeeContractType;
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddEmployeeScreen extends ConsumerStatefulWidget {
   const AddEmployeeScreen({super.key});
@@ -159,7 +160,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
       drawer: isDesktop
           ? null
           : const Drawer(child: YallaSidebar(currentRoute: currentRoute)),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -231,7 +232,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
                   color: Colors.grey.shade100,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       if (canPrev)
                         ElevatedButton.icon(

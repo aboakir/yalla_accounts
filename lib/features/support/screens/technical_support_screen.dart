@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class TechnicalSupportScreen extends StatelessWidget {
   const TechnicalSupportScreen({super.key});
@@ -73,7 +74,7 @@ class TechnicalSupportScreen extends StatelessWidget {
   }
 
   Widget _infoLine(String label, String value) {
-    return Row(
+    return AdaptiveRow(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(

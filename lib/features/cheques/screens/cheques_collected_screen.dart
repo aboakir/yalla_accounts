@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesCollectedScreen extends ConsumerWidget {
   const ChequesCollectedScreen({super.key});
@@ -30,7 +31,7 @@ class ChequesCollectedScreen extends ConsumerWidget {
       drawer: isDesktop
           ? null
           : const YallaSidebar(currentRoute: '/cheques/collected'),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(currentRoute: '/cheques/collected'),
           Expanded(

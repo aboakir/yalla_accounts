@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepCompanyDates extends StatefulWidget {
   final GlobalKey<FormState> formKey;
@@ -111,7 +112,7 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
 
           const SizedBox(height: 12),
 
-          Row(
+          AdaptiveRow(
             children: [
               Expanded(
                 child: OutlinedButton.icon(

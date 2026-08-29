@@ -11,6 +11,7 @@ import 'package:yalla_accounts/features/employees/screens/add_employee_screen.da
 import 'package:yalla_accounts/features/employees/screens/employees_list_screen.dart';
 
 import 'package:yalla_accounts/features/employees/services/salary_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EmployeeDashboardScreen extends ConsumerWidget {
   const EmployeeDashboardScreen({super.key});
@@ -52,7 +53,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                   ),
                 ),
         ),
-        body: Row(
+        body: AdaptiveRow(
           // المهم: ثبّت اتجاه الـRow كي يبقى ترتيب العناصر يسار→يمين
           textDirection: TextDirection.ltr,
           children: [
@@ -66,7 +67,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
+                      AdaptiveRow(
                         children: [
                           const Text(
                             'ملخص الموظفين',
@@ -94,7 +95,9 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                               ? 4
                               : w >= 900
                                   ? 3
-                                  : 2;
+                                  : w >= 600
+                                      ? 2
+                                      : 1;
                           return GridView.count(
                             crossAxisCount: cross,
                             childAspectRatio: 3.6,
@@ -224,7 +227,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
       context: context,
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
-        child: AlertDialog(
+        child: AdaptiveAlertDialog(
           title: const Text('إثبات راتب شهر'),
           content: SingleChildScrollView(
             child: Column(
@@ -244,7 +247,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 _tf(note, 'ملاحظة (اختياري)'),
                 const SizedBox(height: 8),
-                Row(
+                AdaptiveRow(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
@@ -321,7 +324,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
       context: context,
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
-        child: AlertDialog(
+        child: AdaptiveAlertDialog(
           title: const Text('صرف راتب'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -330,7 +333,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               _tf(amount, 'المبلغ (اختياري)', keyboard: TextInputType.number),
               const SizedBox(height: 8),
-              Row(
+              AdaptiveRow(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
@@ -403,7 +406,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(14),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Icon(icon, color: color, size: 30),
           const SizedBox(width: 10),

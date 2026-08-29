@@ -17,6 +17,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/finance/purchases/providers/purchase_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchasePaintScreen extends ConsumerStatefulWidget {
   const PurchasePaintScreen({super.key});
@@ -313,7 +314,7 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
           ? null
           : const Drawer(child: YallaSidebar(currentRoute: "/purchases/paint")),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: const [
                 SizedBox(
                   width: 260,

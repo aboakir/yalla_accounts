@@ -18,6 +18,7 @@ import 'package:yalla_accounts/features/employees/services/payroll_database_serv
 import 'package:yalla_accounts/features/employees/providers/payroll_provider.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_periods_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PayrollScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -224,7 +225,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('دفع راتب'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -362,7 +363,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
           ],
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -392,7 +393,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                   if (_isLocked)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
+                      child: AdaptiveRow(
                         children: const [
                           Icon(Icons.lock, color: Colors.red),
                           SizedBox(width: 8),
@@ -422,7 +423,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                                 labelText: 'الفترة',
                                 border: OutlineInputBorder(),
                               ),
-                              child: Row(
+                              child: AdaptiveRow(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
@@ -444,7 +445,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                                 labelText: 'تاريخ الاستحقاق',
                                 border: OutlineInputBorder(),
                               ),
-                              child: Row(
+                              child: AdaptiveRow(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
@@ -718,7 +719,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('ID')),
           DataColumn(label: Text('الفترة')),

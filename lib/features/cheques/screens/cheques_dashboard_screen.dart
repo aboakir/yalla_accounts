@@ -22,6 +22,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 
 import '../models/cheque.dart';
 import 'cheque_details_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesDashboardScreen extends ConsumerWidget {
   const ChequesDashboardScreen({super.key});
@@ -39,7 +40,7 @@ class ChequesDashboardScreen extends ConsumerWidget {
       drawer: isDesktop
           ? null
           : const YallaSidebar(currentRoute: '/cheques/dashboard'),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(currentRoute: '/cheques/dashboard'),
           const Expanded(child: _DashboardBody()),
@@ -131,7 +132,12 @@ class _DashboardBody extends StatelessWidget {
 
         final top5soon = dueSoon.take(5).toList();
 
-        final grid = isDesktop ? 4 : 2;
+        final viewportWidth = MediaQuery.sizeOf(context).width;
+        final grid = viewportWidth >= 1024
+            ? 4
+            : viewportWidth >= 600
+                ? 2
+                : 1;
 
         return Padding(
           padding: const EdgeInsets.all(20),
@@ -141,7 +147,7 @@ class _DashboardBody extends StatelessWidget {
               // ==================================================================
               // HEADER + REPORT BUTTON
               // ==================================================================
-              Row(
+              AdaptiveRow(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
@@ -176,7 +182,7 @@ class _DashboardBody extends StatelessWidget {
                   crossAxisCount: grid,
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  childAspectRatio: isDesktop ? 2.6 : 1.8,
+                  childAspectRatio: viewportWidth >= 1024 ? 2.6 : 1.8,
                   children: [
                     _kpi("إجمالي الشيكات", "$total", Icons.list_alt),
                     _kpi("إجمالي القيمة", _fmt(sum), Icons.payments),
@@ -238,7 +244,7 @@ class _DashboardBody extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Icon(icon, size: 30, color: Colors.green.shade600),
             const SizedBox(width: 16),

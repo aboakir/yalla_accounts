@@ -8,6 +8,7 @@ import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/finance/payments/screens/payment_list_screen.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class UserDashboardScreen extends ConsumerStatefulWidget {
   final AppUser user;
@@ -131,7 +132,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
   void _showSubscriptionAlert() {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تنبيه'),
         content: const Text(
           'عذرًا، لا يمكنك استخدام التطبيق بسبب انتهاء الفترة المجانية أو عدم تجديد الاشتراك. يرجى التواصل مع الدعم الفني.',
@@ -237,7 +238,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
               ),
             ),
       drawer: isDesktop ? null : Drawer(child: sidebar),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) sidebar,
           Expanded(
@@ -277,7 +278,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.amber),
                       ),
-                      child: Row(
+                      child: AdaptiveRow(
                         children: [
                           const Icon(Icons.access_time, color: Colors.amber),
                           const SizedBox(width: 8),

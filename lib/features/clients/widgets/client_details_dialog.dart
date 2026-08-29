@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/clients/models/client.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// يعرض تفاصيل عميل داخل Dialog.
 /// يعيد من Navigator:
@@ -33,7 +34,7 @@ class ClientDetailsDialog extends StatelessWidget {
       if (value.trim().isEmpty) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
+        child: AdaptiveRow(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, size: 18, color: Colors.black54),
@@ -89,8 +90,8 @@ class ClientDetailsDialog extends StatelessWidget {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: AlertDialog(
-        title: Row(
+      child: AdaptiveAlertDialog(
+        title: AdaptiveRow(
           children: [
             Icon(isInsurance ? Icons.business : Icons.person,
                 color: AppColors.primary),
@@ -116,7 +117,7 @@ class ClientDetailsDialog extends StatelessWidget {
                   color: AppColors.primary.withOpacity(.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
+                child: AdaptiveRow(
                   children: [
                     const Icon(Icons.badge, color: AppColors.primary, size: 18),
                     const SizedBox(width: 6),

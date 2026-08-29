@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ResponsiveScaffold extends StatelessWidget {
   /// المحتوى الرئيسي في الجهة اليسرى (أو أولاً قبل الشريط الجانبي على الشاشات العريضة).
@@ -31,7 +32,7 @@ class ResponsiveScaffold extends StatelessWidget {
     required this.title,
     required this.currentRoute,
     this.floatingActionButton,
-    this.breakpoint = 800,
+    this.breakpoint = 1024,
     this.sidebarWidth = 260,
     this.appBarActions,
   });
@@ -71,7 +72,7 @@ class ResponsiveScaffold extends StatelessWidget {
           : null,
 
       body: SafeArea(
-        child: Row(
+        child: AdaptiveRow(
           children: [
             // المحتوى الرئيسي يتمدّد
             Expanded(child: content),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// شريط فلترة وبحث متطوّر لملفات الإصلاح:
 /// - بحث نصّي مع أيقونة مسح.
@@ -126,7 +127,7 @@ class RepairFilterBar extends StatelessWidget {
                         .map(
                           (opt) => DropdownMenuItem<String>(
                             value: opt.value,
-                            child: Row(
+                            child: AdaptiveRow(
                               children: [
                                 Icon(opt.icon,
                                     size: 16,
@@ -166,7 +167,7 @@ class RepairFilterBar extends StatelessWidget {
                         .map(
                           (opt) => DropdownMenuItem<String>(
                             value: opt.value,
-                            child: Row(
+                            child: AdaptiveRow(
                               children: [
                                 Icon(opt.icon,
                                     size: 16,

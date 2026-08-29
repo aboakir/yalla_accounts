@@ -15,6 +15,7 @@ import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_provider.dart'
     show employeeProvider;
 import 'package:yalla_accounts/features/employees/services/attendance_database_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AttendanceOverviewScreen extends ConsumerStatefulWidget {
   const AttendanceOverviewScreen({super.key});
@@ -114,7 +115,7 @@ class _AttendanceOverviewScreenState
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<Employee>(
@@ -186,7 +187,7 @@ class _AttendanceOverviewScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _kpi('أيام الحضور', '$presentCount', Colors.green),
@@ -197,7 +198,7 @@ class _AttendanceOverviewScreenState
           const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
-              child: DataTable(
+              child: AdaptiveDataTable(
                 columns: const [
                   DataColumn(label: Text('التاريخ')),
                   DataColumn(label: Text('اليوم')),
@@ -219,7 +220,7 @@ class _AttendanceOverviewScreenState
                   return DataRow(cells: [
                     DataCell(Text(DateFormat('yyyy-MM-dd').format(day))),
                     DataCell(Text(DateFormat('EEEE', 'ar').format(day))),
-                    DataCell(Row(
+                    DataCell(AdaptiveRow(
                       children: [
                         Icon(_iconForStatus(rec.status),
                             color: _colorForStatus(rec.status)),

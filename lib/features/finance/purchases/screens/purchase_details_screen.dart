@@ -13,6 +13,7 @@ import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 
 import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 // ============================================================================
 // SCREEN
@@ -173,7 +174,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           child: Column(
             children: [
               Expanded(
-                child: Row(
+                child: AdaptiveRow(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
@@ -214,11 +215,11 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           _row('اسم المورد', h['supplier_name'] ?? ''),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
+            child: AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('التاريخ', style: TextStyle(fontSize: 15)),
-                Row(
+                AdaptiveRow(
                   children: [
                     Text(
                       _editingDate != null
@@ -295,7 +296,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
-              child: DataTable(
+              child: AdaptiveDataTable(
                 dataRowMinHeight: 38,
                 headingRowColor: WidgetStateProperty.all(
                   AppColors.primary.withOpacity(.10),
@@ -329,7 +330,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   // ACTION BUTTONS
   // ----------------------------------------------------------------------------
   Widget _actions(double remain) {
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // ------------------------ سند صرف ------------------------
@@ -446,7 +447,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 15)),

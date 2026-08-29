@@ -7,6 +7,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/features/raw_materials/providers/raw_material_provider.dart';
 import 'package:yalla_accounts/features/raw_materials/screens/raw_material_edit_screen.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RawMaterialListScreen extends ConsumerWidget {
   const RawMaterialListScreen({super.key});
@@ -26,7 +27,7 @@ class RawMaterialListScreen extends ConsumerWidget {
                 title: Text(material.name),
                 subtitle: Text(
                     'المورد: ${material.supplier} - الكمية: ${material.quantity}'),
-                trailing: Row(
+                trailing: AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
@@ -88,7 +89,7 @@ class RawMaterialListScreen extends ConsumerWidget {
               child: YallaSidebar(currentRoute: '/raw_materials'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

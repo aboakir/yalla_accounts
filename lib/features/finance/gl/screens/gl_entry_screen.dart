@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class GLEntryScreen extends StatefulWidget {
   final int entryId;
@@ -110,7 +111,7 @@ class _GLEntryScreenState extends State<GLEntryScreen> {
   Future<void> _reverse() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('Reverse Entry'),
         content: Text('عكس القيد #${widget.entryId}?'),
         actions: [
@@ -205,7 +206,7 @@ class _GLEntryScreenState extends State<GLEntryScreen> {
                     if (ref.isNotEmpty) _row('Ref', ref),
                     if (note.isNotEmpty) _row('Note', note),
                     const SizedBox(height: 8),
-                    Row(
+                    AdaptiveRow(
                       children: [
                         Chip(
                           label: Text(balanced ? 'Balanced' : 'Not Balanced'),
@@ -302,7 +303,7 @@ class _GLEntryScreenState extends State<GLEntryScreen> {
   Widget _row(String k, String v) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           SizedBox(
               width: 110,

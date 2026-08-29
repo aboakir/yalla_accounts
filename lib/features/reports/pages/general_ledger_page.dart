@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/reports/providers/general_ledger_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class GeneralLedgerPage extends StatefulWidget {
   const GeneralLedgerPage({super.key});
@@ -59,7 +60,7 @@ class _GeneralLedgerPageState extends State<GeneralLedgerPage> {
     final controller = TextEditingController(text: _accountCode ?? '');
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('رمز الحساب'),
         content: TextField(
           controller: controller,

@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddPaymentScreen extends StatefulWidget {
   final String? repairId;
@@ -204,7 +205,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               ),
               const SizedBox(height: 12),
 
-              Row(
+              AdaptiveRow(
                 children: [
                   const Text('تاريخ الدفع:'),
                   const SizedBox(width: 8),

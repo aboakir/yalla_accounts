@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/l10n/strings_ar.dart'; // S.t(...)
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PaymentGLEntryScreenLtr extends StatefulWidget {
   final int glEntryId;
@@ -157,7 +158,7 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
   Future<void> _reverse() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: Text(S.t('reverse')),
         content: Text('${S.t('confirm_reverse_entry')} #${widget.glEntryId}?'),
         actions: [
@@ -245,7 +246,7 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
                         _row(S.t('note'),
                             _entry!.note.isEmpty ? '—' : _entry!.note),
                         const SizedBox(height: 8),
-                        Row(
+                        AdaptiveRow(
                           children: [
                             Chip(
                               label: Text(balanced
@@ -300,7 +301,7 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
                         const SizedBox(height: 8),
                         _linesWidget(),
                         const Divider(),
-                        Row(
+                        AdaptiveRow(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('${S.t('debit')}: ${_money.format(debitSum)}'),
@@ -330,7 +331,7 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
   Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           SizedBox(width: 130, child: Text(label)),
           Expanded(child: Text(value)),
@@ -380,7 +381,7 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: [
           DataColumn(label: Text(S.t('account'))),
           DataColumn(label: Text(S.t('debit'))),
@@ -424,7 +425,8 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
             DataCell(Text(
               '${l.partyType.isEmpty ? '—' : l.partyType}${l.partyId.isEmpty ? '' : ' (${l.partyId})'}',
             )),
-            DataCell(Row(mainAxisSize: MainAxisSize.min, children: links)),
+            DataCell(
+                AdaptiveRow(mainAxisSize: MainAxisSize.min, children: links)),
           ]);
         }).toList(),
       ),

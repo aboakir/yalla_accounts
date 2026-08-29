@@ -11,6 +11,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierLedgerScreen extends StatefulWidget {
   final String supplierId;
@@ -217,7 +218,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
         ],
       ),
       drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!isMobile)
             const SizedBox(
@@ -304,7 +305,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        DataTable(
+        AdaptiveDataTable(
           columns: const [
             DataColumn(label: Text('التاريخ')),
             DataColumn(label: Text('البيان')),

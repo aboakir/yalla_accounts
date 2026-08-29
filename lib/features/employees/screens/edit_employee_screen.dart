@@ -21,6 +21,7 @@ import 'package:yalla_accounts/features/auth/providers/current_user_provider.dar
 import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_provider.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EditEmployeeScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -287,7 +288,7 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
           actions: const [],
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -399,7 +400,7 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
                                     child: InputDecorator(
                                       decoration: const InputDecoration(
                                           labelText: 'تاريخ التعيين'),
-                                      child: Row(
+                                      child: AdaptiveRow(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [

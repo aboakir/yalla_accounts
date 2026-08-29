@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class YallaScaffold extends StatelessWidget {
   final Widget body;
@@ -40,7 +41,7 @@ class YallaScaffold extends StatelessWidget {
       drawer: Responsive.isMobile(context)
           ? Drawer(child: YallaSidebar(currentRoute: routeName))
           : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (Responsive.isDesktop(context))
             SizedBox(width: 280, child: YallaSidebar(currentRoute: routeName)),

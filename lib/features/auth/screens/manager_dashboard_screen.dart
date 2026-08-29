@@ -5,6 +5,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/screens/user_details_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ManagerDashboardScreen extends ConsumerStatefulWidget {
   const ManagerDashboardScreen({super.key});
@@ -135,7 +136,7 @@ class _ManagerDashboardScreenState
             Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: DataTable(
+                child: AdaptiveDataTable(
                   headingRowColor: MaterialStateProperty.all(
                       AppColors.primary.withOpacity(0.1)),
                   columns: const [

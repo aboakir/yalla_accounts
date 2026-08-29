@@ -17,6 +17,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
 import 'package:yalla_accounts/features/employees/services/attendance_database_service.dart';
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AttendanceReportScreen extends ConsumerStatefulWidget {
   const AttendanceReportScreen({super.key});
@@ -146,7 +147,7 @@ class _AttendanceReportScreenState
           ],
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const SizedBox(width: 260, child: YallaSidebar()),
           Expanded(
@@ -198,7 +199,7 @@ class _AttendanceReportScreenState
                 labelText: 'الشهر',
                 border: OutlineInputBorder(),
               ),
-              child: Row(
+              child: AdaptiveRow(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(DateFormat('MMMM yyyy', 'ar').format(_month)),
@@ -330,7 +331,7 @@ class _AttendanceReportScreenState
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('Employee ID')),
           DataColumn(label: Text('التاريخ')),

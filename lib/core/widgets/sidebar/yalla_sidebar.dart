@@ -14,6 +14,7 @@ import 'package:yalla_accounts/features/repairs/services/repair_database_service
 
 import 'sidebar_header.dart';
 import 'sidebar_search.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class YallaSidebar extends ConsumerStatefulWidget {
   final String? currentRoute;
@@ -36,7 +37,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
       await showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => AdaptiveAlertDialog(
           title: const Text('🔒 انتهاء النسخة التجريبية'),
           content: const Text(
             'لقد وصلت إلى الحد الأقصى للنسخة التجريبية (10 ملفات إصلاح).\n\n'
@@ -248,7 +249,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     }
     final sel = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('إضافة جهة'),
         content: const Text('اختر نوع الجهة:'),
         actions: [
@@ -276,7 +277,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     final sel = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('الذمم'),
         content: const Text('اختر نوع الذمم:'),
         actions: [
@@ -314,7 +315,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       ),
     );
 
-    final row = Row(
+    final row = AdaptiveRow(
       children: [
         line,
         const SizedBox(width: 8),
@@ -346,7 +347,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     required String title,
     required VoidCallback onTap,
   }) {
-    final row = Row(
+    final row = AdaptiveRow(
       children: [
         Container(width: 3, height: 26, color: Colors.transparent),
         const SizedBox(width: 8),

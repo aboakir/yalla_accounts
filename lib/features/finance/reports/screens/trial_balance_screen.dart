@@ -16,6 +16,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
 import 'package:yalla_accounts/features/finance/reports/providers/reports_providers.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class TrialBalanceScreen extends ConsumerWidget {
   const TrialBalanceScreen({super.key});
@@ -29,7 +30,7 @@ class TrialBalanceScreen extends ConsumerWidget {
 
     return Scaffold(
       drawer: isDesktop ? null : const Drawer(child: YallaSidebar()),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const SizedBox(width: 260, child: YallaSidebar()),
           Expanded(
@@ -67,7 +68,7 @@ class TrialBalanceScreen extends ConsumerWidget {
                               thumbVisibility: true,
                               child: SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
-                                child: DataTable(
+                                child: AdaptiveDataTable(
                                   columns: const [
                                     DataColumn(label: Text('الكود')),
                                     DataColumn(label: Text('الحساب')),
@@ -98,7 +99,7 @@ class TrialBalanceScreen extends ConsumerWidget {
                           const Divider(height: 1),
                           Padding(
                             padding: const EdgeInsets.all(12),
-                            child: Row(
+                            child: AdaptiveRow(
                               children: [
                                 const Spacer(),
                                 Text(
@@ -131,7 +132,7 @@ class TrialBalanceScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: SafeArea(
         bottom: false,
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Builder(
               builder: (ctx) => IconButton(
@@ -217,7 +218,7 @@ class TrialBalanceScreen extends ConsumerWidget {
   Widget _statChip(String label, String value, Color color) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),

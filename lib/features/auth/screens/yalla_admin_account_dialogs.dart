@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 Future<bool?> showYallaAdminEnrollmentDialog(
   BuildContext context, {
@@ -127,7 +128,7 @@ class _YallaAdminEnrollmentDialogState
   @override
   Widget build(BuildContext context) {
     final started = _challengeId != null;
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('إعداد حساب Yalla الإداري لأول مرة'),
       content: SizedBox(
         width: 560,
@@ -359,7 +360,7 @@ class _YallaAdminRecoveryDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('استعادة حساب Yalla الإداري'),
       content: SizedBox(
         width: 540,

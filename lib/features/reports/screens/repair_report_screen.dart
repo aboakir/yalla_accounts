@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/reports/models/repair_report.dart';
 import 'package:yalla_accounts/features/reports/services/repair_report_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairReportScreen extends StatefulWidget {
   const RepairReportScreen({super.key});
@@ -88,7 +89,7 @@ class _RepairReportScreenState extends State<RepairReportScreen> {
               child: YallaSidebar(currentRoute: '/reports/repairs'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

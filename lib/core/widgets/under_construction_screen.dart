@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// شاشة بسيطة تُظهر رسالة “الصفحة قيد التطوير”
 /// وعنوانًا مرسَلًا عبر المتغيّر [title].
@@ -22,7 +23,7 @@ class UnderConstructionScreen extends StatelessWidget {
     const sidebar = YallaSidebar(currentRoute: null);
 
     return Scaffold(
-      body: Row(
+      body: AdaptiveRow(
         children: [
           // إذا الشاشة مُتسعة، نظهر الـ Sidebar دائمًا على اليمين
           if (isWide) const SizedBox(width: 250, child: sidebar),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairKpiCard extends StatelessWidget {
   final String title;
@@ -24,7 +25,7 @@ class RepairKpiCard extends StatelessWidget {
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             CircleAvatar(
               backgroundColor: color.withOpacity(0.1),

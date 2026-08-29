@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 enum RecoverMethod { securityQuestions, recoveryCode }
 
@@ -85,7 +86,7 @@ class _RecoverAccessDialogState extends ConsumerState<RecoverAccessDialog> {
 
         await showDialog<void>(
           context: context,
-          builder: (dialogContext) => AlertDialog(
+          builder: (dialogContext) => AdaptiveAlertDialog(
             title: const Text('اسم مستخدم المالك'),
             content: SelectableText(
               owner.name,
@@ -145,7 +146,7 @@ class _RecoverAccessDialogState extends ConsumerState<RecoverAccessDialog> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: AlertDialog(
+      child: AdaptiveAlertDialog(
         title: const Text('استعادة بيانات الدخول'),
         content: SizedBox(
           width: 500,

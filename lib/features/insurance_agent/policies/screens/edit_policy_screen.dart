@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EditPolicyScreen extends StatefulWidget {
   final dynamic policyId; // int أو String
@@ -453,7 +454,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.black12),
         ),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             const Icon(Icons.calendar_month, size: 18),
             const SizedBox(width: 10),
@@ -478,7 +479,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
   }
 
   Widget _sectionTitle(String title) {
-    return Row(
+    return AdaptiveRow(
       children: [
         const Spacer(),
         Text(
@@ -727,7 +728,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                             ),
                             const SizedBox(height: 18),
 
-                            Row(
+                            AdaptiveRow(
                               children: [
                                 Expanded(
                                   child: ElevatedButton.icon(

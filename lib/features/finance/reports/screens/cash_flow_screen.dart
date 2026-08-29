@@ -25,6 +25,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class CashFlowScreen extends StatefulWidget {
   const CashFlowScreen({super.key});
@@ -240,7 +241,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               offset: const Offset(0, 2)),
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (isMobile)
             IconButton(
@@ -337,7 +338,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
           Chip(
             backgroundColor:
                 (net >= 0 ? Colors.green : Colors.red).withOpacity(.08),
-            label: Row(
+            label: AdaptiveRow(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(net >= 0 ? 'صافي موجب: ' : 'صافي سالب: ',
@@ -386,7 +387,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       color: Colors.white,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             const Icon(Icons.summarize),
             const SizedBox(width: 8),
@@ -411,7 +412,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
 
     return Scaffold(
       drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!isMobile) const YallaSidebar(currentRoute: currentRoute),
           Expanded(
@@ -438,7 +439,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(12),
-        child: DataTable(
+        child: AdaptiveDataTable(
           columns: const [
             DataColumn(label: Text('التاريخ')),
             DataColumn(label: Text('قيد')),
@@ -539,7 +540,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                       fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                Row(
+                AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(_money.format(r.debitIn),
@@ -619,7 +620,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
   Widget _stat(String label, double value, Color color) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -640,7 +641,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       child: Chip(
         backgroundColor: AppColors.primary,
         labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: Row(
+        label: AdaptiveRow(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: Colors.white),

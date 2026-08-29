@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class YGlassCard extends StatelessWidget {
   final Widget child;
@@ -73,7 +74,7 @@ class YSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).primaryColor;
-    return Row(
+    return AdaptiveRow(
       children: [
         if (icon != null)
           Container(

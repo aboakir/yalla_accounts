@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// حوار لإدخال دفعة جديدة (يرجع قيمة المبلغ إذا كان صالحًا)
 class AddPaymentDialog extends StatefulWidget {
@@ -20,7 +21,7 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text(
         'إضافة دفعة',
         textAlign: TextAlign.right,

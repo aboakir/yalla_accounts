@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'sidebar_subtile.dart';
 import 'package:yalla_accounts/core/models/menu_item.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SidebarTile extends StatefulWidget {
   final MenuItem item;
@@ -109,7 +110,7 @@ class _SidebarTileState extends State<SidebarTile>
           color: bg,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
+        child: AdaptiveRow(
           textDirection: TextDirection.rtl,
           children: [
             Icon(

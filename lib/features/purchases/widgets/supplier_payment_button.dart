@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/supplier_payment_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierPaymentButton extends StatefulWidget {
   final String supplierPid;
@@ -51,7 +52,7 @@ class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
 
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: Text('سداد ${widget.supplierName}'),
         content: StatefulBuilder(
           builder: (ctx, setS) {
@@ -74,7 +75,7 @@ class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
                   const SizedBox(height: 8),
 
                   // التاريخ
-                  Row(
+                  AdaptiveRow(
                     children: [
                       Expanded(
                         child: Text(

@@ -18,6 +18,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/employees/models/advance.dart';
 import 'package:yalla_accounts/features/employees/services/advance_database_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AdvancesReportScreen extends StatefulWidget {
   const AdvancesReportScreen({super.key});
@@ -144,7 +145,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
           actions: [],
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -301,7 +302,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
             labelText: label,
             border: const OutlineInputBorder(),
           ),
-          child: Row(
+          child: AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(val == null ? '—' : _df.format(val)),
@@ -374,7 +375,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('ID')),
           DataColumn(label: Text('Employee')),

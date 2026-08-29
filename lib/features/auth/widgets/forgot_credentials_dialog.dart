@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ForgotCredentialsDialog extends ConsumerStatefulWidget {
   const ForgotCredentialsDialog({super.key});
@@ -171,7 +172,7 @@ class _ForgotCredentialsDialogState
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: AlertDialog(
+      child: AdaptiveAlertDialog(
         title: const Text('استرجاع بيانات الدخول'),
         content: SizedBox(
           width: 420,

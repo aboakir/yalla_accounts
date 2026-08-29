@@ -10,6 +10,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierPayablesListScreen extends StatefulWidget {
   const SupplierPayablesListScreen({super.key});
@@ -148,7 +149,7 @@ class _SupplierPayablesListScreenState
               ),
             ],
           ),
-          body: Row(
+          body: AdaptiveRow(
             children: [
               if (isDesktop) const SizedBox(width: 260, child: YallaSidebar()),
               Expanded(
@@ -209,7 +210,7 @@ class _SupplierPayablesListScreenState
   Widget _buildKPIs() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           _kpiBox("إجمالي المشتريات", totalAll, Colors.blue),
           _kpiBox("إجمالي المدفوع", totalPaid, Colors.green),
@@ -270,7 +271,7 @@ class _SupplierPayablesListScreenState
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: Column(
@@ -296,7 +297,7 @@ class _SupplierPayablesListScreenState
                   ),
                 ),
                 const SizedBox(width: 12),
-                Row(
+                AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(

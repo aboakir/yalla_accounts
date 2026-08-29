@@ -10,6 +10,7 @@ import 'package:yalla_accounts/features/employees/screens/edit_salary_screen.dar
 import 'package:yalla_accounts/features/employees/services/attendance_database_service.dart';
 import 'package:yalla_accounts/features/employees/providers/salary_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EmployeeDetailsScreen extends ConsumerWidget {
   final Employee employee;
@@ -85,7 +86,7 @@ class EmployeeDetailsScreen extends ConsumerWidget {
           ),
           bottomNavigationBar: Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
@@ -157,7 +158,7 @@ class EmployeeDetailsScreen extends ConsumerWidget {
                       _buildHeader(employee, salary),
                       const SizedBox(height: 24),
                       isWide
-                          ? Row(
+                          ? AdaptiveRow(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(child: _buildPersonalInfo(employee)),
@@ -192,7 +193,7 @@ class EmployeeDetailsScreen extends ConsumerWidget {
       color: AppColors.primary.withOpacity(0.1),
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             CircleAvatar(
               radius: 40,
@@ -320,7 +321,7 @@ class EmployeeDetailsScreen extends ConsumerWidget {
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Expanded(
               flex: 4,

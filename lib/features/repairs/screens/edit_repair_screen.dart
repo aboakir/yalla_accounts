@@ -22,6 +22,7 @@ import 'package:yalla_accounts/features/repairs/services/edit_repair_service.dar
 
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 // ============================================================================
 //                                WIDGET
@@ -389,7 +390,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                   ),
 
                   // زر تعديل + زر حذف
-                  trailing: Row(
+                  trailing: AdaptiveRow(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // زر التعديل
@@ -433,7 +434,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: Text(isPart ? 'إضافة قطعة' : 'إضافة عمل'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -729,7 +730,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: Text(isPart ? 'تعديل قطعة' : 'تعديل عمل'),
         content: Column(
           mainAxisSize: MainAxisSize.min,

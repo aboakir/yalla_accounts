@@ -9,6 +9,7 @@ import 'package:yalla_accounts/features/subscription/models/plan.dart';
 import 'package:yalla_accounts/features/subscription/services/plan_service.dart';
 import 'package:yalla_accounts/features/subscription/services/subscription_service.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
@@ -59,7 +60,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         await Future.delayed(const Duration(milliseconds: 300));
         showDialog(
           context: context,
-          builder: (_) => AlertDialog(
+          builder: (_) => AdaptiveAlertDialog(
             title: const Text("🎉 تم التفعيل"),
             content: Text(
                 "تم تفعيل الباقة المجانية لمدة ${freePlan.durationDays} يوم."),
@@ -124,7 +125,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header
-                      Row(
+                      AdaptiveRow(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
@@ -132,7 +133,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                             style: TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold),
                           ),
-                          Row(
+                          AdaptiveRow(
                             children: [
                               IconButton(
                                 onPressed: () {

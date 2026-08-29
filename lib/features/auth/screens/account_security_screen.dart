@@ -6,6 +6,7 @@ import 'package:yalla_accounts/features/auth/providers/current_user_provider.dar
 import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AccountSecurityScreen extends ConsumerStatefulWidget {
   const AccountSecurityScreen({super.key});
@@ -39,7 +40,7 @@ class _AccountSecurityScreenState extends ConsumerState<AccountSecurityScreen> {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (context, setDialogState) => AdaptiveAlertDialog(
             title: const Text('إعادة التحقق من هوية المالك'),
             content: TextField(
               controller: controller,
@@ -99,7 +100,7 @@ class _AccountSecurityScreenState extends ConsumerState<AccountSecurityScreen> {
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => AdaptiveAlertDialog(
           title: const Text('كود استعادة جديد'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -165,7 +166,7 @@ class _AccountSecurityScreenState extends ConsumerState<AccountSecurityScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AdaptiveAlertDialog(
         title: const Text('تسجيل الخروج من جميع الجلسات'),
         content: const Text(
           'سيتم إلغاء كل جلسات هذا الحساب، بما فيها الجلسة الحالية.',

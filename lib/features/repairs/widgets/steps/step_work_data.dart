@@ -16,6 +16,7 @@ import 'package:yalla_accounts/features/repairs/widgets/view_image_screen.dart';
 // ✅ استيراد القوائم الموحّدة + دوال التطبيع
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepWorkData extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
@@ -82,7 +83,7 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
   Future<bool> _confirmDeletion({String title = 'تأكيد الحذف'}) async {
     return (await showDialog<bool>(
           context: context,
-          builder: (_) => AlertDialog(
+          builder: (_) => AdaptiveAlertDialog(
             title: Text(title),
             content: const Text('هل تريد حذف هذا العنصر؟'),
             actions: [
@@ -117,7 +118,7 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
 
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: Text(isPart ? 'إضافة قطعة' : 'إضافة عمل'),
         content: Form(
           key: formKey,
@@ -312,7 +313,7 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
             const SizedBox(height: 24),
 
             // المجموع الكلي
-            Row(
+            AdaptiveRow(
               children: [
                 const Text(
                   'المجموع الكلي:',
@@ -468,7 +469,7 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Text(title,
                     style: const TextStyle(

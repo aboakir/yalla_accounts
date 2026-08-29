@@ -4,6 +4,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/constants/insurance_companies.dart';
 import 'package:yalla_accounts/features/clients/models/client.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddClientDialog extends StatefulWidget {
   const AddClientDialog({super.key});
@@ -80,7 +81,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('إضافة عميل جديد'),
       content: SingleChildScrollView(
         child: Form(

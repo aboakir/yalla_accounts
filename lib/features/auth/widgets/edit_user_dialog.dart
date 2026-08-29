@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EditUserDialog extends ConsumerStatefulWidget {
   const EditUserDialog({super.key, required this.user});
@@ -71,7 +72,7 @@ class _EditUserDialogState extends ConsumerState<EditUserDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: Text(widget.user.isOwner ? 'تعديل المالك' : 'تعديل المستخدم'),
       content: Form(
         key: _formKey,

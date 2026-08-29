@@ -10,6 +10,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AnalyticsCharts extends StatefulWidget {
   const AnalyticsCharts({super.key});
@@ -179,7 +180,7 @@ class _AnalyticsChartsState extends State<AnalyticsCharts> {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
+        AdaptiveRow(
           children: [
             Expanded(
               child: _ChartCard(
@@ -377,7 +378,7 @@ class _DonutChart extends StatelessWidget {
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (_, i) {
                   final c = _palette[i % _palette.length];
-                  return Row(
+                  return AdaptiveRow(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(width: 10, height: 10, color: c),
@@ -537,7 +538,7 @@ class _ChartsSkeleton extends StatelessWidget {
       children: [
         box(h: 220),
         const SizedBox(height: 16),
-        Row(
+        AdaptiveRow(
           children: [
             Expanded(child: box(h: 240)),
             const SizedBox(width: 16),

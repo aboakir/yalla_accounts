@@ -8,6 +8,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SmartCards extends StatefulWidget {
   final VoidCallback? onOpenStuckRepairs;
@@ -215,7 +216,7 @@ class _SmartTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          AdaptiveRow(
             children: [
               Container(
                 decoration: BoxDecoration(

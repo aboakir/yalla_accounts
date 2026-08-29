@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class KpiCard extends StatelessWidget {
   final String title;
@@ -35,7 +36,7 @@ class KpiCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.primary.withOpacity(0.12)),
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           // ---------------- Value Circle ----------------
           Container(

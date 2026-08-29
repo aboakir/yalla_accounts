@@ -13,6 +13,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchasesGLAuditScreen extends StatefulWidget {
   const PurchasesGLAuditScreen({super.key});
@@ -322,7 +323,7 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
           )
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           const Text(
             'تدقيق GL للمشتريات',
@@ -371,7 +372,7 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
     final toolbar = Container(
       padding: const EdgeInsets.all(12),
       color: Colors.grey.shade100,
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Chip(
             backgroundColor: Colors.white,
@@ -496,7 +497,7 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
       drawer: Responsive.isMobile(context)
           ? Drawer(child: YallaSidebar(currentRoute: '/purchases/gl-audit'))
           : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (Responsive.isDesktop(context))
             const SizedBox(

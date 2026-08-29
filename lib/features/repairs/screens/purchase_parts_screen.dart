@@ -8,6 +8,7 @@ import 'package:yalla_accounts/features/repairs/services/purchase_part_service.d
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchasePartsScreen extends ConsumerStatefulWidget {
   final String repairId;
@@ -75,7 +76,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -85,7 +86,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Row(
+                  AdaptiveRow(
                     children: [
                       Expanded(
                         child: TextField(
@@ -139,7 +140,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
                         return ListTile(
                           title: Text(p.partName),
                           subtitle: Text('بتاريخ ${df.format(p.purchaseDate)}'),
-                          trailing: Row(
+                          trailing: AdaptiveRow(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text('${MoneyFormatter.format(p.cost)}'),

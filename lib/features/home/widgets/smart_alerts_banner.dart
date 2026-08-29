@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/providers/smart_alerts_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// Banner لعرض التنبيهات الذكية أعلى الشاشة
 class SmartAlertsBanner extends ConsumerWidget {
@@ -33,7 +34,7 @@ class SmartAlertsBanner extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: GestureDetector(
             onTap: () => onAlertTap(first),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Icon(
                   first.type == AlertType.critical

@@ -7,6 +7,7 @@ import 'package:yalla_accounts/features/auth/providers/current_user_provider.dar
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/widgets/add_user_dialog.dart';
 import 'package:yalla_accounts/features/auth/widgets/edit_user_dialog.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ManageUsersScreen extends ConsumerStatefulWidget {
   const ManageUsersScreen({super.key});
@@ -314,7 +315,7 @@ class _ResetUserPasswordDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: Text('كلمة مرور مؤقتة — ${widget.user.name}'),
       content: Form(
         key: _formKey,

@@ -17,18 +17,18 @@ class Responsive {
   static const double tabletMinWidth = 600;
 
   /// العرض الأدنى للديسكتوب
-  static const double desktopMinWidth = 1200;
+  static const double desktopMinWidth = 1024;
 
   /// يُرجع true إذا كان العرض <= حد الموبايل
   static bool isMobile(BuildContext context) {
     final width = _safeWidth(context);
-    return width <= mobileMaxWidth;
+    return width < mobileMaxWidth;
   }
 
   /// يُرجع true إذا كان العرض بين التابلت والديسكتوب
   static bool isTablet(BuildContext context) {
     final width = _safeWidth(context);
-    return width > tabletMinWidth && width < desktopMinWidth;
+    return width >= tabletMinWidth && width < desktopMinWidth;
   }
 
   /// يُرجع true إذا كان العرض >= حد الديسكتوب

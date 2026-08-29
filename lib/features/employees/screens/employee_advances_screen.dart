@@ -14,6 +14,7 @@ import 'package:yalla_accounts/features/employees/models/advance.dart';
 import 'package:yalla_accounts/features/employees/providers/advance_provider.dart';
 import 'package:yalla_accounts/features/employees/services/advance_database_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EmployeeAdvancesScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -149,7 +150,7 @@ class _EmployeeAdvancesScreenState
   Future<void> _confirmDelete(String id) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تأكيد الحذف'),
         content: const Text('سيتم حذف السجل وعكس القيد المحاسبي إن وُجد.'),
         actions: [
@@ -182,7 +183,7 @@ class _EmployeeAdvancesScreenState
   Future<void> _confirmReverse(String id) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('عكس القيد المحاسبي'),
         content: const Text(
             'سيتم إنشاء قيد عكسي وإزالة الربط من هذا السجل. المتابعة؟'),
@@ -277,7 +278,7 @@ class _EmployeeAdvancesScreenState
         showSearch: false,
         showNotifications: false,
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             SizedBox(
@@ -361,7 +362,7 @@ class _EmployeeAdvancesScreenState
                               decoration: InputDecoration(
                                   labelText: 'التاريخ',
                                   border: OutlineInputBorder()),
-                              child: Row(
+                              child: AdaptiveRow(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
@@ -598,7 +599,7 @@ class _EmployeeAdvancesScreenState
         DataCell(Text(a.method ?? '—')),
         DataCell(Text(a.note ?? '—')),
         DataCell(
-          Row(
+          AdaptiveRow(
             children: [
               IconButton(
                 tooltip: 'عكس القيد',
@@ -618,7 +619,7 @@ class _EmployeeAdvancesScreenState
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('ID')),
           DataColumn(label: Text('النوع')),

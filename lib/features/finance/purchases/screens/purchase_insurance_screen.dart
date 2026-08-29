@@ -19,6 +19,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/finance/purchases/providers/purchase_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchaseInsuranceScreen extends ConsumerStatefulWidget {
   const PurchaseInsuranceScreen({super.key});
@@ -354,7 +355,7 @@ class _PurchaseInsuranceScreenState
               ),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

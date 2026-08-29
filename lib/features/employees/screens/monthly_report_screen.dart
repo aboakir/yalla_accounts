@@ -10,6 +10,7 @@ import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/services/attendance_database_service.dart';
 import 'package:yalla_accounts/features/employees/providers/salary_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class MonthlyReportScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -135,7 +136,7 @@ class _MonthlyReportScreenState extends ConsumerState<MonthlyReportScreen> {
   Widget _buildDetailsTable(List<Attendance> records) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         headingRowColor: MaterialStateColor.resolveWith(
             (_) => AppColors.primary.withOpacity(0.1)),
         columns: const [

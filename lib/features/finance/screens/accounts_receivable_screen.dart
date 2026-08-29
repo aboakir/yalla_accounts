@@ -31,6 +31,7 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 // ✅ لإظهار صورة غلاف الملف (تلقائيًا عبر DBService.getRepairThumbnailPath)
 import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AccountsReceivableScreen extends StatefulWidget {
   const AccountsReceivableScreen({super.key});
@@ -352,7 +353,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 child: Column(
                   children: [
-                    Row(children: [
+                    AdaptiveRow(children: [
                       Text('تفاصيل: ${row.name}',
                           style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold)),
@@ -409,7 +410,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                                 controller: controller,
                                 scrollDirection: Axis.horizontal,
                                 padding: const EdgeInsets.only(bottom: 8),
-                                child: DataTable(
+                                child: AdaptiveDataTable(
                                   headingTextStyle: const TextStyle(
                                       fontWeight: FontWeight.bold),
                                   columns: const [
@@ -424,7 +425,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                                     final remain = (a.invoiceTotal - a.paid);
                                     return DataRow(cells: [
                                       DataCell(
-                                        Row(
+                                        AdaptiveRow(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             // ✅ صورة غلاف الملف
@@ -501,7 +502,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                 currentRoute: '/finance/accounts-receivable',
               ),
             ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (Responsive.isDesktop(context) && _showSidebar)
             const SizedBox(
@@ -518,7 +519,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                   Container(
                     height: 60,
                     color: AppColors.primary,
-                    child: Row(
+                    child: AdaptiveRow(
                       children: [
                         if (!Responsive.isDesktop(context))
                           IconButton(
@@ -715,7 +716,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
   Widget _statChip(String label, String value, Color color) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -846,7 +847,7 @@ class _KpiTile extends StatelessWidget {
           color: emphasize ? AppColors.primary.withOpacity(.25) : Colors.white,
         ),
       ),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: AppColors.primary),
@@ -973,7 +974,7 @@ class _DesktopTable extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         scrollDirection: Axis.horizontal,
-        child: DataTable(
+        child: AdaptiveDataTable(
           headingRowHeight: 44,
           dataRowMinHeight: 44,
           columns: const [
@@ -1001,7 +1002,7 @@ class _DesktopTable extends StatelessWidget {
                   style: const TextStyle(color: Colors.green))),
               DataCell(Text(money.format(r.balance),
                   style: const TextStyle(color: Colors.red))),
-              DataCell(Row(
+              DataCell(AdaptiveRow(
                 children: [
                   Icon(Icons.circle, size: 10, color: statusColor),
                   const SizedBox(width: 6),

@@ -21,6 +21,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 enum SortBy { dateAsc, dateDesc, amountAsc, amountDesc }
 
@@ -707,7 +708,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
               onPressed: _openColumnChooser),
         ],
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop && _showSidebar)
             const SizedBox(
@@ -749,7 +750,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                                     ),
                                   ),
                                 ),
-                                Row(
+                                AdaptiveRow(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     OutlinedButton.icon(
@@ -882,7 +883,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
               child: SingleChildScrollView(
                 controller: vertical,
                 scrollDirection: Axis.vertical,
-                child: DataTable(
+                child: AdaptiveDataTable(
                   headingTextStyle: headerTextStyle,
                   dataTextStyle: dataTextStyle,
                   columnSpacing: columnSpacing,
@@ -973,7 +974,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                AdaptiveRow(
                   children: [
                     Expanded(
                         child: Text(e.description,
@@ -1045,7 +1046,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
               thumbVisibility: true,
               child: SingleChildScrollView(
                 controller: vertical,
-                child: DataTable(
+                child: AdaptiveDataTable(
                   headingTextStyle: headerTextStyle,
                   dataTextStyle: dataTextStyle,
                   columnSpacing: columnSpacing,
@@ -1128,7 +1129,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                AdaptiveRow(
                   children: [
                     const Icon(Icons.folder_copy_outlined),
                     const SizedBox(width: 8),
@@ -1177,7 +1178,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
 
   // ===== Helpers UI =====
   Widget _kv(String k, String v, {Color? valueColor, bool isBold = false}) {
-    return Row(
+    return AdaptiveRow(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('$k: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -1194,7 +1195,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
   Widget _chipStat(String label, String value, {required Color color}) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),

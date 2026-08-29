@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ManualAttendanceDialog extends StatefulWidget {
   final Employee employee;
@@ -76,7 +77,7 @@ class _ManualAttendanceDialogState extends State<ManualAttendanceDialog> {
   Widget build(BuildContext context) {
     final dateLabel = DateFormat('EEEE dd MMMM yyyy', 'ar').format(widget.date);
 
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: Text('إدخال حضور يدوي - $dateLabel'),
       content: SingleChildScrollView(
         child: Form(

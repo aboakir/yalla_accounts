@@ -17,6 +17,7 @@ import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 
 // ✅ Sidebar
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InsuranceContactsListScreen extends StatefulWidget {
   const InsuranceContactsListScreen({super.key});
@@ -284,7 +285,7 @@ class _InsuranceContactsListScreenState
   Future<void> _confirmDelete(_LeadContact lead) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('إلغاء التواصل'),
         content: Text(
           'متأكد بدك تحذف "${(lead.name ?? '').trim().isEmpty ? 'بدون اسم' : lead.name!.trim()}"؟',
@@ -487,7 +488,7 @@ class _InsuranceContactsListScreenState
                   final m = i + 1;
                   final expCount = _countExpiring30InMonth(m);
                   return Tab(
-                    child: Row(
+                    child: AdaptiveRow(
                       children: [
                         Text('$m'),
                         if (expCount > 0) ...[
@@ -616,7 +617,7 @@ class _HeaderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isNoDateTab = tabIndex == 0;
 
-    return Row(
+    return AdaptiveRow(
       children: [
         if (busy)
           const SizedBox(
@@ -655,7 +656,7 @@ class _HeaderBar extends StatelessWidget {
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                child: AdaptiveRow(
                   children: [
                     Icon(
                       Icons.notifications_active,
@@ -733,7 +734,7 @@ class _ExpiringBanner extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade300),
           color: Colors.grey.withOpacity(0.06),
         ),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Icon(Icons.info_outline, color: Colors.grey.shade700),
             const SizedBox(width: 10),
@@ -756,7 +757,7 @@ class _ExpiringBanner extends StatelessWidget {
           border: Border.all(color: Colors.green.shade200),
           color: Colors.green.withOpacity(0.08),
         ),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Icon(Icons.verified, color: Colors.green.shade700),
             const SizedBox(width: 10),
@@ -778,7 +779,7 @@ class _ExpiringBanner extends StatelessWidget {
         border: Border.all(color: Colors.orange.shade200),
         color: Colors.orange.withOpacity(0.10),
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
           const SizedBox(width: 10),
@@ -902,7 +903,7 @@ class _WideTable extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 1180),
         child: SingleChildScrollView(
-          child: DataTable(
+          child: AdaptiveDataTable(
             headingRowHeight: 44,
             dataRowMinHeight: 56,
             dataRowMaxHeight: 72,
@@ -948,7 +949,7 @@ class _WideTable extends StatelessWidget {
                     ),
                   ),
                   DataCell(
-                    Row(
+                    AdaptiveRow(
                       children: [
                         OutlinedButton.icon(
                           onPressed: () => onInsure(e),
@@ -1047,7 +1048,7 @@ class _CardsList extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
+              AdaptiveRow(
                 children: [
                   IconButton(
                     tooltip: 'حذف',
@@ -1070,7 +1071,7 @@ class _CardsList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Row(
+              AdaptiveRow(
                 children: [
                   Container(
                     padding:
@@ -1113,7 +1114,7 @@ class _CardsList extends StatelessWidget {
   Widget _kv(String k, String v) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Expanded(child: Text(v, textAlign: TextAlign.right)),
           const SizedBox(width: 10),
@@ -1222,7 +1223,7 @@ class _LeadDialogState extends State<_LeadDialog> {
         ? 'بدون تاريخ انتهاء'
         : widget.nfDate.format(_endDate!);
 
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: Text(isEdit ? 'تعديل زبون محتمل' : 'إضافة زبون محتمل'),
       content: SizedBox(
         width: 560,

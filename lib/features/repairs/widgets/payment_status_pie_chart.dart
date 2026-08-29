@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_stats_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PaymentStatusPieChart extends ConsumerWidget {
   const PaymentStatusPieChart({super.key});
@@ -61,7 +62,7 @@ class PaymentStatusPieChart extends ConsumerWidget {
               runSpacing: 8,
               alignment: WrapAlignment.center,
               children: List.generate(3, (i) {
-                return Row(
+                return AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(width: 12, height: 12, color: colors[i]),

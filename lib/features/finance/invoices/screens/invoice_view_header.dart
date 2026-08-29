@@ -8,6 +8,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/finance/models/invoice.dart';
 import 'package:yalla_accounts/features/finance/services/invoice_database_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InvoiceViewScreen extends StatefulWidget {
   final String invoiceId;
@@ -260,7 +261,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Row(
+                        AdaptiveRow(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             Chip(
@@ -332,7 +333,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
       );
     }
 
-    final headerRow = Row(
+    final headerRow = AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         cell('الطرف', wParty, fw: FontWeight.bold),
@@ -357,7 +358,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
 
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
+        child: AdaptiveRow(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             cell(party, wParty),
@@ -396,7 +397,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
 
   // صف معلومة: يقبل أي نوع ويحول لنص لتجنب أخطاء النوع
   Widget _row({required String label, required Object? value}) {
-    return Row(
+    return AdaptiveRow(
       children: [
         Expanded(
           child: Align(

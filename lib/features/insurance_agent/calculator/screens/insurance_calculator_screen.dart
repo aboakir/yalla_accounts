@@ -8,6 +8,7 @@ import '../widgets/category_selector.dart';
 import '../widgets/dynamic_inputs_form.dart';
 import '../widgets/result_card.dart';
 import '../widgets/discount_card.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InsuranceCalculatorScreen extends StatelessWidget {
   const InsuranceCalculatorScreen({super.key});
@@ -83,7 +84,7 @@ class _ResponsiveBody extends StatelessWidget {
     // Desktop styles: show fixed sidebar when not narrow (desktop/tablet wide)
     final bool showFixedSidebar = !isNarrow;
 
-    return Row(
+    return AdaptiveRow(
       children: [
         if (showFixedSidebar)
           const SizedBox(
@@ -175,7 +176,7 @@ class _ResponsiveContent extends StatelessWidget {
           if (!provider.hasResult) const _HeaderHelpCard(),
           if (!provider.hasResult) const SizedBox(height: 16),
 
-          Row(
+          AdaptiveRow(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Inputs
@@ -281,7 +282,7 @@ class _HeaderHelpCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Container(
             width: 44,
@@ -393,7 +394,7 @@ class _HintCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      child: Row(
+      child: AdaptiveRow(
         children: const [
           Icon(Icons.info_outline, color: AppColors.secondary),
           SizedBox(width: 8),

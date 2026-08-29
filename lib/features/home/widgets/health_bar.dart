@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class HealthBar extends StatefulWidget {
   const HealthBar({super.key});
@@ -102,7 +103,7 @@ class _HealthBarState extends State<HealthBar> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
+          child: AdaptiveRow(
             children: List.generate(
                 4,
                 (_) => Expanded(
@@ -126,7 +127,7 @@ class _HealthBarState extends State<HealthBar> {
       elevation: 3,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
+        child: AdaptiveRow(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _item(

@@ -26,6 +26,7 @@ import 'package:yalla_accounts/features/repairs/services/repair_finance_service.
 import 'package:yalla_accounts/features/repairs/services/repair_export_excel.dart';
 
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairsListScreen extends ConsumerStatefulWidget {
   const RepairsListScreen({super.key});
@@ -57,7 +58,7 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
   Future<void> _deleteRepair(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تأكيد الحذف'),
         content: const Text('هل تريد حذف هذا الملف؟'),
         actions: [
@@ -87,7 +88,7 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
   Future<void> _approveRepairAmount(Repair repair) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('اعتماد السعر النهائي'),
         content: const Text('هل أنت متأكد من اعتماد السعر النهائي لهذا الملف؟'),
         actions: [
@@ -189,7 +190,7 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
         ),
         child: const Icon(Icons.add),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -339,7 +340,7 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
                                           ),
                                       ],
                                     ),
-                                    trailing: Row(
+                                    trailing: AdaptiveRow(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(

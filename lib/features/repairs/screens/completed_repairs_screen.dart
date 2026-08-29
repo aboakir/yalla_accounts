@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class CompletedRepairsScreen extends ConsumerWidget {
   const CompletedRepairsScreen({super.key});
@@ -27,7 +28,7 @@ class CompletedRepairsScreen extends ConsumerWidget {
             style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(

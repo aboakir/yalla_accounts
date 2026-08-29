@@ -17,6 +17,7 @@ import 'steps/step_insured_info.dart';
 import 'steps/step_company_dates.dart';
 import 'steps/step_pricing_payment.dart';
 import 'steps/step_review_submit.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyWizard extends StatefulWidget {
   const PolicyWizard({super.key});
@@ -244,7 +245,7 @@ class _TopHeader extends StatelessWidget {
           bottom: BorderSide(color: Colors.grey.withOpacity(0.15)),
         ),
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Expanded(
             child: Column(
@@ -299,7 +300,7 @@ class _BottomBar extends StatelessWidget {
         color: Theme.of(context).cardColor,
         border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.15))),
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Expanded(
             child: OutlinedButton(

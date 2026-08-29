@@ -26,6 +26,7 @@ import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairsAndARScreen extends ConsumerStatefulWidget {
   const RepairsAndARScreen({super.key});
@@ -78,7 +79,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('سداد دفعة'),
         content: TextField(
           controller: controller,
@@ -186,7 +187,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
     return Scaffold(
       drawer:
           isDesktop ? null : const YallaSidebar(currentRoute: AppRoutes.debts),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -219,7 +220,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
     return Container(
       color: AppColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (!isDesktop)
             Builder(
@@ -259,7 +260,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
 
   Widget _statsRow(Map<String, int> stats) => Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             _statCard('المجموع', stats['المجموع']!, Colors.blue),
             const SizedBox(width: 8),
@@ -299,7 +300,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
 
   Widget _filters() => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Expanded(
               child: TextField(
@@ -421,7 +422,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
       padding: const EdgeInsets.all(12),
       decoration:
           BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           const Icon(Icons.directions_car, size: 30, color: AppColors.primary),
           const SizedBox(width: 12),

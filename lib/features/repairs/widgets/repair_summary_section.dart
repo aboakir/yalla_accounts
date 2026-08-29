@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairSummarySection extends StatefulWidget {
   final List<Repair> repairs;
@@ -68,7 +69,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
         child: Column(
           children: [
             // العنوان و مفتاح تبديل نوع الرسم
-            Row(
+            AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
@@ -79,7 +80,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
                     color: AppColors.primary,
                   ),
                 ),
-                Row(
+                AdaptiveRow(
                   children: [
                     const Text('عرض بار'),
                     Switch(
@@ -99,7 +100,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
             ),
             const SizedBox(height: 12),
             isWide
-                ? Row(
+                ? AdaptiveRow(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
@@ -390,7 +391,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
     required int index,
   }) {
     final isSelected = _touchedIndex == index;
-    return Row(
+    return AdaptiveRow(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -507,7 +508,7 @@ class _StatusCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Icon(icon, color: color),
             const SizedBox(width: 8),

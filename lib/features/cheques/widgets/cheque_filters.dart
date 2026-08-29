@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequeFilters extends StatelessWidget {
   final TextEditingController searchCtrl;
@@ -48,8 +49,6 @@ class ChequeFilters extends StatelessWidget {
     required this.onApplyFilters,
   });
 
-
-
   @override
   Widget build(BuildContext context) {
     final df = DateFormat('yyyy-MM-dd');
@@ -84,7 +83,7 @@ class ChequeFilters extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          Row(
+          AdaptiveRow(
             children: [
               // --------------------------------------------------------
               // نوع الشيك
@@ -170,7 +169,7 @@ class ChequeFilters extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          Row(
+          AdaptiveRow(
             children: [
               // --------------------------------------------------------
               // من تاريخ

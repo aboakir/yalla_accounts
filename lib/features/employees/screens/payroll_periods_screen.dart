@@ -17,6 +17,7 @@ import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 
 import 'package:yalla_accounts/features/employees/services/payroll_periods_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PayrollPeriodsScreen extends StatefulWidget {
   const PayrollPeriodsScreen({super.key});
@@ -86,7 +87,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
     String? note;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: Text('قفل $year-${month.toString().padLeft(2, '0')}'),
         content: TextField(
           decoration: const InputDecoration(
@@ -120,7 +121,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
     String note = current;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تعديل الملاحظة'),
         content: TextField(
           controller: TextEditingController(text: current),
@@ -156,7 +157,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
   Future<void> _unlock(int year, int month) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('فتح الفترة'),
         content: Text('فتح $year-${month.toString().padLeft(2, '0')}؟'),
         actions: [
@@ -201,7 +202,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
           actions: [],
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -214,7 +215,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  Row(
+                  AdaptiveRow(
                     children: [
                       SizedBox(
                         width: 140,
@@ -305,7 +306,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
           )),
           DataCell(SizedBox(
             width: 260,
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: Text(note.isEmpty ? '—' : note,
@@ -320,7 +321,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
               ],
             ),
           )),
-          DataCell(Row(
+          DataCell(AdaptiveRow(
             children: [
               if (!isLocked)
                 ElevatedButton.icon(
@@ -342,7 +343,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('السنة')),
           DataColumn(label: Text('الشهر')),

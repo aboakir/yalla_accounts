@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class MonthlyPieChart extends StatelessWidget {
   final double income;
@@ -47,7 +48,7 @@ class MonthlyPieChart extends StatelessWidget {
 
     return SizedBox(
       height: 260,
-      child: Row(
+      child: AdaptiveRow(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // ------------------------------------------------------------

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class WeeklySummary extends StatelessWidget {
   const WeeklySummary({super.key});
@@ -109,7 +110,7 @@ class WeeklySummary extends StatelessWidget {
               border:
                   Border.all(color: Colors.black.withOpacity(0.06), width: 1),
             ),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 CircleAvatar(
                   radius: 16,
@@ -161,7 +162,7 @@ class WeeklySummary extends StatelessWidget {
               const SizedBox(height: 10),
 
               // الصف الأول: فواتير الإجمالي + الإيراد + المصروف + الصافي
-              Row(
+              AdaptiveRow(
                 children: [
                   tile(ctx,
                       title: 'الفواتير',
@@ -199,7 +200,7 @@ class WeeklySummary extends StatelessWidget {
               const SizedBox(height: 10),
 
               // الصف الثاني: عدد المدفوعات + إصلاحات + عدد الفواتير
-              Row(
+              AdaptiveRow(
                 children: [
                   tile(ctx,
                       title: 'عدد المدفوعات',

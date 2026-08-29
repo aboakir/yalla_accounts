@@ -4,6 +4,7 @@ import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_provider.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EmployeeSalaryCard extends ConsumerStatefulWidget {
   final Employee employee;
@@ -61,7 +62,7 @@ class _EmployeeSalaryCardState extends ConsumerState<EmployeeSalaryCard> {
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: AdaptiveRow(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // معلومات الموظف

@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ActionShortcutButton extends StatelessWidget {
   final String label;
@@ -48,7 +49,7 @@ class ActionShortcutButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
+          child: AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[

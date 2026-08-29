@@ -3,6 +3,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/constants/insurance_companies.dart';
 import 'package:yalla_accounts/features/clients/models/client.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EditClientDialog extends StatefulWidget {
   final Client client;
@@ -126,7 +127,7 @@ class _EditClientDialogState extends State<EditClientDialog> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: AlertDialog(
+      child: AdaptiveAlertDialog(
         title: const Text('تعديل بيانات العميل'),
         content: SingleChildScrollView(
           child: Form(

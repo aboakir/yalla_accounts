@@ -11,6 +11,7 @@ import 'package:yalla_accounts/features/auth/services/auth_session_service.dart'
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
 import 'package:yalla_accounts/features/home/screens/dashboard_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class _ControlSection {
   const _ControlSection(this.id, this.label, this.endpoint, this.icon);
@@ -253,7 +254,7 @@ class _YallaControlCenterScreenState
     final controller = TextEditingController();
     final reason = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('رفض طلب التسجيل'),
         content: TextField(
           controller: controller,
@@ -292,7 +293,7 @@ class _YallaControlCenterScreenState
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('تم تجهيز الزبون'),
         content: SizedBox(
           width: 520,
@@ -553,7 +554,7 @@ class _YallaControlCenterScreenState
           ],
         ),
         drawer: compact ? Drawer(child: _navigation(closeDrawer: true)) : null,
-        body: Row(
+        body: AdaptiveRow(
           children: [
             if (!compact)
               SizedBox(
@@ -584,7 +585,7 @@ class _YallaControlCenterScreenState
       width: double.infinity,
       color: AppColors.primary.withValues(alpha: 0.08),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Icon(Icons.admin_panel_settings_outlined, color: AppColors.primary),
           const SizedBox(width: 8),
@@ -620,7 +621,7 @@ class _YallaControlCenterScreenState
     }
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (showCreate)
             FilledButton.icon(
@@ -785,7 +786,7 @@ class _DashboardView extends StatelessWidget {
                     child: Card(
                       child: Padding(
                         padding: const EdgeInsets.all(18),
-                        child: Row(
+                        child: AdaptiveRow(
                           children: [
                             CircleAvatar(
                                 backgroundColor:
@@ -865,7 +866,7 @@ class _OnboardingView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
+                AdaptiveRow(children: [
                   Expanded(
                       child: Text(
                           row['organization_name']?.toString() ?? 'طلب منشأة',
@@ -881,7 +882,7 @@ class _OnboardingView extends StatelessWidget {
                 Text('Request ID: ${row['request_id'] ?? '—'}'),
                 if (status == 'PENDING') ...[
                   const SizedBox(height: 12),
-                  Row(children: [
+                  AdaptiveRow(children: [
                     FilledButton.icon(
                         onPressed: () => onApprove(row),
                         icon: const Icon(Icons.check),
@@ -1248,7 +1249,7 @@ class _AdminRecordCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: Text(
@@ -1366,7 +1367,7 @@ class _CustomerPreviewShell extends StatelessWidget {
                 bottom: false,
                 child: SizedBox(
                   height: 52,
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       const SizedBox(width: 12),
                       const Icon(Icons.preview_outlined, color: Colors.white),
@@ -1599,7 +1600,7 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('إنشاء زبون جديد'),
       content: SizedBox(
         width: 620,
@@ -1620,7 +1621,7 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
                         const InputDecoration(labelText: 'بريد مالك المنشأة'),
                     validator: (v) =>
                         (v?.contains('@') ?? false) ? null : 'بريد صحيح مطلوب'),
-                Row(children: [
+                AdaptiveRow(children: [
                   Expanded(
                       child: TextFormField(
                           controller: _country,
@@ -1633,7 +1634,7 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
                           decoration:
                               const InputDecoration(labelText: 'Plan code')))
                 ]),
-                Row(children: [
+                AdaptiveRow(children: [
                   Expanded(
                       child: TextFormField(
                           controller: _users,
@@ -1724,7 +1725,7 @@ class _ManagedActionDialogState extends State<_ManagedActionDialog> {
   @override
   Widget build(BuildContext context) {
     final asksDays = widget.dayField.isNotEmpty;
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: Text(widget.actionLabel),
       content: SizedBox(
         width: 460,
@@ -1866,7 +1867,7 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('إجراء Yalla إداري'),
       content: SizedBox(
         width: 620,
@@ -1978,7 +1979,7 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('فتح Break Glass'),
       content: SizedBox(
         width: 520,

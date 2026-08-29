@@ -17,6 +17,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_invoice_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 // ============================================================================
 // SUPPLIER MODEL (عرضي)
@@ -161,7 +162,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
             setSt(() {});
           }
 
-          return AlertDialog(
+          return AdaptiveAlertDialog(
             title: Text(
               byPid ? "اختر مورّد بالرقم" : "اختر مورّد بالاسم",
               textAlign: TextAlign.right,
@@ -395,7 +396,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                   // -------------------------------------------------------------------
                   // SUPPLIER FIELDS
                   // -------------------------------------------------------------------
-                  Row(
+                  AdaptiveRow(
                     children: [
                       Expanded(
                         child: TextFormField(
@@ -497,7 +498,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                         const Divider(height: 1),
                         Padding(
                           padding: const EdgeInsets.all(8),
-                          child: Row(
+                          child: AdaptiveRow(
                             children: [
                               OutlinedButton.icon(
                                 icon: const Icon(Icons.add),
@@ -587,7 +588,7 @@ class _LinesHeader extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
+      child: AdaptiveRow(
         children: const [
           Expanded(flex: 5, child: Text("الصنف", style: h)),
           SizedBox(width: 8),
@@ -642,7 +643,7 @@ class _LineRowState extends State<_LineRow> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           // اسم الصنف
           Expanded(

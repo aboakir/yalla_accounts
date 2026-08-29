@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/cheque.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequeDialog extends StatefulWidget {
   final ChequeType initialType; // وارد أو صادر
@@ -95,7 +96,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
   }
 
   Widget _buildHeader() {
-    return Row(
+    return AdaptiveRow(
       children: [
         Icon(
           Icons.receipt_long,
@@ -129,7 +130,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
               : Colors.orange.shade200,
         ),
       ),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
@@ -160,7 +161,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
     return Column(
       children: [
         // الصف الأول: رقم الشيك + المبلغ
-        Row(
+        AdaptiveRow(
           children: [
             Expanded(
               child: TextFormField(
@@ -204,7 +205,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
         const SizedBox(height: 12),
 
         // البنك والفرع
-        Row(
+        AdaptiveRow(
           children: [
             Expanded(
               child: TextFormField(
@@ -247,7 +248,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
   }
 
   Widget _buildDateFields() {
-    return Row(
+    return AdaptiveRow(
       children: [
         Expanded(
           child: _buildDateField(
@@ -277,7 +278,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
           labelText: label,
           border: const OutlineInputBorder(),
         ),
-        child: Row(
+        child: AdaptiveRow(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Icon(Icons.calendar_today, size: 18),
@@ -292,7 +293,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
   }
 
   Widget _buildActions() {
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         ElevatedButton(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/settings/services/data_health_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class DataHealthScreen extends StatefulWidget {
   const DataHealthScreen({super.key});
@@ -86,7 +87,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: const Text('إصلاحات آمنة'),
         content: const Text(
           'سيتم إنشاء نسخة احتياطية أولًا، ثم تنفيذ الإصلاحات '
@@ -264,7 +265,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Icon(Icons.health_and_safety, color: overallColor),
                 const SizedBox(width: 8),
@@ -448,7 +449,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
       color: Colors.red.withOpacity(0.08),
       child: Padding(
         padding: const EdgeInsets.all(14),
-        child: Row(
+        child: AdaptiveRow(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Icon(Icons.error_outline, color: Colors.red),

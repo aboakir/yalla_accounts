@@ -5,6 +5,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/services/first_owner_bootstrap_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RegisterUserScreen extends ConsumerStatefulWidget {
   const RegisterUserScreen({super.key});
@@ -99,7 +100,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => AdaptiveAlertDialog(
           title: const Text('تم إنشاء مالك المنشأة'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -171,7 +172,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   Widget _buildBulletPoint(String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Container(
             width: 24,
@@ -220,13 +221,17 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isPhone = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       backgroundColor: AppColors.primary,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
+            padding: EdgeInsets.symmetric(
+              horizontal: isPhone ? 12 : 32,
+              vertical: isPhone ? 12 : 28,
+            ),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 920),
               decoration: BoxDecoration(
@@ -239,14 +244,16 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
                       offset: Offset(0, 10)),
                 ],
               ),
-              child: Row(
+              child: AdaptiveRow(
                 children: [
                   // Right Side: Form Fields
                   Expanded(
                     flex: 6,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 36),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isPhone ? 16 : 28,
+                        vertical: isPhone ? 20 : 36,
+                      ),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -254,7 +261,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             // Title Row with icon button
-                            Row(
+                            AdaptiveRow(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
@@ -279,7 +286,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
                             ),
                             const SizedBox(height: 32),
                             // Workshop and Username Row
-                            Row(
+                            AdaptiveRow(
                               children: [
                                 Expanded(
                                   child: TextFormField(
@@ -333,7 +340,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
                             const SizedBox(height: 18),
 
                             // Country and Province Row with type-safe DropdownMenuItems
-                            Row(
+                            AdaptiveRow(
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
@@ -385,7 +392,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
                             ),
                             const SizedBox(height: 18),
                             // Town and Street Row
-                            Row(
+                            AdaptiveRow(
                               children: [
                                 Expanded(
                                   child: TextFormField(
@@ -493,76 +500,80 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
                     ),
                   ),
 
-                  // Left side: Logo and features with two columns
-                  Expanded(
-                    flex: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 40),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(22),
-                          bottomLeft: Radius.circular(22),
+                  // Promotional desktop/tablet panel is intentionally hidden on
+                  // phone. The phone first-run experience is one focused form.
+                  if (!isPhone)
+                    Expanded(
+                      flex: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 32, vertical: 40),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(22),
+                            bottomLeft: Radius.circular(22),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: 160,
+                              width: 220,
+                              child: Image.asset('assets/logo/logo.png',
+                                  fit: BoxFit.contain),
+                            ),
+                            const SizedBox(height: 26),
+                            Text(
+                              'الأول في إدارة ورش دهان السيارات',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 32),
+                            AdaptiveRow(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // First column
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildBulletPoint('مبيعات التأمين'),
+                                      _buildBulletPoint('مبيعات الأفراد'),
+                                      _buildBulletPoint('الحسابات العامة'),
+                                      _buildBulletPoint('العملاء والموردين'),
+                                      _buildBulletPoint('شؤون الموظفين'),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 40),
+                                // Second column
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildBulletPoint('تتبع المخزون'),
+                                      _buildBulletPoint('المصروفات'),
+                                      _buildBulletPoint('المواد الخام'),
+                                      _buildBulletPoint('قطع السيارات'),
+                                      _buildBulletPoint('ملفات التأمين'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            height: 160,
-                            width: 220,
-                            child: Image.asset('assets/logo/logo.png',
-                                fit: BoxFit.contain),
-                          ),
-                          const SizedBox(height: 26),
-                          Text(
-                            'الأول في إدارة ورش دهان السيارات',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 32),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // First column
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildBulletPoint('مبيعات التأمين'),
-                                    _buildBulletPoint('مبيعات الأفراد'),
-                                    _buildBulletPoint('الحسابات العامة'),
-                                    _buildBulletPoint('العملاء والموردين'),
-                                    _buildBulletPoint('شؤون الموظفين'),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 40),
-                              // Second column
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildBulletPoint('تتبع المخزون'),
-                                    _buildBulletPoint('المصروفات'),
-                                    _buildBulletPoint('المواد الخام'),
-                                    _buildBulletPoint('قطع السيارات'),
-                                    _buildBulletPoint('ملفات التأمين'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
                     ),
-                  ),
                 ],
               ),
             ),

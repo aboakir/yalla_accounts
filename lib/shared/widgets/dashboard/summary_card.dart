@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SummaryCard extends StatelessWidget {
   final IconData icon;
@@ -47,7 +48,7 @@ class SummaryCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 CircleAvatar(
                   radius: isWide ? 28 : 24,

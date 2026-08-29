@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequeCard extends StatelessWidget {
   final Cheque cheque;
@@ -44,7 +45,7 @@ class ChequeCard extends StatelessWidget {
       case ChequeStatus.deposited:
         return Colors.teal.shade700;
       case ChequeStatus.pending:
-      return Colors.amber.shade700;
+        return Colors.amber.shade700;
     }
   }
 
@@ -97,7 +98,7 @@ class ChequeCard extends StatelessWidget {
               // --------------------------------------------------------
               // الصف العلوي
               // --------------------------------------------------------
-              Row(
+              AdaptiveRow(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // رقم الشيك + نوعه
@@ -144,7 +145,7 @@ class ChequeCard extends StatelessWidget {
               // --------------------------------------------------------
               // الصف السفلي
               // --------------------------------------------------------
-              Row(
+              AdaptiveRow(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // البنك + الفرع

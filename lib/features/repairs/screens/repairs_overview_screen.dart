@@ -9,6 +9,7 @@ import 'package:yalla_accounts/features/repairs/screens/repairs_and_ar_screen.da
 import 'package:yalla_accounts/features/repairs/widgets/repair_financial_summary.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_summary_section.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairsOverviewScreen extends ConsumerWidget {
   const RepairsOverviewScreen({super.key});
@@ -104,7 +105,7 @@ class RepairsOverviewScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      body: Row(
+      body: AdaptiveRow(
         children: [
           // قائمة جانبية ثابتة
           const YallaSidebar(currentRoute: '/repairs/list'),

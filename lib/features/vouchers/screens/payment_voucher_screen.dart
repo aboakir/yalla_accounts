@@ -24,6 +24,7 @@ import 'package:yalla_accounts/core/services/db/db_service.dart';
 import '../models/voucher_payment_model.dart';
 import '../services/voucher_payment_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PaymentVoucherScreen extends ConsumerStatefulWidget {
   final String? purchaseId;
@@ -132,7 +133,7 @@ ORDER BY pi.date DESC
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setD) {
-            return AlertDialog(
+            return AdaptiveAlertDialog(
               title: const Text("اختر فاتورة", textAlign: TextAlign.center),
               content: SizedBox(
                 width: 600,
@@ -264,7 +265,7 @@ ORDER BY pi.date DESC
         showSearch: false,
       ),
       drawer: isDesktop ? null : const YallaSidebar(),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(),
           Expanded(child: _buildForm()),
@@ -428,7 +429,7 @@ ORDER BY pi.date DESC
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setD) {
-            return AlertDialog(
+            return AdaptiveAlertDialog(
               title: const Text("اختر المورد", textAlign: TextAlign.center),
               content: SizedBox(
                 width: 500,

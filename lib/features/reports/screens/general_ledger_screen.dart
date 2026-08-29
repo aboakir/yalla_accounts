@@ -14,6 +14,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class GeneralLedgerScreen extends StatefulWidget {
   const GeneralLedgerScreen({super.key});
@@ -267,7 +268,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
               offset: const Offset(0, 2))
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (isMobile)
             IconButton(
@@ -396,7 +397,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
 
     return Scaffold(
       drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!isMobile)
             const YallaSidebar(currentRoute: '/reports/general-ledger'),
@@ -468,7 +469,7 @@ class _GLTable extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minWidth: 860),
-          child: DataTable(
+          child: AdaptiveDataTable(
             columns: const [
               DataColumn(label: Text('التاريخ')),
               DataColumn(label: Text('الوصف')),
@@ -545,7 +546,7 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(width: 2),
@@ -577,7 +578,7 @@ class _ChipButton extends StatelessWidget {
       child: Chip(
         backgroundColor: AppColors.primary,
         labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: Row(
+        label: AdaptiveRow(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: Colors.white),

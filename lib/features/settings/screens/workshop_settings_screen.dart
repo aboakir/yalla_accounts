@@ -14,6 +14,7 @@ import 'package:yalla_accounts/features/auth/screens/account_security_screen.dar
 import 'package:yalla_accounts/features/auth/screens/manage_users_screen.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class WorkshopSettingsScreen extends ConsumerStatefulWidget {
   const WorkshopSettingsScreen({super.key});
@@ -205,7 +206,7 @@ class _WorkshopSettingsScreenState
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('كود الطوارئ'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -247,7 +248,7 @@ class _WorkshopSettingsScreenState
   Future<void> _resetDatabase() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => const AlertDialog(
+      builder: (_) => const AdaptiveAlertDialog(
         title: Text('تحذير'),
         content: Text('سيتم حذف قاعدة البيانات بالكامل.'),
       ),
@@ -338,7 +339,7 @@ class _WorkshopSettingsScreenState
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const Divider(),
-          Row(children: [
+          AdaptiveRow(children: [
             _buildLogoPreview(),
             const SizedBox(width: 12),
             ElevatedButton(

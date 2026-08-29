@@ -26,6 +26,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SalarySummaryScreen extends StatefulWidget {
   const SalarySummaryScreen({super.key});
@@ -135,7 +136,7 @@ class _SalarySummaryScreenState extends State<SalarySummaryScreen> {
         preferredSize: Size.fromHeight(kToolbarHeight),
         child: YallaAppBar(workshopName: 'ملخص الرواتب', actions: []),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -150,7 +151,7 @@ class _SalarySummaryScreenState extends State<SalarySummaryScreen> {
                   : ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        Row(
+                        AdaptiveRow(
                           children: [
                             ElevatedButton.icon(
                               onPressed: _pickMonth,
@@ -214,7 +215,7 @@ class _SalarySummaryScreenState extends State<SalarySummaryScreen> {
                         // Table
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          child: DataTable(
+                          child: AdaptiveDataTable(
                             columns: const [
                               DataColumn(label: Text('الموظف ID')),
                               DataColumn(label: Text('صافي مثبت')),

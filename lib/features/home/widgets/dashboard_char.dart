@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class DashboardChart extends StatelessWidget {
   const DashboardChart({super.key});
@@ -21,7 +22,7 @@ class DashboardChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 const Icon(Icons.trending_up, color: AppColors.primary),
                 const SizedBox(width: 8),

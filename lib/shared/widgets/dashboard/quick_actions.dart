@@ -14,7 +14,7 @@ class QuickActions extends StatelessWidget {
     final crossAxisCount = switch (device) {
       DeviceType.desktop => 4,
       DeviceType.tablet => 3,
-      DeviceType.mobile => 2,
+      DeviceType.mobile => 1,
     };
 
     // ملاحظـة:

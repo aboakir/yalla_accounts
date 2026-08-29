@@ -22,6 +22,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 
 import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequeDetailsScreen extends ConsumerWidget {
   final Cheque cheque;
@@ -44,7 +45,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
       ),
       drawer:
           isDesktop ? null : const YallaSidebar(currentRoute: '/cheques/list'),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(currentRoute: '/cheques/list'),
           Expanded(
@@ -274,7 +275,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
           ),
-        Row(
+        AdaptiveRow(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton.icon(
@@ -389,7 +390,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
     await showDialog(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
+        return AdaptiveAlertDialog(
           title: const Text("تظهير الشيك"),
           content: StatefulBuilder(
             builder: (ctx, setSt) {
@@ -504,7 +505,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text("حذف الشيك"),
         content: const Text("هل أنت متأكد من الحذف؟"),
         actions: [
@@ -579,7 +580,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
   Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Expanded(
             flex: 3,

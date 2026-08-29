@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 enum ForgotMode {
   username,
@@ -204,19 +205,28 @@ class _ForgotAccessScreenState extends ConsumerState<ForgotAccessScreen> {
               value: ForgotMode.username,
               groupValue: _mode,
               title: const Text('نسيت اسم المستخدم'),
-              onChanged: (v) => setState(() {_mode = v; _verified = false;}),
+              onChanged: (v) => setState(() {
+                _mode = v;
+                _verified = false;
+              }),
             ),
             RadioListTile<ForgotMode>(
               value: ForgotMode.password,
               groupValue: _mode,
               title: const Text('نسيت كلمة المرور'),
-              onChanged: (v) => setState(() {_mode = v; _verified = false;}),
+              onChanged: (v) => setState(() {
+                _mode = v;
+                _verified = false;
+              }),
             ),
             RadioListTile<ForgotMode>(
               value: ForgotMode.recovery,
               groupValue: _mode,
               title: const Text('الدخول باستخدام كود الطوارئ'),
-              onChanged: (v) => setState(() {_mode = v; _verified = false;}),
+              onChanged: (v) => setState(() {
+                _mode = v;
+                _verified = false;
+              }),
             ),
           ],
         ),
@@ -339,7 +349,7 @@ class _ForgotAccessScreenState extends ConsumerState<ForgotAccessScreen> {
   void _showUsernameDialog(String username) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('اسم المستخدم'),
         content: SelectableText(
           username,

@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_invoice_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchaseOtherScreen extends StatefulWidget {
   const PurchaseOtherScreen({super.key});
@@ -129,12 +130,12 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Row(children: [
+            AdaptiveRow(children: [
               Text("التاريخ: ${df.format(_date)}",
                   style: const TextStyle(fontSize: 16)),
             ]),
             const SizedBox(height: 20),
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   flex: 3,
@@ -182,7 +183,7 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
                 },
               ),
             ),
-            Row(
+            AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(

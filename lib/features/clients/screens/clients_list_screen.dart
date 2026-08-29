@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/features/clients/providers/client_list_provider.dart';
 import 'client_edit_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// سلوك سكرول محسّن للويندوز
 class DesktopScrollBehavior extends ScrollBehavior {
@@ -49,7 +50,7 @@ class ClientListScreen extends ConsumerWidget {
       context: context,
       builder: (_) => Directionality(
         textDirection: TextDirection.rtl,
-        child: AlertDialog(
+        child: AdaptiveAlertDialog(
           title: const Text("تأكيد الحذف"),
           content: Text("هل تريد حذف \"$name\"؟"),
           actions: [
@@ -146,7 +147,7 @@ class ClientListScreen extends ConsumerWidget {
                                         ? "بريد: ${c.email}"
                                         : ""),
                               ),
-                              trailing: Row(
+                              trailing: AdaptiveRow(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(

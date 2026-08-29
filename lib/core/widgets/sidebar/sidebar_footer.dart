@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/theme/theme_provider.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SidebarFooter extends ConsumerWidget {
   final bool isCollapsed;
@@ -29,13 +30,13 @@ class SidebarFooter extends ConsumerWidget {
         const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
+          child: AdaptiveRow(
             mainAxisAlignment: isCollapsed
                 ? MainAxisAlignment.center
                 : MainAxisAlignment.spaceBetween,
             children: [
               if (!isCollapsed) ...[
-                Row(
+                AdaptiveRow(
                   children: [
                     Icon(isDark ? Icons.dark_mode : Icons.light_mode,
                         color: AppColors.primary),

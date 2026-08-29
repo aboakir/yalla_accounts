@@ -34,6 +34,7 @@ import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
 import 'cheque_add_screen.dart';
 import 'cheque_details_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesListScreen extends ConsumerStatefulWidget {
   const ChequesListScreen({super.key});
@@ -76,7 +77,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
         showSearch: false,
       ),
       drawer: isDesktop ? null : const YallaSidebar(),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(),
           Expanded(
@@ -140,7 +141,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   // HEADER
   // ---------------------------------------------------------------------------
   Widget _buildHeader(List<Cheque> list) {
-    return Row(
+    return AdaptiveRow(
       children: [
         ElevatedButton.icon(
           icon: const Icon(Icons.download),
@@ -289,7 +290,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
@@ -369,7 +370,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   // Quick Filters — Buttons (تتحكم فقط بتواريخ الاستحقاق من ChequeFilter)
   // ---------------------------------------------------------------------------
   Widget _quickFilters(ChequeFilter filter) {
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         _quickBtn("3 أيام", Colors.orange, () {
@@ -621,7 +622,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
         scrollDirection: Axis.vertical,
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: DataTable(
+          child: AdaptiveDataTable(
             headingRowColor: MaterialStateColor.resolveWith(
               (_) => AppColors.primary,
             ),
@@ -668,7 +669,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                     ),
                   ),
                   DataCell(
-                    Row(
+                    AdaptiveRow(
                       children: [
                         IconButton(
                           tooltip: "تفاصيل الشيك",
@@ -754,7 +755,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                       textAlign: TextAlign.right,
                     ),
                     const SizedBox(height: 10),
-                    Row(
+                    AdaptiveRow(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         IconButton(

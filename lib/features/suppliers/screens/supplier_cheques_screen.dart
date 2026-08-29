@@ -31,6 +31,7 @@ import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/providers/cheque_provider.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheque_add_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheque_details_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierChequesScreen extends ConsumerStatefulWidget {
   final String supplierPid;
@@ -83,7 +84,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
         showThemeToggle: false,
       ),
       drawer: isDesktop ? null : const YallaSidebar(),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop) const YallaSidebar(),
           Expanded(
@@ -118,7 +119,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
   // HEADER
   // ---------------------------------------------------------------------------
   Widget _header(List<Cheque> filtered) {
-    return Row(
+    return AdaptiveRow(
       children: [
         ElevatedButton.icon(
           icon: const Icon(Icons.table_view),
@@ -202,7 +203,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
         color: color.withOpacity(.09),
         borderRadius: BorderRadius.circular(22),
       ),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.info, color: color, size: 17),
@@ -385,7 +386,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
   Widget _buildTable(List<Cheque> list) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         headingRowColor: MaterialStateProperty.all(AppColors.primary),
         headingTextStyle: const TextStyle(color: Colors.white),
         columns: const [
@@ -408,7 +409,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
               DataCell(Text(df.format(c.issueDate))),
               DataCell(Text(df.format(c.dueDate))),
               DataCell(Text("${c.bankName} / ${c.bankBranch}")),
-              DataCell(Row(
+              DataCell(AdaptiveRow(
                 children: [
                   IconButton(
                     icon: const Icon(Icons.visibility),
@@ -485,7 +486,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
                   "استحقاق: ${df.format(c.dueDate)}",
                   textAlign: TextAlign.right,
                 ),
-                Row(
+                AdaptiveRow(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import '../utils/policy_date_utils.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PoliciesListHeader extends StatelessWidget {
   final List<Map<String, dynamic>> items;
@@ -97,7 +98,7 @@ class PoliciesListHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Container(
             width: 46,
@@ -185,7 +186,7 @@ class PoliciesListHeader extends StatelessWidget {
                     ),
                   ],
           ),
-          child: Row(
+          child: AdaptiveRow(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 18, color: fg),
@@ -228,7 +229,7 @@ class PoliciesListHeader extends StatelessWidget {
         builder: (_, c) {
           final narrow = c.maxWidth < 980;
 
-          return Row(
+          return AdaptiveRow(
             children: [
               // Month tabs
               Expanded(
@@ -266,7 +267,7 @@ class PoliciesListHeader extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
-                child: Row(
+                child: AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _quickBtn(
@@ -360,7 +361,7 @@ class PoliciesListHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Row(
+        AdaptiveRow(
           children: [
             IconButton(
               tooltip: 'تحديث',
@@ -416,7 +417,7 @@ class PoliciesListHeader extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 reverse: true,
                 physics: const BouncingScrollPhysics(),
-                child: Row(
+                child: AdaptiveRow(
                   children: [
                     SizedBox(
                       width: cardW,
@@ -504,7 +505,7 @@ class PoliciesListHeader extends StatelessWidget {
                     );
                   }
 
-                  return Row(
+                  return AdaptiveRow(
                     children: [
                       SizedBox(width: 320, child: companyDrop),
                       const SizedBox(width: 12),

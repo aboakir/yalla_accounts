@@ -32,6 +32,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 // ✅ ثوابت موحّدة
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairsScreen extends ConsumerStatefulWidget {
   final bool showAll;
@@ -89,7 +90,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 if (!mounted) return;
                 showDialog<void>(
                   context: context,
-                  builder: (ctx) => AlertDialog(
+                  builder: (ctx) => AdaptiveAlertDialog(
                     title: const Text('غير متاح مؤقتًا'),
                     content: const Text(
                         'ميزة "شراء قطع غيار" ستُفعّل لاحقًا بعد إضافة الشاشة المطلوبة.'),
@@ -129,7 +130,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
   Future<void> _approveRepairLedger(BuildContext context, Repair repair) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: const Text('تأكيد الاعتماد'),
         content: const Text('هل تريد اعتماد هذا الملف وتوليد قيد محاسبي؟'),
         actions: [
@@ -433,7 +434,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           ),
         ],
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -466,7 +467,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                   const SizedBox(height: 8),
                   const RepairStatsCards(),
                   const SizedBox(height: 12),
-                  Row(
+                  AdaptiveRow(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('جميع المركبات',

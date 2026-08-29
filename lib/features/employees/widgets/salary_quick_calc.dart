@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/services/attendance_database_service.dart';
 import 'package:yalla_accounts/features/employees/providers/salary_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// يعرض حوار "الراتب المحسوب" لشهر محدد اعتمادًا على الحضور.
 /// يعتمد على salary_provider + attendance_database_service المعدّلين.
@@ -43,7 +44,7 @@ Future<void> showMonthlySalaryQuickCalc({
 
   await showDialog<void>(
     context: context,
-    builder: (_) => AlertDialog(
+    builder: (_) => AdaptiveAlertDialog(
       title: const Text('الراتب المحسوب'),
       content: Column(
         mainAxisSize: MainAxisSize.min,

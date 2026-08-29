@@ -25,6 +25,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class VehiclesArrearsScreen extends StatefulWidget {
   const VehiclesArrearsScreen({super.key});
@@ -258,7 +259,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
               color: Colors.white),
         ],
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -384,7 +385,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
   Widget _chipStat(String label, String value, {Color? color}) {
     return Chip(
       backgroundColor: Colors.grey.shade100,
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ',
@@ -417,7 +418,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
           child: Scrollbar(
             thumbVisibility: true,
             child: SingleChildScrollView(
-              child: DataTable(
+              child: AdaptiveDataTable(
                 columnSpacing: 20,
                 headingTextStyle: const TextStyle(fontWeight: FontWeight.bold),
                 rows: _rows.map((r) {
@@ -472,7 +473,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
+                AdaptiveRow(children: [
                   Expanded(
                     child: Text(r.title,
                         style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -513,7 +514,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
   }
 
   Widget _kv(String k, String v, {bool bold = false}) {
-    return Row(
+    return AdaptiveRow(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('$k: ', style: const TextStyle(fontWeight: FontWeight.w600)),

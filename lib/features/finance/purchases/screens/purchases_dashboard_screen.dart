@@ -22,6 +22,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
 import 'package:yalla_accounts/features/finance/purchases/providers/purchase_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchasesDashboardScreen extends ConsumerStatefulWidget {
   const PurchasesDashboardScreen({super.key});
@@ -264,7 +265,7 @@ class _PurchasesDashboardScreenState
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -319,7 +320,7 @@ class _KpiCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             color: color.withOpacity(0.10),
           ),
-          child: Row(
+          child: AdaptiveRow(
             children: [
               CircleAvatar(
                 backgroundColor: color,
@@ -366,7 +367,7 @@ class _MiniKpiChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Chip(
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -395,7 +396,7 @@ class _QuickButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = Row(mainAxisSize: MainAxisSize.min, children: [
+    final child = AdaptiveRow(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, size: 18),
       const SizedBox(width: 6),
       Text(label),

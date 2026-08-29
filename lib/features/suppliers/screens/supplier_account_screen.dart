@@ -25,6 +25,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/accounting_gl.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierAccountScreen extends StatefulWidget {
   final String supplierId;
@@ -343,7 +344,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
           // ===================== الهيدر الإحصائي =====================
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: _StatTile(
@@ -364,7 +365,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
           // ===================== أزرار التصدير =====================
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 ElevatedButton.icon(
                   icon: const Icon(Icons.picture_as_pdf),
@@ -384,7 +385,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
           // -------------------- فلاتر التاريخ --------------------
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
@@ -427,7 +428,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
                     ? const Center(child: Text("لا توجد حركات ضمن الفترة"))
                     : SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: DataTable(
+                        child: AdaptiveDataTable(
                           columns: const [
                             DataColumn(label: Text('التاريخ')),
                             DataColumn(label: Text('المرجع')),

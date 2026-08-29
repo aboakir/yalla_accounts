@@ -12,6 +12,7 @@ import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_provider.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EditSalaryScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -105,7 +106,7 @@ class _EditSalaryScreenState extends ConsumerState<EditSalaryScreen> {
   Future<void> _deleteEmployee() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('تأكيد الحذف'),
         content: Text('هل أنت متأكد من حذف: ${widget.employee.fullName}؟'),
         actions: [
@@ -191,7 +192,7 @@ class _EditSalaryScreenState extends ConsumerState<EditSalaryScreen> {
           actions: const [],
         ),
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(

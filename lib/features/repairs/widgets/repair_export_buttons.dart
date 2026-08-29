@@ -10,6 +10,7 @@ import 'package:yalla_accounts/features/repairs/services/repair_pdf_generator.da
 import 'package:yalla_accounts/shared/utils/pdf_file_saver.dart';
 import 'package:yalla_accounts/shared/utils/repair_excel_export.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// زرّرات تصدير ملفات الإصلاح (PDF و Excel) مع عرض تقدم واحترافية أعلى.
 class RepairExportButtons extends ConsumerStatefulWidget {
@@ -32,7 +33,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       context: context,
       barrierDismissible: false,
       builder: (_) {
-        return AlertDialog(
+        return AdaptiveAlertDialog(
           title: Text(title, textAlign: TextAlign.center),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -165,7 +166,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
   Widget build(BuildContext context) {
     final repairs = ref.watch(repairListProvider);
 
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // زر تصدير PDF

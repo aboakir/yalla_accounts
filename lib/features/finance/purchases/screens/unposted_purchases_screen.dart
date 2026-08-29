@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class UnpostedPurchasesScreen extends StatefulWidget {
   const UnpostedPurchasesScreen({super.key});
@@ -300,7 +301,7 @@ class _UnpostedPurchasesScreenState extends State<UnpostedPurchasesScreen> {
                       title: Text(
                           supName ?? 'Supplier ${r['supplier_pid'] ?? '-'}'),
                       subtitle: Text(dateTxt),
-                      trailing: Row(
+                      trailing: AdaptiveRow(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(_nf.format(amount)),

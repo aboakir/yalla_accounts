@@ -7,6 +7,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchaseToolsScreen extends StatefulWidget {
   const PurchaseToolsScreen({super.key});
@@ -310,7 +311,7 @@ class _PurchaseToolsScreenState extends State<PurchaseToolsScreen> {
               child: YallaSidebar(currentRoute: '/purchases/tools'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

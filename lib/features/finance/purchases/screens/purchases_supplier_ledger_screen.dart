@@ -15,6 +15,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierLedgerScreen extends StatefulWidget {
   final String supplierId;
@@ -185,7 +186,6 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -199,7 +199,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Column(
               children: [
-                Row(
+                AdaptiveRow(
                   children: [
                     // من
                     Expanded(
@@ -297,7 +297,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                   color: Colors.black.withOpacity(.04),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       _h('التاريخ', flex: 2),
                       _h('المرجع', flex: 2),
@@ -327,7 +327,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                                 radius: 16,
                                 child: Text('${r.entryId}'),
                               ),
-                              title: Row(
+                              title: AdaptiveRow(
                                 children: [
                                   Expanded(
                                       flex: 2, child: Text(_df.format(r.date))),

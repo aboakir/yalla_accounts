@@ -34,6 +34,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class GeneralJournalScreen extends StatefulWidget {
   const GeneralJournalScreen({super.key});
@@ -327,7 +328,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
           )
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (isMobile)
             IconButton(
@@ -478,7 +479,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
 
     return Scaffold(
       drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!isMobile)
             const YallaSidebar(currentRoute: '/finance/general-journal'),
@@ -525,7 +526,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
               thumbVisibility: true,
               child: SingleChildScrollView(
                 controller: vertical,
-                child: DataTable(
+                child: AdaptiveDataTable(
                   columns: const [
                     DataColumn(label: Text('التاريخ')),
                     DataColumn(label: Text('المرجع/الوصف')),
@@ -598,7 +599,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
+                AdaptiveRow(
                   children: [
                     Expanded(child: Text(_df.format(r.date))),
                     Tooltip(
@@ -655,7 +656,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
   Widget _stat(String label, double value, Color color, {bool bold = false}) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -680,7 +681,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
       child: Chip(
         backgroundColor: AppColors.primary,
         labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: Row(
+        label: AdaptiveRow(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: Colors.white),

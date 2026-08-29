@@ -17,6 +17,7 @@ import 'package:yalla_accounts/features/employees/providers/employee_provider.da
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/employees/providers/salary_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
@@ -187,7 +188,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       drawer: isDesktop
           ? null
           : const Drawer(child: YallaSidebar(currentRoute: currentRoute)),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const SizedBox(
@@ -232,7 +233,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         else ...[
                           _buildKPIsBar(),
                           const SizedBox(height: 12),
-                          Row(
+                          AdaptiveRow(
                             children: [
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.calculate),
@@ -265,7 +266,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
                                   showDialog(
                                     context: context,
-                                    builder: (context) => AlertDialog(
+                                    builder: (context) => AdaptiveAlertDialog(
                                       title: const Text('📊 الراتب المحسوب'),
                                       content: Text(
                                         'راتب ${selectedEmployee!.fullName} هو: ${MoneyFormatter.format(salary)}',
@@ -295,7 +296,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                               ),
                             ],
                           ),
-                          Row(
+                          AdaptiveRow(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
@@ -303,7 +304,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold),
                               ),
-                              Row(
+                              AdaptiveRow(
                                 children: [
                                   IconButton(
                                     tooltip: 'تحديث',
@@ -373,7 +374,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Container(
       color: AppColors.primary,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           const Icon(Icons.access_time_filled, color: Colors.white),
           const SizedBox(width: 12),
@@ -384,7 +385,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   fontWeight: FontWeight.bold)),
           const Spacer(),
           if (user != null)
-            Row(
+            AdaptiveRow(
               children: [
                 CircleAvatar(
                   radius: 16,
@@ -401,7 +402,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   Widget _buildHeader(List<Employee> employees) {
-    return Row(
+    return AdaptiveRow(
       children: [
         Expanded(child: _buildDropdown(employees)),
         const SizedBox(width: 16),
@@ -570,7 +571,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: Text('تعديل ${df.format(record.date)}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -590,7 +591,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               decoration: InputDecoration(labelText: 'الحالة'),
             ),
             const SizedBox(height: 12),
-            Row(
+            AdaptiveRow(
               children: [
                 Expanded(
                   child: TextFormField(

@@ -32,6 +32,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequesReportScreen extends ConsumerStatefulWidget {
   const ChequesReportScreen({super.key});
@@ -695,7 +696,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
       drawer: isDesktop
           ? null
           : const YallaSidebar(currentRoute: AppRoutes.chequesReport),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop)
             const YallaSidebar(currentRoute: AppRoutes.chequesReport),
@@ -1102,7 +1103,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
 
   // فلاتر ذكية (زر واحد)
   Widget _quickFiltersRow() {
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         _quickBtn("3 أيام", Colors.orange, () {
@@ -1260,7 +1261,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Row(
+          AdaptiveRow(
             children: [
               Expanded(
                 child: LinearProgressIndicator(
@@ -1301,7 +1302,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
 
   // أزرار التصدير
   Widget _exports() {
-    return Row(
+    return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         ElevatedButton.icon(
@@ -1326,7 +1327,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         headingRowColor:
             MaterialStateColor.resolveWith((_) => AppColors.primary),
         headingTextStyle: const TextStyle(

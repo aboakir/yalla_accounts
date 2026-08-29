@@ -21,6 +21,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RecentTables extends StatefulWidget {
   const RecentTables({super.key});
@@ -137,7 +138,7 @@ class _RepairsTable extends StatelessWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('رقم')),
           DataColumn(label: Text('العميل')),
@@ -224,7 +225,7 @@ class _GLTable extends StatelessWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columns: const [
           DataColumn(label: Text('التاريخ')),
           DataColumn(label: Text('المرجع')),

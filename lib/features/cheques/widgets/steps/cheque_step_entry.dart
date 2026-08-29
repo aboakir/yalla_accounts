@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ChequeStepEntry extends StatefulWidget {
   final double amount; // القيمة الإجمالية المحسوبة تلقائيًا
@@ -89,7 +90,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
                 required: true,
               ),
 
-              Row(
+              AdaptiveRow(
                 children: [
                   Expanded(
                     child: _input(
@@ -107,7 +108,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
                 ],
               ),
 
-              Row(
+              AdaptiveRow(
                 children: [
                   Expanded(
                     child: _input(
@@ -126,7 +127,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
               ),
 
               // التواريخ
-              Row(
+              AdaptiveRow(
                 children: [
                   Expanded(
                     child: _dateBox(
@@ -266,7 +267,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
           border: Border.all(color: Colors.grey.shade400),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Expanded(
                 child:

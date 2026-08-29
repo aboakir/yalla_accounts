@@ -15,6 +15,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/supplier_payment_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierPaymentsScreen extends StatefulWidget {
   const SupplierPaymentsScreen({super.key});
@@ -297,7 +298,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Expanded(
               child: TextField(

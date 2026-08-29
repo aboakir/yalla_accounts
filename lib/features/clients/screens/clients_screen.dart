@@ -7,6 +7,7 @@ import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/clients/widgets/add_client_dialog.dart';
 import 'package:yalla_accounts/features/clients/widgets/edit_client_dialog.dart';
 import 'package:yalla_accounts/features/clients/widgets/client_details_dialog.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// سلوك Scroll خاص بالويندوز (سكرول ناعم + دعم الماوس)
 class DesktopScrollBehavior extends ScrollBehavior {
@@ -144,7 +145,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
   Future<void> _deleteClient(Client c) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text("تأكيد الحذف"),
         content: Text("هل تريد حذف '${c.name}'؟"),
         actions: [
@@ -209,7 +210,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Row(
+                          child: AdaptiveRow(
                             children: [
                               Expanded(
                                 flex: 2,
@@ -253,7 +254,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
-                          child: Row(
+                          child: AdaptiveRow(
                             children: [
                               Text(
                                 "الإجمالي: ${_filtered.length}",
@@ -302,7 +303,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                   style: const TextStyle(
                                       fontSize: 12, color: Colors.black54),
                                 ),
-                                trailing: Row(
+                                trailing: AdaptiveRow(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(

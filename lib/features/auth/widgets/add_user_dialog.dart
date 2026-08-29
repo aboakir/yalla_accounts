@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddUserDialog extends ConsumerStatefulWidget {
   const AddUserDialog({super.key});
@@ -73,7 +74,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('إضافة مستخدم'),
       content: Form(
         key: _formKey,

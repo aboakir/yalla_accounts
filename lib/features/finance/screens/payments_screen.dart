@@ -35,6 +35,7 @@ import 'package:yalla_accounts/features/finance/payments/screens/payment_gl_entr
 // إصلاح
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/screens/repair_details_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
@@ -240,7 +241,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Future<void> _deletePaymentFromPaymentsTable(String id) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تأكيد'),
         content: const Text(
             'سيتم حذف الدفعة من جدول payments وعكس القيد المرتبط وتحديث الفاتورة.'),
@@ -365,7 +366,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               onPressed: () => _openAddEdit(), icon: const Icon(Icons.add)),
         ],
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop && _showSidebar)
             const SizedBox(
@@ -489,7 +490,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Widget _table() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columnSpacing: _compact ? 10 : 24,
         columns: const [
           DataColumn(label: Text('التاريخ')),
@@ -514,7 +515,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             DataCell(Text(r.partyLabel ?? '-')),
             DataCell(Text(r.repairLabel ?? '-')),
             DataCell(Text(r.note ?? '-', maxLines: 1)),
-            DataCell(Row(
+            DataCell(AdaptiveRow(
               children: [
                 IconButton(
                   tooltip: 'فتح قيد GL',
@@ -568,7 +569,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               '${_df.format(r.date)}\n${r.sourceLabel}\n${r.partyLabel ?? ''}\n${r.repairLabel ?? ''}\n${r.note ?? ''}',
             ),
             isThreeLine: true,
-            trailing: Row(
+            trailing: AdaptiveRow(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
@@ -936,7 +937,7 @@ class _AddEditPaymentDialogState extends State<AddEditPaymentDialog> {
           child: Form(
             key: _form,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Row(children: [
+              AdaptiveRow(children: [
                 Expanded(
                   child: Text(isEdit ? 'تعديل دفعة' : 'إضافة دفعة',
                       style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -959,7 +960,7 @@ class _AddEditPaymentDialogState extends State<AddEditPaymentDialog> {
                 },
               ),
               const SizedBox(height: 6),
-              Row(children: [
+              AdaptiveRow(children: [
                 TextButton(
                   onPressed: () async {
                     final d = await showDatePicker(
@@ -1027,7 +1028,7 @@ class _AddEditPaymentDialogState extends State<AddEditPaymentDialog> {
                   controller: _notesCtrl,
                   decoration: const InputDecoration(labelText: 'ملاحظات')),
               const SizedBox(height: 12),
-              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              AdaptiveRow(mainAxisAlignment: MainAxisAlignment.end, children: [
                 TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text('إلغاء')),

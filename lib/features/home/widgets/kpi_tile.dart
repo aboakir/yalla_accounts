@@ -18,6 +18,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class KpiTile extends StatelessWidget {
   final String title;
@@ -58,7 +59,7 @@ class KpiTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
+        child: AdaptiveRow(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // الرسم الصغير (Sparkline)
@@ -103,7 +104,7 @@ class KpiTile extends StatelessWidget {
 
             // نسبة التغير
             if (change != null)
-              Row(
+              AdaptiveRow(
                 children: [
                   Icon(
                     change! >= 0

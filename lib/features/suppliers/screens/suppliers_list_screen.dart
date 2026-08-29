@@ -11,6 +11,7 @@ import '../models/supplier.dart';
 import '../providers/supplier_provider.dart';
 import 'supplier_form_screen.dart';
 import '../../../core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierListScreen extends ConsumerStatefulWidget {
   const SupplierListScreen({super.key});
@@ -51,7 +52,7 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
 
             // ===== القائمة الجانبية ثابتة على الشاشات الكبيرة =====
             drawer: isDesktop ? null : const Drawer(child: YallaSidebar()),
-            body: Row(
+            body: AdaptiveRow(
               children: [
                 if (isDesktop)
                   const SizedBox(
@@ -171,7 +172,7 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: "edit",
-              child: Row(
+              child: AdaptiveRow(
                 children: [
                   Icon(Icons.edit, size: 20),
                   SizedBox(width: 8),
@@ -181,7 +182,7 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
             ),
             const PopupMenuItem(
               value: "account",
-              child: Row(
+              child: AdaptiveRow(
                 children: [
                   Icon(Icons.account_balance_wallet, size: 20),
                   SizedBox(width: 8),
@@ -191,7 +192,7 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
             ),
             const PopupMenuItem(
               value: "payables",
-              child: Row(
+              child: AdaptiveRow(
                 children: [
                   Icon(Icons.receipt_long, size: 20),
                   SizedBox(width: 8),

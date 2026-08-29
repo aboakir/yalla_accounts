@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class GLBrowserScreen extends StatefulWidget {
   const GLBrowserScreen({super.key});
@@ -202,7 +203,7 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
   Future<void> _reverse(int entryId) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('Reverse GL'),
         content: Text('عكس القيد #$entryId ؟'),
         actions: [
@@ -322,11 +323,11 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
             ),
           ),
           // من / إلى
-          Row(mainAxisSize: MainAxisSize.min, children: [
+          AdaptiveRow(mainAxisSize: MainAxisSize.min, children: [
             const Text('From: '),
             TextButton(onPressed: _pickFrom, child: Text(fromStr)),
           ]),
-          Row(mainAxisSize: MainAxisSize.min, children: [
+          AdaptiveRow(mainAxisSize: MainAxisSize.min, children: [
             const Text('To: '),
             TextButton(onPressed: _pickTo, child: Text(toStr)),
           ]),
@@ -470,7 +471,7 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
           children: [
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: DataTable(
+              child: AdaptiveDataTable(
                 headingTextStyle: const TextStyle(fontWeight: FontWeight.bold),
                 columns: const [
                   DataColumn(label: Text('#')),
@@ -503,7 +504,7 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
-              child: Row(
+              child: AdaptiveRow(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Chip(
@@ -551,7 +552,7 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
             );
           }),
           const SizedBox(height: 6),
-          Row(
+          AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Chip(

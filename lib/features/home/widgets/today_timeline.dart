@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class TodayTimeline extends StatefulWidget {
   const TodayTimeline({super.key});
@@ -150,7 +151,7 @@ class _TodayTimelineState extends State<TodayTimeline> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Container(
             decoration: BoxDecoration(

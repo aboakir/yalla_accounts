@@ -14,6 +14,7 @@ import 'package:yalla_accounts/features/settings/services/workshop_settings_serv
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'data_health_screen.dart';
 import 'commercial_settings_screen.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class WorkshopSettingsScreen extends StatefulWidget {
   const WorkshopSettingsScreen({super.key});
@@ -224,7 +225,7 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
           const Text("بيانات الورشة",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const Divider(),
-          Row(children: [
+          AdaptiveRow(children: [
             _logoPath != null
                 ? Image.file(File(_logoPath!), width: 70, height: 70)
                 : const Icon(Icons.image, size: 70),

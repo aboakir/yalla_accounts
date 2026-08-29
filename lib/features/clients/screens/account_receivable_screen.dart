@@ -20,6 +20,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AccountReceivableScreen extends StatefulWidget {
   const AccountReceivableScreen({super.key});
@@ -541,7 +542,7 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
           ),
         ],
       ),
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (isDesktop && _showSidebar)
             const SizedBox(
@@ -583,7 +584,7 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
                                     ),
                                   ),
                                 ),
-                                Row(
+                                AdaptiveRow(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     SizedBox(
@@ -683,7 +684,7 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
             thumbVisibility: true,
             child: SingleChildScrollView(
               scrollDirection: Axis.vertical,
-              child: DataTable(
+              child: AdaptiveDataTable(
                 headingTextStyle: headerTextStyle,
                 dataTextStyle: dataTextStyle,
                 columnSpacing: columnSpacing,
@@ -752,7 +753,7 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                AdaptiveRow(
                   children: [
                     const Icon(Icons.badge),
                     const SizedBox(width: 8),
@@ -809,7 +810,7 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
 
   // ===== Small UI helpers =====
   Widget _kv(String k, String v, {Color? valueColor, bool isBold = false}) {
-    return Row(
+    return AdaptiveRow(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('$k: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -827,7 +828,7 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
   Widget _chipStat(String label, String value, {required Color color}) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),

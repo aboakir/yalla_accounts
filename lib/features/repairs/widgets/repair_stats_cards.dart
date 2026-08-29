@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_stats_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairStatsCards extends ConsumerWidget {
   const RepairStatsCards({super.key});
@@ -82,7 +83,7 @@ class RepairStatsCards extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           color: color.withOpacity(0.1),
         ),
-        child: Row(
+        child: AdaptiveRow(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CircleAvatar(

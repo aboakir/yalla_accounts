@@ -16,6 +16,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class BankAccountScreen extends StatefulWidget {
   const BankAccountScreen({super.key});
@@ -244,7 +245,7 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
           )
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (isMobile)
             IconButton(
@@ -360,7 +361,7 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
 
     return Scaffold(
       drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!isMobile) const YallaSidebar(currentRoute: '/finance/bank'),
           Expanded(
@@ -427,7 +428,7 @@ class _DesktopTable extends StatelessWidget {
       thumbVisibility: true,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
-        child: DataTable(
+        child: AdaptiveDataTable(
           columns: const [
             DataColumn(label: Text('التاريخ')),
             DataColumn(label: Text('الحساب')),
@@ -521,7 +522,7 @@ class _MobileList extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
+                AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(money.format(e.debit),
@@ -555,7 +556,7 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Chip(
       backgroundColor: color.withOpacity(0.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(width: 2),

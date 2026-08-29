@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ReportsDashboardScreen extends StatelessWidget {
   const ReportsDashboardScreen({super.key});
@@ -16,7 +17,7 @@ class ReportsDashboardScreen extends StatelessWidget {
   Future<void> _notAvailable(BuildContext context) async {
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('غير متاح مؤقتًا'),
         content: const Text(
           'هذه الشاشة سيتم تفعيلها لاحقًا بعد إضافة/ربط ملفات التقارير المطلوبة.',
@@ -156,7 +157,7 @@ class ReportsDashboardScreen extends StatelessWidget {
               child: YallaSidebar(currentRoute: '/reports'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

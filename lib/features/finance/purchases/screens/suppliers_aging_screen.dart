@@ -16,6 +16,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/pdf/supplier_ledger_pdf.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SuppliersAgingScreen extends StatefulWidget {
   const SuppliersAgingScreen({super.key});
@@ -196,7 +197,7 @@ class _SuppliersAgingScreenState extends State<SuppliersAgingScreen> {
           preferredSize: const Size.fromHeight(56),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-            child: Row(
+            child: AdaptiveRow(
               children: [
                 Expanded(
                   child: TextField(
@@ -256,7 +257,7 @@ class _SuppliersAgingScreenState extends State<SuppliersAgingScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       color: Colors.black.withOpacity(.04),
-                      child: Row(
+                      child: AdaptiveRow(
                         children: [
                           _h('المورّد', flex: 3),
                           _h('0–30', alignEnd: true),
@@ -282,7 +283,7 @@ class _SuppliersAgingScreenState extends State<SuppliersAgingScreen> {
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 8),
-                              child: Row(
+                              child: AdaptiveRow(
                                 children: [
                                   Expanded(
                                     flex: 3,
@@ -304,7 +305,7 @@ class _SuppliersAgingScreenState extends State<SuppliersAgingScreen> {
                                       ),
                                     ),
                                   ),
-                                  Row(
+                                  AdaptiveRow(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(

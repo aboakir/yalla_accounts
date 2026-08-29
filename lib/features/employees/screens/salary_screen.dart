@@ -30,6 +30,7 @@ import 'package:yalla_accounts/features/employees/services/payroll_periods_servi
 // Settings
 import 'package:yalla_accounts/features/settings/providers/workshop_settings_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SalaryScreen extends ConsumerStatefulWidget {
   const SalaryScreen({super.key});
@@ -250,7 +251,7 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('صرف راتب'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -465,7 +466,7 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
         _settingsBanner(context),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
+          child: AdaptiveRow(
             children: [
               ElevatedButton.icon(
                 onPressed: _calculating ? null : _pickMonth,

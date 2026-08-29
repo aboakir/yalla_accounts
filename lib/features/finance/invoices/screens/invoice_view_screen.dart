@@ -10,6 +10,7 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/finance/invoices/services/invoice_service.dart';
 import 'package:yalla_accounts/features/finance/invoices/widgets/invoice_add_payment_button.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InvoiceViewScreen extends StatefulWidget {
   final String invoiceId;
@@ -240,7 +241,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('عكس القيد'),
         content: Text('عكس قيد الفاتورة #$_glEntryId ؟'),
         actions: [
@@ -273,7 +274,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
   Future<void> _reversePaymentGL(int glEntryId) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('عكس القيد'),
         content: Text('عكس قيد الدفعة #$glEntryId ؟'),
         actions: [
@@ -396,7 +397,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                       _row(label: 'قيد GL', value: '#$_glEntryId'),
                     if (hasPaymentsNoGL) ...[
                       const SizedBox(height: 8),
-                      Row(
+                      AdaptiveRow(
                         children: const [
                           Icon(Icons.info_outline, color: Colors.orange),
                           SizedBox(width: 6),
@@ -491,7 +492,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Row(
+                        AdaptiveRow(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             Chip(
@@ -577,7 +578,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     if (isWide) {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: DataTable(
+        child: AdaptiveDataTable(
           headingTextStyle: const TextStyle(fontWeight: FontWeight.bold),
           columns: const [
             DataColumn(label: Text('رقم السطر')),
@@ -639,7 +640,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     if (isWide) {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: DataTable(
+        child: AdaptiveDataTable(
           headingTextStyle: const TextStyle(fontWeight: FontWeight.bold),
           columns: const [
             DataColumn(label: Text('المعرف')),
@@ -710,7 +711,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
   }
 
   Widget _row({required String label, required Object? value}) {
-    return Row(
+    return AdaptiveRow(
       children: [
         Expanded(
           child: Align(

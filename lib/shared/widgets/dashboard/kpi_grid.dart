@@ -8,6 +8,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/shared/layouts/responsive_builder.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class KPIGrid extends StatefulWidget {
   const KPIGrid({super.key});
@@ -188,7 +189,7 @@ class _KpiCard extends StatelessWidget {
         ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // أيقونة
@@ -283,7 +284,7 @@ class _SkeletonCard extends StatelessWidget {
         border: Border.all(color: base),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
+      child: AdaptiveRow(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: const [
           _ShimmerBox(diameter: 46, isCircle: true),

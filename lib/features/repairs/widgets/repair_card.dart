@@ -10,6 +10,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/invoices/services/invoice_service.dart';
 import 'package:yalla_accounts/features/finance/invoices/screens/invoice_view_screen.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairCard extends StatelessWidget {
   final Repair repair;
@@ -82,7 +83,7 @@ class RepairCard extends StatelessWidget {
         onTap: onTap ?? onView,
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
+          child: AdaptiveRow(
             children: [
               _RepairThumb(
                 repairId: repair.id,
@@ -114,7 +115,7 @@ class RepairCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
-                    Row(
+                    AdaptiveRow(
                       children: [
                         Text(
                           'المدفوع: ${MoneyFormatter.format(paid)}',
@@ -143,7 +144,7 @@ class RepairCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    Row(
+                    AdaptiveRow(
                       children: [
                         Icon(Icons.verified,
                             color: insuranceColor, size: isNarrow ? 14 : 16),
@@ -194,7 +195,7 @@ class RepairCard extends StatelessWidget {
                   if (_actionIcons(isNarrow).isNotEmpty)
                     isNarrow
                         ? Column(children: _actionIcons(isNarrow))
-                        : Row(children: _actionIcons(isNarrow)),
+                        : AdaptiveRow(children: _actionIcons(isNarrow)),
                   if (repair.finalApprovedAmount == null &&
                       !repair.isLedgerSynced &&
                       onApproveFinalAmount != null)

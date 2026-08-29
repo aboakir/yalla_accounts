@@ -15,6 +15,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_form_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class StepFinancialData extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
@@ -466,7 +467,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
             ],
 
             // المتبقي
-            Row(
+            AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(

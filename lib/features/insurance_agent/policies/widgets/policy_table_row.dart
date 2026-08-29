@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import '../utils/policy_date_utils.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyTableRow extends StatelessWidget {
   final Map<String, dynamic> row;
@@ -78,7 +79,7 @@ class PolicyTableRow extends StatelessWidget {
           bottom: BorderSide(color: Color(0x11000000)),
         ),
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Expanded(flex: 12, child: _cellText('${row['vehicle_plate'] ?? ''}')),
           Expanded(flex: 15, child: _cellText('${row['insured_name'] ?? ''}')),
@@ -114,7 +115,7 @@ class PolicyTableRow extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerRight,
-                    child: Row(
+                    child: AdaptiveRow(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _icon(

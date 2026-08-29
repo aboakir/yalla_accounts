@@ -25,6 +25,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyDetailsScreen extends StatefulWidget {
   final dynamic policyId; // int أو String
@@ -556,7 +557,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                   onInvoke: (_) async {
                     final ok = await showDialog<bool>(
                       context: dlgCtx,
-                      builder: (c2) => AlertDialog(
+                      builder: (c2) => AdaptiveAlertDialog(
                         title: const Text('حذف الصورة'),
                         content: const Text('هل تريد حذف هذه الصورة نهائيًا؟'),
                         actions: [
@@ -649,7 +650,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   Widget _kv(String k, String v) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           Expanded(
             child: Text(
@@ -781,7 +782,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Container(
                   width: 10,
@@ -1043,7 +1044,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(12),
-          child: Row(
+          child: AdaptiveRow(
             children: [
               SizedBox(
                 width: 22,
@@ -1068,7 +1069,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Row(
+          child: AdaptiveRow(
             children: [
               const Text(
                 'الشيكات',
@@ -1124,7 +1125,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           color: Colors.black.withOpacity(0.05),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             SizedBox(
                 width: wAmount,
@@ -1160,7 +1161,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.black.withOpacity(0.08)),
         ),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             SizedBox(
                 width: wAmount,
@@ -1249,7 +1250,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       margin: const EdgeInsets.only(top: 16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
+        child: AdaptiveRow(
           children: [
             Expanded(
               child: Text(
@@ -1312,7 +1313,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Row(
+                              AdaptiveRow(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
@@ -1572,7 +1573,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
               color: Colors.black.withOpacity(enabled ? 0.10 : 0.06),
             ),
           ),
-          child: Row(
+          child: AdaptiveRow(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
@@ -1605,7 +1606,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ✅ Header ثابت + شريط أزرار قابل للسكرول (بدون ما يختفي زر)
-            Row(
+            AdaptiveRow(
               children: [
                 const Expanded(
                   child: Text(
@@ -1628,7 +1629,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     reverse: true, // عشان الأزرار تبان من اليمين أولاً
-                    child: Row(
+                    child: AdaptiveRow(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         actionBtn(
@@ -1739,7 +1740,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                   onTap: () async {
                                     final ok = await showDialog<bool>(
                                       context: context,
-                                      builder: (c2) => AlertDialog(
+                                      builder: (c2) => AdaptiveAlertDialog(
                                         title: const Text('حذف الصورة'),
                                         content:
                                             const Text('تأكيد حذف هذه الصورة؟'),

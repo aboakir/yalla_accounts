@@ -31,6 +31,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class IncomeStatementScreen extends StatefulWidget {
   const IncomeStatementScreen({super.key});
@@ -543,7 +544,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           )
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (isMobile)
             IconButton(
@@ -560,7 +561,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           ),
           const Spacer(),
           // إظهار الصفوف الصفرية
-          Row(
+          AdaptiveRow(
             children: [
               const Text('إظهار الصفرية',
                   style: TextStyle(color: Colors.white)),
@@ -691,7 +692,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
     return Scaffold(
       drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!isMobile)
             const YallaSidebar(currentRoute: '/finance/income-statement'),
@@ -715,7 +716,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
   Widget _tables() {
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: Row(
+      child: AdaptiveRow(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // الإيرادات
@@ -752,7 +753,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Icon(Icons.list_alt, color: color),
                 const SizedBox(width: 8),
@@ -770,7 +771,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
               thumbVisibility: true,
               child: SingleChildScrollView(
                 scrollDirection: Axis.vertical,
-                child: DataTable(
+                child: AdaptiveDataTable(
                   columns: const [
                     DataColumn(label: Text('الكود')),
                     DataColumn(label: Text('الحساب')),
@@ -824,7 +825,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Row(
+            AdaptiveRow(
               children: [
                 Icon(Icons.list_alt, color: color),
                 const SizedBox(width: 8),
@@ -875,7 +876,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
   Widget _stat(String label, double value, Color color, {bool bold = false}) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -902,7 +903,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       child: Chip(
         backgroundColor: AppColors.primary,
         labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: Row(
+        label: AdaptiveRow(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: Colors.white),

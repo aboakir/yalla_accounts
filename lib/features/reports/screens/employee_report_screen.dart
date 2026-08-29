@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/reports/models/employee_report.dart';
 import 'package:yalla_accounts/features/reports/services/employee_report_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class EmployeeReportScreen extends StatefulWidget {
   const EmployeeReportScreen({super.key});
@@ -84,7 +85,7 @@ class _EmployeeReportScreenState extends State<EmployeeReportScreen> {
               child: YallaSidebar(currentRoute: '/reports/employees'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

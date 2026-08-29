@@ -4,6 +4,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class FinanceDashboardScreen extends StatefulWidget {
   const FinanceDashboardScreen({super.key});
@@ -241,7 +242,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
 
     return Scaffold(
       drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!isMobile) const YallaSidebar(currentRoute: '/finance/dashboard'),
           Expanded(
@@ -285,7 +286,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              Row(
+              AdaptiveRow(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (mobile)
@@ -515,7 +516,7 @@ class _KpiSmall extends StatelessWidget {
         border: Border.all(color: Colors.black12),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           CircleAvatar(
             radius: 16,
@@ -566,7 +567,7 @@ class _TopAccountsTable extends StatelessWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
+      child: AdaptiveDataTable(
         columnSpacing: 32,
         headingRowColor: MaterialStateProperty.all(Colors.grey.shade200),
         dataRowHeight: 48,
@@ -649,7 +650,7 @@ class _LatestLines extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
+                AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(

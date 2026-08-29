@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class RepairFinancialSummary extends StatelessWidget {
   final List<Repair> repairs;
@@ -72,7 +73,7 @@ class RepairFinancialSummary extends StatelessWidget {
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 350;
               return isWide
-                  ? Row(
+                  ? AdaptiveRow(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildSummaryItem(

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class QuickStats extends StatelessWidget {
   const QuickStats({super.key});
@@ -124,7 +125,7 @@ class QuickStats extends StatelessWidget {
                     border: Border.all(
                         color: Colors.black.withOpacity(0.06), width: 1),
                   ),
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       CircleAvatar(
                         radius: 16,
@@ -159,7 +160,7 @@ class QuickStats extends StatelessWidget {
             children: [
               const YSectionTitle('إحصاءات سريعة', icon: Icons.insights),
               const SizedBox(height: 10),
-              Row(
+              AdaptiveRow(
                 children: [
                   tile(
                       'العملاء',

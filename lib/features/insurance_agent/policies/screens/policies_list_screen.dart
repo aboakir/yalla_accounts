@@ -26,6 +26,7 @@ import 'package:yalla_accounts/features/insurance_agent/policies/widgets/policie
 import 'package:yalla_accounts/features/insurance_agent/policies/widgets/policies_mobile_cards.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/utils/policy_filters.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PoliciesListScreen extends StatefulWidget {
   const PoliciesListScreen({super.key});
@@ -292,7 +293,7 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => AdaptiveAlertDialog(
         title: const Text('تأكيد الحذف', textAlign: TextAlign.right),
         content: const Text(
           'هل تريد حذف هذه البوليصة نهائياً؟',

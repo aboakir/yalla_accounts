@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/reports/models/client_report.dart';
 import 'package:yalla_accounts/features/reports/services/client_report_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class ClientReportScreen extends StatefulWidget {
   const ClientReportScreen({super.key});
@@ -84,7 +85,7 @@ class _ClientReportScreenState extends State<ClientReportScreen> {
               child: YallaSidebar(currentRoute: '/reports/clients'),
             ),
       body: isDesktop
-          ? Row(
+          ? AdaptiveRow(
               children: [
                 const SizedBox(
                   width: 260,

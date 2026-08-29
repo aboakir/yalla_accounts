@@ -14,6 +14,7 @@ import 'package:yalla_accounts/features/auth/services/auth_session_service.dart'
 import 'package:yalla_accounts/features/auth/services/commercial_access_gate_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -184,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final code = await showDialog<String>(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => AdaptiveAlertDialog(
           title: const Text('التحقق بخطوتين — حساب Yalla'),
           content: TextField(
             controller: controller,
@@ -256,7 +257,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_looksLikeAdminEmail(identifier) && adminService.isConfigured) {
       final adminRecovery = await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialogContext) => AdaptiveAlertDialog(
           title: const Text('نوع الحساب'),
           content: const Text(
             'هل تريد استعادة حساب Yalla الإداري أم حساب مستخدم منشأة؟',
@@ -313,7 +314,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final requestId = response['request_id']?.toString() ?? '—';
       await showDialog<void>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => AdaptiveAlertDialog(
           title: const Text('تم إرسال طلب المنشأة'),
           content: Text(
             'رقم الطلب: $requestId\n\n'
@@ -661,7 +662,7 @@ class _CustomerSignupDialogState extends State<_CustomerSignupDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('طلب إنشاء منشأة جديدة'),
       content: SizedBox(
         width: 560,

@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class QuickActionsBar extends StatelessWidget {
   final List<QuickAction> actions;
@@ -49,7 +50,7 @@ class QuickActionsBar extends StatelessWidget {
               .toList();
 
           if (isWide) {
-            return Row(
+            return AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: children
                   .map((w) => Padding(

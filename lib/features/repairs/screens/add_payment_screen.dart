@@ -13,6 +13,7 @@ import 'package:yalla_accounts/features/finance/services/accounts_receivable_ser
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/cheques/widgets/cheque_dialog.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AddPaymentScreen extends StatefulWidget {
   final Repair repair;
@@ -195,7 +196,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.green.shade200),
                   ),
-                  child: Row(
+                  child: AdaptiveRow(
                     children: [
                       Icon(Icons.check_circle, color: Colors.green.shade700),
                       const SizedBox(width: 8),

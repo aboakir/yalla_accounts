@@ -18,6 +18,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class AccountLedgerScreen extends StatefulWidget {
   const AccountLedgerScreen({super.key});
@@ -547,7 +548,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
           )
         ],
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           if (isMobile)
             IconButton(
@@ -695,7 +696,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       drawer: Responsive.isMobile(context)
           ? const Drawer(child: YallaSidebar())
           : null,
-      body: Row(
+      body: AdaptiveRow(
         children: [
           if (!Responsive.isMobile(context))
             const YallaSidebar(currentRoute: '/finance/gl'),
@@ -722,7 +723,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       thumbVisibility: true,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
-        child: DataTable(
+        child: AdaptiveDataTable(
           columns: const [
             DataColumn(label: Text('التاريخ')),
             DataColumn(label: Text('الوصف')),
@@ -822,7 +823,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
+                AdaptiveRow(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
@@ -848,7 +849,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
   Widget _stat(String label, double value, Color color, {bool bold = false}) {
     return Chip(
       backgroundColor: color.withOpacity(.08),
-      label: Row(
+      label: AdaptiveRow(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -875,7 +876,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       child: Chip(
         backgroundColor: AppColors.primary,
         labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: Row(
+        label: AdaptiveRow(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: Colors.white),
