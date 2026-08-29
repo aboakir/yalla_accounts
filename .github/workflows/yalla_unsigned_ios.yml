@@ -43,7 +43,7 @@ jobs:
           rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
           flutter pub get
 
-      - name: Force iOS 15 and CocoaPods-only project
+      - name: Force iOS 15 CocoaPods modular headers
         run: |
           set -euo pipefail
 
@@ -53,19 +53,13 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
-
           p = Path("ios/Runner.xcodeproj/project.pbxproj")
           s = p.read_text()
-
-          # iOS 15 minimum.
           s = re.sub(
               r"IPHONEOS_DEPLOYMENT_TARGET\s*=\s*[0-9.]+\s*;",
               "IPHONEOS_DEPLOYMENT_TARGET = 15.0;",
               s,
           )
-
-          # Remove any transient FlutterGeneratedPluginSwiftPackage references
-          # if the project snapshot ever acquired them.
           lines = [
               line for line in s.splitlines()
               if "FlutterGeneratedPluginSwiftPackage" not in line
@@ -87,10 +81,8 @@ jobs:
           add_plist_string NSMicrophoneUsageDescription "Yalla Accounts may use the microphone for supported voice input."
           add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts uses speech recognition for supported voice input."
 
-          echo "Podfile platform:"
           grep -n "platform :ios" ios/Podfile
-          echo "Deployment targets:"
-          grep -n "IPHONEOS_DEPLOYMENT_TARGET = 15.0;" ios/Runner.xcodeproj/project.pbxproj | head
+          grep -n "use_modular_headers!" ios/Podfile
 
       - name: Install CocoaPods cleanly
         run: |
@@ -103,12 +95,14 @@ jobs:
           cd ios
           pod install --repo-update
 
-      - name: Verify speech_to_text CocoaPods integration
+      - name: Verify CocoaPods integration
         run: |
           set -euo pipefail
           test -d ios/Pods
           test -d ios/.symlinks/plugins/speech_to_text
+          test -f ios/Podfile.lock
           grep -n "speech_to_text" ios/Podfile.lock | head || true
+          grep -n "sqlite3_flutter_libs" ios/Podfile.lock | head || true
           if grep -R "FlutterGeneratedPluginSwiftPackage" ios/Runner.xcodeproj/project.pbxproj >/dev/null 2>&1; then
             echo "ERROR: SwiftPM integration still present in Xcode project"
             exit 1

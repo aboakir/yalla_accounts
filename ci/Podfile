@@ -2,6 +2,10 @@ platform :ios, '15.0'
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# Required by DKPhotoGallery -> SDWebImage and sqlite3_flutter_libs -> sqlite3
+# when CocoaPods integrates Swift pods as static libraries.
+use_modular_headers!
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
