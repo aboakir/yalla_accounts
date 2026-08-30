@@ -64,6 +64,7 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
       await InventoryService.updateItem(item);
     }
 
+    if (!mounted) return;
     Navigator.pop(context, true);
   }
 

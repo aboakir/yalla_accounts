@@ -110,7 +110,8 @@ class _AddRawMaterialPurchaseScreenState
     if (!hasValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('أضف بندًا واحدًا على الأقل بكمية وسعر صالحين')),
+          content: Text('أضف بندًا واحدًا على الأقل بكمية وسعر صالحين'),
+        ),
       );
       return;
     }
@@ -136,8 +137,9 @@ class _AddRawMaterialPurchaseScreenState
       final id = await PurchaseInvoiceService.createInvoice(
         supplierId: supplierId,
         date: _date,
-        note:
-            _noteCtrl.text.trim().isEmpty ? 'مواد خام' : _noteCtrl.text.trim(),
+        note: _noteCtrl.text.trim().isEmpty
+            ? 'مواد خام'
+            : _noteCtrl.text.trim(),
         items: _items.map((r) {
           final qty = double.tryParse(r.qtyCtrl.text.trim()) ?? 0;
           final price = double.tryParse(r.priceCtrl.text.trim()) ?? 0;
@@ -154,8 +156,10 @@ class _AddRawMaterialPurchaseScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                'تم حفظ شراء مواد خام #$id — ${MoneyFormatter.format(total)}')),
+          content: Text(
+            'تم حفظ شراء مواد خام #$id — ${MoneyFormatter.format(total)}',
+          ),
+        ),
       );
 
       // إعادة الضبط
@@ -175,9 +179,9 @@ class _AddRawMaterialPurchaseScreenState
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل الحفظ: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('فشل الحفظ: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -197,8 +201,10 @@ class _AddRawMaterialPurchaseScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('إضافة شراء مواد خام',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'إضافة شراء مواد خام',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
 
               // Supplier ID
@@ -245,8 +251,10 @@ class _AddRawMaterialPurchaseScreenState
               // Items header
               AdaptiveRow(
                 children: [
-                  Text('البنود',
-                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'البنود',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const Spacer(),
                   OutlinedButton.icon(
                     onPressed: _addRow,
@@ -357,7 +365,7 @@ class _AddRawMaterialPurchaseScreenState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_outlined),
-                  label: Text(_saving ? 'جارٍ الحفظ…' : 'حفظ الفاتورة'),
+                  label: Text(_saving ? 'جارٍ الحفم' : 'حفظ الفاتورة'),
                 ),
               ),
             ],
@@ -369,8 +377,10 @@ class _AddRawMaterialPurchaseScreenState
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text('إضافة شراء مواد خام',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'إضافة شراء مواد خام',
+          style: TextStyle(color: Colors.white),
+        ),
         leading: isDesktop
             ? null
             : Builder(

@@ -372,18 +372,23 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
       );
     }).toList();
 
+    final isPhone = MediaQuery.sizeOf(ctx).width < YallaBreakpoints.phone;
+    final tableBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        headerRow,
+        const Divider(),
+        ...rows,
+      ],
+    );
+
+    if (isPhone) return tableBody;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 940),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            headerRow,
-            const Divider(),
-            ...rows,
-          ],
-        ),
+        child: tableBody,
       ),
     );
   }

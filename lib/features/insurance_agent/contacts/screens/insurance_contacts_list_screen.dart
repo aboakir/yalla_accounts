@@ -209,8 +209,11 @@ class _InsuranceContactsListScreenState
       });
     } else {
       // الأشهر: الأقرب انتهاءً أولًا
-      list.sort((a, b) =>
-          (a.endDate ?? DateTime(2100)).compareTo(b.endDate ?? DateTime(2100)));
+      list.sort(
+        (a, b) => (a.endDate ?? DateTime(2100)).compareTo(
+          b.endDate ?? DateTime(2100),
+        ),
+      );
     }
 
     return list;
@@ -251,10 +254,7 @@ class _InsuranceContactsListScreenState
   Future<void> _openEditDialog(_LeadContact lead) async {
     final edited = await showDialog<_LeadContact>(
       context: context,
-      builder: (_) => _LeadDialog(
-        nfDate: _nfDate,
-        existing: lead,
-      ),
+      builder: (_) => _LeadDialog(nfDate: _nfDate, existing: lead),
     );
 
     if (edited == null) return;
@@ -277,9 +277,9 @@ class _InsuranceContactsListScreenState
     await _save();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ تم تحديث بيانات الزبون')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('✅ تم تحديث بيانات الزبون')));
   }
 
   Future<void> _confirmDelete(_LeadContact lead) async {
@@ -298,7 +298,7 @@ class _InsuranceContactsListScreenState
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ط­ط°ظپ'),
+            child: const Text('حذف'),
           ),
         ],
       ),
@@ -310,9 +310,9 @@ class _InsuranceContactsListScreenState
     await _save();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('🗑️ تم حذف السجل')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('🗑️ تم حذف السجل')));
   }
 
   void _openAddPolicyPrefilled(_LeadContact lead) {
@@ -323,8 +323,9 @@ class _InsuranceContactsListScreenState
       'endDate': lead.endDate == null ? null : _nfDate.format(lead.endDate!),
     };
 
-    Navigator.of(context)
-        .pushNamed(AppRoutes.insuranceAgentAddNew, arguments: args);
+    Navigator.of(
+      context,
+    ).pushNamed(AppRoutes.insuranceAgentAddNew, arguments: args);
   }
 
   Future<void> _exportCurrentTabPdf() async {
@@ -384,20 +385,17 @@ class _InsuranceContactsListScreenState
           ? 'insurance_contacts_no_date${_expiring30Only ? '_expiring30' : ''}.pdf'
           : 'insurance_contacts_month_${tabIndex.toString().padLeft(2, '0')}${_expiring30Only ? '_expiring30' : ''}.pdf';
 
-      await YallaPdfService.saveAndOpen(
-        bytes: bytes,
-        fileName: fileName,
-      );
+      await YallaPdfService.saveAndOpen(bytes: bytes, fileName: fileName);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ تم إنشاء PDF وفتحه')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('✅ تم إنشاء PDF وفتحه')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل إنشاء PDF: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('❌ فشل إنشاء PDF: $e')));
     }
   }
 
@@ -466,8 +464,10 @@ class _InsuranceContactsListScreenState
           IconButton(
             tooltip: _sideOpen ? 'إغلاق القائمة' : 'القائمة',
             onPressed: () => _toggleSide(!_sideOpen),
-            icon:
-                Icon(_sideOpen ? Icons.close : Icons.menu, color: Colors.white),
+            icon: Icon(
+              _sideOpen ? Icons.close : Icons.menu,
+              color: Colors.white,
+            ),
           ),
 
           const SizedBox(width: 8),
@@ -495,7 +495,9 @@ class _InsuranceContactsListScreenState
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.orange.shade700,
                               borderRadius: BorderRadius.circular(999),
@@ -503,7 +505,9 @@ class _InsuranceContactsListScreenState
                             child: Text(
                               '$expCount',
                               style: const TextStyle(
-                                  color: Colors.white, fontSize: 12),
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -643,8 +647,10 @@ class _HeaderBar extends StatelessWidget {
             child: Opacity(
               opacity: isNoDateTab ? 0.35 : 1,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: expiring30Only
@@ -691,8 +697,9 @@ class _HeaderBar extends StatelessWidget {
             decoration: InputDecoration(
               hintText: 'بحث بالاسم / الهاتف / نوع المركبة',
               prefixIcon: const Icon(Icons.search),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               isDense: true,
             ),
             onChanged: onQueryChanged,
@@ -800,8 +807,9 @@ class _ExpiringBanner extends StatelessWidget {
               expiring30Only ? Icons.filter_alt_off : Icons.filter_alt,
               color: Colors.orange.shade800,
             ),
-            label:
-                Text(expiring30Only ? 'إلغاء فلتر القريبة' : 'عرض القريبة فقط'),
+            label: Text(
+              expiring30Only ? 'إلغاء فلتر القريبة' : 'عرض القريبة فقط',
+            ),
           ),
         ],
       ),
@@ -849,7 +857,7 @@ class _EmptyState extends StatelessWidget {
               onPressed: onAdd,
               icon: const Icon(Icons.add),
               label: const Text('إضافة زبون'),
-            )
+            ),
           ],
         ),
       ),
@@ -901,7 +909,7 @@ class _WideTable extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 1180),
+        constraints: const BoxConstraints(minWidth: 0),
         child: SingleChildScrollView(
           child: AdaptiveDataTable(
             headingRowHeight: 44,
@@ -923,18 +931,26 @@ class _WideTable extends StatelessWidget {
               return DataRow(
                 cells: [
                   DataCell(
-                      Text(_dashIfEmpty(e.name), textAlign: TextAlign.right)),
+                    Text(_dashIfEmpty(e.name), textAlign: TextAlign.right),
+                  ),
                   DataCell(
-                      Text(_dashIfEmpty(e.phone), textAlign: TextAlign.right)),
-                  DataCell(Text(_dashIfEmpty(e.vehicleMake),
-                      textAlign: TextAlign.right)),
+                    Text(_dashIfEmpty(e.phone), textAlign: TextAlign.right),
+                  ),
+                  DataCell(
+                    Text(
+                      _dashIfEmpty(e.vehicleMake),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
                   DataCell(Text(end, textAlign: TextAlign.right)),
                   DataCell(
                     Align(
                       alignment: Alignment.centerRight,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: c.withOpacity(0.10),
                           border: Border.all(color: c),
@@ -942,8 +958,10 @@ class _WideTable extends StatelessWidget {
                         ),
                         child: Text(
                           status,
-                          style:
-                              TextStyle(color: c, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            color: c,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -953,22 +971,28 @@ class _WideTable extends StatelessWidget {
                       children: [
                         OutlinedButton.icon(
                           onPressed: () => onInsure(e),
-                          icon: const Icon(Icons.verified_user,
-                              color: AppColors.primary),
+                          icon: const Icon(
+                            Icons.verified_user,
+                            color: AppColors.primary,
+                          ),
                           label: const Text('تأمين المركبة'),
                         ),
                         const SizedBox(width: 8),
                         IconButton(
                           tooltip: 'تعديل',
                           onPressed: () => onEdit(e),
-                          icon: const Icon(Icons.edit_outlined,
-                              color: Colors.blueGrey),
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            color: Colors.blueGrey,
+                          ),
                         ),
                         IconButton(
-                          tooltip: 'ط­ط°ظپ',
+                          tooltip: 'حذف',
                           onPressed: () => onDelete(e),
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.redAccent),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
                         ),
                       ],
                     ),
@@ -1051,16 +1075,20 @@ class _CardsList extends StatelessWidget {
               AdaptiveRow(
                 children: [
                   IconButton(
-                    tooltip: 'ط­ط°ظپ',
+                    tooltip: 'حذف',
                     onPressed: () => onDelete(e),
-                    icon: const Icon(Icons.delete_outline,
-                        color: Colors.redAccent),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.redAccent,
+                    ),
                   ),
                   IconButton(
                     tooltip: 'تعديل',
                     onPressed: () => onEdit(e),
-                    icon:
-                        const Icon(Icons.edit_outlined, color: Colors.blueGrey),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: Colors.blueGrey,
+                    ),
                   ),
                   const Spacer(),
                   Text(
@@ -1074,8 +1102,10 @@ class _CardsList extends StatelessWidget {
               AdaptiveRow(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: c.withOpacity(0.10),
                       border: Border.all(color: c),
@@ -1099,8 +1129,10 @@ class _CardsList extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () => onInsure(e),
-                  icon:
-                      const Icon(Icons.verified_user, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.verified_user,
+                    color: AppColors.primary,
+                  ),
                   label: const Text('تأمين المركبة'),
                 ),
               ),
@@ -1138,10 +1170,7 @@ class _LeadDialog extends StatefulWidget {
   final DateFormat nfDate;
   final _LeadContact? existing;
 
-  const _LeadDialog({
-    required this.nfDate,
-    this.existing,
-  });
+  const _LeadDialog({required this.nfDate, this.existing});
 
   @override
   State<_LeadDialog> createState() => _LeadDialogState();
@@ -1161,8 +1190,9 @@ class _LeadDialogState extends State<_LeadDialog> {
     super.initState();
     _name = TextEditingController(text: widget.existing?.name ?? '');
     _phone = TextEditingController(text: widget.existing?.phone ?? '');
-    _vehicleMake =
-        TextEditingController(text: widget.existing?.vehicleMake ?? '');
+    _vehicleMake = TextEditingController(
+      text: widget.existing?.vehicleMake ?? '',
+    );
     _endDate = widget.existing?.endDate;
   }
 
@@ -1198,7 +1228,8 @@ class _LeadDialogState extends State<_LeadDialog> {
     if (allEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('⚠️ أدخل على الأقل معلومة واحدة قبل الحفظ')),
+          content: Text('⚠️ أدخل على الأقل معلومة واحدة قبل الحفظ'),
+        ),
       );
       return;
     }
@@ -1240,15 +1271,17 @@ class _LeadDialogState extends State<_LeadDialog> {
               controller: _phone,
               textAlign: TextAlign.right,
               keyboardType: TextInputType.phone,
-              decoration:
-                  const InputDecoration(labelText: 'رقم الهاتف (اختياري)'),
+              decoration: const InputDecoration(
+                labelText: 'رقم الهاتف (اختياري)',
+              ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _vehicleMake,
               textAlign: TextAlign.right,
-              decoration:
-                  const InputDecoration(labelText: 'نوع المركبة (اختياري)'),
+              decoration: const InputDecoration(
+                labelText: 'نوع المركبة (اختياري)',
+              ),
             ),
             const SizedBox(height: 12),
             Align(
@@ -1279,10 +1312,7 @@ class _LeadDialogState extends State<_LeadDialog> {
           onPressed: () => Navigator.of(context).pop(null),
           child: const Text('إلغاء'),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('ط­ظپط¸'),
-        ),
+        FilledButton(onPressed: _submit, child: const Text('حفظ')),
       ],
     );
   }

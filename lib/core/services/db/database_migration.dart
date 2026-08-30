@@ -56,8 +56,7 @@ class DatabaseMigration {
 
     if (res.isEmpty) {
       await db.insert('suppliers', {'name': 'المصاريف العامة'});
-      debugPrint(
-          "أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©");
+      debugPrint("General expenses supplier S0000 created successfully");
     }
   }
 
@@ -90,8 +89,7 @@ class DatabaseMigration {
   // ============================================================
   static Future<Database> initDatabase({String? pathOverride}) async {
     final path = pathOverride ?? await DatabaseConstants.dbFilePath();
-    debugPrint(
-        'ظ‹ع؛ع‘â‚¬ [DB] opening v${DatabaseConstants.dbVersion} @ $path');
+    debugPrint('[DB] opening v${DatabaseConstants.dbVersion} @ $path');
 
     final db = await openDatabase(
       path,
@@ -228,8 +226,7 @@ class DatabaseMigration {
           info.any((c) => (c['name'] as String) == 'remaining');
 
       if (!hasRemaining) {
-        debugPrint(
-            "ظ‹ع؛â€؛آ  Adding remaining column to purchase_invoicesأ¢â‚¬آ¦");
+        debugPrint("Adding remaining column to purchase_invoices");
         await db.execute(
             "ALTER TABLE purchase_invoices ADD COLUMN remaining REAL DEFAULT 0;");
         debugPrint("remaining added to purchase_invoices");
@@ -297,16 +294,14 @@ class DatabaseMigration {
     // SEC.011 - runtime license projection + DB-level operational write guards.
     if (oldV < 68) {
       await LicenseRuntimeTables.ensure(db);
-      debugPrint(
-          "أ¢إ“â€¦ Upgrade v68 expiry/read-only lifecycle guards applied");
+      debugPrint("Upgrade v68 expiry/read-only lifecycle guards applied");
     }
 
     // SEC.012 - periodic online validation + offline grace enforcement.
     if (oldV < 69) {
       await LicenseValidationTables.ensure(db);
       await LicenseRuntimeTables.upgradeForSec012(db);
-      debugPrint(
-          "أ¢إ“â€¦ Upgrade v69 periodic validation/grace enforcement applied");
+      debugPrint("Upgrade v69 periodic validation/grace enforcement applied");
     }
 
     await UserTables.createActivationCodesTable(db);
@@ -794,7 +789,7 @@ class DatabaseMigration {
       await db.execute(
           "ALTER TABLE cheques RENAME COLUMN linked_payment_id TO linked_payment_ids;");
       debugPrint(
-          "أ¢إ“â€‌ ط·آ¥ط·آ¹ط·آ§ط·آ¯ط·آ© ط·ع¾ط·آ³ط¸â€¦ط¸ظ¹ط·آ© ط·آ§ط¸â€‍ط·آ¹ط¸â€¦ط¸ث†ط·آ¯ ط·ع¾ط¸â€¦ط·ع¾ ط·آ¨ط¸â€ ط·آ¬ط·آ§ط·آ­");
+          "linked_payment_id renamed to linked_payment_ids successfully");
       return;
     }
 

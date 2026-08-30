@@ -190,127 +190,130 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AdaptiveAlertDialog(
-        title: const Text('إضافة دفعة', textAlign: TextAlign.right),
-        content: SizedBox(
-          width: 520,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: amountCtrl,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.right,
-                decoration: InputDecoration(
-                  labelText: 'المبلغ',
-                  isDense: true,
-                  filled: true,
-                  fillColor: const Color(0xFFF7F8FA),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AdaptiveAlertDialog(
+          title: const Text('إضافة دفعة', textAlign: TextAlign.right),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.right,
+                  decoration: InputDecoration(
+                    labelText: 'المبلغ',
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xFFF7F8FA),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: method,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: 'طريقة الدفع',
-                  isDense: true,
-                  filled: true,
-                  fillColor: const Color(0xFFF7F8FA),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: method,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'طريقة الدفع',
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xFFF7F8FA),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'CASH', child: Text('نقداً')),
+                    DropdownMenuItem(value: 'CHEQUE', child: Text('شيك')),
+                    DropdownMenuItem(
+                        value: 'INSTALLMENT', child: Text('أقساط')),
+                    DropdownMenuItem(value: 'TRANSFER', child: Text('تحويل')),
+                    DropdownMenuItem(value: 'BANK', child: Text('بنك')),
+                  ],
+                  onChanged: (v) => method = v ?? 'CASH',
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: dialogContext,
+                      initialDate: payDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      payDate = picked;
+                      if (!dialogContext.mounted) return;
+                      setDialogState(() => payDate = picked);
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F8FA),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: AdaptiveRow(
+                      children: [
+                        const Icon(Icons.date_range),
+                        const Spacer(),
+                        Text(
+                          DateFormat('yyyy-MM-dd').format(payDate),
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                items: const [
-                  DropdownMenuItem(value: 'CASH', child: Text('نقداً')),
-                  DropdownMenuItem(value: 'CHEQUE', child: Text('شيك')),
-                  DropdownMenuItem(value: 'INSTALLMENT', child: Text('أقساط')),
-                  DropdownMenuItem(value: 'TRANSFER', child: Text('تحويل')),
-                  DropdownMenuItem(value: 'BANK', child: Text('بنك')),
-                ],
-                onChanged: (v) => method = v ?? 'CASH',
-              ),
-              const SizedBox(height: 10),
-              InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: payDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    payDate = picked;
-                    // ignore: use_build_context_synchronously
-                    (context as Element).markNeedsBuild();
-                  }
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FA),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black12),
-                  ),
-                  child: AdaptiveRow(
-                    children: [
-                      const Icon(Icons.date_range),
-                      const Spacer(),
-                      Text(
-                        DateFormat('yyyy-MM-dd').format(payDate),
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ],
+                const SizedBox(height: 10),
+                TextField(
+                  controller: notesCtrl,
+                  maxLines: 2,
+                  textAlign: TextAlign.right,
+                  decoration: InputDecoration(
+                    labelText: 'ملاحظات (اختياري)',
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xFFF7F8FA),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: notesCtrl,
-                maxLines: 2,
-                textAlign: TextAlign.right,
-                decoration: InputDecoration(
-                  labelText: 'ملاحظات (اختياري)',
-                  isDense: true,
-                  filled: true,
-                  fillColor: const Color(0xFFF7F8FA),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              ],
             ),
-            onPressed: () {
-              final amt = _toDouble(amountCtrl.text);
-              if (amt <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('⚠️ أدخل مبلغ صحيح')),
-                );
-                return;
-              }
-              Navigator.pop(context, true);
-            },
-            child: const Text('حفظ', style: TextStyle(color: Colors.white)),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              onPressed: () {
+                final amt = _toDouble(amountCtrl.text);
+                if (amt <= 0) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('⚠️ أدخل مبلغ صحيح')),
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('حفظ', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
 

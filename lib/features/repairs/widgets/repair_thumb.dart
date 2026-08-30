@@ -12,6 +12,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 class RepairThumb extends StatelessWidget {
   final String repairId;
   final String? fallbackFirstPath;
+  final List<String> fallbackPaths;
   final double size;
   final BorderRadius? borderRadius;
 
@@ -19,6 +20,7 @@ class RepairThumb extends StatelessWidget {
     super.key,
     required this.repairId,
     this.fallbackFirstPath,
+    this.fallbackPaths = const <String>[],
     this.size = 48,
     this.borderRadius,
   });
@@ -31,16 +33,21 @@ class RepairThumb extends StatelessWidget {
         // 1) أول شيء: thumbnail_path من قاعدة البيانات
         String? cover = snap.data;
 
-        // 2) إذا الـ thumbnail_path غير موجود → fallback
-        if (cover == null || cover.isEmpty) {
-          cover = fallbackFirstPath;
-        }
+        // 2) لا نفترض أن أول صورة هي الصالحة. على الهاتف قد تكون بعض
+        // المسارات قديمة/غير متاحة، لذلك نختار أول ملف موجود فعليًا.
+        final candidates = <String>[
+          if (cover != null && cover.trim().isNotEmpty) cover.trim(),
+          if (fallbackFirstPath != null && fallbackFirstPath!.trim().isNotEmpty)
+            fallbackFirstPath!.trim(),
+          ...fallbackPaths.where((path) => path.trim().isNotEmpty),
+        ];
 
         File? file;
-        if (cover != null && cover.isNotEmpty) {
-          final f = File(cover);
-          if (f.existsSync()) {
-            file = f;
+        for (final path in candidates.toSet()) {
+          final candidate = File(path);
+          if (candidate.existsSync()) {
+            file = candidate;
+            break;
           }
         }
 
@@ -57,8 +64,10 @@ class RepairThumb extends StatelessWidget {
               : Container(
                   color: AppColors.lightGrey,
                   alignment: Alignment.center,
-                  child: const Icon(Icons.directions_car,
-                      color: AppColors.primary),
+                  child: const Icon(
+                    Icons.directions_car,
+                    color: AppColors.primary,
+                  ),
                 ),
         );
 

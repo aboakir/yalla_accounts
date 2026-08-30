@@ -193,6 +193,7 @@ WHERE v.voucher_type = 'PAYMENT'
         fileName: "payment_voucher_${row["id"]}.pdf",
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("PDF ERROR: $e")),
       );

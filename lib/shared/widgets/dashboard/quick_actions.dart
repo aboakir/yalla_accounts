@@ -69,6 +69,7 @@ class _ActionButton extends StatelessWidget {
     try {
       await Navigator.of(context).pushNamed(route);
     } on FlutterError catch (_) {
+      if (!context.mounted) return;
       // حماية إذا لم يكن المسار معرّفًا في AppRoutes
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

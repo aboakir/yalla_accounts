@@ -127,6 +127,7 @@ ORDER BY pi.date DESC
 
     final searchCtrl = TextEditingController();
     List<Map<String, dynamic>> filtered = List.from(data);
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -428,6 +429,7 @@ ORDER BY pi.date DESC
 
     final searchCtrl = TextEditingController();
     List<Map<String, dynamic>> filtered = List.from(data);
+    if (!mounted) return;
 
     showDialog(
       context: context,

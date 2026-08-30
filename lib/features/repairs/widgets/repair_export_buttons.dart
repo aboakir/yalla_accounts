@@ -83,10 +83,10 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       }
 
       // إغلاق حوار التقدم بعد الانتهاء
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
 
       // إشعار بنجاح العملية
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ تم تصدير كافة ملفات PDF بنجاح'),
@@ -97,9 +97,9 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       }
     } catch (e) {
       // إغلاق حوار التقدم في حال الخطأ
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
 
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ حدث خطأ أثناء تصدير PDF: $e'),
@@ -134,7 +134,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       final fileName = 'تقارير_الإصلاح_$timestamp';
       await RepairExcelExport.exportToExcel(repairs, fileName);
 
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ تم حفظ ملف Excel بنجاح'),
@@ -144,7 +144,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ حدث خطأ أثناء تصدير Excel: $e'),

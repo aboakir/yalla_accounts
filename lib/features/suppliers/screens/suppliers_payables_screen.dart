@@ -164,7 +164,7 @@ WHERE invoice_id = ?
                                 ],
                               );
 
-                              if (action == null) return;
+                              if (action == null || !context.mounted) return;
 
                               switch (action) {
                                 case 'view':

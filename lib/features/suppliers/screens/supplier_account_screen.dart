@@ -249,6 +249,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
     final file =
         File("${dir.path}/supplier_statement_${widget.supplierId}.pdf");
     await file.writeAsBytes(await pdf.save());
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("تم حفظ PDF في مجلد التنزيلات")),

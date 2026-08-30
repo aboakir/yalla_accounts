@@ -47,12 +47,11 @@ class _RepairInvoiceCreateButtonState extends State<RepairInvoiceCreateButton> {
 
   Future<void> _handleCreate() async {
     setState(() => _busy = true);
-    final ctx = context;
-
     try {
       final exists = await _getExistingInvoiceId(widget.repairId);
       if (exists != null) {
-        _snack(ctx, 'Invoice exists: $exists');
+        if (!mounted) return;
+        _snack(context, 'Invoice exists: $exists');
         setState(() => _busy = false);
         return;
       }
@@ -85,10 +84,12 @@ class _RepairInvoiceCreateButtonState extends State<RepairInvoiceCreateButton> {
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
 
-      _snack(ctx, 'Invoice created: $invId');
+      if (!mounted) return;
+      _snack(context, 'Invoice created: $invId');
       widget.onCreated?.call();
     } catch (e) {
-      _snack(ctx, 'Error: $e', isErr: true);
+      if (!mounted) return;
+      _snack(context, 'Error: $e', isErr: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -69,6 +69,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
       remaining = double.infinity;
     }
 
+    if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -172,6 +173,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
                   if (cont != true) return;
                 }
 
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx, true);
               },
               child: const Text('Save'),

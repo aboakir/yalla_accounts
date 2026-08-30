@@ -16,6 +16,7 @@ import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 class RepairThumbSmall extends StatelessWidget {
   final String repairId;
   final String? fallbackFirstPath;
+  final List<String> fallbackPaths;
   final double size;
   final double radius;
 
@@ -23,6 +24,7 @@ class RepairThumbSmall extends StatelessWidget {
     super.key,
     required this.repairId,
     required this.fallbackFirstPath,
+    this.fallbackPaths = const <String>[],
     required this.size,
     required this.radius,
   });
@@ -36,13 +38,19 @@ class RepairThumbSmall extends StatelessWidget {
         File? file;
 
         try {
-          if (path != null && path.isNotEmpty) {
-            final f = File(path);
-            if (f.existsSync()) file = f;
-          }
-          if (file == null && fallbackFirstPath != null) {
-            final f = File(fallbackFirstPath!);
-            if (f.existsSync()) file = f;
+          final candidates = <String>[
+            if (path != null && path.trim().isNotEmpty) path.trim(),
+            if (fallbackFirstPath != null &&
+                fallbackFirstPath!.trim().isNotEmpty)
+              fallbackFirstPath!.trim(),
+            ...fallbackPaths.where((value) => value.trim().isNotEmpty),
+          ];
+          for (final candidatePath in candidates.toSet()) {
+            final candidate = File(candidatePath);
+            if (candidate.existsSync()) {
+              file = candidate;
+              break;
+            }
           }
         } catch (_) {}
 
@@ -61,8 +69,11 @@ class RepairThumbSmall extends StatelessWidget {
         return CircleAvatar(
           radius: radius,
           backgroundColor: AppColors.lightGrey,
-          child: Icon(Icons.directions_car,
-              size: radius, color: AppColors.primary),
+          child: Icon(
+            Icons.directions_car,
+            size: radius,
+            color: AppColors.primary,
+          ),
         );
       },
     );
@@ -114,11 +125,13 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
           .toLowerCase();
       final isSearch =
           _search.isEmpty || hay.contains(_search.trim().toLowerCase());
-      final inDate = _dateRange == null ||
+      final inDate =
+          _dateRange == null ||
           (_dateRange!.start.isBefore(r.receivedDate) &&
               _dateRange!.end.isAfter(r.receivedDate));
       final status = (r.paymentStatus ?? r.computedPaymentStatus).toLowerCase();
-      final isStatus = _statusFilter == 'all' ||
+      final isStatus =
+          _statusFilter == 'all' ||
           (_statusFilter == 'paid' && status == 'مسدد') ||
           (_statusFilter == 'unpaid' && status != 'مسدد');
       return isTypeMatch && isSearch && inDate && isStatus;
@@ -160,14 +173,20 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
               const SizedBox(height: 8),
               Text('عدد: $count', style: const TextStyle(fontSize: 14)),
               const SizedBox(height: 4),
-              Text('متبقي: ${sum.toStringAsFixed(0)}',
-                  style: const TextStyle(fontSize: 14)),
+              Text(
+                'متبقي: ${sum.toStringAsFixed(0)}',
+                style: const TextStyle(fontSize: 14),
+              ),
             ],
           ),
         ),
@@ -188,12 +207,16 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
           _buildStatsCard('تأمين', ins.length, sumRemaining(ins)),
           IconButton(
             icon: const Icon(Icons.file_download),
-            onPressed: () {/* TODO: export CSV */},
+            onPressed: () {
+              /* TODO: export CSV */
+            },
             tooltip: 'تصدير CSV',
           ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
-            onPressed: () {/* TODO: export PDF */},
+            onPressed: () {
+              /* TODO: export PDF */
+            },
             tooltip: 'تصدير PDF',
           ),
         ],
@@ -212,8 +235,8 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
         itemCount: items.length,
         itemBuilder: (_, i) {
           final r = items[i];
-          final status =
-              (r.paymentStatus ?? r.computedPaymentStatus).toLowerCase();
+          final status = (r.paymentStatus ?? r.computedPaymentStatus)
+              .toLowerCase();
           Color bgColor;
           if (status.contains('مسدد') && !status.contains('جزئي')) {
             bgColor = Colors.green.shade50;
@@ -241,9 +264,9 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
                 _openDetails(r);
                 return false;
               } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('فتح إضافة دفعة')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('فتح إضافة دفعة')));
                 return false;
               }
             },
@@ -255,17 +278,23 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
               ),
               margin: const EdgeInsets.symmetric(vertical: 6),
               child: ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 leading: RepairThumbSmall(
                   repairId: r.id,
-                  fallbackFirstPath:
-                      r.imagePaths.isNotEmpty ? r.imagePaths.first : null,
+                  fallbackFirstPath: r.imagePaths.isNotEmpty
+                      ? r.imagePaths.first
+                      : null,
+                  fallbackPaths: r.imagePaths,
                   size: 52,
                   radius: 26,
                 ),
-                title: Text('${r.vehicleType} • ${r.vehicleNumber}',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  '${r.vehicleType} • ${r.vehicleNumber}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -277,7 +306,9 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
                   label: Text(
                     status,
                     style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   backgroundColor: bgColor.withOpacity(0.6),
                 ),
@@ -293,82 +324,89 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
   void _openDetails(Repair r) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => RepairDetailsScreen(repair: r),
-      ),
+      MaterialPageRoute(builder: (_) => RepairDetailsScreen(repair: r)),
     ).then((_) => _loadRepairs());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AdaptiveRow(children: [
-        const YallaSidebar(currentRoute: '/vehicles_list'),
-        Expanded(
-          child: Column(children: [
-            _buildStats(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: AdaptiveRow(children: [
-                Expanded(
-                  child: TextField(
-                    decoration: const InputDecoration(
-                      hintText: 'بحث (اسم، نوع، رقم)…',
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (v) => setState(() => _search = v),
+      body: AdaptiveRow(
+        children: [
+          const YallaSidebar(currentRoute: '/vehicles_list'),
+          Expanded(
+            child: Column(
+              children: [
+                _buildStats(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: AdaptiveRow(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: const InputDecoration(
+                            hintText: 'بحث (اسم، نوع، رقم)…',
+                            prefixIcon: Icon(Icons.search),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (v) => setState(() => _search = v),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.date_range),
+                        onPressed: _pickDateRange,
+                        tooltip: 'فلترة بالتاريخ',
+                      ),
+                      const SizedBox(width: 8),
+                      DropdownButton<String>(
+                        value: _statusFilter,
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('الكل')),
+                          DropdownMenuItem(value: 'paid', child: Text('مسدد')),
+                          DropdownMenuItem(
+                            value: 'unpaid',
+                            child: Text('غير مسدد'),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _statusFilter = v!),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        label: const Text('جديد'),
+                        onPressed: _onAddRepair,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.date_range),
-                  onPressed: _pickDateRange,
-                  tooltip: 'فلترة بالتاريخ',
-                ),
-                const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: _statusFilter,
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('الكل')),
-                    DropdownMenuItem(value: 'paid', child: Text('مسدد')),
-                    DropdownMenuItem(value: 'unpaid', child: Text('غير مسدد')),
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: AppColors.primary,
+                  tabs: const [
+                    Tab(text: 'أفراد'),
+                    Tab(text: 'تأمين'),
                   ],
-                  onChanged: (v) => setState(() => _statusFilter = v!),
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: const Text('جديد'),
-                  onPressed: _onAddRepair,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildListView(_filtered('individual')),
+                      _buildListView(_filtered('insurance')),
+                    ],
                   ),
                 ),
-              ]),
-            ),
-            TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: AppColors.primary,
-              tabs: const [
-                Tab(text: 'أفراد'),
-                Tab(text: 'تأمين'),
               ],
             ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildListView(_filtered('individual')),
-                  _buildListView(_filtered('insurance')),
-                ],
-              ),
-            ),
-          ]),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 }

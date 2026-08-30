@@ -119,6 +119,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
     });
 
     // إظهار Snackbar مع خيار التراجع
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('تم حذف الصورة'),

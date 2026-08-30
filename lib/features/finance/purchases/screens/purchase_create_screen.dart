@@ -152,6 +152,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
   Future<_Supplier?> _openSupplierPicker(bool byPid) async {
     final ctrl = TextEditingController();
     List<_Supplier> results = await _searchSuppliers("", byPid);
+    if (!mounted) return null;
 
     return showDialog<_Supplier>(
       context: context,

@@ -468,7 +468,7 @@ class _GLTable extends StatelessWidget {
         controller: horizontalCtrl,
         padding: const EdgeInsets.all(12),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 860),
+          constraints: const BoxConstraints(minWidth: 0),
           child: AdaptiveDataTable(
             columns: const [
               DataColumn(label: Text('التاريخ')),

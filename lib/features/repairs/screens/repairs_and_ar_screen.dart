@@ -103,6 +103,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
               final remaining =
                   (r.totalFileValue - paidSoFar).clamp(0.0, double.infinity);
 
+              if (!context.mounted) return;
               if (amount <= 0 || amount > remaining) {
                 ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('المبلغ غير صالح')));
@@ -117,6 +118,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
 
               await _loadRepairs();
               ref.invalidate(pendingArProvider);
+              if (!context.mounted) return;
               Navigator.pop(context);
             },
             child: const Text('تأكيد'),

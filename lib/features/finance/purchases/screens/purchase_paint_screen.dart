@@ -98,10 +98,12 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
           "total": amount,
           "category": "OTHER",
           "note": _noteCtrl.text.trim(),
-        }
+        },
       ];
 
-      await ref.read(purchaseProvider.notifier).add(
+      await ref
+          .read(purchaseProvider.notifier)
+          .add(
             supplierId: 9999, // مطلوب وليس nullable
             date: _date,
             method: _method,
@@ -111,8 +113,9 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("تم الحفظ")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("تم الحفظ")));
 
       _formKey.currentState!.reset();
       _supplierIdCtrl.clear();
@@ -124,8 +127,9 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("فشل: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("فشل: $e")));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -146,150 +150,156 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text("مشتريات — دهانات",
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-
-            // Supplier ID (اختياري)
-            TextFormField(
-              controller: _supplierIdCtrl,
-              decoration: const InputDecoration(
-                labelText: "Supplier ID (اختياري)",
-                prefixIcon: Icon(Icons.badge_outlined),
-                border: OutlineInputBorder(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                "مشتريات — دهانات",
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // التاريخ
-            InkWell(
-              onTap: _pickDate,
-              child: InputDecorator(
+              // Supplier ID (اختياري)
+              TextFormField(
+                controller: _supplierIdCtrl,
                 decoration: const InputDecoration(
-                  labelText: "التاريخ",
+                  labelText: "Supplier ID (اختياري)",
+                  prefixIcon: Icon(Icons.badge_outlined),
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.event_outlined),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(df.format(_date)),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // المبلغ
-            TextFormField(
-              controller: _amountCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: "المبلغ",
-                prefixIcon: Icon(Icons.attach_money_outlined),
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) return "المبلغ مطلوب";
-                final n = double.tryParse(_normalize(v.trim()));
-                if (n == null || n <= 0) return "غير صالح";
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // طريقة الدفع
-            InputDecorator(
-              decoration: const InputDecoration(
-                labelText: "طريقة الدفع",
-                border: OutlineInputBorder(),
-              ),
-              child: Column(children: [
-                RadioListTile(
-                  value: "cash",
-                  groupValue: _method,
-                  onChanged: (v) => setState(() => _method = v!),
-                  title: const Text("نقدي"),
-                  dense: true,
+              // التاريخ
+              InkWell(
+                onTap: _pickDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: "التاريخ",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.event_outlined),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(df.format(_date)),
+                  ),
                 ),
-                RadioListTile(
-                  value: "bank",
-                  groupValue: _method,
-                  onChanged: (v) => setState(() => _method = v!),
-                  title: const Text("بنكي"),
-                  dense: true,
-                ),
-                RadioListTile(
-                  value: "credit",
-                  groupValue: _method,
-                  onChanged: (v) => setState(() => _method = v!),
-                  title: const Text("على الحساب"),
-                  dense: true,
-                ),
-              ]),
-            ),
-            const SizedBox(height: 12),
-
-            // ملاحظة
-            TextFormField(
-              controller: _noteCtrl,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: "ملاحظة",
-                prefixIcon: Icon(Icons.note_outlined),
-                border: OutlineInputBorder(),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            SizedBox(
-              height: 44,
-              child: FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: Text(_saving ? "جارٍ الحفظ…" : "حفظ"),
+              // المبلغ
+              TextFormField(
+                controller: _amountCtrl,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: "المبلغ",
+                  prefixIcon: Icon(Icons.attach_money_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return "المبلغ مطلوب";
+                  final n = double.tryParse(_normalize(v.trim()));
+                  if (n == null || n <= 0) return "غير صالح";
+                  return null;
+                },
               ),
-            ),
-          ]),
+              const SizedBox(height: 12),
+
+              // طريقة الدفع
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: "طريقة الدفع",
+                  border: OutlineInputBorder(),
+                ),
+                child: Column(
+                  children: [
+                    RadioListTile(
+                      value: "cash",
+                      groupValue: _method,
+                      onChanged: (v) => setState(() => _method = v!),
+                      title: const Text("نقدي"),
+                      dense: true,
+                    ),
+                    RadioListTile(
+                      value: "bank",
+                      groupValue: _method,
+                      onChanged: (v) => setState(() => _method = v!),
+                      title: const Text("بنكي"),
+                      dense: true,
+                    ),
+                    RadioListTile(
+                      value: "credit",
+                      groupValue: _method,
+                      onChanged: (v) => setState(() => _method = v!),
+                      title: const Text("على الحساب"),
+                      dense: true,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // ملاحظة
+              TextFormField(
+                controller: _noteCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: "ملاحظة",
+                  prefixIcon: Icon(Icons.note_outlined),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              SizedBox(
+                height: 44,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: Text(_saving ? "جارٍ الحفم" : "حفظ"),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
 
     final list = Card(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Column(children: [
-        const ListTile(title: Text("آخر مشتريات دهانات")),
-        const Divider(height: 0),
-        if (items.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text("لا يوجد"),
-          ),
-        if (items.isNotEmpty)
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: math.min(items.length, 10),
-            separatorBuilder: (_, __) => const Divider(height: 0),
-            itemBuilder: (_, i) {
-              final p = items[i];
-              return ListTile(
-                leading: const Icon(Icons.color_lens_outlined),
-                title: Text(
-                  "${df.format(p.date)} • ${MoneyFormatter.format(p.total)}",
-                ),
-                subtitle: Text("Supplier: ${p.supplierId ?? '-'}"),
-              );
-            },
-          ),
-      ]),
+      child: Column(
+        children: [
+          const ListTile(title: Text("آخر مشتريات دهانات")),
+          const Divider(height: 0),
+          if (items.isEmpty)
+            const Padding(padding: EdgeInsets.all(16), child: Text("لا يوجد")),
+          if (items.isNotEmpty)
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: math.min(items.length, 10),
+              separatorBuilder: (_, __) => const Divider(height: 0),
+              itemBuilder: (_, i) {
+                final p = items[i];
+                return ListTile(
+                  leading: const Icon(Icons.color_lens_outlined),
+                  title: Text(
+                    "${df.format(p.date)} • ${MoneyFormatter.format(p.total)}",
+                  ),
+                  subtitle: Text("Supplier: ${p.supplierId ?? '-'}"),
+                );
+              },
+            ),
+        ],
+      ),
     );
 
     final content = ListView(children: [form, list]);

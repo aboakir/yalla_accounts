@@ -124,6 +124,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     }
 
     List<String> temp = selectedRepairs.map((e) => e.id).toList();
+    if (!mounted) return;
 
     await showDialog(
       context: context,

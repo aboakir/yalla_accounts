@@ -76,6 +76,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("خطأ أثناء تحميل العملاء: $e")),

@@ -262,7 +262,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                         payOfficialHolidays: true,
                                       );
 
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
 
                                   showDialog(
                                     context: context,

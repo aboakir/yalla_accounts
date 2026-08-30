@@ -42,6 +42,7 @@ Future<void> showMonthlySalaryQuickCalc({
   // تجاهل إن كان الراتب الأساسي صفر
   final warnBase = employee.baseSalary <= 0;
 
+  if (!context.mounted) return;
   await showDialog<void>(
     context: context,
     builder: (_) => AdaptiveAlertDialog(

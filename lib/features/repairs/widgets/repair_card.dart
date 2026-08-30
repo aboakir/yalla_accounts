@@ -90,6 +90,7 @@ class RepairCard extends StatelessWidget {
                 fallbackFirstPath: repair.imagePaths.isNotEmpty
                     ? repair.imagePaths.first
                     : null,
+                fallbackPaths: repair.imagePaths,
                 size: isNarrow ? 56 : 64,
                 radius: isNarrow ? 28 : 32,
               ),
@@ -146,8 +147,11 @@ class RepairCard extends StatelessWidget {
                       ),
                     AdaptiveRow(
                       children: [
-                        Icon(Icons.verified,
-                            color: insuranceColor, size: isNarrow ? 14 : 16),
+                        Icon(
+                          Icons.verified,
+                          color: insuranceColor,
+                          size: isNarrow ? 14 : 16,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -183,7 +187,9 @@ class RepairCard extends StatelessWidget {
                       ),
                       backgroundColor: Colors.green[50],
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(color: Colors.green[200]!),
@@ -206,7 +212,9 @@ class RepairCard extends StatelessWidget {
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.green[700],
                         textStyle: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 12),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                 ],
@@ -221,26 +229,35 @@ class RepairCard extends StatelessWidget {
   List<Widget> _actionIcons(bool compact) {
     final icons = <Widget>[];
     if (onView != null) {
-      icons.add(_icon(
+      icons.add(
+        _icon(
           icon: Icons.visibility_outlined,
           tooltip: 'عرض',
           action: onView!,
-          compact: compact));
+          compact: compact,
+        ),
+      );
     }
     if (onEdit != null) {
-      icons.add(_icon(
+      icons.add(
+        _icon(
           icon: Icons.edit_outlined,
           tooltip: 'تعديل',
           action: onEdit!,
-          compact: compact));
+          compact: compact,
+        ),
+      );
     }
     if (onDelete != null) {
-      icons.add(_icon(
+      icons.add(
+        _icon(
           icon: Icons.delete_outline,
           tooltip: 'حذف',
           action: onDelete!,
           compact: compact,
-          color: AppColors.danger));
+          color: AppColors.danger,
+        ),
+      );
     }
     return icons;
   }
@@ -255,13 +272,18 @@ class RepairCard extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: compact ? 2 : 4),
       child: IconButton(
-        icon: Icon(icon,
-            size: compact ? 20 : 24, color: color ?? AppColors.primary),
+        icon: Icon(
+          icon,
+          size: compact ? 20 : 24,
+          color: color ?? AppColors.primary,
+        ),
         onPressed: action,
         tooltip: tooltip,
         splashRadius: 20,
         constraints: BoxConstraints.tightFor(
-            width: compact ? 32 : 40, height: compact ? 32 : 40),
+          width: compact ? 32 : 40,
+          height: compact ? 32 : 40,
+        ),
       ),
     );
   }
@@ -271,12 +293,14 @@ class RepairCard extends StatelessWidget {
 class _RepairThumb extends StatelessWidget {
   final String repairId;
   final String? fallbackFirstPath;
+  final List<String> fallbackPaths;
   final double size;
   final double radius;
 
   const _RepairThumb({
     required this.repairId,
     required this.fallbackFirstPath,
+    this.fallbackPaths = const <String>[],
     required this.size,
     required this.radius,
   });
@@ -290,13 +314,19 @@ class _RepairThumb extends StatelessWidget {
         File? file;
 
         try {
-          if (path != null && path.isNotEmpty) {
-            final f = File(path);
-            if (f.existsSync()) file = f;
-          }
-          if (file == null && fallbackFirstPath != null) {
-            final f = File(fallbackFirstPath!);
-            if (f.existsSync()) file = f;
+          final candidates = <String>[
+            if (path != null && path.trim().isNotEmpty) path.trim(),
+            if (fallbackFirstPath != null &&
+                fallbackFirstPath!.trim().isNotEmpty)
+              fallbackFirstPath!.trim(),
+            ...fallbackPaths.where((value) => value.trim().isNotEmpty),
+          ];
+          for (final candidatePath in candidates.toSet()) {
+            final candidate = File(candidatePath);
+            if (candidate.existsSync()) {
+              file = candidate;
+              break;
+            }
           }
         } catch (_) {}
 
@@ -315,8 +345,11 @@ class _RepairThumb extends StatelessWidget {
         return CircleAvatar(
           radius: radius,
           backgroundColor: AppColors.lightGrey,
-          child: Icon(Icons.directions_car,
-              size: radius, color: AppColors.primary),
+          child: Icon(
+            Icons.directions_car,
+            size: radius,
+            color: AppColors.primary,
+          ),
         );
       },
     );
@@ -366,10 +399,14 @@ class _InvoiceButton extends StatelessWidget {
         ].fold<double>(0, (m, v) => v > m ? v : m);
 
         final total = await _computeTotal(db, repair.id, fallback: fallback);
+        if (!context.mounted) return;
 
         if (total <= 0) {
-          _snack(context, 'الإجمالي صفر. أضف بنودًا أو قيمة قبل الفوترة',
-              err: true);
+          _snack(
+            context,
+            'الإجمالي صفر. أضف بنودًا أو قيمة قبل الفوترة',
+            err: true,
+          );
           return;
         }
 
@@ -391,17 +428,23 @@ class _InvoiceButton extends StatelessWidget {
           whereArgs: [repair.id],
         );
 
+        if (!context.mounted) return;
         _snack(context, 'تم إنشاء الفاتورة: $invoiceId');
       }
 
+      if (!context.mounted) return;
       await InvoiceViewScreen.open(context, invoiceId!);
     } catch (e) {
+      if (!context.mounted) return;
       _snack(context, 'فشل: $e', err: true);
     }
   }
 
-  Future<double> _computeTotal(Database db, String repairId,
-      {required double fallback}) async {
+  Future<double> _computeTotal(
+    Database db,
+    String repairId, {
+    required double fallback,
+  }) async {
     final r = await db.rawQuery(
       'SELECT IFNULL(SUM(total),0) s FROM repair_lines WHERE repair_id=?',
       [repairId],
@@ -412,10 +455,12 @@ class _InvoiceButton extends StatelessWidget {
   }
 
   void _snack(BuildContext ctx, String msg, {bool err = false}) {
-    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: err ? Colors.red : null,
-      behavior: SnackBarBehavior.floating,
-    ));
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: err ? Colors.red : null,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }

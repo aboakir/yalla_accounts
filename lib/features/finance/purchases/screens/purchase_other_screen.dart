@@ -99,6 +99,7 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
         }).toList(),
       );
 
+      if (!mounted) return;
       _toast("تم حفظ الفاتورة بنجاح");
       Navigator.pop(context);
     } catch (e) {

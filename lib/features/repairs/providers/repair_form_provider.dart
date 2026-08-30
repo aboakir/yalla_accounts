@@ -372,6 +372,7 @@ class RepairFormNotifier extends StateNotifier<RepairFormData> {
       }
 
       resetForm();
+      if (!context.mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
           failed > 0
@@ -381,6 +382,7 @@ class RepairFormNotifier extends StateNotifier<RepairFormData> {
       ));
       return true;
     } catch (e) {
+      if (!context.mounted) return false;
       _err(context, 'خطأ أثناء الحفظ: $e');
       return false;
     }

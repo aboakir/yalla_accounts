@@ -80,10 +80,16 @@ class _PurchasesDialogState extends State<PurchasesDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.all(40),
+      insetPadding: EdgeInsets.all(
+        MediaQuery.sizeOf(context).width < 600 ? 16 : 40,
+      ),
       child: Container(
-        width: 750,
-        height: 540,
+        width: MediaQuery.sizeOf(context).width < 600
+            ? MediaQuery.sizeOf(context).width - 32
+            : 750,
+        height: MediaQuery.sizeOf(context).width < 600
+            ? MediaQuery.sizeOf(context).height * 0.82
+            : 540,
         padding: const EdgeInsets.all(26),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -91,10 +97,7 @@ class _PurchasesDialogState extends State<PurchasesDialog> {
             const Text(
               "فواتير مشتريات غير مرتبطة بموردين",
               textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 18),
             TextField(
@@ -110,59 +113,58 @@ class _PurchasesDialogState extends State<PurchasesDialog> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _filtered.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "لا توجد فواتير مطابقة",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _filtered.length,
-                          itemBuilder: (_, i) {
-                            final row = _filtered[i];
-                            final date = DateFormat('yyyy-MM-dd')
-                                .format(DateTime.parse(row['date']));
-                            final remaining =
-                                (row['remaining'] ?? 0.0).toStringAsFixed(2);
+                  ? const Center(
+                      child: Text(
+                        "لا توجد فواتير مطابقة",
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) {
+                        final row = _filtered[i];
+                        final date = DateFormat(
+                          'yyyy-MM-dd',
+                        ).format(DateTime.parse(row['date']));
+                        final remaining = (row['remaining'] ?? 0.0)
+                            .toStringAsFixed(2);
 
-                            return InkWell(
-                              onTap: () => _selectInvoice(row),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                margin: const EdgeInsets.symmetric(vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
+                        return InkWell(
+                          onTap: () => _selectInvoice(row),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  "فاتورة رقم: ${row['id']}",
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      "فاتورة رقم: ${row['id']}",
-                                      textAlign: TextAlign.right,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      "التاريخ: $date",
-                                      textAlign: TextAlign.right,
-                                    ),
-                                    Text(
-                                      "المتبقي: $remaining",
-                                      textAlign: TextAlign.right,
-                                    ),
-                                  ],
+                                const SizedBox(height: 6),
+                                Text(
+                                  "التاريخ: $date",
+                                  textAlign: TextAlign.right,
                                 ),
-                              ),
-                            );
-                          },
-                        ),
+                                Text(
+                                  "المتبقي: $remaining",
+                                  textAlign: TextAlign.right,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
             Align(
               alignment: Alignment.centerLeft,
