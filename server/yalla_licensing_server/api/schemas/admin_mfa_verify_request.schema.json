@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Yalla admin MFA verification request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "challenge_id",
+    "method",
+    "proof"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "method": {
+      "enum": [
+        "TOTP",
+        "WEBAUTHN"
+      ]
+    },
+    "proof": {
+      "type": "object"
+    }
+  }
+}

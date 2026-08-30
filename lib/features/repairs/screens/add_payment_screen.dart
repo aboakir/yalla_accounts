@@ -120,128 +120,158 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         title: const Text('إضافة دفعة'),
         backgroundColor: AppColors.primary,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _amountController,
-                textAlign: TextAlign.right,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'المبلغ',
-                  labelStyle: TextStyle(fontWeight: FontWeight.bold),
-                  prefixIcon: Icon(Icons.payments),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'أدخل المبلغ';
-                  if (double.tryParse(v) == null) return 'المبلغ غير صحيح';
-                  if (double.parse(v) <= 0) return 'المبلغ غير صالح';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _method,
-                decoration: const InputDecoration(
-                  labelText: 'طريقة الدفع',
-                  border: OutlineInputBorder(),
-                ),
-                items: _methods
-                    .map((m) => DropdownMenuItem(
-                          value: m,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(m),
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (v) async {
-                  if (v == 'شيك') {
-                    await _handleChequeSelection();
-                  } else {
-                    setState(() {
-                      _method = v!;
-                      _selectedCheque = null;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: _pickDate,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'تاريخ الدفعة',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.calendar_month),
-                  ),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(dateText),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // عرض بيانات الشيك إذا تم اختياره
-              if (_selectedCheque != null)
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green.shade200),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.lightGrey),
                   ),
-                  child: AdaptiveRow(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'شيك رقم: ${_selectedCheque!.chequeNo}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              'البنك: ${_selectedCheque!.bankName} - ${_selectedCheque!.bankBranch}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            Text(
-                              'المبلغ: ${_selectedCheque!.amount} ${_selectedCheque!.currency}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            Text(
-                              'تاريخ الاستحقاق: ${DateFormat('yyyy-MM-dd').format(_selectedCheque!.dueDate)}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
+                      Text(widget.repair.vehicleNumber,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 4),
+                      Text(
+                          '${widget.repair.vehicleType} ${widget.repair.vehicleModel}',
+                          style: const TextStyle(color: Colors.black54)),
+                      const SizedBox(height: 6),
+                      Text('قيمة الملف: ${widget.repair.totalFileValue}',
+                          style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800)),
                     ],
                   ),
                 ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _amountController,
+                  textAlign: TextAlign.right,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ',
+                    labelStyle: TextStyle(fontWeight: FontWeight.bold),
+                    prefixIcon: Icon(Icons.payments),
+                    border: OutlineInputBorder(),
                   ),
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('حفظ الدفعة'),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'أدخل المبلغ';
+                    if (double.tryParse(v) == null) return 'المبلغ غير صحيح';
+                    if (double.parse(v) <= 0) return 'المبلغ غير صالح';
+                    return null;
+                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _method,
+                  decoration: const InputDecoration(
+                    labelText: 'طريقة الدفع',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _methods
+                      .map((m) => DropdownMenuItem(
+                            value: m,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(m),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) async {
+                    if (v == 'شيك') {
+                      await _handleChequeSelection();
+                    } else {
+                      setState(() {
+                        _method = v!;
+                        _selectedCheque = null;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: _pickDate,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'تاريخ الدفعة',
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.calendar_month),
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(dateText),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // عرض بيانات الشيك إذا تم اختياره
+                if (_selectedCheque != null)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: AdaptiveRow(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green.shade700),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'شيك رقم: ${_selectedCheque!.chequeNo}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'البنك: ${_selectedCheque!.bankName} - ${_selectedCheque!.bankBranch}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              Text(
+                                'المبلغ: ${_selectedCheque!.amount} ${_selectedCheque!.currency}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              Text(
+                                'تاريخ الاستحقاق: ${DateFormat('yyyy-MM-dd').format(_selectedCheque!.dueDate)}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: _isSaving
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('حفظ الدفعة'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

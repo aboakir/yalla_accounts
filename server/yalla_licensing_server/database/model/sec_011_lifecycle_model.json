@@ -1,0 +1,23 @@
+{
+  "stage": "SEC.011",
+  "server_model_version": 6,
+  "client_db_version": 68,
+  "runtime_modes": [
+    "ACTIVATION_REQUIRED",
+    "WRITABLE",
+    "READ_ONLY_EXPIRED",
+    "READ_ONLY_SUSPENDED",
+    "READ_ONLY_REVOKED"
+  ],
+  "read_only_enforcement": "SQLite business-table triggers plus signed-license runtime projection",
+  "signed_lifecycle_statuses": [
+    "ACTIVE",
+    "GRACE",
+    "SUSPENDED",
+    "EXPIRED",
+    "REVOKED",
+    "CANCELLED"
+  ],
+  "renewal_rule": "Update subscription source-of-truth then mint a new signed license; never mutate an old signed payload.",
+  "periodic_validation": "implemented by SEC.012 using SEC.011 VALIDATE flow"
+}

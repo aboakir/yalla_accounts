@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yalla.local/schemas/admin_enrollment_start_request.schema.json",
+  "title": "Yalla Admin Enrollment Start Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["email", "enrollment_secret"],
+  "properties": {
+    "email": {"type": "string", "format": "email", "maxLength": 320},
+    "enrollment_secret": {"type": "string", "minLength": 16, "maxLength": 512}
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "stage": "SEC.015",
+  "server_model_version": 10,
+  "client_database_version": 69,
+  "client_schema_changed": false,
+  "admin_authentication": {
+    "password_hash": "ARGON2ID_PHC_ONLY",
+    "password_pepper": "SERVER_SECRET_STORE_ONLY",
+    "plaintext_password_storage": false,
+    "generic_login_failure": true,
+    "throttle_after_failures": 5,
+    "lock_after_failures": 10,
+    "lock_minutes": 30
+  },
+  "mfa": {
+    "required_for_roles": [
+      "YALLA_SUPER_OWNER",
+      "YALLA_BREAK_GLASS"
+    ],
+    "methods": [
+      "TOTP",
+      "WEBAUTHN"
+    ],
+    "totp_secret_bytes_in_postgresql": false,
+    "break_glass_step_up_required": true,
+    "break_glass_reauth_max_age_minutes": 5
+  },
+  "sessions": {
+    "browser_transport": "HTTPONLY_SECURE_SAMESITE_STRICT_COOKIE",
+    "csrf_protection": true,
+    "access_minutes": 15,
+    "idle_minutes": 30,
+    "absolute_hours": 12,
+    "refresh_rotation": true,
+    "refresh_reuse_detection": true,
+    "server_token_storage": "DIGEST_ONLY",
+    "browser_local_storage_tokens": false,
+    "browser_session_storage_tokens": false
+  },
+  "recovery": {
+    "one_time_challenges": true,
+    "challenge_minutes": 15,
+    "max_attempts": 5,
+    "recovery_codes": "SINGLE_USE_DIGEST_ONLY",
+    "password_visibility": false,
+    "email_enumeration_resistant": true
+  },
+  "audit": {
+    "append_only": true,
+    "update_blocked": true,
+    "delete_blocked": true,
+    "hash_chain": "SHA-256 + RFC8785-JCS",
+    "seal_table_immutable": true
+  },
+  "customer_password_visibility": false,
+  "master_password": false,
+  "private_signing_key_exposure": false,
+  "clock_tamper_hardening": "SEC.016"
+}

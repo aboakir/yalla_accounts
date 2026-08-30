@@ -1,0 +1,178 @@
+{
+  "stage": "SEC.015C1",
+  "name": "Yalla Control Center",
+  "mode": "OPERATIONAL_LIFECYCLE_BILLING_DEVICE_ADMIN",
+  "server_model_version": 10,
+  "client_database_version": 69,
+  "sections": [
+    {
+      "id": "dashboard",
+      "label": "Dashboard",
+      "endpoint": "/dashboard"
+    },
+    {
+      "id": "organizations",
+      "label": "Organizations",
+      "endpoint": "/organizations"
+    },
+    {
+      "id": "subscriptions",
+      "label": "Subscriptions",
+      "endpoint": "/subscriptions"
+    },
+    {
+      "id": "licenses",
+      "label": "Licenses",
+      "endpoint": "/licenses"
+    },
+    {
+      "id": "devices",
+      "label": "Devices",
+      "endpoint": "/devices"
+    },
+    {
+      "id": "plans",
+      "label": "Plans",
+      "endpoint": "/plans"
+    },
+    {
+      "id": "features",
+      "label": "Features",
+      "endpoint": "/features"
+    },
+    {
+      "id": "entitlements",
+      "label": "Entitlements",
+      "endpoint": "/entitlements"
+    },
+    {
+      "id": "activations",
+      "label": "Activations",
+      "endpoint": "/activations"
+    },
+    {
+      "id": "renewals",
+      "label": "Renewals",
+      "endpoint": "/renewals"
+    },
+    {
+      "id": "overrides",
+      "label": "Overrides",
+      "endpoint": "/overrides"
+    },
+    {
+      "id": "security-events",
+      "label": "Security Events",
+      "endpoint": "/security-events"
+    },
+    {
+      "id": "audit-logs",
+      "label": "Audit Logs",
+      "endpoint": "/audit-logs"
+    },
+    {
+      "id": "admin-users",
+      "label": "Yalla Admin Users",
+      "endpoint": "/admin-users"
+    },
+    {
+      "id": "break-glass",
+      "label": "Break Glass",
+      "endpoint": "/break-glass"
+    },
+    {
+      "id": "privileged-actions",
+      "label": "Privileged Actions",
+      "endpoint": "/privileged-actions"
+    },
+    {
+      "id": "admin-sessions",
+      "label": "Admin Sessions",
+      "endpoint": "/auth/sessions"
+    },
+    {
+      "id": "admin-security",
+      "label": "Admin Security",
+      "endpoint": "/admin-security-events"
+    }
+  ],
+  "authorization": {
+    "roles": [
+      "YALLA_SUPER_OWNER",
+      "YALLA_BREAK_GLASS"
+    ],
+    "server_side_only": true,
+    "break_glass_scope": "ORGANIZATION",
+    "break_glass_max_minutes": 60
+  },
+  "mutations": {
+    "enabled": true,
+    "endpoint": "/actions",
+    "requires_reason": true,
+    "force_actions_require_break_glass": true
+  },
+  "master_password": false,
+  "customer_password_visibility": false,
+  "private_signing_key_exposure": false,
+  "authentication": {
+    "server_login": true,
+    "mfa_required_roles": [
+      "YALLA_SUPER_OWNER",
+      "YALLA_BREAK_GLASS"
+    ],
+    "browser_session": "HTTPONLY_SECURE_SAMESITE_STRICT",
+    "csrf": true,
+    "local_storage_tokens": false,
+    "session_storage_tokens": false,
+    "access_minutes": 15,
+    "idle_minutes": 30,
+    "absolute_hours": 12,
+    "refresh_rotation": true,
+    "reuse_detection": true,
+    "native_desktop_session": "PROCESS_MEMORY_ONLY",
+    "native_persisted_admin_tokens": false,
+    "first_admin_enrollment": "ONE_TIME_SERVER_SECRET_PLUS_MFA"
+  },
+  "break_glass_security": {
+    "fresh_mfa_reauthentication": true,
+    "max_reauth_age_minutes": 5
+  },
+  "recovery": {
+    "one_time_challenge": true,
+    "single_use_recovery_codes": true,
+    "secret_digests_only": true
+  },
+  "audit_integrity": {
+    "update_delete_blocked": true,
+    "hash_chain": "RFC8785-JCS+SHA-256"
+  },
+  "presentation": {
+    "web_control_center": true,
+    "native_same_executable": true,
+    "first_screen_shared": true,
+    "realm_routing": [
+      "YALLA_ADMIN_SERVER",
+      "CUSTOMER_ORGANIZATION"
+    ],
+    "customer_sqlite_control_plane_exposure": false
+  },
+  "operational_controls": {
+    "subscription_actions": [
+      "SUBSCRIPTION.ACTIVATE",
+      "SUBSCRIPTION.EXTEND",
+      "SUBSCRIPTION.TRIAL_EXTEND",
+      "SUBSCRIPTION.MARK_PAID",
+      "SUBSCRIPTION.MARK_UNPAID",
+      "SUBSCRIPTION.SUSPEND",
+      "SUBSCRIPTION.REACTIVATE",
+      "SUBSCRIPTION.RENEW",
+      "SUBSCRIPTION.RESTORE"
+    ],
+    "device_actions": [
+      "DEVICE.ACTIVATE",
+      "DEVICE.DEACTIVATE"
+    ],
+    "remaining_period_server_derived": true,
+    "customer_sqlite_mutation": false
+  }
+}

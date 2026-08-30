@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:license-lifecycle-challenge-response:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "challenge_id",
+    "proof_bytes",
+    "expires_at"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "proof_bytes": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 2048
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

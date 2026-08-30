@@ -1,0 +1,678 @@
+﻿GROUP: voucher
+
+### voucher
+lib\core\pdf\yalla_pdf_service.dart:398: static Future<Uint8List> generateReceiptVoucherPdf({
+lib\core\pdf\yalla_pdf_service.dart:399: required String voucherId,
+lib\core\pdf\yalla_pdf_service.dart:443: voucherId,
+lib\core\pdf\yalla_pdf_service.dart:465: cell(voucherId),
+lib\core\pdf\yalla_pdf_service.dart:772: // PDF — سند صرف (Payment Voucher) بدون لوجو – نسخة مستقرة 100%
+lib\core\pdf\yalla_pdf_service.dart:777: static Future<Uint8List> generatePaymentVoucherPdf({
+lib\core\pdf\yalla_pdf_service.dart:778: required String voucherId,
+lib\core\pdf\yalla_pdf_service.dart:824: _pdfTableRow("رقم السند", voucherId),
+lib\core\pdf\yalla_pdf_service.dart:1352: static Future<Uint8List> generatePaymentVoucherListPdf({
+lib\core\pdf\yalla_pdf_service.dart:1409: cell(row["voucher_number"]?.toString() ?? ""),
+lib\core\pdf\yalla_pdf_service.dart:1432: static Future<Uint8List> generateReceiptVoucherListPdf({
+lib\core\routes\app_routes.dart:145: import 'package:yalla_accounts/features/vouchers/screens/receipt_voucher_screen.dart';
+lib\core\routes\app_routes.dart:146: import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
+lib\core\routes\app_routes.dart:147: import 'package:yalla_accounts/features/vouchers/screens/payment_vouchers_list_screen.dart';
+lib\core\routes\app_routes.dart:148: import 'package:yalla_accounts/features/vouchers/screens/receipt_vouchers_list_screen.dart';
+lib\core\routes\app_routes.dart:205: // ===== Vouchers =====
+lib\core\routes\app_routes.dart:206: static const receiptVoucher = '/finance/receipt-voucher';
+lib\core\routes\app_routes.dart:207: static const paymentVoucher = '/finance/payment-voucher';
+lib\core\routes\app_routes.dart:208: static const paymentVouchersList = '/finance/payment-vouchers';
+lib\core\routes\app_routes.dart:209: static const receiptVouchersList = '/finance/receipt-vouchers';
+lib\core\routes\app_routes.dart:483: // Finance - Vouchers
+lib\core\routes\app_routes.dart:484: if (name == receiptVoucher) {
+lib\core\routes\app_routes.dart:487: return _page(settings, const ReceiptVoucherScreen());
+lib\core\routes\app_routes.dart:489: if (name == paymentVoucher) {
+lib\core\routes\app_routes.dart:490: return _page(settings, const PaymentVoucherScreen());
+lib\core\routes\app_routes.dart:492: // LIST — Payment Vouchers
+lib\core\routes\app_routes.dart:493: if (name == paymentVouchersList) {
+lib\core\routes\app_routes.dart:494: return _page(settings, const PaymentVoucherListScreen());
+lib\core\routes\app_routes.dart:496: // LIST — Receipt Vouchers
+lib\core\routes\app_routes.dart:497: if (name == receiptVouchersList) {
+lib\core\routes\app_routes.dart:498: return _page(settings, const ReceiptVoucherListScreen());
+lib\core\services\db\database_migration.dart:10: // ✔ متكامل مع GL + Suppliers + Vouchers
+lib\core\services\db\database_migration.dart:30: import 'tables/voucher_tables.dart';
+lib\core\services\db\database_migration.dart:118: await VoucherTables.createAllTables(db);
+lib\core\services\db\database_migration.dart:151: await VoucherTables.createAllTables(db);
+lib\core\services\db\database_migration.dart:234: await _ensureVoucherExtraColumns(db);
+lib\core\services\db\database_migration.dart:239: UPDATE vouchers
+lib\core\services\db\database_migration.dart:244: voucher_type = 'PAYMENT'
+lib\core\services\db\database_migration.dart:328: // 🧩 Ensure vouchers.source & source_id (BACKWARD COMPATIBLE)
+lib\core\services\db\database_migration.dart:330: static Future<void> _ensureVoucherExtraColumns(Database db) async {
+lib\core\services\db\database_migration.dart:331: final cols = await db.rawQuery("PRAGMA table_info(vouchers)");
+lib\core\services\db\database_migration.dart:337: debugPrint("🛠 Adding column vouchers.source");
+lib\core\services\db\database_migration.dart:338: await db.execute("ALTER TABLE vouchers ADD COLUMN source TEXT;");
+lib\core\services\db\database_migration.dart:342: debugPrint("🛠 Adding column vouchers.source_id");
+lib\core\services\db\database_migration.dart:343: await db.execute("ALTER TABLE vouchers ADD COLUMN source_id TEXT;");
+lib\core\services\db\db_service.dart:6: // - لا يوجد أي تعديل يكسر GL أو Repairs أو Vouchers أو Employees
+lib\core\services\db\db_service.dart:387: static Future<int> createVoucher(Map<String, dynamic> data) async {
+lib\core\services\db\db_service.dart:389: return ChequeTables.createVoucher(db, data);
+lib\core\services\db\tables\cheque_tables.dart:229: // VOUCHER SUPPORT
+lib\core\services\db\tables\cheque_tables.dart:231: static Future<int> createVoucher(
+lib\core\services\db\tables\cheque_tables.dart:233: return await db.insert('vouchers', data);
+lib\core\services\db\tables\technical_tables.dart:149: 'vouchers'
+lib\core\services\db\tables\voucher_tables.dart:2: // 📁 lib/core/services/db/tables/voucher_tables.dart
+lib\core\services\db\tables\voucher_tables.dart:3: // FINAL — لا client_type — لا مشاكل — يبني جدول vouchers نظيف فوق أي نسخة قديمة
+lib\core\services\db\tables\voucher_tables.dart:8: class VoucherTables {
+lib\core\services\db\tables\voucher_tables.dart:18: final info = await db.rawQuery("PRAGMA table_info(vouchers)");
+lib\core\services\db\tables\voucher_tables.dart:41: CREATE TABLE IF NOT EXISTS vouchers (
+lib\core\services\db\tables\voucher_tables.dart:43: voucher_type TEXT,
+lib\core\services\db\tables\voucher_tables.dart:44: voucher_number TEXT,
+lib\core\services\db\tables\voucher_tables.dart:45: voucher_code TEXT,
+lib\core\services\db\tables\voucher_tables.dart:72: CREATE TABLE IF NOT EXISTS vouchers_new (
+lib\core\services\db\tables\voucher_tables.dart:74: voucher_type TEXT,
+lib\core\services\db\tables\voucher_tables.dart:75: voucher_number TEXT,
+lib\core\services\db\tables\voucher_tables.dart:76: voucher_code TEXT,
+lib\core\services\db\tables\voucher_tables.dart:98: INSERT INTO vouchers_new
+lib\core\services\db\tables\voucher_tables.dart:101: voucher_type,
+lib\core\services\db\tables\voucher_tables.dart:102: voucher_number,
+lib\core\services\db\tables\voucher_tables.dart:103: voucher_code,
+lib\core\services\db\tables\voucher_tables.dart:120: FROM vouchers;
+lib\core\services\db\tables\voucher_tables.dart:124: await db.execute("DROP TABLE vouchers;");
+lib\core\services\db\tables\voucher_tables.dart:127: await db.execute("ALTER TABLE vouchers_new RENAME TO vouchers;");
+lib\core\services\db\tables\voucher_tables.dart:134: await _ensure(db, 'voucher_type', 'TEXT');
+lib\core\services\db\tables\voucher_tables.dart:135: await _ensure(db, 'voucher_number', 'TEXT');
+lib\core\services\db\tables\voucher_tables.dart:136: await _ensure(db, 'voucher_code', 'TEXT');
+lib\core\services\db\tables\voucher_tables.dart:160: final info = await db.rawQuery("PRAGMA table_info(vouchers)");
+lib\core\services\db\tables\voucher_tables.dart:163: await db.execute("ALTER TABLE vouchers ADD COLUMN $column $type;");
+lib\core\services\db\tables\voucher_tables.dart:172: .execute("CREATE INDEX IF NOT EXISTS idx_v_date ON vouchers(date);");
+lib\core\services\db\tables\voucher_tables.dart:174: "CREATE INDEX IF NOT EXISTS idx_v_party ON vouchers(party_id);");
+lib\core\services\db\tables\voucher_tables.dart:176: "CREATE INDEX IF NOT EXISTS idx_v_type ON vouchers(voucher_type);");
+lib\core\widgets\sidebar\yalla_sidebar.dart:144: static const rReceiptVoucher = AppRoutes.receiptVoucher;
+lib\core\widgets\sidebar\yalla_sidebar.dart:145: static const rReceiptVouchersList = AppRoutes.receiptVouchersList;
+lib\core\widgets\sidebar\yalla_sidebar.dart:146: static const rPaymentVoucher = AppRoutes.paymentVoucher;
+lib\core\widgets\sidebar\yalla_sidebar.dart:147: static const rPaymentVouchersList = AppRoutes.paymentVouchersList;
+lib\core\widgets\sidebar\yalla_sidebar.dart:445: final vouchersItems = [
+lib\core\widgets\sidebar\yalla_sidebar.dart:446: (Icons.arrow_downward, 'سند قبض', rReceiptVoucher),
+lib\core\widgets\sidebar\yalla_sidebar.dart:447: (Icons.list_alt, 'قائمة سندات القبض', rReceiptVouchersList),
+lib\core\widgets\sidebar\yalla_sidebar.dart:448: (Icons.arrow_upward, 'سند صرف', rPaymentVoucher),
+lib\core\widgets\sidebar\yalla_sidebar.dart:449: (Icons.list, 'قائمة سندات الصرف', rPaymentVouchersList),
+lib\core\widgets\sidebar\yalla_sidebar.dart:536: if (vouchersItems.isNotEmpty || !hasSearch)
+lib\core\widgets\sidebar\yalla_sidebar.dart:541: widget.currentRoute?.contains('voucher') ?? false,
+lib\core\widgets\sidebar\yalla_sidebar.dart:542: children: vouchersItems
+lib\features\cheques\widgets\steps\cheque_step_entry.dart:4: // يتم استدعاؤه من ReceiptVoucherScreen عند اختيار طريقة الدفع = CHEQUE
+lib\features\employees\services\advance_database_service.dart:39: import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
+lib\features\employees\services\advance_database_service.dart:40: import 'package:yalla_accounts/features/vouchers/models/voucher_payment_model.dart';
+lib\features\employees\services\advance_database_service.dart:194: final voucher = VoucherPayment(
+lib\features\employees\services\advance_database_service.dart:196: voucherType: 'PAYMENT',
+lib\features\employees\services\advance_database_service.dart:209: final savedVoucher = await VoucherPaymentService.insertAndPost(
+lib\features\employees\services\advance_database_service.dart:210: voucher: voucher,
+lib\features\employees\services\advance_database_service.dart:217: {'gl_entry_id': savedVoucher.glEntryId},
+lib\features\employees\services\advance_database_service.dart:546: // 🔁 Bridge: جلب سلف قديمة من vouchers (قبل نظام employee_advances)
+lib\features\employees\services\advance_database_service.dart:548: final voucherRows = await db.rawQuery('''
+lib\features\employees\services\advance_database_service.dart:557: FROM vouchers
+lib\features\employees\services\advance_database_service.dart:558: WHERE voucher_type = 'PAYMENT'
+lib\features\employees\services\advance_database_service.dart:573: for (final v in voucherRows) {
+lib\features\finance\purchases\screens\purchase_details_screen.dart:14: import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
+lib\features\finance\purchases\screens\purchase_details_screen.dart:341: builder: (_) => const PaymentVoucherScreen(),
+lib\features\home\screens\dashboard_screen.dart:321: context, AppRoutes.receiptVoucher),
+lib\features\repairs\services\repairs_service.dart:4: // وتعمل مع RepairDetailsScreen + ReceiptVoucherScreen
+lib\features\suppliers\screens\suppliers_debts_screen.dart:181: AppRoutes.paymentVoucher,
+lib\features\suppliers\screens\suppliers_payables_screen.dart:183: AppRoutes.paymentVoucher,
+lib\features\vouchers\dialogs\employees_payment_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/employees_payment_dialog.dart
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/expense_voucher_dialog.dart
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:12: class ExpenseVoucherDialog extends StatefulWidget {
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:13: const ExpenseVoucherDialog({super.key});
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:16: State<ExpenseVoucherDialog> createState() => _ExpenseVoucherDialogState();
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:19: class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
+lib\features\vouchers\dialogs\purchases_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/purchases_dialog.dart
+lib\features\vouchers\dialogs\supplier_purchase_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/supplier_purchase_dialog.dart
+lib\features\vouchers\models\voucher_payment_model.dart:2: // 📁 voucher_payment_model.dart
+lib\features\vouchers\models\voucher_payment_model.dart:9: class VoucherPayment {
+lib\features\vouchers\models\voucher_payment_model.dart:13: final String voucherType; // PAYMENT | RECEIPT | PURCHASE | EXPENSE | OTHER
+lib\features\vouchers\models\voucher_payment_model.dart:16: final String? voucherNumber;
+lib\features\vouchers\models\voucher_payment_model.dart:17: final String? voucherCode;
+lib\features\vouchers\models\voucher_payment_model.dart:51: const VoucherPayment({
+lib\features\vouchers\models\voucher_payment_model.dart:53: required this.voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:54: this.voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:55: this.voucherCode,
+lib\features\vouchers\models\voucher_payment_model.dart:79: factory VoucherPayment.fromMap(Map<String, dynamic> map) {
+lib\features\vouchers\models\voucher_payment_model.dart:80: return VoucherPayment(
+lib\features\vouchers\models\voucher_payment_model.dart:82: voucherType: map['voucher_type'] ?? 'PAYMENT',
+lib\features\vouchers\models\voucher_payment_model.dart:83: voucherNumber: map['voucher_number'],
+lib\features\vouchers\models\voucher_payment_model.dart:84: voucherCode: map['voucher_code'],
+lib\features\vouchers\models\voucher_payment_model.dart:118: 'voucher_type': voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:119: 'voucher_number': voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:120: 'voucher_code': voucherCode,
+lib\features\vouchers\models\voucher_payment_model.dart:145: VoucherPayment copyWith({
+lib\features\vouchers\models\voucher_payment_model.dart:147: String? voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:148: String? voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:149: String? voucherCode,
+lib\features\vouchers\models\voucher_payment_model.dart:169: return VoucherPayment(
+lib\features\vouchers\models\voucher_payment_model.dart:171: voucherType: voucherType ?? this.voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:172: voucherNumber: voucherNumber ?? this.voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:173: voucherCode: voucherCode ?? this.voucherCode,
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:1: // 📁 lib/features/finance/vouchers/pdf/payment_voucher_pdf.dart
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:15: class PaymentVoucherPdf {
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:18: required String voucherId,
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:89: infoRow("رقم السند:", voucherId, ttf, ttfBold),
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:1: // 📁 lib/features/finance/vouchers/pdf/receipt_voucher_pdf.dart
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:3: // ReceiptVoucherPDF — Final Version (Direct Save, No Dialog)
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:25: class ReceiptVoucherPDF {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:2: // 📁 lib/features/vouchers/screens/payment_voucher_list_screen.dart
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:5: // • تم إلغاء الاعتماد على payment_voucher_pdf.dart بالكامل
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:48: class PaymentVoucherListScreen extends StatefulWidget {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:49: const PaymentVoucherListScreen({super.key});
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:52: State<PaymentVoucherListScreen> createState() =>
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:53: _PaymentVoucherListScreenState();
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:56: class _PaymentVoucherListScreenState extends State<PaymentVoucherListScreen> {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:82: v.voucher_number,
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:97: FROM vouchers v
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:98: WHERE v.voucher_type = 'PAYMENT'
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:113: FROM vouchers v
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:114: WHERE v.voucher_type = 'PAYMENT'
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:126: FROM vouchers v
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:127: WHERE v.voucher_type = 'PAYMENT'
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:169: final pdfBytes = await YallaPdfService.generatePaymentVoucherPdf(
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:170: voucherId: row["id"].toString(),
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:184: fileName: "payment_voucher_${row["id"]}.pdf",
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:195: final pdfBytes = await YallaPdfService.generatePaymentVoucherListPdf(
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:204: fileName: "payment_vouchers_list.pdf",
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:231: const YallaSidebar(currentRoute: '/finance/payment-vouchers'),
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:270: await _deleteVoucher(row);
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:274: Future<void> _deleteVoucher(Map row) async {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:277: final voucherId = row["id"].toString();
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:295: """, [voucherId]);
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:299: DELETE FROM vouchers
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:301: """, [voucherId]);
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:550: row["voucher_number"]?.toString() ?? "-",
+lib\features\vouchers\screens\payment_voucher_screen.dart:2: // 📁 lib/features/vouchers/screens/payment_voucher_screen.dart
+lib\features\vouchers\screens\payment_voucher_screen.dart:23: import '../models/voucher_payment_model.dart';
+lib\features\vouchers\screens\payment_voucher_screen.dart:24: import '../services/voucher_payment_service.dart';
+lib\features\vouchers\screens\payment_voucher_screen.dart:26: class PaymentVoucherScreen extends ConsumerStatefulWidget {
+lib\features\vouchers\screens\payment_voucher_screen.dart:32: const PaymentVoucherScreen({
+lib\features\vouchers\screens\payment_voucher_screen.dart:41: ConsumerState<PaymentVoucherScreen> createState() =>
+lib\features\vouchers\screens\payment_voucher_screen.dart:42: _PaymentVoucherScreenState();
+lib\features\vouchers\screens\payment_voucher_screen.dart:45: class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
+lib\features\vouchers\screens\payment_voucher_screen.dart:609: onPressed: _saveVoucher,
+lib\features\vouchers\screens\payment_voucher_screen.dart:622: Future<void> _saveVoucher() async {
+lib\features\vouchers\screens\payment_voucher_screen.dart:688: final voucher = VoucherPayment(
+lib\features\vouchers\screens\payment_voucher_screen.dart:690: voucherType: "PAYMENT",
+lib\features\vouchers\screens\payment_voucher_screen.dart:691: voucherNumber: null,
+lib\features\vouchers\screens\payment_voucher_screen.dart:692: voucherCode: null,
+lib\features\vouchers\screens\payment_voucher_screen.dart:717: await VoucherPaymentService.insertAndPost(
+lib\features\vouchers\screens\payment_voucher_screen.dart:718: voucher: voucher,
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:2: // 📁 lib/features/finance/vouchers/receipt_voucher_list_screen.dart
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:45: class ReceiptVoucherListScreen extends StatefulWidget {
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:46: const ReceiptVoucherListScreen({super.key});
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:49: State<ReceiptVoucherListScreen> createState() =>
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:50: _ReceiptVoucherListScreenState();
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:53: class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:143: final pdfBytes = await YallaPdfService.generateReceiptVoucherListPdf(
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:152: fileName: "receipt_vouchers_list.pdf",
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:180: const YallaSidebar(currentRoute: AppRoutes.receiptVouchersList),
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:391: await YallaPdfService.generateReceiptVoucherPdf(
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:392: voucherId: row["id"].toString(),
+lib\features\vouchers\screens\receipt_voucher_screen.dart:2: // 📁 lib/features/finance/vouchers/receipt_voucher_screen.dart
+lib\features\vouchers\screens\receipt_voucher_screen.dart:3: // ReceiptVoucherScreen — FINAL 2025 CLEAN VERSION
+lib\features\vouchers\screens\receipt_voucher_screen.dart:33: class ReceiptVoucherScreen extends StatefulWidget {
+lib\features\vouchers\screens\receipt_voucher_screen.dart:34: const ReceiptVoucherScreen({super.key});
+lib\features\vouchers\screens\receipt_voucher_screen.dart:37: State<ReceiptVoucherScreen> createState() => _ReceiptVoucherScreenState();
+lib\features\vouchers\screens\receipt_voucher_screen.dart:40: class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
+lib\features\vouchers\screens\receipt_voucher_screen.dart:261: // ★★★ النسخة المصححة من _saveVoucher — لا تحتوي partyId وتضيف isIncome ★★★
+lib\features\vouchers\screens\receipt_voucher_screen.dart:264: Future<void> _saveVoucher() async {
+lib\features\vouchers\screens\receipt_voucher_screen.dart:762: onPressed: _saveVoucher,
+lib\features\vouchers\services\voucher_payment_service.dart:2: // 📁 lib/features/vouchers/services/voucher_payment_service.dart
+lib\features\vouchers\services\voucher_payment_service.dart:3: // Voucher Payment Service — v54 (AUTO FIFO SETTLEMENT)
+lib\features\vouchers\services\voucher_payment_service.dart:17: import '../models/voucher_payment_model.dart';
+lib\features\vouchers\services\voucher_payment_service.dart:19: class VoucherPaymentService {
+lib\features\vouchers\services\voucher_payment_service.dart:20: static const String table = "vouchers";
+lib\features\vouchers\services\voucher_payment_service.dart:26: // === vouchers ===
+lib\features\vouchers\services\voucher_payment_service.dart:28: CREATE TABLE IF NOT EXISTS vouchers (
+lib\features\vouchers\services\voucher_payment_service.dart:31: voucher_type TEXT NOT NULL,
+lib\features\vouchers\services\voucher_payment_service.dart:32: voucher_number TEXT,
+lib\features\vouchers\services\voucher_payment_service.dart:33: voucher_code TEXT,
+lib\features\vouchers\services\voucher_payment_service.dart:63: 'CREATE INDEX IF NOT EXISTS idx_vouchers_date ON vouchers(date)');
+lib\features\vouchers\services\voucher_payment_service.dart:65: 'CREATE INDEX IF NOT EXISTS idx_vouchers_party ON vouchers(party_id)');
+lib\features\vouchers\services\voucher_payment_service.dart:73: voucher_id TEXT NOT NULL,
+lib\features\vouchers\services\voucher_payment_service.dart:90: CREATE INDEX IF NOT EXISTS idx_settlements_voucher
+lib\features\vouchers\services\voucher_payment_service.dart:91: ON invoice_settlements(voucher_id);
+lib\features\vouchers\services\voucher_payment_service.dart:98: static Future<String> _generateVoucherNumber(
+lib\features\vouchers\services\voucher_payment_service.dart:99: Transaction txn, String voucherType) async {
+lib\features\vouchers\services\voucher_payment_service.dart:100: final prefix = voucherType.toUpperCase() == "RECEIPT" ? "R" : "P";
+lib\features\vouchers\services\voucher_payment_service.dart:103: SELECT voucher_number
+lib\features\vouchers\services\voucher_payment_service.dart:104: FROM vouchers
+lib\features\vouchers\services\voucher_payment_service.dart:105: WHERE voucher_type = ?
+lib\features\vouchers\services\voucher_payment_service.dart:106: AND voucher_number IS NOT NULL
+lib\features\vouchers\services\voucher_payment_service.dart:107: ORDER BY voucher_number DESC
+lib\features\vouchers\services\voucher_payment_service.dart:109: ''', [voucherType]);
+lib\features\vouchers\services\voucher_payment_service.dart:111: if (rows.isEmpty || rows.first["voucher_number"] == null) {
+lib\features\vouchers\services\voucher_payment_service.dart:115: final raw = rows.first["voucher_number"];
+lib\features\vouchers\services\voucher_payment_service.dart:131: static Future<VoucherPayment> insertAndPost({
+lib\features\vouchers\services\voucher_payment_service.dart:132: required VoucherPayment voucher,
+lib\features\vouchers\services\voucher_payment_service.dart:135: if (voucher.amount <= 0) throw "Amount must be > 0";
+lib\features\vouchers\services\voucher_payment_service.dart:138: final id = voucher.id.isEmpty ? const Uuid().v4() : voucher.id;
+lib\features\vouchers\services\voucher_payment_service.dart:152: String voucherNumber = voucher.voucherNumber ?? "";
+lib\features\vouchers\services\voucher_payment_service.dart:155: voucherNumber = await _generateVoucherNumber(
+lib\features\vouchers\services\voucher_payment_service.dart:156: txn, voucher.voucherType.toUpperCase());
+lib\features\vouchers\services\voucher_payment_service.dart:160: voucher
+lib\features\vouchers\services\voucher_payment_service.dart:163: voucherNumber: voucherNumber,
+lib\features\vouchers\services\voucher_payment_service.dart:171: voucherNumber = (exists.first["voucher_number"] is String)
+lib\features\vouchers\services\voucher_payment_service.dart:172: ? exists.first["voucher_number"] as String
+lib\features\vouchers\services\voucher_payment_service.dart:173: : exists.first["voucher_number"]?.toString() ?? "";
+lib\features\vouchers\services\voucher_payment_service.dart:177: final m = voucher.method.trim().toUpperCase();
+lib\features\vouchers\services\voucher_payment_service.dart:199: voucher: voucher,
+lib\features\vouchers\services\voucher_payment_service.dart:206: date: voucher.date,
+lib\features\vouchers\services\voucher_payment_service.dart:207: ref: voucher.reference,
+lib\features\vouchers\services\voucher_payment_service.dart:208: source: "VOUCHER",
+lib\features\vouchers\services\voucher_payment_service.dart:210: note: "سند دفع — ${voucher.method} — $partyName",
+lib\features\vouchers\services\voucher_payment_service.dart:214: 'debit': voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:216: 'party_type': voucher.partyType,
+lib\features\vouchers\services\voucher_payment_service.dart:217: 'party_id': voucher.partyId,
+lib\features\vouchers\services\voucher_payment_service.dart:218: 'invoice_id': voucher.reference, // تحليلي فقط
+lib\features\vouchers\services\voucher_payment_service.dart:224: 'credit': voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:227: 'invoice_id': voucher.reference, // تحليلي فقط
+lib\features\vouchers\services\voucher_payment_service.dart:243: voucher.copyWith(glEntryId: glId, voucherNumber: voucherNumber),
+lib\features\vouchers\services\voucher_payment_service.dart:248: if (voucher.partyType?.toUpperCase() == "SUPPLIER" &&
+lib\features\vouchers\services\voucher_payment_service.dart:249: voucher.reference != null &&
+lib\features\vouchers\services\voucher_payment_service.dart:250: voucher.reference!.trim().isNotEmpty) {
+lib\features\vouchers\services\voucher_payment_service.dart:253: voucherId: id,
+lib\features\vouchers\services\voucher_payment_service.dart:254: supplierId: int.tryParse(voucher.partyId ?? ""),
+lib\features\vouchers\services\voucher_payment_service.dart:255: amount: voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:256: preferredInvoiceId: int.tryParse(voucher.reference!),
+lib\features\vouchers\services\voucher_payment_service.dart:261: return voucher.copyWith(id: id);
+lib\features\vouchers\services\voucher_payment_service.dart:268: Transaction txn, VoucherPayment voucher) async {
+lib\features\vouchers\services\voucher_payment_service.dart:269: final type = voucher.partyType?.toUpperCase();
+lib\features\vouchers\services\voucher_payment_service.dart:275: "amount": voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:276: "date": voucher.date.toIso8601String(),
+lib\features\vouchers\services\voucher_payment_service.dart:277: "method": voucher.method.toLowerCase(),
+lib\features\vouchers\services\voucher_payment_service.dart:279: "notes": voucher.notes,
+lib\features\vouchers\services\voucher_payment_service.dart:280: "gl_entry_id": voucher.glEntryId,
+lib\features\vouchers\services\voucher_payment_service.dart:282: "party_id": voucher.partyId,
+lib\features\vouchers\services\voucher_payment_service.dart:291: "amount": voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:292: "date": voucher.date.toIso8601String(),
+lib\features\vouchers\services\voucher_payment_service.dart:293: "method": voucher.method.toLowerCase(),
+lib\features\vouchers\services\voucher_payment_service.dart:295: "notes": voucher.notes,
+lib\features\vouchers\services\voucher_payment_service.dart:296: "gl_entry_id": voucher.glEntryId,
+lib\features\vouchers\services\voucher_payment_service.dart:298: "party_id": voucher.partyId,
+lib\features\vouchers\services\voucher_payment_service.dart:309: required String voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:324: voucherId: voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:370: "voucher_id": voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:382: required String voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:420: "voucher_id": voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:433: required VoucherPayment voucher,
+lib\features\vouchers\services\voucher_payment_service.dart:436: final type = voucher.partyType?.toUpperCase();
+lib\features\vouchers\services\voucher_payment_service.dart:439: final id = int.tryParse(voucher.partyId ?? '');
+lib\features\vouchers\services\voucher_payment_service.dart:462: final empId = voucher.partyId ?? "";
+lib\features\vouchers\services\voucher_payment_service.dart:486: final x = voucher.partyId ?? '';
+
+### Voucher
+lib\core\pdf\yalla_pdf_service.dart:398: static Future<Uint8List> generateReceiptVoucherPdf({
+lib\core\pdf\yalla_pdf_service.dart:399: required String voucherId,
+lib\core\pdf\yalla_pdf_service.dart:443: voucherId,
+lib\core\pdf\yalla_pdf_service.dart:465: cell(voucherId),
+lib\core\pdf\yalla_pdf_service.dart:772: // PDF — سند صرف (Payment Voucher) بدون لوجو – نسخة مستقرة 100%
+lib\core\pdf\yalla_pdf_service.dart:777: static Future<Uint8List> generatePaymentVoucherPdf({
+lib\core\pdf\yalla_pdf_service.dart:778: required String voucherId,
+lib\core\pdf\yalla_pdf_service.dart:824: _pdfTableRow("رقم السند", voucherId),
+lib\core\pdf\yalla_pdf_service.dart:1352: static Future<Uint8List> generatePaymentVoucherListPdf({
+lib\core\pdf\yalla_pdf_service.dart:1409: cell(row["voucher_number"]?.toString() ?? ""),
+lib\core\pdf\yalla_pdf_service.dart:1432: static Future<Uint8List> generateReceiptVoucherListPdf({
+lib\core\routes\app_routes.dart:145: import 'package:yalla_accounts/features/vouchers/screens/receipt_voucher_screen.dart';
+lib\core\routes\app_routes.dart:146: import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
+lib\core\routes\app_routes.dart:147: import 'package:yalla_accounts/features/vouchers/screens/payment_vouchers_list_screen.dart';
+lib\core\routes\app_routes.dart:148: import 'package:yalla_accounts/features/vouchers/screens/receipt_vouchers_list_screen.dart';
+lib\core\routes\app_routes.dart:205: // ===== Vouchers =====
+lib\core\routes\app_routes.dart:206: static const receiptVoucher = '/finance/receipt-voucher';
+lib\core\routes\app_routes.dart:207: static const paymentVoucher = '/finance/payment-voucher';
+lib\core\routes\app_routes.dart:208: static const paymentVouchersList = '/finance/payment-vouchers';
+lib\core\routes\app_routes.dart:209: static const receiptVouchersList = '/finance/receipt-vouchers';
+lib\core\routes\app_routes.dart:483: // Finance - Vouchers
+lib\core\routes\app_routes.dart:484: if (name == receiptVoucher) {
+lib\core\routes\app_routes.dart:487: return _page(settings, const ReceiptVoucherScreen());
+lib\core\routes\app_routes.dart:489: if (name == paymentVoucher) {
+lib\core\routes\app_routes.dart:490: return _page(settings, const PaymentVoucherScreen());
+lib\core\routes\app_routes.dart:492: // LIST — Payment Vouchers
+lib\core\routes\app_routes.dart:493: if (name == paymentVouchersList) {
+lib\core\routes\app_routes.dart:494: return _page(settings, const PaymentVoucherListScreen());
+lib\core\routes\app_routes.dart:496: // LIST — Receipt Vouchers
+lib\core\routes\app_routes.dart:497: if (name == receiptVouchersList) {
+lib\core\routes\app_routes.dart:498: return _page(settings, const ReceiptVoucherListScreen());
+lib\core\services\db\database_migration.dart:10: // ✔ متكامل مع GL + Suppliers + Vouchers
+lib\core\services\db\database_migration.dart:30: import 'tables/voucher_tables.dart';
+lib\core\services\db\database_migration.dart:118: await VoucherTables.createAllTables(db);
+lib\core\services\db\database_migration.dart:151: await VoucherTables.createAllTables(db);
+lib\core\services\db\database_migration.dart:234: await _ensureVoucherExtraColumns(db);
+lib\core\services\db\database_migration.dart:239: UPDATE vouchers
+lib\core\services\db\database_migration.dart:244: voucher_type = 'PAYMENT'
+lib\core\services\db\database_migration.dart:328: // 🧩 Ensure vouchers.source & source_id (BACKWARD COMPATIBLE)
+lib\core\services\db\database_migration.dart:330: static Future<void> _ensureVoucherExtraColumns(Database db) async {
+lib\core\services\db\database_migration.dart:331: final cols = await db.rawQuery("PRAGMA table_info(vouchers)");
+lib\core\services\db\database_migration.dart:337: debugPrint("🛠 Adding column vouchers.source");
+lib\core\services\db\database_migration.dart:338: await db.execute("ALTER TABLE vouchers ADD COLUMN source TEXT;");
+lib\core\services\db\database_migration.dart:342: debugPrint("🛠 Adding column vouchers.source_id");
+lib\core\services\db\database_migration.dart:343: await db.execute("ALTER TABLE vouchers ADD COLUMN source_id TEXT;");
+lib\core\services\db\db_service.dart:6: // - لا يوجد أي تعديل يكسر GL أو Repairs أو Vouchers أو Employees
+lib\core\services\db\db_service.dart:387: static Future<int> createVoucher(Map<String, dynamic> data) async {
+lib\core\services\db\db_service.dart:389: return ChequeTables.createVoucher(db, data);
+lib\core\services\db\tables\cheque_tables.dart:229: // VOUCHER SUPPORT
+lib\core\services\db\tables\cheque_tables.dart:231: static Future<int> createVoucher(
+lib\core\services\db\tables\cheque_tables.dart:233: return await db.insert('vouchers', data);
+lib\core\services\db\tables\technical_tables.dart:149: 'vouchers'
+lib\core\services\db\tables\voucher_tables.dart:2: // 📁 lib/core/services/db/tables/voucher_tables.dart
+lib\core\services\db\tables\voucher_tables.dart:3: // FINAL — لا client_type — لا مشاكل — يبني جدول vouchers نظيف فوق أي نسخة قديمة
+lib\core\services\db\tables\voucher_tables.dart:8: class VoucherTables {
+lib\core\services\db\tables\voucher_tables.dart:18: final info = await db.rawQuery("PRAGMA table_info(vouchers)");
+lib\core\services\db\tables\voucher_tables.dart:41: CREATE TABLE IF NOT EXISTS vouchers (
+lib\core\services\db\tables\voucher_tables.dart:43: voucher_type TEXT,
+lib\core\services\db\tables\voucher_tables.dart:44: voucher_number TEXT,
+lib\core\services\db\tables\voucher_tables.dart:45: voucher_code TEXT,
+lib\core\services\db\tables\voucher_tables.dart:72: CREATE TABLE IF NOT EXISTS vouchers_new (
+lib\core\services\db\tables\voucher_tables.dart:74: voucher_type TEXT,
+lib\core\services\db\tables\voucher_tables.dart:75: voucher_number TEXT,
+lib\core\services\db\tables\voucher_tables.dart:76: voucher_code TEXT,
+lib\core\services\db\tables\voucher_tables.dart:98: INSERT INTO vouchers_new
+lib\core\services\db\tables\voucher_tables.dart:101: voucher_type,
+lib\core\services\db\tables\voucher_tables.dart:102: voucher_number,
+lib\core\services\db\tables\voucher_tables.dart:103: voucher_code,
+lib\core\services\db\tables\voucher_tables.dart:120: FROM vouchers;
+lib\core\services\db\tables\voucher_tables.dart:124: await db.execute("DROP TABLE vouchers;");
+lib\core\services\db\tables\voucher_tables.dart:127: await db.execute("ALTER TABLE vouchers_new RENAME TO vouchers;");
+lib\core\services\db\tables\voucher_tables.dart:134: await _ensure(db, 'voucher_type', 'TEXT');
+lib\core\services\db\tables\voucher_tables.dart:135: await _ensure(db, 'voucher_number', 'TEXT');
+lib\core\services\db\tables\voucher_tables.dart:136: await _ensure(db, 'voucher_code', 'TEXT');
+lib\core\services\db\tables\voucher_tables.dart:160: final info = await db.rawQuery("PRAGMA table_info(vouchers)");
+lib\core\services\db\tables\voucher_tables.dart:163: await db.execute("ALTER TABLE vouchers ADD COLUMN $column $type;");
+lib\core\services\db\tables\voucher_tables.dart:172: .execute("CREATE INDEX IF NOT EXISTS idx_v_date ON vouchers(date);");
+lib\core\services\db\tables\voucher_tables.dart:174: "CREATE INDEX IF NOT EXISTS idx_v_party ON vouchers(party_id);");
+lib\core\services\db\tables\voucher_tables.dart:176: "CREATE INDEX IF NOT EXISTS idx_v_type ON vouchers(voucher_type);");
+lib\core\widgets\sidebar\yalla_sidebar.dart:144: static const rReceiptVoucher = AppRoutes.receiptVoucher;
+lib\core\widgets\sidebar\yalla_sidebar.dart:145: static const rReceiptVouchersList = AppRoutes.receiptVouchersList;
+lib\core\widgets\sidebar\yalla_sidebar.dart:146: static const rPaymentVoucher = AppRoutes.paymentVoucher;
+lib\core\widgets\sidebar\yalla_sidebar.dart:147: static const rPaymentVouchersList = AppRoutes.paymentVouchersList;
+lib\core\widgets\sidebar\yalla_sidebar.dart:445: final vouchersItems = [
+lib\core\widgets\sidebar\yalla_sidebar.dart:446: (Icons.arrow_downward, 'سند قبض', rReceiptVoucher),
+lib\core\widgets\sidebar\yalla_sidebar.dart:447: (Icons.list_alt, 'قائمة سندات القبض', rReceiptVouchersList),
+lib\core\widgets\sidebar\yalla_sidebar.dart:448: (Icons.arrow_upward, 'سند صرف', rPaymentVoucher),
+lib\core\widgets\sidebar\yalla_sidebar.dart:449: (Icons.list, 'قائمة سندات الصرف', rPaymentVouchersList),
+lib\core\widgets\sidebar\yalla_sidebar.dart:536: if (vouchersItems.isNotEmpty || !hasSearch)
+lib\core\widgets\sidebar\yalla_sidebar.dart:541: widget.currentRoute?.contains('voucher') ?? false,
+lib\core\widgets\sidebar\yalla_sidebar.dart:542: children: vouchersItems
+lib\features\cheques\widgets\steps\cheque_step_entry.dart:4: // يتم استدعاؤه من ReceiptVoucherScreen عند اختيار طريقة الدفع = CHEQUE
+lib\features\employees\services\advance_database_service.dart:39: import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
+lib\features\employees\services\advance_database_service.dart:40: import 'package:yalla_accounts/features/vouchers/models/voucher_payment_model.dart';
+lib\features\employees\services\advance_database_service.dart:194: final voucher = VoucherPayment(
+lib\features\employees\services\advance_database_service.dart:196: voucherType: 'PAYMENT',
+lib\features\employees\services\advance_database_service.dart:209: final savedVoucher = await VoucherPaymentService.insertAndPost(
+lib\features\employees\services\advance_database_service.dart:210: voucher: voucher,
+lib\features\employees\services\advance_database_service.dart:217: {'gl_entry_id': savedVoucher.glEntryId},
+lib\features\employees\services\advance_database_service.dart:546: // 🔁 Bridge: جلب سلف قديمة من vouchers (قبل نظام employee_advances)
+lib\features\employees\services\advance_database_service.dart:548: final voucherRows = await db.rawQuery('''
+lib\features\employees\services\advance_database_service.dart:557: FROM vouchers
+lib\features\employees\services\advance_database_service.dart:558: WHERE voucher_type = 'PAYMENT'
+lib\features\employees\services\advance_database_service.dart:573: for (final v in voucherRows) {
+lib\features\finance\purchases\screens\purchase_details_screen.dart:14: import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
+lib\features\finance\purchases\screens\purchase_details_screen.dart:341: builder: (_) => const PaymentVoucherScreen(),
+lib\features\home\screens\dashboard_screen.dart:321: context, AppRoutes.receiptVoucher),
+lib\features\repairs\services\repairs_service.dart:4: // وتعمل مع RepairDetailsScreen + ReceiptVoucherScreen
+lib\features\suppliers\screens\suppliers_debts_screen.dart:181: AppRoutes.paymentVoucher,
+lib\features\suppliers\screens\suppliers_payables_screen.dart:183: AppRoutes.paymentVoucher,
+lib\features\vouchers\dialogs\employees_payment_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/employees_payment_dialog.dart
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/expense_voucher_dialog.dart
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:12: class ExpenseVoucherDialog extends StatefulWidget {
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:13: const ExpenseVoucherDialog({super.key});
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:16: State<ExpenseVoucherDialog> createState() => _ExpenseVoucherDialogState();
+lib\features\vouchers\dialogs\expense_voucher_dialog.dart:19: class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
+lib\features\vouchers\dialogs\purchases_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/purchases_dialog.dart
+lib\features\vouchers\dialogs\supplier_purchase_dialog.dart:2: // 📁 lib/features/vouchers/dialogs/supplier_purchase_dialog.dart
+lib\features\vouchers\models\voucher_payment_model.dart:2: // 📁 voucher_payment_model.dart
+lib\features\vouchers\models\voucher_payment_model.dart:9: class VoucherPayment {
+lib\features\vouchers\models\voucher_payment_model.dart:13: final String voucherType; // PAYMENT | RECEIPT | PURCHASE | EXPENSE | OTHER
+lib\features\vouchers\models\voucher_payment_model.dart:16: final String? voucherNumber;
+lib\features\vouchers\models\voucher_payment_model.dart:17: final String? voucherCode;
+lib\features\vouchers\models\voucher_payment_model.dart:51: const VoucherPayment({
+lib\features\vouchers\models\voucher_payment_model.dart:53: required this.voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:54: this.voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:55: this.voucherCode,
+lib\features\vouchers\models\voucher_payment_model.dart:79: factory VoucherPayment.fromMap(Map<String, dynamic> map) {
+lib\features\vouchers\models\voucher_payment_model.dart:80: return VoucherPayment(
+lib\features\vouchers\models\voucher_payment_model.dart:82: voucherType: map['voucher_type'] ?? 'PAYMENT',
+lib\features\vouchers\models\voucher_payment_model.dart:83: voucherNumber: map['voucher_number'],
+lib\features\vouchers\models\voucher_payment_model.dart:84: voucherCode: map['voucher_code'],
+lib\features\vouchers\models\voucher_payment_model.dart:118: 'voucher_type': voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:119: 'voucher_number': voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:120: 'voucher_code': voucherCode,
+lib\features\vouchers\models\voucher_payment_model.dart:145: VoucherPayment copyWith({
+lib\features\vouchers\models\voucher_payment_model.dart:147: String? voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:148: String? voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:149: String? voucherCode,
+lib\features\vouchers\models\voucher_payment_model.dart:169: return VoucherPayment(
+lib\features\vouchers\models\voucher_payment_model.dart:171: voucherType: voucherType ?? this.voucherType,
+lib\features\vouchers\models\voucher_payment_model.dart:172: voucherNumber: voucherNumber ?? this.voucherNumber,
+lib\features\vouchers\models\voucher_payment_model.dart:173: voucherCode: voucherCode ?? this.voucherCode,
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:1: // 📁 lib/features/finance/vouchers/pdf/payment_voucher_pdf.dart
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:15: class PaymentVoucherPdf {
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:18: required String voucherId,
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:89: infoRow("رقم السند:", voucherId, ttf, ttfBold),
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:1: // 📁 lib/features/finance/vouchers/pdf/receipt_voucher_pdf.dart
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:3: // ReceiptVoucherPDF — Final Version (Direct Save, No Dialog)
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:25: class ReceiptVoucherPDF {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:2: // 📁 lib/features/vouchers/screens/payment_voucher_list_screen.dart
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:5: // • تم إلغاء الاعتماد على payment_voucher_pdf.dart بالكامل
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:48: class PaymentVoucherListScreen extends StatefulWidget {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:49: const PaymentVoucherListScreen({super.key});
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:52: State<PaymentVoucherListScreen> createState() =>
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:53: _PaymentVoucherListScreenState();
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:56: class _PaymentVoucherListScreenState extends State<PaymentVoucherListScreen> {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:82: v.voucher_number,
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:97: FROM vouchers v
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:98: WHERE v.voucher_type = 'PAYMENT'
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:113: FROM vouchers v
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:114: WHERE v.voucher_type = 'PAYMENT'
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:126: FROM vouchers v
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:127: WHERE v.voucher_type = 'PAYMENT'
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:169: final pdfBytes = await YallaPdfService.generatePaymentVoucherPdf(
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:170: voucherId: row["id"].toString(),
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:184: fileName: "payment_voucher_${row["id"]}.pdf",
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:195: final pdfBytes = await YallaPdfService.generatePaymentVoucherListPdf(
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:204: fileName: "payment_vouchers_list.pdf",
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:231: const YallaSidebar(currentRoute: '/finance/payment-vouchers'),
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:270: await _deleteVoucher(row);
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:274: Future<void> _deleteVoucher(Map row) async {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:277: final voucherId = row["id"].toString();
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:295: """, [voucherId]);
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:299: DELETE FROM vouchers
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:301: """, [voucherId]);
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:550: row["voucher_number"]?.toString() ?? "-",
+lib\features\vouchers\screens\payment_voucher_screen.dart:2: // 📁 lib/features/vouchers/screens/payment_voucher_screen.dart
+lib\features\vouchers\screens\payment_voucher_screen.dart:23: import '../models/voucher_payment_model.dart';
+lib\features\vouchers\screens\payment_voucher_screen.dart:24: import '../services/voucher_payment_service.dart';
+lib\features\vouchers\screens\payment_voucher_screen.dart:26: class PaymentVoucherScreen extends ConsumerStatefulWidget {
+lib\features\vouchers\screens\payment_voucher_screen.dart:32: const PaymentVoucherScreen({
+lib\features\vouchers\screens\payment_voucher_screen.dart:41: ConsumerState<PaymentVoucherScreen> createState() =>
+lib\features\vouchers\screens\payment_voucher_screen.dart:42: _PaymentVoucherScreenState();
+lib\features\vouchers\screens\payment_voucher_screen.dart:45: class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
+lib\features\vouchers\screens\payment_voucher_screen.dart:609: onPressed: _saveVoucher,
+lib\features\vouchers\screens\payment_voucher_screen.dart:622: Future<void> _saveVoucher() async {
+lib\features\vouchers\screens\payment_voucher_screen.dart:688: final voucher = VoucherPayment(
+lib\features\vouchers\screens\payment_voucher_screen.dart:690: voucherType: "PAYMENT",
+lib\features\vouchers\screens\payment_voucher_screen.dart:691: voucherNumber: null,
+lib\features\vouchers\screens\payment_voucher_screen.dart:692: voucherCode: null,
+lib\features\vouchers\screens\payment_voucher_screen.dart:717: await VoucherPaymentService.insertAndPost(
+lib\features\vouchers\screens\payment_voucher_screen.dart:718: voucher: voucher,
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:2: // 📁 lib/features/finance/vouchers/receipt_voucher_list_screen.dart
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:45: class ReceiptVoucherListScreen extends StatefulWidget {
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:46: const ReceiptVoucherListScreen({super.key});
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:49: State<ReceiptVoucherListScreen> createState() =>
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:50: _ReceiptVoucherListScreenState();
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:53: class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:143: final pdfBytes = await YallaPdfService.generateReceiptVoucherListPdf(
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:152: fileName: "receipt_vouchers_list.pdf",
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:180: const YallaSidebar(currentRoute: AppRoutes.receiptVouchersList),
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:391: await YallaPdfService.generateReceiptVoucherPdf(
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:392: voucherId: row["id"].toString(),
+lib\features\vouchers\screens\receipt_voucher_screen.dart:2: // 📁 lib/features/finance/vouchers/receipt_voucher_screen.dart
+lib\features\vouchers\screens\receipt_voucher_screen.dart:3: // ReceiptVoucherScreen — FINAL 2025 CLEAN VERSION
+lib\features\vouchers\screens\receipt_voucher_screen.dart:33: class ReceiptVoucherScreen extends StatefulWidget {
+lib\features\vouchers\screens\receipt_voucher_screen.dart:34: const ReceiptVoucherScreen({super.key});
+lib\features\vouchers\screens\receipt_voucher_screen.dart:37: State<ReceiptVoucherScreen> createState() => _ReceiptVoucherScreenState();
+lib\features\vouchers\screens\receipt_voucher_screen.dart:40: class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
+lib\features\vouchers\screens\receipt_voucher_screen.dart:261: // ★★★ النسخة المصححة من _saveVoucher — لا تحتوي partyId وتضيف isIncome ★★★
+lib\features\vouchers\screens\receipt_voucher_screen.dart:264: Future<void> _saveVoucher() async {
+lib\features\vouchers\screens\receipt_voucher_screen.dart:762: onPressed: _saveVoucher,
+lib\features\vouchers\services\voucher_payment_service.dart:2: // 📁 lib/features/vouchers/services/voucher_payment_service.dart
+lib\features\vouchers\services\voucher_payment_service.dart:3: // Voucher Payment Service — v54 (AUTO FIFO SETTLEMENT)
+lib\features\vouchers\services\voucher_payment_service.dart:17: import '../models/voucher_payment_model.dart';
+lib\features\vouchers\services\voucher_payment_service.dart:19: class VoucherPaymentService {
+lib\features\vouchers\services\voucher_payment_service.dart:20: static const String table = "vouchers";
+lib\features\vouchers\services\voucher_payment_service.dart:26: // === vouchers ===
+lib\features\vouchers\services\voucher_payment_service.dart:28: CREATE TABLE IF NOT EXISTS vouchers (
+lib\features\vouchers\services\voucher_payment_service.dart:31: voucher_type TEXT NOT NULL,
+lib\features\vouchers\services\voucher_payment_service.dart:32: voucher_number TEXT,
+lib\features\vouchers\services\voucher_payment_service.dart:33: voucher_code TEXT,
+lib\features\vouchers\services\voucher_payment_service.dart:63: 'CREATE INDEX IF NOT EXISTS idx_vouchers_date ON vouchers(date)');
+lib\features\vouchers\services\voucher_payment_service.dart:65: 'CREATE INDEX IF NOT EXISTS idx_vouchers_party ON vouchers(party_id)');
+lib\features\vouchers\services\voucher_payment_service.dart:73: voucher_id TEXT NOT NULL,
+lib\features\vouchers\services\voucher_payment_service.dart:90: CREATE INDEX IF NOT EXISTS idx_settlements_voucher
+lib\features\vouchers\services\voucher_payment_service.dart:91: ON invoice_settlements(voucher_id);
+lib\features\vouchers\services\voucher_payment_service.dart:98: static Future<String> _generateVoucherNumber(
+lib\features\vouchers\services\voucher_payment_service.dart:99: Transaction txn, String voucherType) async {
+lib\features\vouchers\services\voucher_payment_service.dart:100: final prefix = voucherType.toUpperCase() == "RECEIPT" ? "R" : "P";
+lib\features\vouchers\services\voucher_payment_service.dart:103: SELECT voucher_number
+lib\features\vouchers\services\voucher_payment_service.dart:104: FROM vouchers
+lib\features\vouchers\services\voucher_payment_service.dart:105: WHERE voucher_type = ?
+lib\features\vouchers\services\voucher_payment_service.dart:106: AND voucher_number IS NOT NULL
+lib\features\vouchers\services\voucher_payment_service.dart:107: ORDER BY voucher_number DESC
+lib\features\vouchers\services\voucher_payment_service.dart:109: ''', [voucherType]);
+lib\features\vouchers\services\voucher_payment_service.dart:111: if (rows.isEmpty || rows.first["voucher_number"] == null) {
+lib\features\vouchers\services\voucher_payment_service.dart:115: final raw = rows.first["voucher_number"];
+lib\features\vouchers\services\voucher_payment_service.dart:131: static Future<VoucherPayment> insertAndPost({
+lib\features\vouchers\services\voucher_payment_service.dart:132: required VoucherPayment voucher,
+lib\features\vouchers\services\voucher_payment_service.dart:135: if (voucher.amount <= 0) throw "Amount must be > 0";
+lib\features\vouchers\services\voucher_payment_service.dart:138: final id = voucher.id.isEmpty ? const Uuid().v4() : voucher.id;
+lib\features\vouchers\services\voucher_payment_service.dart:152: String voucherNumber = voucher.voucherNumber ?? "";
+lib\features\vouchers\services\voucher_payment_service.dart:155: voucherNumber = await _generateVoucherNumber(
+lib\features\vouchers\services\voucher_payment_service.dart:156: txn, voucher.voucherType.toUpperCase());
+lib\features\vouchers\services\voucher_payment_service.dart:160: voucher
+lib\features\vouchers\services\voucher_payment_service.dart:163: voucherNumber: voucherNumber,
+lib\features\vouchers\services\voucher_payment_service.dart:171: voucherNumber = (exists.first["voucher_number"] is String)
+lib\features\vouchers\services\voucher_payment_service.dart:172: ? exists.first["voucher_number"] as String
+lib\features\vouchers\services\voucher_payment_service.dart:173: : exists.first["voucher_number"]?.toString() ?? "";
+lib\features\vouchers\services\voucher_payment_service.dart:177: final m = voucher.method.trim().toUpperCase();
+lib\features\vouchers\services\voucher_payment_service.dart:199: voucher: voucher,
+lib\features\vouchers\services\voucher_payment_service.dart:206: date: voucher.date,
+lib\features\vouchers\services\voucher_payment_service.dart:207: ref: voucher.reference,
+lib\features\vouchers\services\voucher_payment_service.dart:208: source: "VOUCHER",
+lib\features\vouchers\services\voucher_payment_service.dart:210: note: "سند دفع — ${voucher.method} — $partyName",
+lib\features\vouchers\services\voucher_payment_service.dart:214: 'debit': voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:216: 'party_type': voucher.partyType,
+lib\features\vouchers\services\voucher_payment_service.dart:217: 'party_id': voucher.partyId,
+lib\features\vouchers\services\voucher_payment_service.dart:218: 'invoice_id': voucher.reference, // تحليلي فقط
+lib\features\vouchers\services\voucher_payment_service.dart:224: 'credit': voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:227: 'invoice_id': voucher.reference, // تحليلي فقط
+lib\features\vouchers\services\voucher_payment_service.dart:243: voucher.copyWith(glEntryId: glId, voucherNumber: voucherNumber),
+lib\features\vouchers\services\voucher_payment_service.dart:248: if (voucher.partyType?.toUpperCase() == "SUPPLIER" &&
+lib\features\vouchers\services\voucher_payment_service.dart:249: voucher.reference != null &&
+lib\features\vouchers\services\voucher_payment_service.dart:250: voucher.reference!.trim().isNotEmpty) {
+lib\features\vouchers\services\voucher_payment_service.dart:253: voucherId: id,
+lib\features\vouchers\services\voucher_payment_service.dart:254: supplierId: int.tryParse(voucher.partyId ?? ""),
+lib\features\vouchers\services\voucher_payment_service.dart:255: amount: voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:256: preferredInvoiceId: int.tryParse(voucher.reference!),
+lib\features\vouchers\services\voucher_payment_service.dart:261: return voucher.copyWith(id: id);
+lib\features\vouchers\services\voucher_payment_service.dart:268: Transaction txn, VoucherPayment voucher) async {
+lib\features\vouchers\services\voucher_payment_service.dart:269: final type = voucher.partyType?.toUpperCase();
+lib\features\vouchers\services\voucher_payment_service.dart:275: "amount": voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:276: "date": voucher.date.toIso8601String(),
+lib\features\vouchers\services\voucher_payment_service.dart:277: "method": voucher.method.toLowerCase(),
+lib\features\vouchers\services\voucher_payment_service.dart:279: "notes": voucher.notes,
+lib\features\vouchers\services\voucher_payment_service.dart:280: "gl_entry_id": voucher.glEntryId,
+lib\features\vouchers\services\voucher_payment_service.dart:282: "party_id": voucher.partyId,
+lib\features\vouchers\services\voucher_payment_service.dart:291: "amount": voucher.amount,
+lib\features\vouchers\services\voucher_payment_service.dart:292: "date": voucher.date.toIso8601String(),
+lib\features\vouchers\services\voucher_payment_service.dart:293: "method": voucher.method.toLowerCase(),
+lib\features\vouchers\services\voucher_payment_service.dart:295: "notes": voucher.notes,
+lib\features\vouchers\services\voucher_payment_service.dart:296: "gl_entry_id": voucher.glEntryId,
+lib\features\vouchers\services\voucher_payment_service.dart:298: "party_id": voucher.partyId,
+lib\features\vouchers\services\voucher_payment_service.dart:309: required String voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:324: voucherId: voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:370: "voucher_id": voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:382: required String voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:420: "voucher_id": voucherId,
+lib\features\vouchers\services\voucher_payment_service.dart:433: required VoucherPayment voucher,
+lib\features\vouchers\services\voucher_payment_service.dart:436: final type = voucher.partyType?.toUpperCase();
+lib\features\vouchers\services\voucher_payment_service.dart:439: final id = int.tryParse(voucher.partyId ?? '');
+lib\features\vouchers\services\voucher_payment_service.dart:462: final empId = voucher.partyId ?? "";
+lib\features\vouchers\services\voucher_payment_service.dart:486: final x = voucher.partyId ?? '';
+
+### receiptVoucher
+lib\core\pdf\yalla_pdf_service.dart:398: static Future<Uint8List> generateReceiptVoucherPdf({
+lib\core\pdf\yalla_pdf_service.dart:1432: static Future<Uint8List> generateReceiptVoucherListPdf({
+lib\core\routes\app_routes.dart:206: static const receiptVoucher = '/finance/receipt-voucher';
+lib\core\routes\app_routes.dart:209: static const receiptVouchersList = '/finance/receipt-vouchers';
+lib\core\routes\app_routes.dart:484: if (name == receiptVoucher) {
+lib\core\routes\app_routes.dart:487: return _page(settings, const ReceiptVoucherScreen());
+lib\core\routes\app_routes.dart:497: if (name == receiptVouchersList) {
+lib\core\routes\app_routes.dart:498: return _page(settings, const ReceiptVoucherListScreen());
+lib\core\widgets\sidebar\yalla_sidebar.dart:144: static const rReceiptVoucher = AppRoutes.receiptVoucher;
+lib\core\widgets\sidebar\yalla_sidebar.dart:145: static const rReceiptVouchersList = AppRoutes.receiptVouchersList;
+lib\core\widgets\sidebar\yalla_sidebar.dart:446: (Icons.arrow_downward, 'سند قبض', rReceiptVoucher),
+lib\core\widgets\sidebar\yalla_sidebar.dart:447: (Icons.list_alt, 'قائمة سندات القبض', rReceiptVouchersList),
+lib\features\cheques\widgets\steps\cheque_step_entry.dart:4: // يتم استدعاؤه من ReceiptVoucherScreen عند اختيار طريقة الدفع = CHEQUE
+lib\features\home\screens\dashboard_screen.dart:321: context, AppRoutes.receiptVoucher),
+lib\features\repairs\services\repairs_service.dart:4: // وتعمل مع RepairDetailsScreen + ReceiptVoucherScreen
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:3: // ReceiptVoucherPDF — Final Version (Direct Save, No Dialog)
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:25: class ReceiptVoucherPDF {
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:45: class ReceiptVoucherListScreen extends StatefulWidget {
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:46: const ReceiptVoucherListScreen({super.key});
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:49: State<ReceiptVoucherListScreen> createState() =>
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:50: _ReceiptVoucherListScreenState();
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:53: class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:143: final pdfBytes = await YallaPdfService.generateReceiptVoucherListPdf(
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:180: const YallaSidebar(currentRoute: AppRoutes.receiptVouchersList),
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:391: await YallaPdfService.generateReceiptVoucherPdf(
+lib\features\vouchers\screens\receipt_voucher_screen.dart:3: // ReceiptVoucherScreen — FINAL 2025 CLEAN VERSION
+lib\features\vouchers\screens\receipt_voucher_screen.dart:33: class ReceiptVoucherScreen extends StatefulWidget {
+lib\features\vouchers\screens\receipt_voucher_screen.dart:34: const ReceiptVoucherScreen({super.key});
+lib\features\vouchers\screens\receipt_voucher_screen.dart:37: State<ReceiptVoucherScreen> createState() => _ReceiptVoucherScreenState();
+lib\features\vouchers\screens\receipt_voucher_screen.dart:40: class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
+
+### paymentVoucher
+lib\core\pdf\yalla_pdf_service.dart:777: static Future<Uint8List> generatePaymentVoucherPdf({
+lib\core\pdf\yalla_pdf_service.dart:1352: static Future<Uint8List> generatePaymentVoucherListPdf({
+lib\core\routes\app_routes.dart:207: static const paymentVoucher = '/finance/payment-voucher';
+lib\core\routes\app_routes.dart:208: static const paymentVouchersList = '/finance/payment-vouchers';
+lib\core\routes\app_routes.dart:489: if (name == paymentVoucher) {
+lib\core\routes\app_routes.dart:490: return _page(settings, const PaymentVoucherScreen());
+lib\core\routes\app_routes.dart:493: if (name == paymentVouchersList) {
+lib\core\routes\app_routes.dart:494: return _page(settings, const PaymentVoucherListScreen());
+lib\core\widgets\sidebar\yalla_sidebar.dart:146: static const rPaymentVoucher = AppRoutes.paymentVoucher;
+lib\core\widgets\sidebar\yalla_sidebar.dart:147: static const rPaymentVouchersList = AppRoutes.paymentVouchersList;
+lib\core\widgets\sidebar\yalla_sidebar.dart:448: (Icons.arrow_upward, 'سند صرف', rPaymentVoucher),
+lib\core\widgets\sidebar\yalla_sidebar.dart:449: (Icons.list, 'قائمة سندات الصرف', rPaymentVouchersList),
+lib\features\finance\purchases\screens\purchase_details_screen.dart:341: builder: (_) => const PaymentVoucherScreen(),
+lib\features\suppliers\screens\suppliers_debts_screen.dart:181: AppRoutes.paymentVoucher,
+lib\features\suppliers\screens\suppliers_payables_screen.dart:183: AppRoutes.paymentVoucher,
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:15: class PaymentVoucherPdf {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:48: class PaymentVoucherListScreen extends StatefulWidget {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:49: const PaymentVoucherListScreen({super.key});
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:52: State<PaymentVoucherListScreen> createState() =>
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:53: _PaymentVoucherListScreenState();
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:56: class _PaymentVoucherListScreenState extends State<PaymentVoucherListScreen> {
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:169: final pdfBytes = await YallaPdfService.generatePaymentVoucherPdf(
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:195: final pdfBytes = await YallaPdfService.generatePaymentVoucherListPdf(
+lib\features\vouchers\screens\payment_voucher_screen.dart:26: class PaymentVoucherScreen extends ConsumerStatefulWidget {
+lib\features\vouchers\screens\payment_voucher_screen.dart:32: const PaymentVoucherScreen({
+lib\features\vouchers\screens\payment_voucher_screen.dart:41: ConsumerState<PaymentVoucherScreen> createState() =>
+lib\features\vouchers\screens\payment_voucher_screen.dart:42: _PaymentVoucherScreenState();
+lib\features\vouchers\screens\payment_voucher_screen.dart:45: class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
+
+### receipt_voucher
+lib\core\routes\app_routes.dart:145: import 'package:yalla_accounts/features/vouchers/screens/receipt_voucher_screen.dart';
+lib\core\routes\app_routes.dart:148: import 'package:yalla_accounts/features/vouchers/screens/receipt_vouchers_list_screen.dart';
+lib\features\vouchers\pdf\receipt_voucher_pdf.dart:1: // 📁 lib/features/finance/vouchers/pdf/receipt_voucher_pdf.dart
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:2: // 📁 lib/features/finance/vouchers/receipt_voucher_list_screen.dart
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:152: fileName: "receipt_vouchers_list.pdf",
+lib\features\vouchers\screens\receipt_voucher_screen.dart:2: // 📁 lib/features/finance/vouchers/receipt_voucher_screen.dart
+
+### payment_voucher
+lib\core\routes\app_routes.dart:146: import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
+lib\core\routes\app_routes.dart:147: import 'package:yalla_accounts/features/vouchers/screens/payment_vouchers_list_screen.dart';
+lib\features\finance\purchases\screens\purchase_details_screen.dart:14: import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:1: // 📁 lib/features/finance/vouchers/pdf/payment_voucher_pdf.dart
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:2: // 📁 lib/features/vouchers/screens/payment_voucher_list_screen.dart
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:5: // • تم إلغاء الاعتماد على payment_voucher_pdf.dart بالكامل
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:184: fileName: "payment_voucher_${row["id"]}.pdf",
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:204: fileName: "payment_vouchers_list.pdf",
+lib\features\vouchers\screens\payment_voucher_screen.dart:2: // 📁 lib/features/vouchers/screens/payment_voucher_screen.dart

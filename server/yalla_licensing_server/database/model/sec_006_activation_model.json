@@ -1,0 +1,32 @@
+{
+  "stage": "SEC.006",
+  "server_model_version": 4,
+  "client_database_version": 65,
+  "activation_protocol_version": 1,
+  "tables_added": [
+    "activation_grants",
+    "activation_challenges"
+  ],
+  "activations_columns_added": [
+    "grant_id",
+    "challenge_id"
+  ],
+  "first_activation": {
+    "grant_storage": "SHA256_ONLY",
+    "challenge_lifetime": "SHORT_LIVED",
+    "device_proof": "ED25519",
+    "license_signature": "ED25519_RFC8785_JCS",
+    "client_trust": "PINNED_PUBLIC_KEY_SHA256",
+    "idempotency": "REQUIRED"
+  },
+  "client_local_state": {
+    "table": "license_activation_state",
+    "activation_code_persisted": false,
+    "private_device_key_persisted_in_sqlite": false,
+    "private_server_signing_key_present": false
+  },
+  "release_configuration": [
+    "YALLA_LICENSING_BASE_URL",
+    "YALLA_LICENSE_TRUSTED_KEY_SHA256"
+  ]
+}

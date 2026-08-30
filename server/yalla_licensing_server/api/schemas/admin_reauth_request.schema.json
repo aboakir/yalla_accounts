@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Yalla admin step-up reauthentication request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "purpose",
+    "password",
+    "mfa_method",
+    "mfa_proof"
+  ],
+  "properties": {
+    "purpose": {
+      "enum": [
+        "BREAK_GLASS",
+        "SECURITY_CHANGE",
+        "RECOVERY_CHANGE"
+      ]
+    },
+    "password": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "mfa_method": {
+      "enum": [
+        "TOTP",
+        "WEBAUTHN"
+      ]
+    },
+    "mfa_proof": {
+      "type": "object"
+    }
+  }
+}

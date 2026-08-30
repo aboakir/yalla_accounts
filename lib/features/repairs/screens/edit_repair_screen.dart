@@ -476,8 +476,340 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
   // ============================================================================
   //                                 BUILD
   // ============================================================================
+
+  Widget _phoneSection(String title, IconData icon, Widget child) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.lightGrey),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppColors.primary, size: 21),
+              const SizedBox(width: 8),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w900)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneEdit(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        title: Text(
+          _numberCtrl.text.trim().isEmpty
+              ? 'تعديل ملف الإصلاح'
+              : 'تعديل ${_numberCtrl.text.trim()}',
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'الكاميرا',
+            onPressed: _isLoading ? null : () => _pickImage(true),
+            icon: const Icon(Icons.photo_camera_outlined),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'gallery') {
+                await _pickImage(false);
+              } else if (value == 'pdf') {
+                final pdf =
+                    await RepairPdfGenerator.generate(_buildUpdatedRepair());
+                await Printing.layoutPdf(onLayout: (_) => pdf);
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                  value: 'gallery',
+                  child: ListTile(
+                      leading: Icon(Icons.photo_library_outlined),
+                      title: Text('إضافة من المعرض'))),
+              PopupMenuItem(
+                  value: 'pdf',
+                  child: ListTile(
+                      leading: Icon(Icons.picture_as_pdf_outlined),
+                      title: Text('معاينة PDF'))),
+            ],
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 110),
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${_typeCtrl.text} ${_modelCtrl.text}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'قيمة الملف ${MoneyFormatter.format(_fileValue)}  •  الفرق ${MoneyFormatter.format(_valueDiff)}',
+                        textDirection: TextDirection.rtl,
+                        style: const TextStyle(
+                            color: Colors.white70, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+                _phoneSection(
+                  'المركبة',
+                  Icons.directions_car_outlined,
+                  Column(children: [
+                    TextField(
+                        controller: _typeCtrl, decoration: _dec('نوع المركبة')),
+                    const SizedBox(height: 10),
+                    TextField(
+                        controller: _modelCtrl, decoration: _dec('الموديل')),
+                    const SizedBox(height: 10),
+                    TextField(
+                        controller: _numberCtrl,
+                        decoration: _dec('رقم المركبة')),
+                  ]),
+                ),
+                _phoneSection(
+                  'الحالة والعمل',
+                  Icons.car_repair_outlined,
+                  Column(children: [
+                    DropdownButtonFormField<String>(
+                      value: normalizeOrNull(_repairType, kRepairTypes),
+                      isExpanded: true,
+                      decoration: _dec('نوع العمل'),
+                      items: kRepairTypes
+                          .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        setState(() => _repairType = v);
+                        await _updateSmart(
+                            candidates: ['repair_type', 'repairType'],
+                            value: v);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: normalizeOrNull(_vehicleStatus, kVehicleStatuses),
+                      isExpanded: true,
+                      decoration: _dec('حالة المركبة'),
+                      items: kVehicleStatuses
+                          .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        setState(() => _vehicleStatus = v);
+                        await _updateSmart(
+                            candidates: ['vehicle_status', 'repair_status'],
+                            value: v);
+                      },
+                    ),
+                  ]),
+                ),
+                _phoneSection(
+                  'التأمين',
+                  Icons.shield_outlined,
+                  Column(children: [
+                    TextField(
+                        controller: _beneficiaryCtrl,
+                        decoration: _dec('اسم شركة التأمين / المستفيد')),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: normalizeOrNull(
+                          _insuranceFollowUp, kInsuranceFollowups),
+                      isExpanded: true,
+                      decoration: _dec('متابعة التأمين'),
+                      items: kInsuranceFollowups
+                          .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        setState(() => _insuranceFollowUp = v);
+                        await _updateSmart(
+                          candidates: [
+                            'insurance_followup',
+                            'insuranceFollowUpStatus',
+                            'insurance_status'
+                          ],
+                          value: v,
+                        );
+                      },
+                    ),
+                  ]),
+                ),
+                _listSection('قطع الغيار', _parts, true),
+                _listSection('أعمال الإصلاح', _works, false),
+                _phoneSection(
+                  'المالية',
+                  Icons.account_balance_wallet_outlined,
+                  Column(children: [
+                    TextField(
+                      controller: _fileValueCtrl,
+                      readOnly: true,
+                      decoration: _dec('قيمة الملف المحسوبة'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _paidCtrl,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: _dec('المبلغ المدفوع'),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: normalizeOrNull(_paymentStatus, kPaymentStatuses),
+                      isExpanded: true,
+                      decoration: _dec('حالة الدفع'),
+                      items: kPaymentStatuses
+                          .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        setState(() => _paymentStatus = v);
+                        await _updateSmart(
+                            candidates: ['payment_status', 'paymentStatus'],
+                            value: v);
+                      },
+                    ),
+                  ]),
+                ),
+                _phoneSection(
+                  'الصور',
+                  Icons.photo_library_outlined,
+                  Column(
+                    children: [
+                      if (_imagePaths.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Text('لا توجد صور مضافة',
+                              style: TextStyle(color: Colors.black54)),
+                        ),
+                      if (_imagePaths.isNotEmpty)
+                        SizedBox(
+                          height: 112,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _imagePaths.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 8),
+                            itemBuilder: (_, i) {
+                              final path = _imagePaths[i];
+                              return Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Image.file(File(path),
+                                        width: 120,
+                                        height: 105,
+                                        fit: BoxFit.cover),
+                                  ),
+                                  PositionedDirectional(
+                                    top: 4,
+                                    end: 4,
+                                    child: InkWell(
+                                      onTap: () => _deleteImage(path),
+                                      child: const CircleAvatar(
+                                        radius: 12,
+                                        backgroundColor: Colors.black54,
+                                        child: Icon(Icons.close,
+                                            color: Colors.white, size: 15),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _pickImage(true),
+                            icon: const Icon(Icons.photo_camera_outlined),
+                            label: const Text('الكاميرا'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _pickImage(false),
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: const Text('المعرض'),
+                          ),
+                        ),
+                      ]),
+                    ],
+                  ),
+                ),
+                _phoneSection(
+                  'ملاحظات',
+                  Icons.notes_outlined,
+                  TextField(
+                      controller: _notesCtrl,
+                      minLines: 3,
+                      maxLines: 6,
+                      decoration: _dec('ملاحظات الملف')),
+                ),
+              ],
+            ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: AppColors.lightGrey)),
+          ),
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              minimumSize: const Size.fromHeight(52),
+            ),
+            onPressed: _isLoading ? null : _saveWithAccounting,
+            icon: const Icon(Icons.check_rounded),
+            label: const Text('حفظ التعديلات',
+                style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width < 600) return _buildPhoneEdit(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('تعديل ملف إصلاح'),

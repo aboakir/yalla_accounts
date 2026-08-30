@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Yalla Control Center</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js" onerror="void 0"></script>
+</head>
+<body>
+  <section id="authGate" class="auth-gate">
+    <div class="auth-card">
+      <div class="auth-brand">YALLA <span>CONTROL CENTER</span></div>
+      <h1>Secure admin access</h1>
+      <p id="authMessage">Sign in with your Yalla administrator identity.</p>
+      <div id="loginView">
+        <label>Email<input id="loginEmail" type="email" autocomplete="username"></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password"></label>
+        <button id="loginButton" type="button">Continue</button>
+        <button id="recoveryButton" type="button" class="link-button">Account recovery</button>
+      </div>
+      <div id="mfaView" class="hidden">
+        <label>MFA method<select id="mfaMethod"><option value="TOTP">Authenticator code</option><option value="WEBAUTHN">Security key / passkey</option></select></label>
+        <label id="totpLabel">Authenticator code<input id="mfaCode" inputmode="numeric" autocomplete="one-time-code"></label>
+        <button id="mfaButton" type="button">Verify MFA</button>
+        <button id="backToLogin" type="button" class="secondary">Back</button>
+      </div>
+      <div id="recoveryView" class="hidden">
+        <label>Email<input id="recoveryEmail" type="email" autocomplete="email"></label>
+        <button id="startRecovery" type="button">Start recovery</button>
+        <div id="recoveryComplete" class="hidden">
+          <label>Recovery challenge ID<input id="recoveryChallengeId" autocomplete="off"></label>
+          <label>Recovery secret<input id="recoverySecret" type="password" autocomplete="off"></label>
+          <label>Single-use recovery code<input id="recoveryCode" type="password" autocomplete="off"></label>
+          <label>New password<input id="recoveryNewPassword" type="password" autocomplete="new-password"></label>
+          <button id="completeRecovery" type="button">Complete recovery</button>
+        </div>
+        <button id="cancelRecovery" type="button" class="secondary">Back to login</button>
+      </div>
+      <small>No master password, no customer password access, and no browser-stored session token.</small>
+    </div>
+  </section>
+
+  <div id="appShell" class="shell hidden">
+    <aside class="sidebar">
+      <div class="brand">YALLA <span>CONTROL CENTER</span></div>
+      <nav id="nav"></nav>
+      <div class="stage">SEC.015 · MFA / secure sessions / audit</div>
+    </aside>
+    <main>
+      <header>
+        <div><h1 id="title">Dashboard</h1><p id="subtitle">Server-side commercial and licensing control plane</p></div>
+        <div class="connection">
+          <span id="actorState" class="pill">No actor</span>
+          <span id="sessionState" class="pill">No session</span>
+          <button id="actionsButton" type="button" class="secondary">Privileged action</button>
+          <button id="breakGlassButton" type="button" class="danger">Break Glass</button>
+          <button id="sessionsButton" type="button" class="secondary">Sessions</button>
+          <button id="logoutButton" type="button">Logout</button>
+        </div>
+      </header>
+
+      <section id="actionPanel" class="panel connect-panel">
+        <h2>Privileged action</h2>
+        <p>The server allowlists action codes and performs authorization. Browser JSON is never dynamic SQL.</p>
+        <label>Action code<input id="actionCode" placeholder="SUBSCRIPTION.RENEW"></label>
+        <label>Organization ID<input id="actionOrganization" placeholder="UUID"></label>
+        <label>Target entity type<input id="actionTargetType" placeholder="SUBSCRIPTION"></label>
+        <label>Target entity ID<input id="actionTargetId" placeholder="UUID"></label>
+        <label>Reason<textarea id="actionReason" minlength="8" placeholder="Why this privileged action is required"></textarea></label>
+        <label>Requested state (JSON)<textarea id="actionState" placeholder="{}">{}</textarea></label>
+        <label>Break Glass grant ID (force actions only)<input id="actionBreakGlass" placeholder="UUID"></label>
+        <label>Temporary override expiry (optional)<input id="actionExpiresAt" type="datetime-local"></label>
+        <div class="actions"><button id="submitAction" type="button">Submit authorized action</button><button id="closeAction" type="button" class="secondary">Cancel</button></div>
+        <div id="actionResult" class="inline-result"></div>
+      </section>
+
+      <section id="breakGlassPanel" class="panel connect-panel">
+        <h2>Break Glass</h2>
+        <p>Emergency access requires fresh password + MFA reauthentication and expires in 5-60 minutes.</p>
+        <div class="stepup-box">
+          <label>Password<input id="reauthPassword" type="password" autocomplete="current-password"></label>
+          <label>MFA code<input id="reauthMfa" inputmode="numeric" autocomplete="one-time-code"></label>
+          <button id="reauthButton" type="button">Step-up reauthenticate</button>
+          <span id="reauthState">Required</span>
+        </div>
+        <label>Organization ID<input id="bgOrganization" placeholder="UUID"></label>
+        <label>Reason<textarea id="bgReason" minlength="15" placeholder="Detailed emergency reason"></textarea></label>
+        <label>Duration minutes<input id="bgDuration" type="number" min="5" max="60" value="15"></label>
+        <div class="actions"><button id="openBreakGlass" type="button" class="danger">Open audited Break Glass</button><button id="closeBreakGlass" type="button" class="secondary">Cancel</button></div>
+        <div id="bgResult" class="inline-result"></div>
+      </section>
+
+      <section id="sessionsPanel" class="panel connect-panel">
+        <h2>My admin sessions</h2>
+        <div class="actions"><button id="refreshSessions" type="button">Refresh</button><button id="logoutAll" type="button" class="danger">Revoke all my sessions</button><button id="closeSessions" type="button" class="secondary">Close</button></div>
+        <div id="sessionsResult" class="inline-result"></div>
+      </section>
+
+      <section id="content" class="panel"><div class="empty"><strong>Yalla Control Center is ready.</strong><span>Authenticated server data will appear here.</span></div></section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

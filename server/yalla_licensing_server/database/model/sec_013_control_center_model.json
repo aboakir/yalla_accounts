@@ -1,0 +1,32 @@
+{
+  "stage": "SEC.013",
+  "server_model_version": 8,
+  "client_database_version": 69,
+  "client_schema_changed": false,
+  "application": "Yalla Control Center",
+  "deployment_boundary": "SEPARATE_FROM_CUSTOMER_CLIENT",
+  "sections": [
+    "Dashboard",
+    "Organizations",
+    "Subscriptions",
+    "Licenses",
+    "Devices",
+    "Plans",
+    "Features",
+    "Entitlements",
+    "Activations",
+    "Renewals",
+    "Overrides",
+    "Security Events",
+    "Audit Logs",
+    "Yalla Admin Users"
+  ],
+  "read_model_prefix": "yalla_cc_",
+  "sec013_mutations_enabled": false,
+  "privileged_authorization_deferred_to": "SEC.014",
+  "admin_auth_session_hardening_deferred_to": "SEC.015",
+  "customer_accounting_data_exposed": false,
+  "private_signing_key_exposed": false,
+  "hardcoded_admin_password": false,
+  "historical_data_rewrite": "NONE"
+}

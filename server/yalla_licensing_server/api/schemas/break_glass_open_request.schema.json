@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Yalla break-glass open request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "organization_id",
+    "reason",
+    "duration_minutes"
+  ],
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 15,
+      "maxLength": 2000
+    },
+    "duration_minutes": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 60
+    }
+  }
+}

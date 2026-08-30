@@ -1,0 +1,24 @@
+{
+  "stage": "SEC.014",
+  "server_model_version": 9,
+  "client_database_version": 69,
+  "client_schema_changed": false,
+  "roles": [
+    "YALLA_SUPER_OWNER",
+    "YALLA_BREAK_GLASS"
+  ],
+  "permission_count": 39,
+  "action_count": 38,
+  "break_glass": {
+    "organization_scoped": true,
+    "minimum_minutes": 5,
+    "maximum_minutes": 60,
+    "reason_required": true,
+    "audit_required": true
+  },
+  "super_owner_bootstrap": "ONE_TIME_TO_EXISTING_ACTIVE_ADMIN_IDENTITY",
+  "master_password": false,
+  "customer_password_visibility": false,
+  "signing_private_key_in_control_center": false,
+  "session_recovery_hardening": "SEC.015"
+}

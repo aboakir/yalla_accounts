@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:activation-complete-request:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["api_version", "challenge_id", "idempotency_key", "device_id", "proof"],
+  "properties": {
+    "api_version": {"const": 1},
+    "challenge_id": {"type": "string", "format": "uuid"},
+    "idempotency_key": {"type": "string", "format": "uuid"},
+    "device_id": {"type": "string", "format": "uuid"},
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "signature"],
+      "properties": {
+        "algorithm": {"const": "ED25519"},
+        "signature": {"type": "string", "pattern": "^[A-Za-z0-9_-]{86}$"}
+      }
+    }
+  }
+}

@@ -1,18 +1,18 @@
-// 📁 lib/features/repairs/screens/repairs_screen.dart
+// ًں“پ lib/features/repairs/screens/repairs_screen.dart
 //
-// RepairsScreen — إدارة ملفات الإصلاح
-// إصلاح خطأ hit test عبر تعطيل FAB عندما لا تكون الشاشة current أو بدون قيود Layout.
+// RepairsScreen â€” ط¥ط¯ط§ط±ط© ظ…ظ„ظپط§طھ ط§ظ„ط¥طµظ„ط§ط­
+// ط¥طµظ„ط§ط­ ط®ط·ط£ hit test ط¹ط¨ط± طھط¹ط·ظٹظ„ FAB ط¹ظ†ط¯ظ…ط§ ظ„ط§ طھظƒظˆظ† ط§ظ„ط´ط§ط´ط© current ط£ظˆ ط¨ط¯ظˆظ† ظ‚ظٹظˆط¯ Layout.
 
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
-// import 'package:yalla_accounts/features/finance/screens/add_purchase_screen.dart'; // معطّل مؤقتًا
+// import 'package:yalla_accounts/features/finance/screens/add_purchase_screen.dart'; // ظ…ط¹ط·ظ‘ظ„ ظ…ط¤ظ‚طھظ‹ط§
 
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_provider.dart';
@@ -27,9 +27,10 @@ import 'package:yalla_accounts/features/repairs/widgets/repair_stats_cards.dart'
 import 'package:yalla_accounts/features/repairs/widgets/repair_summary_section.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_financial_summary.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_bottom_nav.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
-// ✅ ثوابت موحّدة
+// âœ… ط«ظˆط§ط¨طھ ظ…ظˆط­ظ‘ط¯ط©
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
@@ -45,8 +46,8 @@ class RepairsScreen extends ConsumerStatefulWidget {
 
 class _RepairsScreenState extends ConsumerState<RepairsScreen> {
   String searchText = '';
-  String selectedStatus = 'الكل';
-  String selectedType = 'الكل';
+  String selectedStatus = 'ط§ظ„ظƒظ„';
+  String selectedType = 'ط§ظ„ظƒظ„';
   DateTime? fromDate;
   DateTime? toDate;
   static const int initialLimit = 10;
@@ -59,14 +60,23 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
       context: context,
       firstDate: DateTime(2020, 1, 1),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      helpText: 'نطاق التاريخ',
+      helpText: 'ظ†ط·ط§ظ‚ ط§ظ„طھط§ط±ظٹط®',
     );
     if (picked != null) {
       setState(() {
-        fromDate =
-            DateTime(picked.start.year, picked.start.month, picked.start.day);
+        fromDate = DateTime(
+          picked.start.year,
+          picked.start.month,
+          picked.start.day,
+        );
         toDate = DateTime(
-            picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
+          picked.end.year,
+          picked.end.month,
+          picked.end.day,
+          23,
+          59,
+          59,
+        );
       });
     }
   }
@@ -81,23 +91,27 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 🔕 شراء قطع غيار — معطّل مؤقتًا
+            // ًں”• ط´ط±ط§ط، ظ‚ط·ط¹ ط؛ظٹط§ط± â€” ظ…ط¹ط·ظ‘ظ„ ظ…ط¤ظ‚طھظ‹ط§
             ListTile(
               leading: const Icon(Icons.shopping_cart),
-              title: const Text('🛒 شراء قطع غيار'),
+              title: const Text('ًں›’ ط´ط±ط§ط، ظ‚ط·ط¹ ط؛ظٹط§ط±'),
               onTap: () async {
                 Navigator.pop(context);
-                if (!mounted) return;
+                if (!mounted) {
+                  return;
+                }
                 showDialog<void>(
                   context: context,
                   builder: (ctx) => AdaptiveAlertDialog(
-                    title: const Text('غير متاح مؤقتًا'),
+                    title: const Text('ط؛ظٹط± ظ…طھط§ط­ ظ…ط¤ظ‚طھظ‹ط§'),
                     content: const Text(
-                        'ميزة "شراء قطع غيار" ستُفعّل لاحقًا بعد إضافة الشاشة المطلوبة.'),
+                      'ظ…ظٹط²ط© "ط´ط±ط§ط، ظ‚ط·ط¹ ط؛ظٹط§ط±" ط³طھظڈظپط¹ظ‘ظ„ ظ„ط§ط­ظ‚ظ‹ط§ ط¨ط¹ط¯ ط¥ط¶ط§ظپط© ط§ظ„ط´ط§ط´ط© ط§ظ„ظ…ط·ظ„ظˆط¨ط©.',
+                    ),
                     actions: [
                       TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('حسنًا')),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('ط­ط³ظ†ظ‹ط§'),
+                      ),
                     ],
                   ),
                 );
@@ -105,14 +119,15 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.build),
-              title: const Text('⚙️ إضافة إصلاح جديد'),
+              title: const Text('âڑ™ï¸ڈ ط¥ط¶ط§ظپط© ط¥طµظ„ط§ط­ ط¬ط¯ظٹط¯'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AddRepairScreen()),
                 ).then(
-                    (_) => ref.read(repairListProvider.notifier).loadRepairs());
+                  (_) => ref.read(repairListProvider.notifier).loadRepairs(),
+                );
               },
             ),
           ],
@@ -123,7 +138,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
   void _handleQuickFilter(String type) {
     setState(() {
-      selectedStatus = (type == 'paid') ? 'مسدد' : 'غير مسدد';
+      selectedStatus = (type == 'paid') ? 'ظ…ط³ط¯ط¯' : 'ط؛ظٹط± ظ…ط³ط¯ط¯';
     });
   }
 
@@ -131,15 +146,19 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
-        title: const Text('تأكيد الاعتماد'),
-        content: const Text('هل تريد اعتماد هذا الملف وتوليد قيد محاسبي؟'),
+        title: const Text('طھط£ظƒظٹط¯ ط§ظ„ط§ط¹طھظ…ط§ط¯'),
+        content: const Text(
+          'ظ‡ظ„ طھط±ظٹط¯ ط§ط¹طھظ…ط§ط¯ ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ ظˆطھظˆظ„ظٹط¯ ظ‚ظٹط¯ ظ…ط­ط§ط³ط¨ظٹطں',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ط¥ظ„ط؛ط§ط،'),
+          ),
           ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('اعتماد')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ط§ط¹طھظ…ط§ط¯'),
+          ),
         ],
       ),
     );
@@ -150,22 +169,28 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('✅ تم اعتماد الملف وتوليد القيد المحاسبي')),
+            content: Text(
+              'âœ… طھظ… ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ…ظ„ظپ ظˆطھظˆظ„ظٹط¯ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ',
+            ),
+          ),
         );
         ref.read(repairListProvider.notifier).loadRepairs();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ فشل الاعتماد: $e')),
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(content: Text('â‌Œ ظپط´ظ„ ط§ظ„ط§ط¹طھظ…ط§ط¯: $e')),
         );
       }
     }
   }
 
-  // 🧾 تصدير PDF
+  // ًں§¾ طھطµط¯ظٹط± PDF
   Future<void> exportToPdf(List<Repair> data) async {
     final df = DateFormat('yyyy-MM-dd');
 
-    // تجهيز بيانات الجدول
+    // طھط¬ظ‡ظٹط² ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¬ط¯ظˆظ„
     final List<List<String>> rows = data.map((r) {
       final fv = _fileValue(r);
       final pv = _paidValue(r);
@@ -185,18 +210,18 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
       ];
     }).toList();
 
-    // توليد PDF عبر النظام المركزي
+    // طھظˆظ„ظٹط¯ PDF ط¹ط¨ط± ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ظ…ط±ظƒط²ظٹ
     final bytes = await YallaPdfService.generateTablePdf(
-      title: "قائمة المركبات",
+      title: "ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط±ظƒط¨ط§طھ",
       headers: [
-        'التاريخ',
-        'نوع المركبة',
-        'رقم المركبة',
-        'المستفيد',
-        'قيمة الملف',
-        'المدفوع',
-        'المتبقي',
-        'حالة السداد',
+        'ط§ظ„طھط§ط±ظٹط®',
+        'ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©',
+        'ط±ظ‚ظ… ط§ظ„ظ…ط±ظƒط¨ط©',
+        'ط§ظ„ظ…ط³طھظپظٹط¯',
+        'ظ‚ظٹظ…ط© ط§ظ„ظ…ظ„ظپ',
+        'ط§ظ„ظ…ط¯ظپظˆط¹',
+        'ط§ظ„ظ…طھط¨ظ‚ظٹ',
+        'ط­ط§ظ„ط© ط§ظ„ط³ط¯ط§ط¯',
       ],
       rows: rows,
     );
@@ -208,26 +233,28 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("📄 تم توليد الملف: ${file.path}")),
+        SnackBar(
+          content: Text("ًں“„ طھظ… طھظˆظ„ظٹط¯ ط§ظ„ظ…ظ„ظپ: ${file.path}"),
+        ),
       );
     }
   }
 
-  // 📊 تصدير Excel
+  // ًں“ٹ طھطµط¯ظٹط± Excel
   Future<void> exportToExcel(List<Repair> data) async {
     final excel = Excel.createExcel();
     final sheet = excel['Vehicles'];
     final df = DateFormat('yyyy-MM-dd');
 
     sheet.appendRow([
-      TextCellValue('التاريخ'),
-      TextCellValue('نوع المركبة'),
-      TextCellValue('رقم المركبة'),
-      TextCellValue('المستفيد'),
-      TextCellValue('قيمة الملف'),
-      TextCellValue('المدفوع'),
-      TextCellValue('المتبقي'),
-      TextCellValue('حالة السداد'),
+      TextCellValue('ط§ظ„طھط§ط±ظٹط®'),
+      TextCellValue('ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©'),
+      TextCellValue('ط±ظ‚ظ… ط§ظ„ظ…ط±ظƒط¨ط©'),
+      TextCellValue('ط§ظ„ظ…ط³طھظپظٹط¯'),
+      TextCellValue('ظ‚ظٹظ…ط© ط§ظ„ظ…ظ„ظپ'),
+      TextCellValue('ط§ظ„ظ…ط¯ظپظˆط¹'),
+      TextCellValue('ط§ظ„ظ…طھط¨ظ‚ظٹ'),
+      TextCellValue('ط­ط§ظ„ط© ط§ظ„ط³ط¯ط§ط¯'),
     ]);
 
     for (final r in data) {
@@ -255,7 +282,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ تم حفظ Excel في ${file.path}')),
+        SnackBar(content: Text('âœ… طھظ… ط­ظپط¸ Excel ظپظٹ ${file.path}')),
       );
     }
   }
@@ -270,33 +297,23 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.visibility),
-              title: const Text('عرض التفاصيل'),
+              leading: const Icon(Icons.edit),
+              title: const Text('طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ„ظپ'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => RepairDetailsScreen(repair: r)),
+                    builder: (_) => EditRepairScreen(repair: r),
+                  ),
+                ).then(
+                  (_) => ref.read(repairListProvider.notifier).loadRepairs(),
                 );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('تعديل الملف'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => EditRepairScreen(repair: r)),
-                ).then(
-                    (_) => ref.read(repairListProvider.notifier).loadRepairs());
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.verified),
-              title: const Text('اعتماد القيد المحاسبي'),
+              title: const Text('ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ'),
               onTap: () {
                 Navigator.pop(context);
                 _approveRepairLedger(context, r);
@@ -304,16 +321,19 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.receipt_long),
-              title: const Text('قيود اليومية لهذا الملف'),
+              title: const Text('ظ‚ظٹظˆط¯ ط§ظ„ظٹظˆظ…ظٹط© ظ„ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ'),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/finance/journal',
-                    arguments: {'relatedRepairId': r.id});
+                Navigator.pushNamed(
+                  context,
+                  '/finance/journal',
+                  arguments: {'relatedRepairId': r.id},
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.payments),
-              title: const Text('دفعات هذا الملف'),
+              title: const Text('ط¯ظپط¹ط§طھ ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(
@@ -333,8 +353,10 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title:
-                  const Text('حذف الملف', style: TextStyle(color: Colors.red)),
+              title: const Text(
+                'ط­ط°ظپ ط§ظ„ظ…ظ„ظپ',
+                style: TextStyle(color: Colors.red),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 await RepairDatabaseService.deleteRepair(r.id);
@@ -347,7 +369,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     );
   }
 
-  // ===== FAB آمن =====
+  // ===== FAB ط¢ظ…ظ† =====
   Widget _buildFab() {
     return FloatingActionButton(
       onPressed: _openAddMenu,
@@ -361,12 +383,428 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     );
   }
 
+  void _openRepairDetails(Repair repair) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => RepairDetailsScreen(repair: repair)),
+    ).then((_) => ref.read(repairListProvider.notifier).loadRepairs());
+  }
+
+  Widget _buildPhoneRepairs({
+    required List<Repair> filtered,
+    required List<Repair> active,
+    required List<Repair> activeAll,
+    required List<Repair> archived,
+    required bool hasMoreActive,
+    required bool showFab,
+  }) {
+    final total = filtered.fold<double>(0, (sum, r) => sum + _fileValue(r));
+    final paid = filtered.fold<double>(0, (sum, r) => sum + _paidValue(r));
+    final remaining = (total - paid).clamp(0.0, double.infinity);
+    final paidRatio = total <= 0 ? 0.0 : (paid / total).clamp(0.0, 1.0);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      drawer: const Drawer(
+        child: SafeArea(child: YallaSidebar(currentRoute: '/repairs')),
+      ),
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط§طھ',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        centerTitle: true,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (v) {
+              if (v == 'date') _selectDateRange();
+              if (v == 'analytics') {
+                Navigator.pushNamed(context, '/repair-analytics');
+              }
+              if (v == 'pdf') exportToPdf(filtered);
+              if (v == 'excel') exportToExcel(filtered);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'date',
+                child: Text('طھط­ط¯ظٹط¯ ط§ظ„ظپطھط±ط©'),
+              ),
+              PopupMenuItem(
+                value: 'analytics',
+                child: Text('طھط­ظ„ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ'),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem(value: 'pdf', child: Text('طھطµط¯ظٹط± PDF')),
+              PopupMenuItem(value: 'excel', child: Text('طھطµط¯ظٹط± Excel')),
+            ],
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () => ref.read(repairListProvider.notifier).loadRepairs(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          children: [
+            TextField(
+              onChanged: (v) => setState(() => searchText = v),
+              decoration: InputDecoration(
+                hintText:
+                    'ط§ط¨ط­ط« ط¨ط§ظ„ظ…ط±ظƒط¨ط©طŒ ط§ظ„ط±ظ‚ظ… ط£ظˆ ط§ظ„ظ…ط³طھظپظٹط¯...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _phoneFilterChip('ط§ظ„ظƒظ„'),
+                  const SizedBox(width: 8),
+                  _phoneFilterChip('ط؛ظٹط± ظ…ط³ط¯ط¯'),
+                  const SizedBox(width: 8),
+                  _phoneFilterChip('ظ…ط³ط¯ط¯ ط¬ط²ط¦ظٹ'),
+                  const SizedBox(width: 8),
+                  _phoneFilterChip('ظ…ط³ط¯ط¯'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            _phoneFinancialSummary(
+              total,
+              paid,
+              remaining,
+              paidRatio,
+              filtered.length,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Text(
+                  '${activeAll.length} ظ…ظ„ظپ ظ†ط´ط·',
+                  style: const TextStyle(color: Colors.black54),
+                ),
+                const Spacer(),
+                const Text(
+                  'ظ…ظ„ظپط§طھ ط§ظ„ط¥طµظ„ط§ط­',
+                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (filtered.isEmpty)
+              _phoneEmptyState()
+            else ...[
+              ...active.map(_phoneRepairCard),
+              if (hasMoreActive)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, bottom: 14),
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RepairsScreen(showAll: true),
+                      ),
+                    ),
+                    child: Text(
+                      'ط¹ط±ط¶ ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ„ظپط§طھ (${activeAll.length})',
+                    ),
+                  ),
+                ),
+              if (archived.isNotEmpty) ...[
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Text(
+                      '${archived.length}',
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                    const Spacer(),
+                    const Text(
+                      'ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط³ط¯ط¯ط©',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...archived.map(_phoneRepairCard),
+              ],
+            ],
+          ],
+        ),
+      ),
+      floatingActionButton: showFab ? _buildFab() : null,
+      bottomNavigationBar: Builder(
+        builder: (navContext) => YallaMobileBottomNav(
+          currentRoute: '/repairs',
+          onMore: () => Scaffold.of(navContext).openDrawer(),
+        ),
+      ),
+    );
+  }
+
+  Widget _phoneFilterChip(String value) {
+    final selected = selectedStatus == value;
+    return ChoiceChip(
+      label: Text(value),
+      selected: selected,
+      selectedColor: AppColors.lightGreen,
+      checkmarkColor: AppColors.primary,
+      side: BorderSide(
+        color: selected ? AppColors.primary : AppColors.lightGrey,
+      ),
+      onSelected: (_) => setState(() => selectedStatus = value),
+    );
+  }
+
+  Widget _phoneFinancialSummary(
+    double total,
+    double paid,
+    double remaining,
+    double ratio,
+    int count,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.lightGrey),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                '${(ratio * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                'ط­ط§ظ„ط© ط§ظ„طھط­طµظٹظ„',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          LinearProgressIndicator(
+            value: ratio,
+            minHeight: 8,
+            borderRadius: BorderRadius.circular(99),
+            backgroundColor: AppColors.lightGrey,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(child: _phoneMetric('ظ…ط¯ظپظˆط¹', paid)),
+              Expanded(child: _phoneMetric('ظ…طھط¨ظ‚ظٹ', remaining)),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      '$count',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Text(
+                      'ظ…ظ„ظپ',
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _phoneMetric(String label, double value) {
+    return Column(
+      children: [
+        Text(
+          MoneyFormatter.format(value),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(color: Colors.black54)),
+      ],
+    );
+  }
+
+  Widget _phoneRepairCard(Repair r) {
+    final total = _fileValue(r);
+    final paid = _paidValue(r);
+    final remaining = (total - paid).clamp(0.0, double.infinity);
+    final status = normalizeOrNull(r.paymentStatus, kPaymentStatuses) ??
+        r.paymentStatus ??
+        'ط؛ظٹط± ظ…ط³ط¯ط¯';
+    final statusColor = status == 'ظ…ط³ط¯ط¯'
+        ? AppColors.success
+        : (status == 'ظ…ط³ط¯ط¯ ط¬ط²ط¦ظٹ' ? Colors.orange : AppColors.danger);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _openRepairDetails(r),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.lightGrey),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.lightGreen,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.directions_car_filled_rounded,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${r.vehicleType} آ· ${r.vehicleNumber}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${r.beneficiaryName} آ· ${DateFormat('dd/MM/yyyy').format(r.receivedDate)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'ط¥ط¬ط±ط§ط،ط§طھ ط§ظ„ظ…ظ„ظپ',
+                      onPressed: () => _openQuickActions(r),
+                      icon: const Icon(Icons.more_vert_rounded),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(.10),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'ط§ظ„ظ…طھط¨ظ‚ظٹ ${MoneyFormatter.format(remaining)}',
+                      style: TextStyle(
+                        color: remaining > 0
+                            ? AppColors.danger
+                            : AppColors.success,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ ${MoneyFormatter.format(total)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _phoneEmptyState() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.lightGrey),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.car_repair_rounded, size: 42, color: AppColors.primary),
+          SizedBox(height: 12),
+          Text(
+            'ظ„ط§ طھظˆط¬ط¯ ظ…ظ„ظپط§طھ ظ…ط·ط§ط¨ظ‚ط©',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
     final allRepairs = ref.watch(repairListProvider);
 
-    // فلترة
+    // ظپظ„طھط±ط©
     final filtered = allRepairs.where((r) {
       final q = searchText.trim().toLowerCase();
 
@@ -376,13 +814,15 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
               r.vehicleType.toLowerCase().contains(q) ||
               r.beneficiaryName.toLowerCase().contains(q));
 
-      final normalizedStatus =
-          normalizeOrNull(r.paymentStatus, kPaymentStatuses);
+      final normalizedStatus = normalizeOrNull(
+        r.paymentStatus,
+        kPaymentStatuses,
+      );
       final matchesStatus =
-          selectedStatus == 'الكل' || normalizedStatus == selectedStatus;
+          selectedStatus == 'ط§ظ„ظƒظ„' || normalizedStatus == selectedStatus;
 
-      final matchesType =
-          selectedType == 'الكل' || r.beneficiaryType.trim() == selectedType;
+      final matchesType = selectedType == 'ط§ظ„ظƒظ„' ||
+          r.beneficiaryType.trim() == selectedType;
 
       final matchesDate = (fromDate == null || toDate == null)
           ? true
@@ -395,7 +835,9 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
     final activeAll = filtered
         .where(
-            (r) => normalizeOrNull(r.paymentStatus, kPaymentStatuses) != 'مسدد')
+          (r) =>
+              normalizeOrNull(r.paymentStatus, kPaymentStatuses) != 'ظ…ط³ط¯ط¯',
+        )
         .toList();
 
     final active =
@@ -404,14 +846,27 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final hasMoreActive = !widget.showAll && activeAll.length > initialLimit;
     final archived = filtered
         .where(
-            (r) => normalizeOrNull(r.paymentStatus, kPaymentStatuses) == 'مسدد')
+          (r) =>
+              normalizeOrNull(r.paymentStatus, kPaymentStatuses) == 'ظ…ط³ط¯ط¯',
+        )
         .toList();
 
-    // ✅ إظهار FAB فقط إذا كانت الشاشة current ولها قيود حقيقية
+    // âœ… ط¥ط¸ظ‡ط§ط± FAB ظپظ‚ط· ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ط´ط§ط´ط© current ظˆظ„ظ‡ط§ ظ‚ظٹظˆط¯ ط­ظ‚ظٹظ‚ظٹط©
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
     final size = MediaQuery.sizeOf(context);
     final hasLayout = size.width > 0 && size.height > 0;
     final showFab = isCurrent && hasLayout;
+
+    if (MediaQuery.sizeOf(context).width < 600) {
+      return _buildPhoneRepairs(
+        filtered: filtered,
+        active: active,
+        activeAll: activeAll,
+        archived: archived,
+        hasMoreActive: hasMoreActive,
+        showFab: showFab,
+      );
+    }
 
     return Scaffold(
       drawer: isDesktop
@@ -419,17 +874,20 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           : const Drawer(child: YallaSidebar(currentRoute: '/repairs')),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title:
-            const Text('إصلاح المركبات', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط§طھ',
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
-              icon: const Icon(Icons.date_range),
-              tooltip: 'تحديد الفترة',
-              onPressed: _selectDateRange),
+            icon: const Icon(Icons.date_range),
+            tooltip: 'طھط­ط¯ظٹط¯ ط§ظ„ظپطھط±ط©',
+            onPressed: _selectDateRange,
+          ),
           IconButton(
             icon: const Icon(Icons.bar_chart),
-            tooltip: 'تحليل البيانات',
+            tooltip: 'طھط­ظ„ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ',
             onPressed: () => Navigator.pushNamed(context, '/repair-analytics'),
           ),
         ],
@@ -438,7 +896,9 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         children: [
           if (isDesktop)
             const SizedBox(
-                width: 260, child: YallaSidebar(currentRoute: '/repairs')),
+              width: 260,
+              child: YallaSidebar(currentRoute: '/repairs'),
+            ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -451,8 +911,8 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                     onReset: () {
                       setState(() {
                         searchText = '';
-                        selectedStatus = 'الكل';
-                        selectedType = 'الكل';
+                        selectedStatus = 'ط§ظ„ظƒظ„';
+                        selectedType = 'ط§ظ„ظƒظ„';
                         fromDate = null;
                         toDate = null;
                       });
@@ -470,8 +930,10 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                   AdaptiveRow(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('جميع المركبات',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'ط¬ظ…ظٹط¹ ط§ظ„ظ…ط±ظƒط¨ط§طھ',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.download),
                         onSelected: (v) {
@@ -479,56 +941,63 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                           if (v == 'excel') exportToExcel(filtered);
                         },
                         itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'pdf', child: Text('📄 PDF')),
+                          PopupMenuItem(value: 'pdf', child: Text('ًں“„ PDF')),
                           PopupMenuItem(
-                              value: 'excel', child: Text('📊 Excel')),
+                            value: 'excel',
+                            child: Text('ًں“ٹ Excel'),
+                          ),
                         ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   if (allRepairs.isEmpty)
-                    const Center(child: Text('لا توجد بيانات'))
+                    const Center(child: Text('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ'))
                   else
                     Column(
                       children: [
-                        ...active.map((r) => RepairCard(
-                              repair: r,
-                              onTap: () => _openQuickActions(r),
-                              onView: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        RepairDetailsScreen(repair: r)),
-                              ).then((updated) {
-                                ref
-                                    .read(repairListProvider.notifier)
-                                    .loadRepairs();
-                              }),
-                              onEdit: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        EditRepairScreen(repair: r)),
-                              ).then((_) => ref
+                        ...active.map(
+                          (r) => RepairCard(
+                            repair: r,
+                            onTap: () => _openQuickActions(r),
+                            onView: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RepairDetailsScreen(repair: r),
+                              ),
+                            ).then((updated) {
+                              ref
                                   .read(repairListProvider.notifier)
-                                  .loadRepairs()),
-                              onDelete: () async {
-                                await RepairDatabaseService.deleteRepair(r.id);
-                                ref
-                                    .read(repairListProvider.notifier)
-                                    .loadRepairs();
-                              },
-                              onApproveFinalAmount: () =>
-                                  _approveRepairLedger(context, r),
-                            )),
+                                  .loadRepairs();
+                            }),
+                            onEdit: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditRepairScreen(repair: r),
+                              ),
+                            ).then(
+                              (_) => ref
+                                  .read(repairListProvider.notifier)
+                                  .loadRepairs(),
+                            ),
+                            onDelete: () async {
+                              await RepairDatabaseService.deleteRepair(r.id);
+                              ref
+                                  .read(repairListProvider.notifier)
+                                  .loadRepairs();
+                            },
+                            onApproveFinalAmount: () =>
+                                _approveRepairLedger(context, r),
+                          ),
+                        ),
                         if (hasMoreActive)
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             child: OutlinedButton.icon(
                               icon: const Icon(Icons.list),
                               label: Text(
-                                  'عرض جميع الملفات (${activeAll.length})'),
+                                'ط¹ط±ط¶ ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ„ظپط§طھ (${activeAll.length})',
+                              ),
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -543,34 +1012,40 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                         if (archived.isNotEmpty) ...[
                           const SizedBox(height: 24),
                           const Divider(),
-                          const Text('📁 الملفات المؤرشفة',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Text(
+                            'ًں“پ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط¤ط±ط´ظپط©',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           const Divider(),
-                          ...archived.map((r) => RepairCard(
-                                repair: r,
-                                onTap: () => _openQuickActions(r),
-                                onView: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          RepairDetailsScreen(repair: r)),
+                          ...archived.map(
+                            (r) => RepairCard(
+                              repair: r,
+                              onTap: () => _openQuickActions(r),
+                              onView: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      RepairDetailsScreen(repair: r),
                                 ),
-                                onEdit: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          EditRepairScreen(repair: r)),
-                                ).then((_) => ref
+                              ),
+                              onEdit: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => EditRepairScreen(repair: r),
+                                ),
+                              ).then(
+                                (_) => ref
                                     .read(repairListProvider.notifier)
-                                    .loadRepairs()),
-                                onDelete: () async {
-                                  await RepairDatabaseService.deleteRepair(
-                                      r.id);
-                                  ref
-                                      .read(repairListProvider.notifier)
-                                      .loadRepairs();
-                                },
-                              )),
+                                    .loadRepairs(),
+                              ),
+                              onDelete: () async {
+                                await RepairDatabaseService.deleteRepair(r.id);
+                                ref
+                                    .read(repairListProvider.notifier)
+                                    .loadRepairs();
+                              },
+                            ),
+                          ),
                         ],
                         const SizedBox(height: 24),
                         RepairSummarySection(repairs: filtered),

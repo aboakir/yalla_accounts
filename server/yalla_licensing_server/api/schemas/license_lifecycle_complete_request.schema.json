@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:license-lifecycle-complete-request:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "challenge_id",
+    "action",
+    "device_id",
+    "proof"
+  ],
+  "properties": {
+    "api_version": {
+      "const": 1
+    },
+    "challenge_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "action": {
+      "enum": [
+        "VALIDATE",
+        "RENEW"
+      ]
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "proof": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "signature"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "ED25519"
+        },
+        "signature": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

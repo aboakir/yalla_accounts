@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:license-envelope:v1",
+  "title": "Yalla Signed License Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "typ",
+    "alg",
+    "kid",
+    "payload",
+    "payload_sha256",
+    "signature"
+  ],
+  "properties": {
+    "typ": {
+      "const": "YALLA-LICENSE"
+    },
+    "alg": {
+      "const": "EdDSA"
+    },
+    "kid": {
+      "type": "string",
+      "pattern": "^YALLA-LIC-[A-Z0-9][A-Z0-9._-]{5,55}$"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "issuer",
+        "license_id",
+        "organization_id",
+        "subscription_id",
+        "device_id",
+        "installation_id",
+        "device_public_key_sha256",
+        "issued_at",
+        "not_before",
+        "expires_at",
+        "entitlement_revision",
+        "entitlements",
+        "validation_required_at",
+        "validation_grace_until"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "issuer": {
+          "const": "yalla-licensing"
+        },
+        "license_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "organization_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "subscription_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "device_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "installation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "device_public_key_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "not_before": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "entitlement_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "entitlements": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "operational_status": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "GRACE",
+            "SUSPENDED",
+            "EXPIRED",
+            "REVOKED",
+            "CANCELLED"
+          ]
+        },
+        "grace_until": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "validation_required_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "validation_grace_until": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "payload_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:activation-complete-response:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["activation_id", "license_envelope", "verification_keyset", "server_time"],
+  "properties": {
+    "activation_id": {"type": "string", "format": "uuid"},
+    "license_envelope": {"$ref": "../../crypto/license_envelope.schema.json"},
+    "verification_keyset": {"$ref": "../../crypto/verification_keyset.schema.json"},
+    "server_time": {"type": "string", "format": "date-time"}
+  }
+}

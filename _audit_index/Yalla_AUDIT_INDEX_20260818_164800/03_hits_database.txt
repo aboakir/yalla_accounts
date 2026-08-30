@@ -1,0 +1,422 @@
+﻿GROUP: database
+
+### openDatabase
+lib\core\database\database_provider.dart:20: return await openDatabase(
+lib\core\services\db\database_migration.dart:80: final db = await openDatabase(
+lib\features\auth\services\admin_setup.dart:12: return await openDatabase(
+lib\features\auth\services\subscription_service.dart:53: return await openDatabase(
+lib\features\finance\inventory\inventory_service.dart:14: _db = await openDatabase(
+lib\features\payments\services\payment_database_service.dart:20: return openDatabase(
+lib\features\repairs\screens\edit_repair_screen.dart:72: return openDatabase(full);
+lib\features\repairs\services\payment_database_service.dart:37: return openDatabase(
+lib\features\repairs\services\purchase_part_service.dart:16: _database = await openDatabase(
+
+### getDatabasesPath
+lib\core\database\database_provider.dart:17: final dbPath = await getDatabasesPath();
+lib\features\auth\services\admin_setup.dart:9: final dbPath = await getDatabasesPath();
+lib\features\auth\services\subscription_service.dart:50: final dbPath = await getDatabasesPath();
+lib\features\finance\inventory\inventory_service.dart:13: final path = join(await getDatabasesPath(), 'yalla_accounts.db');
+lib\features\payments\services\payment_database_service.dart:17: final dbPath = await getDatabasesPath();
+lib\features\repairs\screens\edit_repair_screen.dart:70: final dbPath = await getDatabasesPath();
+lib\features\repairs\services\payment_database_service.dart:35: final dbPath = await getDatabasesPath();
+lib\features\repairs\services\purchase_part_service.dart:13: final dbPath = await getDatabasesPath();
+
+### sqflite
+log.txt:63: [   +9 ms] Found plugin sqflite at F:\pub_cache_clean\hosted\pub.dev\sqflite-2.4.2\
+log.txt:64: [   +8 ms] Found plugin sqflite_darwin at F:\pub_cache_clean\hosted\pub.dev\sqflite_darwin-2.4.2\
+log.txt:65: [   +2 ms] Found plugin sqflite_android at F:\pub_cache_clean\hosted\pub.dev\sqflite_android-2.4.2+2\
+log.txt:129: [   +5 ms] Found plugin sqflite at F:\pub_cache_clean\hosted\pub.dev\sqflite-2.4.2\
+log.txt:130: [   +2 ms] Found plugin sqflite_darwin at F:\pub_cache_clean\hosted\pub.dev\sqflite_darwin-2.4.2\
+log.txt:131: [   +3 ms] Found plugin sqflite_android at F:\pub_cache_clean\hosted\pub.dev\sqflite_android-2.4.2+2\
+log.txt:196: [   +5 ms] Found plugin sqflite at F:\pub_cache_clean\hosted\pub.dev\sqflite-2.4.2\
+log.txt:197: [   +3 ms] Found plugin sqflite_darwin at F:\pub_cache_clean\hosted\pub.dev\sqflite_darwin-2.4.2\
+log.txt:198: [   +1 ms] Found plugin sqflite_android at F:\pub_cache_clean\hosted\pub.dev\sqflite_android-2.4.2+2\
+log.txt:276: [   +4 ms] Found plugin sqflite at F:\pub_cache_clean\hosted\pub.dev\sqflite-2.4.2\
+log.txt:277: [   +2 ms] Found plugin sqflite_darwin at F:\pub_cache_clean\hosted\pub.dev\sqflite_darwin-2.4.2\
+log.txt:278: [   +1 ms] Found plugin sqflite_android at F:\pub_cache_clean\hosted\pub.dev\sqflite_android-2.4.2+2\
+log.txt:841: [ +114 ms] ≡ادر databaseFactory = _SqfliteDatabaseFactoryImpl
+pubspec.yaml:47: sqflite: ^2.4.1
+pubspec.yaml:48: sqflite_common_ffi: ^2.3.3
+lib\main.dart:14: import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+lib\main.dart:15: import 'package:sqflite/sqflite.dart' as sq;
+lib\main.dart:84: sqfliteFfiInit();
+lib\main.dart:86: debugPrint("📌 Using sqflite_common_ffi (Desktop mode)");
+lib\core\bootstrap\ffi_init_io.dart:3: import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+lib\core\bootstrap\ffi_init_io.dart:7: sqfliteFfiInit();
+lib\core\bootstrap\ffi_init_web.dart:1: // يستخدم على الويب (لا يوجد dart:io ولا sqflite على الويب)
+lib\core\database\database_provider.dart:2: import 'package:sqflite/sqflite.dart';
+lib\core\services\accounting_gl.dart:26: import 'package:sqflite/sqflite.dart';
+lib\core\services\global_search_service.dart:1: import 'package:sqflite/sqflite.dart';
+lib\core\services\ledger_database_service.dart:1: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\database_migration.dart:15: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\db_service.dart:15: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\seeders\user_seeder.dart:9: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\seeders\user_seeder.dart:19: final count = Sqflite.firstIntValue(
+lib\core\services\db\tables\accounting_tables.dart:2: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\cheque_tables.dart:14: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\hr_tables.dart:2: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\insurance_tables.dart:7: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\payments_tables.dart:6: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\purchase_invoices_table.dart:1: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\purchase_payments_table.dart:1: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\repair_tables.dart:3: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\report_tables.dart:2: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\supplier_tables.dart:11: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\technical_tables.dart:2: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\user_tables.dart:2: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\tables\voucher_tables.dart:6: import 'package:sqflite/sqflite.dart';
+lib\core\services\db\views\accounting_views.dart:2: import 'package:sqflite/sqflite.dart';
+lib\features\auth\services\admin_setup.dart:1: import 'package:sqflite/sqflite.dart';
+lib\features\auth\services\admin_setup.dart:58: final count = Sqflite.firstIntValue(await db.rawQuery(
+lib\features\auth\services\subscription_service.dart:1: import 'package:sqflite/sqflite.dart';
+lib\features\auth\services\user_service.dart:12: import 'package:sqflite/sqflite.dart';
+lib\features\cheques\services\cheque_service.dart:15: import 'package:sqflite/sqflite.dart';
+lib\features\clients\screens\account_receivable_screen.dart:16: import 'package:sqflite/sqflite.dart';
+lib\features\clients\services\client_service.dart:8: import 'package:sqflite/sqflite.dart';
+lib\features\clients\services\client_service.dart:319: return Sqflite.firstIntValue(r) ?? 0;
+lib\features\employees\services\advance_database_service.dart:34: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\advance_service.dart:6: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\attendance_database_service.dart:2: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\employee_database_service.dart:4: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\employee_service.dart:8: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\payroll_database_service.dart:33: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\payroll_periods_service.dart:22: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\salary_database_service.dart:16: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\salary_payment_database_service.dart:10: import 'package:sqflite/sqflite.dart';
+lib\features\employees\services\salary_service.dart:23: import 'package:sqflite/sqflite.dart';
+lib\features\finance\advances\services\advance_service.dart:6: import 'package:sqflite/sqflite.dart';
+lib\features\finance\inventory\inventory_service.dart:4: import 'package:sqflite/sqflite.dart';
+lib\features\finance\invoices\services\invoice_service.dart:13: import 'package:sqflite/sqflite.dart';
+lib\features\finance\payments\screens\unposted_payments_screen.dart:10: import 'package:sqflite/sqflite.dart';
+lib\features\finance\payments\services\payment_service.dart:12: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\providers\purchase_provider.dart:17: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:7: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:12: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\services\purchase_database_service.dart:19: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\services\purchase_invoice_service.dart:14: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\services\purchase_payment_service.dart:12: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\services\purchase_service.dart:14: import 'package:sqflite/sqflite.dart';
+lib\features\finance\purchases\services\supplier_payment_service.dart:15: import 'package:sqflite/sqflite.dart';
+lib\features\finance\screens\accounts_receivable_screen.dart:24: import 'package:sqflite/sqflite.dart';
+lib\features\finance\screens\journal_entries_screen.dart:18: import 'package:sqflite/sqflite.dart';
+lib\features\finance\screens\payments_screen.dart:19: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\accounts_receivable_service.dart:11: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\finance_events_service.dart:2: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\finance_report_service.dart:3: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\finance_service.dart:2: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\invoice_database_service.dart:12: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\journal_service.dart:8: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\ledger_database_service.dart:6: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\monthly_expense_service.dart:3: import 'package:sqflite/sqflite.dart';
+lib\features\finance\services\supplier_service.dart:1: import 'package:sqflite/sqflite.dart';
+lib\features\home\search\search_services.dart:4: import 'package:sqflite/sqflite.dart';
+lib\features\home\services\alerts_service.dart:3: import 'package:sqflite/sqflite.dart';
+lib\features\home\widgets\analytics_charts.dart:9: import 'package:sqflite/sqflite.dart';
+lib\features\home\widgets\health_bar.dart:9: import 'package:sqflite/sqflite.dart';
+lib\features\home\widgets\smart_cards.dart:6: import 'package:sqflite/sqflite.dart';
+lib\features\insurance\services\insurance_invoice_service.dart:14: import 'package:sqflite/sqflite.dart';
+lib\features\inventory\services\inventory_service.dart:1: import 'package:sqflite/sqflite.dart';
+lib\features\payments\services\payment_database_service.dart:3: import 'package:sqflite/sqflite.dart';
+lib\features\raw_materials\services\raw_material_service.dart:1: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\screens\debts_screen.dart:10: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\screens\edit_repair_screen.dart:14: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\screens\recieve_payment_screen.dart:20: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\screens\repair_invoice_create_button.dart:5: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\screens\vehicles_arrears_screen.dart:19: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\edit_repair_service.dart:7: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\payment_database_service.dart:10: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\payment_database_service.dart:526: return Sqflite.firstIntValue(rows) ?? 0;
+lib\features\repairs\services\payment_database_service.dart:536: return Sqflite.firstIntValue(result) ?? 0;
+lib\features\repairs\services\purchase_part_service.dart:3: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\repairs_service.dart:16: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\repair_database_service.dart:16: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\repair_database_service.dart:61: return Sqflite.firstIntValue(result) ?? 0;
+lib\features\repairs\services\repair_ledger_query_service.dart:1: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\repair_ledger_query_service.dart:105: return Sqflite.firstIntValue(result) ?? 0;
+lib\features\repairs\services\repair_report_service.dart:2: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\repair_save_service.dart:15: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\repair_stats_service.dart:3: import 'package:sqflite/sqflite.dart';
+lib\features\repairs\services\repair_stats_service.dart:14: return Sqflite.firstIntValue(r) ?? 0;
+lib\features\repairs\services\repair_stats_service.dart:24: return Sqflite.firstIntValue(r) ?? 0;
+lib\features\repairs\widgets\repair_card.dart:8: import 'package:sqflite/sqflite.dart';
+lib\features\reports\providers\ar_aging_provider.dart:15: import 'package:sqflite/sqflite.dart';
+lib\features\settings\services\workshop_settings_service.dart:10: import 'package:sqflite/sqflite.dart';
+lib\features\suppliers\services\supplier_service.dart:5: import 'package:sqflite/sqflite.dart';
+lib\features\suppliers\services\supplier_service.dart:250: return Sqflite.firstIntValue(r) ?? 0;
+lib\features\vouchers\services\voucher_payment_service.dart:14: import 'package:sqflite/sqflite.dart';
+lib\shared\widgets\dashboard\kpi_grid.dart:5: import 'package:sqflite/sqflite.dart';
+lib\shared\widgets\dashboard\kpi_grid.dart:136: return Sqflite.firstIntValue(rows) ?? 0;
+lib\shared\widgets\dashboard\kpi_grid.dart:143: return Sqflite.firstIntValue(rows) ?? 0;
+lib\shared\widgets\dashboard\kpi_grid.dart:152: return Sqflite.firstIntValue(rows) ?? 0;
+
+### drift
+
+### sqlite
+log.txt:62: [   +3 ms] Found plugin sqlite3_flutter_libs at F:\pub_cache_clean\hosted\pub.dev\sqlite3_flutter_libs-0.5.40\
+log.txt:128: [   +2 ms] Found plugin sqlite3_flutter_libs at F:\pub_cache_clean\hosted\pub.dev\sqlite3_flutter_libs-0.5.40\
+log.txt:195: [   +2 ms] Found plugin sqlite3_flutter_libs at F:\pub_cache_clean\hosted\pub.dev\sqlite3_flutter_libs-0.5.40\
+log.txt:275: [   +2 ms] Found plugin sqlite3_flutter_libs at F:\pub_cache_clean\hosted\pub.dev\sqlite3_flutter_libs-0.5.40\
+log.txt:652: [  +24 ms] Project "F:\flutter_projects\yalla_accounts\build\windows\x64\ALL_BUILD.vcxproj" (3) is building "F:\flutter_projects\yalla_accounts\build\windows\x64\plugins\sqlite3_flutter_libs\sqlite3.vcxproj" (13) on node 1 (default targets).
+log.txt:656: [        ]   Creating "sqlite3.dir\Debug\sqlite3.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+log.txt:657: [        ]   Touching "sqlite3.dir\Debug\sqlite3.tlog\unsuccessfulbuild".
+log.txt:664: [        ]   sqlite3.vcxproj -> F:\flutter_projects\yalla_accounts\build\windows\x64\plugins\sqlite3_flutter_libs\Debug\sqlite3.dll
+log.txt:666: [        ]   Deleting file "sqlite3.dir\Debug\sqlite3.tlog\unsuccessfulbuild".
+log.txt:667: [        ]   Touching "sqlite3.dir\Debug\sqlite3.tlog\sqlite3.lastbuildstate".
+log.txt:668: [   +5 ms] Done Building Project "F:\flutter_projects\yalla_accounts\build\windows\x64\plugins\sqlite3_flutter_libs\sqlite3.vcxproj" (default targets).
+log.txt:669: [  +30 ms] Project "F:\flutter_projects\yalla_accounts\build\windows\x64\ALL_BUILD.vcxproj" (3) is building "F:\flutter_projects\yalla_accounts\build\windows\x64\plugins\sqlite3_flutter_libs\sqlite3_flutter_libs_plugin.vcxproj" (14) on node 1 (default targets).
+log.txt:673: [        ]   Creating "sqlite3_flutter_libs_plugin.dir\Debug\sqlite3_.AC1BF2CD.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+log.txt:674: [        ]   Touching "sqlite3_flutter_libs_plugin.dir\Debug\sqlite3_.AC1BF2CD.tlog\unsuccessfulbuild".
+log.txt:681: [        ]   sqlite3_flutter_libs_plugin.vcxproj -> F:\flutter_projects\yalla_accounts\build\windows\x64\plugins\sqlite3_flutter_libs\Debug\sqlite3_flutter_libs_plugin.dll
+log.txt:683: [        ]   Deleting file "sqlite3_flutter_libs_plugin.dir\Debug\sqlite3_.AC1BF2CD.tlog\unsuccessfulbuild".
+log.txt:684: [        ]   Touching "sqlite3_flutter_libs_plugin.dir\Debug\sqlite3_.AC1BF2CD.tlog\sqlite3_flutter_libs_plugin.lastbuildstate".
+log.txt:685: [   +5 ms] Done Building Project "F:\flutter_projects\yalla_accounts\build\windows\x64\plugins\sqlite3_flutter_libs\sqlite3_flutter_libs_plugin.vcxproj" (default targets).
+log.txt:778: [        ]   -- Up-to-date: F:/flutter_projects/yalla_accounts/build/windows/x64/runner/Debug/sqlite3_flutter_libs_plugin.dll
+log.txt:779: [        ]   -- Up-to-date: F:/flutter_projects/yalla_accounts/build/windows/x64/runner/Debug/sqlite3.dll
+pubspec.yaml:49: sqlite3_flutter_libs: ^0.5.24
+lib\core\services\db\database_migration.dart:285: "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+lib\features\admin\backup\backup_restore_page.dart:3: // BackupRestorePage — واجهة بسيطة نسخ/استرجاع قاعدة SQLite.
+lib\features\cheques\screens\cheques_report_screen.dart:10: // • قراءة مباشرة من SQLite عبر DBService فقط
+lib\features\clients\screens\account_receivable_screen.dart:5: // ✅ بدون أي بيانات وهمية — قراءة فعلية من SQLite.
+lib\features\clients\screens\account_receivable_screen.dart:80: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+lib\features\employees\providers\compat_stubs.dart:24: // TODO: اربطها لاحقًا بالحفظ الفعلي (SQLite/Repository)
+lib\features\employees\screens\salary_summary_screen.dart:8: // SQL (SQLite):
+lib\features\finance\models\accounts_receivable_entry.dart:73: 'isPaid': isPaid ? 1 : 0, // للتوافق مع SQLite
+lib\features\finance\models\journal_entry.dart:57: /// تحويل إلى Map لتخزينها في SQLite
+lib\features\finance\reports\screens\ar_aging_screen.dart:103: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+lib\features\finance\screens\accounts_receivable_screen.dart:90: "SELECT name FROM sqlite_master WHERE type='view' AND name='v_client_ar' LIMIT 1",
+lib\features\finance\screens\journal_entries_screen.dart:5: // ✅ مصادر حقيقية: GL + SQLite (invoices, payments, repairs لعرض الوصف)
+lib\features\finance\screens\journal_entries_screen.dart:113: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+lib\features\finance\services\accounts_receivable_service.dart:72: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+lib\features\finance\services\finance_service.dart:14: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+lib\features\home\widgets\quick_stats.dart:13: "SELECT name FROM sqlite_master WHERE type='table' AND LOWER(name)=LOWER(?) LIMIT 1",
+lib\features\insurance\services\insurance_invoice_service.dart:30: "SELECT name FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
+lib\features\insurance_agent\policies\screens\policy_payments_screen.dart:121: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+lib\features\repairs\models\payment.dart:9: final int? id; // معرف الدفعة (من قاعدة البيانات SQLite)
+lib\features\repairs\screens\debts_screen.dart:34: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+lib\features\repairs\screens\vehicles_arrears_screen.dart:67: "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+
+### CREATE TABLE
+lib\core\database\database_provider.dart:29: // هنا بنضيف create table لكل feature
+lib\core\services\ledger_database_service.dart:8: CREATE TABLE IF NOT EXISTS ledger_entries (
+lib\core\services\db\tables\accounting_tables.dart:26: CREATE TABLE IF NOT EXISTS accounts(
+lib\core\services\db\tables\accounting_tables.dart:103: CREATE TABLE IF NOT EXISTS gl_entries(
+lib\core\services\db\tables\accounting_tables.dart:130: CREATE TABLE IF NOT EXISTS gl_lines(
+lib\core\services\db\tables\accounting_tables.dart:168: CREATE TABLE IF NOT EXISTS journal_entries(
+lib\core\services\db\tables\accounting_tables.dart:182: CREATE TABLE IF NOT EXISTS ledger_entries(
+lib\core\services\db\tables\cheque_tables.dart:32: CREATE TABLE IF NOT EXISTS cheques (
+lib\core\services\db\tables\hr_tables.dart:17: CREATE TABLE IF NOT EXISTS employees (
+lib\core\services\db\tables\hr_tables.dart:51: CREATE TABLE IF NOT EXISTS attendance (
+lib\core\services\db\tables\hr_tables.dart:70: CREATE TABLE IF NOT EXISTS employee_advances(
+lib\core\services\db\tables\hr_tables.dart:103: CREATE TABLE IF NOT EXISTS payroll_runs(
+lib\core\services\db\tables\hr_tables.dart:135: CREATE TABLE IF NOT EXISTS payroll_payments(
+lib\core\services\db\tables\insurance_tables.dart:24: CREATE TABLE IF NOT EXISTS insurance_policies (
+lib\core\services\db\tables\insurance_tables.dart:68: CREATE TABLE IF NOT EXISTS insurance_policy_cheques (
+lib\core\services\db\tables\insurance_tables.dart:94: CREATE TABLE IF NOT EXISTS insurance_policy_installments (
+lib\core\services\db\tables\insurance_tables.dart:117: CREATE TABLE IF NOT EXISTS insurance_policy_promissories (
+lib\core\services\db\tables\insurance_tables.dart:255: CREATE TABLE IF NOT EXISTS insurance_policy_cheques (
+lib\core\services\db\tables\payments_tables.dart:19: // 📌 CREATE TABLE payments
+lib\core\services\db\tables\payments_tables.dart:23: CREATE TABLE IF NOT EXISTS payments(
+lib\core\services\db\tables\payments_tables.dart:164: CREATE TABLE $table (
+lib\core\services\db\tables\purchase_invoices_table.dart:19: CREATE TABLE IF NOT EXISTS purchase_invoices (
+lib\core\services\db\tables\purchase_invoices_table.dart:53: CREATE TABLE IF NOT EXISTS purchase_invoice_lines (
+lib\core\services\db\tables\purchase_payments_table.dart:13: // 🧱 CREATE TABLE purchase_payments
+lib\core\services\db\tables\purchase_payments_table.dart:17: CREATE TABLE IF NOT EXISTS purchase_payments (
+lib\core\services\db\tables\purchase_payments_table.dart:91: CREATE TABLE $table (
+lib\core\services\db\tables\repair_tables.dart:26: CREATE TABLE IF NOT EXISTS insurance_companies(
+lib\core\services\db\tables\repair_tables.dart:62: CREATE TABLE IF NOT EXISTS repairs(
+lib\core\services\db\tables\repair_tables.dart:131: CREATE TABLE IF NOT EXISTS invoices(
+lib\core\services\db\tables\repair_tables.dart:165: CREATE TABLE IF NOT EXISTS repair_lines(
+lib\core\services\db\tables\repair_tables.dart:394: CREATE TABLE IF NOT EXISTS repairs_images(
+lib\core\services\db\tables\report_tables.dart:16: CREATE TABLE IF NOT EXISTS monthly_expenses (
+lib\core\services\db\tables\supplier_tables.dart:28: CREATE TABLE IF NOT EXISTS suppliers (
+lib\core\services\db\tables\supplier_tables.dart:69: CREATE TABLE $table (
+lib\core\services\db\tables\technical_tables.dart:14: CREATE TABLE IF NOT EXISTS domain_events(
+lib\core\services\db\tables\technical_tables.dart:36: CREATE TABLE IF NOT EXISTS outbox_messages(
+lib\core\services\db\tables\user_tables.dart:19: CREATE TABLE IF NOT EXISTS users(
+lib\core\services\db\tables\user_tables.dart:102: CREATE TABLE IF NOT EXISTS workshop_settings(
+lib\core\services\db\tables\user_tables.dart:138: CREATE TABLE IF NOT EXISTS clients(
+lib\core\services\db\tables\user_tables.dart:246: CREATE TABLE IF NOT EXISTS activation_codes (
+lib\core\services\db\tables\voucher_tables.dart:41: CREATE TABLE IF NOT EXISTS vouchers (
+lib\core\services\db\tables\voucher_tables.dart:72: CREATE TABLE IF NOT EXISTS vouchers_new (
+lib\features\auth\services\admin_setup.dart:30: CREATE TABLE IF NOT EXISTS users (
+lib\features\auth\services\subscription_service.dart:58: CREATE TABLE subscriptions (
+lib\features\auth\services\user_service.dart:27: CREATE TABLE IF NOT EXISTS users (
+lib\features\clients\services\client_service.dart:18: CREATE TABLE IF NOT EXISTS $tableName(
+lib\features\employees\services\advance_database_service.dart:52: CREATE TABLE IF NOT EXISTS $_table(
+lib\features\employees\services\attendance_database_service.dart:180: CREATE TABLE IF NOT EXISTS $_table (
+lib\features\employees\services\employee_database_service.dart:19: CREATE TABLE IF NOT EXISTS $tableName (
+lib\features\employees\services\employee_service.dart:29: CREATE TABLE IF NOT EXISTS employees (
+lib\features\employees\services\payroll_database_service.dart:168: CREATE TABLE IF NOT EXISTS $paymentsTable (
+lib\features\employees\services\payroll_periods_service.dart:34: CREATE TABLE IF NOT EXISTS $_table(
+lib\features\employees\services\salary_database_service.dart:29: CREATE TABLE IF NOT EXISTS $_table (
+lib\features\employees\services\salary_payment_database_service.dart:24: CREATE TABLE IF NOT EXISTS $_table (
+lib\features\employees\services\salary_service.dart:35: CREATE TABLE IF NOT EXISTS $table(
+lib\features\finance\inventory\inventory_service.dart:19: CREATE TABLE IF NOT EXISTS inventory_items(
+lib\features\finance\invoices\services\invoice_gl_service.dart:32: CREATE TABLE IF NOT EXISTS $_table (
+lib\features\finance\invoices\services\invoice_service.dart:31: CREATE TABLE IF NOT EXISTS $_table(
+lib\features\finance\payments\services\payment_service.dart:77: CREATE TABLE IF NOT EXISTS payments (
+lib\features\finance\purchases\services\purchase_database_service.dart:37: CREATE TABLE IF NOT EXISTS $_tableHeader (
+lib\features\finance\purchases\services\purchase_database_service.dart:52: CREATE TABLE IF NOT EXISTS $_tableLines (
+lib\features\finance\reports\providers\general_ledger_provider.dart:63: CREATE TABLE IF NOT EXISTS accounts(
+lib\features\finance\services\accounts_receivable_service.dart:36: CREATE TABLE IF NOT EXISTS accounts_receivable (
+lib\features\finance\services\invoice_database_service.dart:31: CREATE TABLE IF NOT EXISTS $_table (
+lib\features\finance\services\journal_service.dart:20: CREATE TABLE IF NOT EXISTS journal_entries(
+lib\features\finance\services\ledger_database_service.dart:16: CREATE TABLE IF NOT EXISTS $_table (
+lib\features\finance\services\monthly_expense_service.dart:13: CREATE TABLE IF NOT EXISTS $tableName (
+lib\features\finance\services\supplier_service.dart:9: CREATE TABLE IF NOT EXISTS suppliers (
+lib\features\insurance\services\insurance_invoice_service.dart:42: '      CREATE TABLE IF NOT EXISTS $tableName (\n'
+lib\features\inventory\services\inventory_service.dart:15: CREATE TABLE IF NOT EXISTS $tableName (
+lib\features\payments\services\payment_database_service.dart:25: CREATE TABLE payments (
+lib\features\raw_materials\services\raw_material_service.dart:15: CREATE TABLE IF NOT EXISTS $tableName (
+lib\features\repairs\services\edit_repair_service.dart:227: CREATE TABLE IF NOT EXISTS repair_edit_history(
+lib\features\repairs\services\payment_database_service.dart:50: CREATE TABLE IF NOT EXISTS repairs (
+lib\features\repairs\services\payment_database_service.dart:88: CREATE TABLE IF NOT EXISTS payments (
+lib\features\repairs\services\payment_database_service.dart:102: CREATE TABLE IF NOT EXISTS accounts_receivable (
+lib\features\repairs\services\payment_database_service.dart:113: CREATE TABLE IF NOT EXISTS journal_entries (
+lib\features\repairs\services\payment_database_service.dart:157: CREATE TABLE IF NOT EXISTS repair_lines (
+lib\features\repairs\services\purchase_part_service.dart:21: CREATE TABLE IF NOT EXISTS purchase_parts(
+lib\features\repairs\services\repairs_service.dart:260: CREATE TABLE IF NOT EXISTS repairs_images (
+lib\features\repairs\services\repair_invoice_service.dart:26: CREATE TABLE IF NOT EXISTS $_repairs (
+lib\features\repairs\services\repair_save_service.dart:250: CREATE TABLE IF NOT EXISTS repair_lines(
+lib\features\repairs\services\repair_save_service.dart:266: CREATE TABLE IF NOT EXISTS repairs_images(
+lib\features\settings\services\workshop_settings_service.dart:67: // CREATE TABLE (with full auto-migration)
+lib\features\settings\services\workshop_settings_service.dart:72: CREATE TABLE IF NOT EXISTS $table (
+lib\features\suppliers\services\supplier_service.dart:15: CREATE TABLE IF NOT EXISTS $tableName (
+lib\features\vouchers\services\voucher_payment_service.dart:28: CREATE TABLE IF NOT EXISTS vouchers (
+lib\features\vouchers\services\voucher_payment_service.dart:69: CREATE TABLE IF NOT EXISTS invoice_settlements (
+
+### ALTER TABLE
+lib\core\services\db\database_migration.dart:168: "ALTER TABLE purchases ADD COLUMN remaining REAL DEFAULT 0;");
+lib\core\services\db\database_migration.dart:209: "ALTER TABLE purchase_invoices ADD COLUMN remaining REAL DEFAULT 0;");
+lib\core\services\db\database_migration.dart:310: "ALTER TABLE cheques RENAME COLUMN linked_payment_id TO linked_payment_ids;");
+lib\core\services\db\database_migration.dart:315: await db.execute("ALTER TABLE cheques ADD COLUMN linked_payment_ids TEXT;");
+lib\core\services\db\database_migration.dart:338: await db.execute("ALTER TABLE vouchers ADD COLUMN source TEXT;");
+lib\core\services\db\database_migration.dart:343: await db.execute("ALTER TABLE vouchers ADD COLUMN source_id TEXT;");
+lib\core\services\db\tables\accounting_tables.dart:277: "ALTER TABLE accounts ADD COLUMN normal_balance TEXT CHECK(normal_balance IN ('DEBIT','CREDIT'));",
+lib\core\services\db\tables\accounting_tables.dart:802: await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+lib\core\services\db\tables\accounting_tables.dart:941: await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+lib\core\services\db\tables\cheque_tables.dart:108: await db.execute("ALTER TABLE $table ADD COLUMN $col $type;");
+lib\core\services\db\tables\insurance_tables.dart:236: "ALTER TABLE insurance_policies ADD COLUMN vehicle_images TEXT;",
+lib\core\services\db\tables\insurance_tables.dart:251: 'ALTER TABLE insurance_policy_cheques RENAME TO insurance_policy_cheques_old;',
+lib\core\services\db\tables\insurance_tables.dart:301: "ALTER TABLE insurance_policy_installments ADD COLUMN updated_at TEXT;",
+lib\core\services\db\tables\insurance_tables.dart:319: "ALTER TABLE insurance_policy_promissories ADD COLUMN updated_at TEXT;",
+lib\core\services\db\tables\payments_tables.dart:142: await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+lib\core\services\db\tables\payments_tables.dart:161: await db.execute('ALTER TABLE $table RENAME TO ${table}_old;');
+lib\core\services\db\tables\purchase_invoices_table.dart:125: await db.execute('ALTER TABLE $table ADD COLUMN $column $type;');
+lib\core\services\db\tables\purchase_payments_table.dart:69: await db.execute('ALTER TABLE $table ADD COLUMN $column $type;');
+lib\core\services\db\tables\purchase_payments_table.dart:88: await db.execute('ALTER TABLE $table RENAME TO ${table}_old;');
+lib\core\services\db\tables\repair_tables.dart:211: await db.execute('ALTER TABLE $table ADD COLUMN $column $type;');
+lib\core\services\db\tables\repair_tables.dart:221: await db.execute('ALTER TABLE repairs ADD COLUMN $name $type;');
+lib\core\services\db\tables\repair_tables.dart:245: await db.execute('ALTER TABLE repairs ADD COLUMN invoice_id TEXT;');
+lib\core\services\db\tables\repair_tables.dart:249: await db.execute('ALTER TABLE repairs ADD COLUMN invoiceId TEXT;');
+lib\core\services\db\tables\report_tables.dart:45: await db.execute('ALTER TABLE $table ADD COLUMN $column $type;');
+lib\core\services\db\tables\supplier_tables.dart:67: await db.execute('ALTER TABLE $table RENAME TO ${table}_old;');
+lib\core\services\db\tables\user_tables.dart:80: await add('ALTER TABLE users ADD COLUMN is_owner INTEGER DEFAULT 0;');
+lib\core\services\db\tables\user_tables.dart:83: await add('ALTER TABLE users ADD COLUMN security_question TEXT;');
+lib\core\services\db\tables\user_tables.dart:86: await add('ALTER TABLE users ADD COLUMN security_answer_hash TEXT;');
+lib\core\services\db\tables\user_tables.dart:89: await add('ALTER TABLE users ADD COLUMN recovery_code_hash TEXT;');
+lib\core\services\db\tables\user_tables.dart:93: 'ALTER TABLE users ADD COLUMN recovery_code_used INTEGER DEFAULT 0;');
+lib\core\services\db\tables\user_tables.dart:164: await db.execute('ALTER TABLE clients ADD COLUMN account_id INTEGER;');
+lib\core\services\db\tables\voucher_tables.dart:127: await db.execute("ALTER TABLE vouchers_new RENAME TO vouchers;");
+lib\core\services\db\tables\voucher_tables.dart:163: await db.execute("ALTER TABLE vouchers ADD COLUMN $column $type;");
+lib\features\clients\services\client_service.dart:40: await db.execute('ALTER TABLE $tableName ADD COLUMN account_id INTEGER;');
+lib\features\employees\services\employee_database_service.dart:81: 'ALTER TABLE $tableName ADD COLUMN contract_type TEXT NOT NULL DEFAULT \'monthly\'');
+lib\features\employees\services\employee_database_service.dart:82: await add('ALTER TABLE $tableName ADD COLUMN weekly_rate REAL');
+lib\features\employees\services\employee_database_service.dart:83: await add('ALTER TABLE $tableName ADD COLUMN daily_rate REAL');
+lib\features\employees\services\employee_database_service.dart:84: await add('ALTER TABLE $tableName ADD COLUMN contract_amount REAL');
+lib\features\employees\services\employee_database_service.dart:85: await add('ALTER TABLE $tableName ADD COLUMN contract_desc TEXT');
+lib\features\employees\services\employee_database_service.dart:86: await add('ALTER TABLE $tableName ADD COLUMN contract_due_date TEXT');
+lib\features\employees\services\employee_database_service.dart:88: 'ALTER TABLE $tableName ADD COLUMN contract_status TEXT'); // newTask|inProgress|ready|approved|paid
+lib\features\employees\services\employee_database_service.dart:89: await add('ALTER TABLE $tableName ADD COLUMN cycle_anchor TEXT');
+lib\features\repairs\services\payment_database_service.dart:135: await db.execute('ALTER TABLE repairs ADD COLUMN $name $type;');
+lib\features\settings\services\workshop_settings_service.dart:160: await db.execute("ALTER TABLE $table ADD COLUMN $column $type;");
+
+### schemaVersion
+
+### onUpgrade
+lib\core\database\database_provider.dart:24: onUpgrade: _onUpgrade,
+lib\core\database\database_provider.dart:39: Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+lib\core\services\db\database_migration.dart:85: onUpgrade: _onUpgrade,
+lib\core\services\db\database_migration.dart:133: static Future<void> _onUpgrade(Database db, int oldV, int newV) async {
+lib\core\services\db\database_migration.dart:136: await UserTables.onUpgrade(db, oldV, newV);
+lib\core\services\db\database_migration.dart:137: await RepairTables.onUpgrade(db, oldV, newV);
+lib\core\services\db\database_migration.dart:138: await AccountingTables.onUpgrade(db, oldV, newV);
+lib\core\services\db\database_migration.dart:139: await HRTables.onUpgrade(db, oldV, newV);
+lib\core\services\db\database_migration.dart:142: await ReportTables.onUpgrade(db, oldV, newV);
+lib\core\services\db\database_migration.dart:143: await TechnicalTables.onUpgrade(db, oldV, newV);
+lib\core\services\db\database_migration.dart:224: await UserTables.onUpgrade(db, 0, DatabaseConstants.dbVersion);
+lib\core\services\db\tables\accounting_tables.dart:207: static Future<void> onUpgrade(Database db, int oldV, int newV) async {
+lib\core\services\db\tables\hr_tables.dart:150: static Future<void> onUpgrade(Database db, int oldV, int newV) async {
+lib\core\services\db\tables\repair_tables.dart:287: // ⬆️ onUpgrade
+lib\core\services\db\tables\repair_tables.dart:289: static Future<void> onUpgrade(Database db, int oldV, int newV) async {
+lib\core\services\db\tables\report_tables.dart:50: static Future<void> onUpgrade(Database db, int oldV, int newV) async {
+lib\core\services\db\tables\technical_tables.dart:50: static Future<void> onUpgrade(Database db, int oldV, int newV) async {
+lib\core\services\db\tables\user_tables.dart:174: static Future<void> onUpgrade(Database db, int oldV, int newV) async {
+lib\features\auth\services\admin_setup.dart:18: onUpgrade: (db, oldVersion, newVersion) async {
+lib\features\insurance\services\insurance_invoice_service.dart:55: 'ولا تنسَ استدعاء الدالة داخل onCreate/onUpgrade في DBService.',
+lib\features\repairs\services\payment_database_service.dart:41: onUpgrade: _upgradeTables,
+
+### onCreate
+lib\core\database\database_provider.dart:23: onCreate: _onCreate,
+lib\core\database\database_provider.dart:28: Future<void> _onCreate(Database db, int version) async {
+lib\core\services\db\database_migration.dart:84: onCreate: _onCreate,
+lib\core\services\db\database_migration.dart:103: static Future<void> _onCreate(Database db, int version) async {
+lib\core\services\db\database_migration.dart:104: debugPrint('🆕 [DB] onCreate FULL INIT');
+lib\features\auth\services\admin_setup.dart:15: onCreate: (db, version) async {
+lib\features\auth\services\subscription_service.dart:56: onCreate: (db, version) async {
+lib\features\employees\services\attendance_database_service.dart:201: /// تستدعى من DBService.onCreate
+lib\features\finance\inventory\inventory_service.dart:17: onCreate: (db, version) async {
+lib\features\finance\screens\payments_screen.dart:231: onCreated: () => _load(),
+lib\features\finance\screens\payments_screen.dart:739: final VoidCallback? onCreated;
+lib\features\finance\screens\payments_screen.dart:745: this.onCreated,
+lib\features\finance\screens\payments_screen.dart:909: (editing ? widget.onUpdated : widget.onCreated)?.call();
+lib\features\finance\services\ledger_database_service.dart:13: /// إنشاء الجدول (يُستدعى عادةً من DBService.onCreate)
+lib\features\insurance\services\insurance_invoice_service.dart:55: 'ولا تنسَ استدعاء الدالة داخل onCreate/onUpgrade في DBService.',
+lib\features\payments\services\payment_database_service.dart:23: onCreate: (db, version) async {
+lib\features\repairs\screens\repair_invoice_create_button.dart:12: final VoidCallback? onCreated;
+lib\features\repairs\screens\repair_invoice_create_button.dart:18: this.onCreated,
+lib\features\repairs\screens\repair_invoice_create_button.dart:89: widget.onCreated?.call();
+lib\features\repairs\services\payment_database_service.dart:40: onCreate: _createTables,
+lib\features\repairs\services\purchase_part_service.dart:19: onCreate: (db, version) async {
+
+### migration
+lib\core\services\db\database_migration.dart:1: // 📁 lib/core/services/db/database_migration.dart
+lib\core\services\db\database_migration.dart:35: class DatabaseMigration {
+lib\core\services\db\db_service.dart:8: // - محسنة للعمل مع DatabaseMigration v41 + AccountingTables v41
+lib\core\services\db\db_service.dart:18: import 'database_migration.dart';
+lib\core\services\db\db_service.dart:54: static Future<Database> get database async => DatabaseMigration.database;
+lib\core\services\db\db_service.dart:64: await DatabaseMigration.resetDatabase();
+lib\core\services\db\db_service.dart:71: return DatabaseMigration.inTx(action);
+lib\core\services\db\tables\insurance_tables.dart:3: // InsuranceTables — v1 (FINAL) + IMAGE COLUMN MIGRATION
+lib\core\services\migrations\opening_balances_migration.dart:1: // 📁 lib/core/services/migrations/opening_balances_migration.dart
+lib\core\services\migrations\opening_balances_migration.dart:3: // OpeningBalancesMigration — توليد حسابات للعملاء/الموردين الموجدين وربطها.
+lib\core\services\migrations\opening_balances_migration.dart:6: //   await OpeningBalancesMigration.run(date: DateTime(2025,1,1), postOpening: false);
+lib\core\services\migrations\opening_balances_migration.dart:10: class OpeningBalancesMigration {
+lib\features\employees\services\employee_database_service.dart:12: // ───────────── Schema + Migration v31 ─────────────
+lib\features\employees\services\employee_database_service.dart:69: // ───────────── Migration helpers ─────────────
+lib\features\insurance_agent\policies\screens\edit_policy_screen.dart:15: import 'package:yalla_accounts/core/services/db/database_migration.dart';
+lib\features\insurance_agent\policies\screens\edit_policy_screen.dart:107: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\edit_policy_screen.dart:274: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\edit_policy_screen.dart:328: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policies_list_screen.dart:13: import 'package:yalla_accounts/core/services/db/database_migration.dart';
+lib\features\insurance_agent\policies\screens\policies_list_screen.dart:114: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policies_list_screen.dart:166: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policies_list_screen.dart:318: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_details_screen.dart:25: import 'package:yalla_accounts/core/services/db/database_migration.dart';
+lib\features\insurance_agent\policies\screens\policy_details_screen.dart:109: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_details_screen.dart:163: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_details_screen.dart:408: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_details_screen.dart:425: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_details_screen.dart:1475: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_payments_screen.dart:26: import 'package:yalla_accounts/core/services/db/database_migration.dart';
+lib\features\insurance_agent\policies\screens\policy_payments_screen.dart:117: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_payments_screen.dart:130: 'جدول insurance_policy_payments غير موجود. أنشئه في الـ migration أولاً.';
+lib\features\insurance_agent\policies\screens\policy_payments_screen.dart:337: final db = await DatabaseMigration.database;
+lib\features\insurance_agent\policies\screens\policy_payments_screen.dart:405: final db = await DatabaseMigration.database;
+lib\features\repairs\services\repair_database_service.dart:11: // ✔ يدعم migration من invoiceId القديم
+lib\features\settings\screens\settings_screen.dart:14: import 'package:yalla_accounts/core/services/db/database_migration.dart';
+lib\features\settings\screens\settings_screen.dart:162: await DatabaseMigration.resetDatabase();
+lib\features\settings\screens\workshop_settings_screen.dart:13: import 'package:yalla_accounts/core/services/db/database_migration.dart';
+lib\features\settings\screens\workshop_settings_screen.dart:250: await DatabaseMigration.resetDatabase();
+lib\features\settings\services\workshop_settings_service.dart:67: // CREATE TABLE (with full auto-migration)
+lib\features\settings\services\workshop_settings_service.dart:96: // 🔥 SAFE MIGRATION — No DB delete required

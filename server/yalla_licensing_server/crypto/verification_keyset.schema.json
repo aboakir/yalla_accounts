@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:license-verification-keyset:v1",
+  "title": "Yalla License Verification Keyset v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "issuer",
+    "generated_at",
+    "keys"
+  ],
+  "properties": {
+    "issuer": {
+      "const": "yalla-licensing"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kid",
+          "alg",
+          "public_key",
+          "public_key_sha256",
+          "status",
+          "not_before"
+        ],
+        "properties": {
+          "kid": {
+            "type": "string",
+            "pattern": "^YALLA-LIC-[A-Z0-9][A-Z0-9._-]{5,55}$"
+          },
+          "alg": {
+            "const": "EdDSA"
+          },
+          "public_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "public_key_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "RETIRED",
+              "REVOKED"
+            ]
+          },
+          "not_before": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "not_after": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revoked_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

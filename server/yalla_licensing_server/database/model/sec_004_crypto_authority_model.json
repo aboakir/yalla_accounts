@@ -1,0 +1,62 @@
+{
+  "stage": "SEC.004",
+  "server_model_version": 3,
+  "canonical_engine": "PostgreSQL 16+",
+  "client_database": {
+    "version": 63,
+    "modified": false
+  },
+  "new_tables": [
+    "license_signing_keys"
+  ],
+  "extended_tables": {
+    "licenses": [
+      "signing_key_id",
+      "payload_schema_version",
+      "signed_payload",
+      "signature_algorithm",
+      "signature_base64url",
+      "signed_at"
+    ]
+  },
+  "signing_contract": {
+    "payload_schema_version": 1,
+    "algorithm": "ED25519",
+    "envelope_alg": "EdDSA",
+    "canonicalization": "RFC8785-JCS",
+    "payload_hash": "SHA-256",
+    "binary_encoding": "base64url-no-padding",
+    "key_id_required": true
+  },
+  "key_lifecycle": [
+    "STAGED",
+    "ACTIVE",
+    "RETIRED",
+    "REVOKED"
+  ],
+  "signing_key_provider_types": [
+    "KMS",
+    "HSM",
+    "SECRET_STORE"
+  ],
+  "secret_policy": {
+    "private_key_bytes_in_database": false,
+    "private_key_bytes_in_repository": false,
+    "private_key_bytes_in_client": false,
+    "only_opaque_server_side_provider_reference_stored": true,
+    "production_private_key_seeded_by_sec004": false
+  },
+  "trust_policy": {
+    "one_active_signer_maximum": true,
+    "retired_keys_may_verify_historical_envelopes": true,
+    "revoked_keys_are_untrusted_after_revocation_state_is_known": true,
+    "active_license_requires_complete_signature_metadata": true
+  },
+  "future_stage_boundaries": {
+    "SEC.005": "Device identity creates the client key/fingerprint inputs bound into the license payload.",
+    "SEC.006": "Activation API builds the payload, obtains a server-side signature, and returns the signed envelope.",
+    "SEC.010": "Device management/replacement affects device binding.",
+    "SEC.012": "Periodic online validation refreshes signing-key/revocation knowledge.",
+    "SEC.016": "Anti-tamper hardening protects client verification state and clock assumptions."
+  }
+}

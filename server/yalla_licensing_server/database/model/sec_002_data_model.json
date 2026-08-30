@@ -1,0 +1,90 @@
+{
+  "stage": "SEC.002",
+  "model_version": 1,
+  "canonical_engine": "PostgreSQL 16+",
+  "client_database": {
+    "name": "yalla_accounts.db",
+    "version": 63,
+    "modified": false
+  },
+  "identity_contract": {
+    "organization_id": "UUID shared with SEC.001 client organization identity",
+    "server_is_commercial_source_of_truth": true
+  },
+  "tables": [
+    {
+      "name": "organizations",
+      "purpose": "Permanent commercial tenant identity"
+    },
+    {
+      "name": "yalla_admin_users",
+      "purpose": "Server-side Yalla operator identities; authentication/roles come later"
+    },
+    {
+      "name": "plans",
+      "purpose": "Stable commercial plan identity; entitlements are added in SEC.003"
+    },
+    {
+      "name": "subscriptions",
+      "purpose": "Organization subscription lifecycle"
+    },
+    {
+      "name": "devices",
+      "purpose": "Per-installation device identity and public key metadata"
+    },
+    {
+      "name": "licenses",
+      "purpose": "Per-subscription/per-device license record"
+    },
+    {
+      "name": "activations",
+      "purpose": "Idempotent activation decisions and history"
+    },
+    {
+      "name": "renewals",
+      "purpose": "Subscription renewal history"
+    },
+    {
+      "name": "suspensions",
+      "purpose": "Organization/subscription/license/device suspension records"
+    },
+    {
+      "name": "overrides",
+      "purpose": "Time-bounded owner/admin exceptions with before/after state"
+    },
+    {
+      "name": "audit_logs",
+      "purpose": "Append-oriented administrative/security audit trail"
+    },
+    {
+      "name": "security_events",
+      "purpose": "Security event stream for later enforcement"
+    }
+  ],
+  "relationships": [
+    "subscriptions.organization_id -> organizations.id",
+    "subscriptions.plan_id -> plans.id",
+    "devices.organization_id -> organizations.id",
+    "licenses.organization_id -> organizations.id",
+    "licenses.subscription_id -> subscriptions.id",
+    "licenses.device_id -> devices.id",
+    "activations -> organizations/subscriptions/licenses/devices",
+    "renewals.subscription_id -> subscriptions.id",
+    "suspensions -> organization plus one scoped target",
+    "overrides -> organization plus optional commercial/device targets"
+  ],
+  "future_stage_boundaries": {
+    "SEC.003": "Features, plan entitlements, subscription entitlement overrides and evaluation rules",
+    "SEC.004": "Signing authority and cryptographic key lifecycle",
+    "SEC.005": "Client installation/device cryptographic identity implementation",
+    "SEC.006": "Activation API and first online activation",
+    "SEC.013": "Control Center application",
+    "SEC.014": "Super Owner and Break Glass authorization",
+    "SEC.015": "Authentication, recovery, sessions, immutable audit enforcement and security policies"
+  },
+  "prohibited_in_client": [
+    "server signing secrets",
+    "universal administrator credentials",
+    "commercial source-of-truth subscription state"
+  ]
+}

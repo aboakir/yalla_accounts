@@ -1,0 +1,58 @@
+{
+  "stage": "SEC.003",
+  "server_model_version": 2,
+  "canonical_engine": "PostgreSQL 16+",
+  "client_database": {
+    "version": 63,
+    "modified": false
+  },
+  "new_tables": [
+    "features",
+    "plan_entitlements",
+    "subscription_entitlement_overrides"
+  ],
+  "extended_tables": {
+    "plans": ["entitlement_revision"],
+    "subscriptions": ["entitlement_revision"]
+  },
+  "reserved_features": [
+    "MAX_USERS",
+    "MAX_DEVICES",
+    "ACCOUNTING_CORE",
+    "WORKSHOP_REPAIRS",
+    "INVENTORY",
+    "INSURANCE",
+    "REPORT_EXPORT",
+    "BACKUP_RESTORE"
+  ],
+  "value_types": ["BOOLEAN", "INTEGER", "DECIMAL", "TEXT", "JSON"],
+  "effective_entitlement_precedence": [
+    "highest-priority active subscription override",
+    "plan entitlement",
+    "missing entitlement means not entitled"
+  ],
+  "override_tiebreak": [
+    "priority DESC",
+    "starts_at DESC",
+    "created_at DESC",
+    "id DESC"
+  ],
+  "revision_contract": {
+    "plan_entitlement_mutation_bumps_plan_revision": true,
+    "subscription_override_mutation_bumps_subscription_revision": true,
+    "feature_constraint_change_propagates_revision": true
+  },
+  "commercial_policy": {
+    "plan_names_seeded": false,
+    "prices_seeded": false,
+    "reason": "Commercial packaging and pricing are intentionally not invented by SEC.003."
+  },
+  "future_stage_boundaries": {
+    "SEC.004": "Signed entitlement authority and cryptographic key lifecycle",
+    "SEC.006": "Activation API consumes effective entitlements",
+    "SEC.009": "Client-side enforcement of MAX_USERS",
+    "SEC.010": "Client/server enforcement of MAX_DEVICES",
+    "SEC.013": "Control Center manages plans/features/entitlements",
+    "SEC.014": "Break Glass and privileged override authorization"
+  }
+}

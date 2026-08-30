@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Yalla admin recovery completion request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "challenge_id",
+    "recovery_secret",
+    "recovery_code",
+    "new_password"
+  ],
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "recovery_secret": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 2048
+    },
+    "recovery_code": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128
+    },
+    "new_password": {
+      "type": "string",
+      "minLength": 12,
+      "maxLength": 1024
+    }
+  }
+}

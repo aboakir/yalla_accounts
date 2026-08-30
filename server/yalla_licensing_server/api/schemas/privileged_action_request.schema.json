@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Yalla privileged action request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action_code",
+    "reason",
+    "requested_state"
+  ],
+  "properties": {
+    "action_code": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 96
+    },
+    "organization_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "target_entity_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 64
+    },
+    "target_entity_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 2000
+    },
+    "requested_state": {
+      "type": "object"
+    },
+    "break_glass_grant_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid"
+    },
+    "expires_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  }
+}

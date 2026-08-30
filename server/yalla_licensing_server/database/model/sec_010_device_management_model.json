@@ -1,0 +1,41 @@
+{
+  "stage": "SEC.010",
+  "server_model_version": 5,
+  "client_database_version": 67,
+  "client_schema_changed": false,
+  "device_statuses": [
+    "ACTIVE",
+    "SUSPENDED",
+    "REVOKED",
+    "REPLACED"
+  ],
+  "actions": [
+    "ADD_DEVICE",
+    "REACTIVATE",
+    "SUSPEND",
+    "RESUME",
+    "REVOKE",
+    "REPLACE"
+  ],
+  "seat_accounting": {
+    "consumes_slot": [
+      "ACTIVE",
+      "SUSPENDED"
+    ],
+    "does_not_consume": [
+      "REVOKED",
+      "REPLACED"
+    ],
+    "source": "SEC.003 MAX_DEVICES"
+  },
+  "terminal_statuses": [
+    "REVOKED",
+    "REPLACED"
+  ],
+  "activation_protocol_version": 2,
+  "client_declares_activation_kind": false,
+  "control_center_deferred_to": "SEC.013",
+  "super_owner_authorization_deferred_to": "SEC.014",
+  "managed_grant_protocol_version": 2,
+  "legacy_grant_protocol_version": 1
+}

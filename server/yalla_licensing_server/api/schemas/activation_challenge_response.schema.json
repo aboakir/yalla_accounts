@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:activation-challenge-response:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["challenge_id", "idempotency_key", "proof_bytes", "expires_at"],
+  "properties": {
+    "challenge_id": {"type": "string", "format": "uuid"},
+    "idempotency_key": {"type": "string", "format": "uuid"},
+    "proof_bytes": {"type": "string", "pattern": "^[A-Za-z0-9_-]{22,1366}$"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  }
+}

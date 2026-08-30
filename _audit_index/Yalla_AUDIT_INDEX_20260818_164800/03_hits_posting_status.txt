@@ -1,0 +1,365 @@
+﻿GROUP: posting_status
+
+### is_posted
+lib\core\services\db\tables\voucher_tables.dart:55: is_posted INTEGER NOT NULL DEFAULT 0,
+lib\core\services\db\tables\voucher_tables.dart:86: is_posted INTEGER NOT NULL DEFAULT 0,
+lib\core\services\db\tables\voucher_tables.dart:113: is_posted,
+lib\core\services\db\tables\voucher_tables.dart:146: await _ensure(db, 'is_posted', 'INTEGER NOT NULL DEFAULT 0');
+lib\features\vouchers\models\voucher_payment_model.dart:100: isPosted: (map['is_posted'] is int)
+lib\features\vouchers\models\voucher_payment_model.dart:101: ? (map['is_posted'] == 1)
+lib\features\vouchers\models\voucher_payment_model.dart:102: : (map['is_posted']?.toString() == '1'),
+lib\features\vouchers\models\voucher_payment_model.dart:132: 'is_posted': isPosted ? 1 : 0,
+lib\features\vouchers\services\voucher_payment_service.dart:50: is_posted INTEGER NOT NULL DEFAULT 0,
+
+### isPosted
+lib\features\vouchers\models\voucher_payment_model.dart:39: final bool isPosted;
+lib\features\vouchers\models\voucher_payment_model.dart:67: this.isPosted = false,
+lib\features\vouchers\models\voucher_payment_model.dart:100: isPosted: (map['is_posted'] is int)
+lib\features\vouchers\models\voucher_payment_model.dart:132: 'is_posted': isPosted ? 1 : 0,
+lib\features\vouchers\models\voucher_payment_model.dart:161: bool? isPosted,
+lib\features\vouchers\models\voucher_payment_model.dart:185: isPosted: isPosted ?? this.isPosted,
+lib\features\vouchers\screens\payment_voucher_screen.dart:712: isPosted: false,
+
+### post_to_gl
+lib\core\services\db\tables\repair_tables.dart:144: post_to_gl INTEGER DEFAULT 0,
+lib\core\services\db\tables\repair_tables.dart:379: 'post_to_gl': 0,
+lib\core\services\db\tables\report_tables.dart:248: 'post_to_gl': 0,
+lib\features\repairs\services\repair_database_service.dart:185: 'post_to_gl': 0,
+lib\features\repairs\services\repair_database_service.dart:312: 'post_to_gl': 0,
+lib\features\repairs\services\repair_database_service.dart:413: 'post_to_gl': 0,
+
+### postToGl
+lib\features\finance\invoices\services\invoice_service.dart:179: bool postToGL = true,
+lib\features\finance\invoices\services\invoice_service.dart:211: if (postToGL) {
+lib\features\finance\invoices\services\invoice_service.dart:263: if (postToGL) {
+lib\features\finance\invoices\services\invoice_service.dart:303: bool postToGL = true,
+lib\features\finance\invoices\services\invoice_service.dart:338: if (postToGL) {
+lib\features\finance\invoices\services\invoice_service.dart:393: if (postToGL) {
+lib\features\finance\services\accounts_receivable_service.dart:145: postToGL: false, // GL يُنشر من مسار الفواتير الرسمي
+lib\features\repairs\screens\repair_invoice_create_button.dart:77: postToGL: true,
+lib\features\repairs\services\repair_finance_service.dart:124: postToGL: true,
+lib\features\repairs\widgets\repair_card.dart:381: postToGL: true,
+
+### gl_entry_id
+تظهير الشيكات.txt:66: - `gl_entry_id` : TEXT  // ربطه بقيد GL
+تظهير الشيكات.txt:156: - ربط `payment.gl_entry_id` بـ GL Entry.
+lib\core\services\db\tables\accounting_tables.dart:201: column: 'gl_entry_id',
+lib\core\services\db\tables\accounting_tables.dart:1348: 'gl_entry_id': entryId,
+lib\core\services\db\tables\hr_tables.dart:78: gl_entry_id INTEGER,
+lib\core\services\db\tables\hr_tables.dart:97: 'CREATE INDEX IF NOT EXISTS idx_emp_adv_gl ON employee_advances(gl_entry_id);');
+lib\core\services\db\tables\payments_tables.dart:44: gl_entry_id INTEGER,
+lib\core\services\db\tables\payments_tables.dart:72: 'CREATE INDEX IF NOT EXISTS idx_payments_gl ON payments(gl_entry_id);');
+lib\core\services\db\tables\payments_tables.dart:111: column: 'gl_entry_id',
+lib\core\services\db\tables\payments_tables.dart:179: gl_entry_id INTEGER,
+lib\core\services\db\tables\purchase_invoices_table.dart:39: gl_entry_id INTEGER,
+lib\core\services\db\tables\purchase_invoices_table.dart:104: await _ensureColumn(db, 'purchase_invoices', 'gl_entry_id', 'INTEGER');
+lib\core\services\db\tables\purchase_payments_table.dart:27: gl_entry_id INTEGER,
+lib\core\services\db\tables\purchase_payments_table.dart:53: await _ensureColumn(db, 'purchase_payments', 'gl_entry_id', 'INTEGER');
+lib\core\services\db\tables\purchase_payments_table.dart:98: gl_entry_id INTEGER,
+lib\core\services\db\tables\voucher_tables.dart:54: gl_entry_id INTEGER,
+lib\core\services\db\tables\voucher_tables.dart:85: gl_entry_id INTEGER,
+lib\core\services\db\tables\voucher_tables.dart:112: gl_entry_id,
+lib\core\services\db\tables\voucher_tables.dart:145: await _ensure(db, 'gl_entry_id', 'INTEGER');
+lib\features\cheques\models\cheque.dart:163: glEntryId: m['gl_entry_id'] as int?,
+lib\features\cheques\models\cheque.dart:206: 'gl_entry_id': glEntryId,
+lib\features\cheques\services\cheque_endorsement_service.dart:152: {'gl_entry_id': glEntryId},
+lib\features\cheques\services\cheque_endorsement_service.dart:162: {'gl_entry_id': glEntryId},
+lib\features\employees\models\advance.dart:64: 'gl_entry_id': glEntryId,
+lib\features\employees\models\advance.dart:101: glEntryId: readInt('gl_entry_id') ?? readInt('glEntryId'),
+lib\features\employees\models\salary.dart:117: 'gl_entry_id_approval': glEntryIdApproval,
+lib\features\employees\models\salary.dart:118: 'gl_entry_id_payment': glEntryIdPayment,
+lib\features\employees\models\salary.dart:172: final glApproval = ri(['gl_entry_id_approval', 'gl_accrual_id']);
+lib\features\employees\models\salary.dart:173: final glPayment = ri(['gl_entry_id_payment', 'gl_payment_id']);
+lib\features\employees\services\advance_database_service.dart:16: // - insertAdvance(...): يكتب السجل (advance/bonus) ثم ينشر GL ويربط gl_entry_id.
+lib\features\employees\services\advance_database_service.dart:18: // - reverseAdvance(id): يعكس القيد فقط ويصفر gl_entry_id.
+lib\features\employees\services\advance_database_service.dart:60: gl_entry_id INTEGER,              -- linked GL entry
+lib\features\employees\services\advance_database_service.dart:74: 'CREATE INDEX IF NOT EXISTS idx_emp_adv_gl    ON $_table(gl_entry_id);');
+lib\features\employees\services\advance_database_service.dart:157: /// إدخال سلفة/مكافأة + نشر GL + تحديث gl_entry_id.
+lib\features\employees\services\advance_database_service.dart:189: 'gl_entry_id': null,
+lib\features\employees\services\advance_database_service.dart:214: // ربط gl_entry_id مع سجل السلفة
+lib\features\employees\services\advance_database_service.dart:217: {'gl_entry_id': savedVoucher.glEntryId},
+lib\features\employees\services\advance_database_service.dart:261: final glOld = old.first['gl_entry_id'];
+lib\features\employees\services\advance_database_service.dart:277: 'gl_entry_id': null,
+lib\features\employees\services\advance_database_service.dart:321: // 3) أربط gl_entry_id
+lib\features\employees\services\advance_database_service.dart:324: {'gl_entry_id': entryId},
+lib\features\employees\services\advance_database_service.dart:330: /// عكس القيد فقط بدون حذف السجل. يبقي السجل ويصفر gl_entry_id.
+lib\features\employees\services\advance_database_service.dart:337: columns: ['gl_entry_id'],
+lib\features\employees\services\advance_database_service.dart:344: final glId = row.first['gl_entry_id'];
+lib\features\employees\services\advance_database_service.dart:354: {'gl_entry_id': null},
+lib\features\employees\services\advance_database_service.dart:450: 'gl_entry_id': null,
+lib\features\employees\services\advance_database_service.dart:489: // 3) اربط gl_entry_id
+lib\features\employees\services\advance_database_service.dart:492: {'gl_entry_id': glId},
+lib\features\employees\services\advance_database_service.dart:556: gl_entry_id
+lib\features\employees\services\advance_database_service.dart:587: glEntryId: v['gl_entry_id'] as int?,
+lib\features\employees\services\salary_database_service.dart:494: 'gl_entry_id': glId,
+lib\features\employees\services\salary_service.dart:46: gl_entry_id_approval INTEGER,
+lib\features\employees\services\salary_service.dart:47: gl_entry_id_payment INTEGER,
+lib\features\employees\services\salary_service.dart:225: 'gl_entry_id_approval': glId,
+lib\features\employees\services\salary_service.dart:248: columns: ['employee_id', 'net', 'status', 'gl_entry_id_payment'],
+lib\features\employees\services\salary_service.dart:256: if (r['gl_entry_id_payment'] != null) {
+lib\features\employees\services\salary_service.dart:303: 'gl_entry_id_payment': glId,
+lib\features\employees\services\salary_service.dart:319: columns: ['status', 'gl_entry_id_approval', 'gl_entry_id_payment'],
+lib\features\employees\services\salary_service.dart:325: if (rows.first['gl_entry_id_payment'] != null) {
+lib\features\employees\services\salary_service.dart:329: final glId = rows.first['gl_entry_id_approval'] as int?;
+lib\features\employees\services\salary_service.dart:339: {'status': 'void', 'gl_entry_id_approval': null},
+lib\features\finance\invoices\screens\invoice_view_screen.dart:120: final stored = inv?['gl_entry_id'];
+lib\features\finance\invoices\screens\invoice_view_screen.dart:176: SELECT id, date, amount, method, status, gl_entry_id
+lib\features\finance\invoices\screens\invoice_view_screen.dart:661: final gl = m['gl_entry_id'];
+lib\features\finance\invoices\screens\invoice_view_screen.dart:692: final gl = m['gl_entry_id'];
+lib\features\finance\invoices\services\invoice_gl_service.dart:9: // يدعم ربط الفاتورة بملف الإصلاح repair_id + تخزين gl_entry_id.
+lib\features\finance\invoices\services\invoice_gl_service.dart:42: gl_entry_id INTEGER
+lib\features\finance\invoices\services\invoice_gl_service.dart:53: 'CREATE INDEX IF NOT EXISTS idx_invoices_gl ON $_table(gl_entry_id);',
+lib\features\finance\invoices\services\invoice_gl_service.dart:105: 'gl_entry_id': null,
+lib\features\finance\invoices\services\invoice_gl_service.dart:157: {'gl_entry_id': glEntryId},
+lib\features\finance\invoices\services\invoice_service.dart:43: gl_entry_id TEXT,
+lib\features\finance\invoices\services\invoice_service.dart:55: 'CREATE INDEX IF NOT EXISTS idx_invoice_gl ON $_table(gl_entry_id)');
+lib\features\finance\invoices\services\invoice_service.dart:225: {'gl_entry_id': glId},
+lib\features\finance\invoices\services\invoice_service.dart:277: {'gl_entry_id': glId},
+lib\features\finance\invoices\services\invoice_service.dart:355: {'gl_entry_id': glId},
+lib\features\finance\invoices\services\invoice_service.dart:410: {'gl_entry_id': glId},
+lib\features\finance\invoices\services\invoice_service.dart:458: if (glEntryId != null) 'gl_entry_id': glEntryId,
+lib\features\finance\invoices\widgets\invoice_add_payment_button.dart:206: 'gl_entry_id': null,
+lib\features\finance\models\invoice.dart:96: 'gl_entry_id': glEntryId,
+lib\features\finance\models\invoice.dart:141: final glEntryId = _asInt(map['gl_entry_id']);
+lib\features\finance\payments\models\payment.dart:95: glEntryId: _int(map['gl_entry_id']),
+lib\features\finance\payments\models\payment.dart:118: 'gl_entry_id': glEntryId,
+lib\features\finance\payments\screens\add_payment_screen.dart:117: 'gl_entry_id': null,
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:134: where: 'gl_entry_id = ?',
+lib\features\finance\payments\screens\unposted_payments_screen.dart:4: // - تقرأ payments حيث gl_entry_id IS NULL OR 0
+lib\features\finance\payments\screens\unposted_payments_screen.dart:43: SELECT id, party_id, client_id, repair_id, invoice_id, amount, date, method, gl_entry_id
+lib\features\finance\payments\screens\unposted_payments_screen.dart:45: WHERE gl_entry_id IS NULL OR gl_entry_id=0
+lib\features\finance\payments\screens\unposted_payments_screen.dart:59: 'gl_entry_id': r['gl_entry_id'],
+lib\features\finance\payments\services\payment_service.dart:90: gl_entry_id INTEGER,
+lib\features\finance\payments\services\payment_service.dart:104: 'CREATE INDEX IF NOT EXISTS idx_payments_gl ON $table(gl_entry_id)');
+lib\features\finance\payments\services\payment_service.dart:493: await db.update(table, {'gl_entry_id': glId},
+lib\features\finance\payments\services\payment_service.dart:539: await txn.update('payments', {'gl_entry_id': id},
+lib\features\finance\payments\services\payment_service.dart:676: await txn.update(table, {'gl_entry_id': glId},
+lib\features\finance\payments\services\payment_service.dart:731: await txn.update(table, {'gl_entry_id': (e.first['id'] as int?)},
+lib\features\finance\payments\services\payment_service.dart:781: await txn.update(table, {'gl_entry_id': glId},
+lib\features\finance\payments\services\payment_service.dart:896: await txn.update(table, {'gl_entry_id': glId},
+lib\features\finance\payments\services\payment_service.dart:1038: await txn.update(table, {'gl_entry_id': glId},
+lib\features\finance\purchases\models\purchase.dart:14: //  gl_entry_id (INT)
+lib\features\finance\purchases\models\purchase.dart:142: m['gl_entry_id'] == null ? null : int.tryParse('${m['gl_entry_id']}'),
+lib\features\finance\purchases\models\purchase.dart:158: 'gl_entry_id': glEntryId,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:68: p.gl_entry_id
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:76: final glId = await _findGlIdForPurchase(pid, m['gl_entry_id']);
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:214: await db.update('purchases', {'gl_entry_id': entryId},
+lib\features\finance\purchases\screens\supplier_payments_screen.dart:86: SELECT id, party_id, amount, date, method, status, notes, gl_entry_id
+lib\features\finance\purchases\screens\supplier_payments_screen.dart:94: SELECT id, party_id, amount, date, method, status, notes, gl_entry_id
+lib\features\finance\purchases\screens\supplier_payments_screen.dart:360: final glRaw = r['gl_entry_id'];
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:4: // - يجلب where gl_entry_id IS NULL OR 0
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:54: p.gl_entry_id
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:57: WHERE p.gl_entry_id IS NULL OR p.gl_entry_id=0
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:70: 'gl_entry_id': r['gl_entry_id'],
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:201: // ربط gl_entry_id
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:204: {'gl_entry_id': entryId},
+lib\features\finance\purchases\services\purchase_database_service.dart:46: gl_entry_id INTEGER
+lib\features\finance\purchases\services\purchase_database_service.dart:68: 'CREATE INDEX IF NOT EXISTS idx_invoice_gl ON $_tableHeader(gl_entry_id);');
+lib\features\finance\purchases\services\purchase_database_service.dart:104: 'gl_entry_id': null,
+lib\features\finance\purchases\services\purchase_invoice_service.dart:148: {"gl_entry_id": glId},
+lib\features\finance\purchases\services\purchase_payment_service.dart:181: "gl_entry_id": glId,
+lib\features\finance\purchases\services\purchase_service.dart:165: {"gl_entry_id": glId},
+lib\features\finance\purchases\services\supplier_payment_service.dart:121: "gl_entry_id": null,
+lib\features\finance\purchases\services\supplier_payment_service.dart:136: // 3) update payment with gl_entry_id
+lib\features\finance\purchases\services\supplier_payment_service.dart:139: {"gl_entry_id": glId},
+lib\features\finance\purchases\services\supplier_payment_service.dart:156: columns: ["gl_entry_id"],
+lib\features\finance\purchases\services\supplier_payment_service.dart:164: final raw = r.first["gl_entry_id"];
+lib\features\finance\screens\payments_screen.dart:7: // • إن وُجدت دفعة أصلها من جدول payments (p.gl_entry_id=gl.id) نظهر أزرار
+lib\features\finance\screens\payments_screen.dart:149: LEFT JOIN payments p ON p.gl_entry_id = ge.id
+lib\features\finance\screens\payments_screen.dart:266: final glId = (m['gl_entry_id'] is int)
+lib\features\finance\screens\payments_screen.dart:267: ? (m['gl_entry_id'] as int)
+lib\features\finance\screens\payments_screen.dart:268: : int.tryParse(m['gl_entry_id']?.toString() ?? '');
+lib\features\finance\screens\payments_screen.dart:868: final glId = (row.first['gl_entry_id'] is int)
+lib\features\finance\screens\payments_screen.dart:869: ? (row.first['gl_entry_id'] as int)
+lib\features\finance\screens\payments_screen.dart:870: : int.tryParse(row.first['gl_entry_id']?.toString() ?? '');
+lib\features\finance\services\invoice_database_service.dart:83: column: 'gl_entry_id',
+lib\features\finance\services\invoice_database_service.dart:88: 'CREATE INDEX IF NOT EXISTS idx_invoices_gl ON $_table(gl_entry_id)',
+lib\features\finance\services\invoice_database_service.dart:214: 'gl_entry_id': glId,
+lib\features\purchases\widgets\purchase_gl_button.dart:8: // - يحدّث purchases.gl_entry_id ثم يفتح شاشة القيد.
+lib\features\purchases\widgets\purchase_gl_button.dart:172: // ربط gl_entry_id
+lib\features\purchases\widgets\purchase_gl_button.dart:175: {'gl_entry_id': entryId},
+lib\features\vouchers\models\voucher_payment_model.dart:97: glEntryId: map['gl_entry_id'] is int
+lib\features\vouchers\models\voucher_payment_model.dart:98: ? map['gl_entry_id']
+lib\features\vouchers\models\voucher_payment_model.dart:99: : int.tryParse("${map['gl_entry_id'] ?? ''}"),
+lib\features\vouchers\models\voucher_payment_model.dart:131: 'gl_entry_id': glEntryId,
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:88: v.gl_entry_id,
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:176: glEntryId: row["gl_entry_id"] == null
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:178: : (row["gl_entry_id"] as num).toInt(),
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:623: row["gl_entry_id"]?.toString() ?? "-",
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:90: p.gl_entry_id,
+lib\features\vouchers\screens\receipt_vouchers_list_screen.dart:452: row["gl_entry_id"]?.toString() ?? "-",
+lib\features\vouchers\services\voucher_payment_service.dart:49: gl_entry_id INTEGER,
+lib\features\vouchers\services\voucher_payment_service.dart:235: {'gl_entry_id': glId},
+lib\features\vouchers\services\voucher_payment_service.dart:280: "gl_entry_id": voucher.glEntryId,
+lib\features\vouchers\services\voucher_payment_service.dart:296: "gl_entry_id": voucher.glEntryId,
+
+### glEntryId
+lib\core\pdf\yalla_pdf_service.dart:784: required int? glEntryId,
+lib\core\pdf\yalla_pdf_service.dart:829: _pdfTableRow("رقم القيد المحاسبي", glEntryId?.toString() ?? "-"),
+lib\core\services\db\db_service.dart:236: static Future<int?> getGlEntryIdBySource(
+lib\core\services\db\db_service.dart:238: AccountingTables.getGlEntryIdBySource(source, sourceId);
+lib\core\services\db\tables\accounting_tables.dart:807: static Future<int?> getGlEntryIdBySource(
+lib\features\cheques\models\cheque.dart:69: final int? glEntryId;
+lib\features\cheques\models\cheque.dart:107: this.glEntryId,
+lib\features\cheques\models\cheque.dart:163: glEntryId: m['gl_entry_id'] as int?,
+lib\features\cheques\models\cheque.dart:206: 'gl_entry_id': glEntryId,
+lib\features\cheques\models\cheque.dart:244: int? glEntryId,
+lib\features\cheques\models\cheque.dart:277: glEntryId: glEntryId ?? this.glEntryId,
+lib\features\cheques\screens\cheques_list_screen.dart:834: if (c.glEntryId != null)
+lib\features\cheques\screens\cheques_list_screen.dart:842: arguments: {"entryId": c.glEntryId},
+lib\features\cheques\services\cheque_endorsement_service.dart:43: late int glEntryId;
+lib\features\cheques\services\cheque_endorsement_service.dart:84: glEntryId: null,
+lib\features\cheques\services\cheque_endorsement_service.dart:104: glEntryId = await AccountingTables.postEntryGLOn(
+lib\features\cheques\services\cheque_endorsement_service.dart:152: {'gl_entry_id': glEntryId},
+lib\features\cheques\services\cheque_endorsement_service.dart:162: {'gl_entry_id': glEntryId},
+lib\features\cheques\services\cheque_endorsement_service.dart:181: glEntryId: glEntryId,
+lib\features\cheques\services\cheque_link_service.dart:67: glEntryId: null,
+lib\features\employees\models\advance.dart:4: // الحقول تشمل method و glEntryId اختياريًا لانسجام الخدمات.
+lib\features\employees\models\advance.dart:7: // Fields include optional method and glEntryId for service compatibility.
+lib\features\employees\models\advance.dart:18: final int? glEntryId; // gl_entries.id المرتبط | Linked GL entry id
+lib\features\employees\models\advance.dart:28: this.glEntryId,
+lib\features\employees\models\advance.dart:40: int? glEntryId,
+lib\features\employees\models\advance.dart:50: glEntryId: glEntryId ?? this.glEntryId,
+lib\features\employees\models\advance.dart:64: 'gl_entry_id': glEntryId,
+lib\features\employees\models\advance.dart:101: glEntryId: readInt('gl_entry_id') ?? readInt('glEntryId'),
+lib\features\employees\models\advance.dart:107: 'Advance(id: $id, employeeId: $employeeId, amount: $amount, type: $type, date: $date, method: $method, note: $note, glEntryId: $glEntryId)';
+lib\features\employees\models\advance.dart:120: other.glEntryId == glEntryId;
+lib\features\employees\models\advance.dart:132: (glEntryId ?? 0).hashCode;
+lib\features\employees\models\salary.dart:23: final int? glEntryIdApproval; // قيد الاعتماد
+lib\features\employees\models\salary.dart:24: final int? glEntryIdPayment; // قيد الدفع
+lib\features\employees\models\salary.dart:43: this.glEntryIdApproval,
+lib\features\employees\models\salary.dart:44: this.glEntryIdPayment,
+lib\features\employees\models\salary.dart:78: int? glEntryIdApproval,
+lib\features\employees\models\salary.dart:79: int? glEntryIdPayment,
+lib\features\employees\models\salary.dart:96: glEntryIdApproval: glEntryIdApproval ?? this.glEntryIdApproval,
+lib\features\employees\models\salary.dart:97: glEntryIdPayment: glEntryIdPayment ?? this.glEntryIdPayment,
+lib\features\employees\models\salary.dart:117: 'gl_entry_id_approval': glEntryIdApproval,
+lib\features\employees\models\salary.dart:118: 'gl_entry_id_payment': glEntryIdPayment,
+lib\features\employees\models\salary.dart:191: glEntryIdApproval: glApproval,
+lib\features\employees\models\salary.dart:192: glEntryIdPayment: glPayment,
+lib\features\employees\services\advance_database_service.dart:217: {'gl_entry_id': savedVoucher.glEntryId},
+lib\features\employees\services\advance_database_service.dart:316: await DBService.getGlEntryIdBySource('EMP_ADV', advance.id);
+lib\features\employees\services\advance_database_service.dart:484: final existing = await DBService.getGlEntryIdBySource('EMP_ADV', id);
+lib\features\employees\services\advance_database_service.dart:587: glEntryId: v['gl_entry_id'] as int?,
+lib\features\employees\services\salary_database_service.dart:398: final existing = await DBService.getGlEntryIdBySource(
+lib\features\employees\services\salary_database_service.dart:472: await DBService.getGlEntryIdBySource('PAYROLL_PAYMENT', sourceId);
+lib\features\finance\invoices\screens\invoice_view_header.dart:30: int? _glEntryId;
+lib\features\finance\invoices\screens\invoice_view_header.dart:129: _glEntryId = glId;
+lib\features\finance\invoices\screens\invoice_view_header.dart:224: if (_glEntryId != null)
+lib\features\finance\invoices\screens\invoice_view_header.dart:227: label: Text('عرض قيد GL رقم $_glEntryId'),
+lib\features\finance\invoices\screens\invoice_view_header.dart:231: arguments: {'entryId': _glEntryId},
+lib\features\finance\invoices\screens\invoice_view_header.dart:255: child: _glEntryId == null
+lib\features\finance\invoices\screens\invoice_view_screen.dart:32: int? _glEntryId;
+lib\features\finance\invoices\screens\invoice_view_screen.dart:186: _glEntryId = glId;
+lib\features\finance\invoices\screens\invoice_view_screen.dart:203: if (_glEntryId != null) {
+lib\features\finance\invoices\screens\invoice_view_screen.dart:204: await _snack('قيد GL موجود بالفعل (#$_glEntryId)');
+lib\features\finance\invoices\screens\invoice_view_screen.dart:241: if (_glEntryId == null) return;
+lib\features\finance\invoices\screens\invoice_view_screen.dart:247: content: Text('عكس قيد الفاتورة #$_glEntryId ؟'),
+lib\features\finance\invoices\screens\invoice_view_screen.dart:263: _glEntryId!,
+lib\features\finance\invoices\screens\invoice_view_screen.dart:275: Future<void> _reversePaymentGL(int glEntryId) async {
+lib\features\finance\invoices\screens\invoice_view_screen.dart:280: content: Text('عكس قيد الدفعة #$glEntryId ؟'),
+lib\features\finance\invoices\screens\invoice_view_screen.dart:294: await DBService.reverseEntryGL(glEntryId,
+lib\features\finance\invoices\screens\invoice_view_screen.dart:348: final hasPaymentsNoGL = (_glEntryId == null) && _payments.isNotEmpty;
+lib\features\finance\invoices\screens\invoice_view_screen.dart:396: if (_glEntryId != null)
+lib\features\finance\invoices\screens\invoice_view_screen.dart:397: _row(label: 'قيد GL', value: '#$_glEntryId'),
+lib\features\finance\invoices\screens\invoice_view_screen.dart:438: 'entryId': _glEntryId,
+lib\features\finance\invoices\screens\invoice_view_screen.dart:445: if (_glEntryId != null)
+lib\features\finance\invoices\screens\invoice_view_screen.dart:448: label: Text('عرض قيد #$_glEntryId'),
+lib\features\finance\invoices\screens\invoice_view_screen.dart:452: arguments: _glEntryId,
+lib\features\finance\invoices\screens\invoice_view_screen.dart:469: if (_glEntryId != null)
+lib\features\finance\invoices\screens\invoice_view_screen.dart:488: child: _glEntryId == null
+lib\features\finance\invoices\services\invoice_gl_service.dart:145: final glEntryId = await DBService.postEntryGL(
+lib\features\finance\invoices\services\invoice_gl_service.dart:157: {'gl_entry_id': glEntryId},
+lib\features\finance\invoices\services\invoice_service.dart:433: String? glEntryId,
+lib\features\finance\invoices\services\invoice_service.dart:458: if (glEntryId != null) 'gl_entry_id': glEntryId,
+lib\features\finance\models\invoice.dart:4: // الحقول المدعومة: id, repairId, date, subtotal, vat, total, paid, status, notes, note, method, glEntryId, clientId
+lib\features\finance\models\invoice.dart:39: final int? glEntryId;
+lib\features\finance\models\invoice.dart:56: this.glEntryId,
+lib\features\finance\models\invoice.dart:96: 'gl_entry_id': glEntryId,
+lib\features\finance\models\invoice.dart:141: final glEntryId = _asInt(map['gl_entry_id']);
+lib\features\finance\models\invoice.dart:156: glEntryId: glEntryId,
+lib\features\finance\models\invoice.dart:173: int? glEntryId,
+lib\features\finance\models\invoice.dart:188: glEntryId: glEntryId ?? this.glEntryId,
+lib\features\finance\payments\models\payment.dart:33: final int? glEntryId;
+lib\features\finance\payments\models\payment.dart:52: this.glEntryId,
+lib\features\finance\payments\models\payment.dart:95: glEntryId: _int(map['gl_entry_id']),
+lib\features\finance\payments\models\payment.dart:118: 'gl_entry_id': glEntryId,
+lib\features\finance\payments\models\payment.dart:137: int? glEntryId,
+lib\features\finance\payments\models\payment.dart:154: glEntryId: glEntryId ?? this.glEntryId,
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:12: final int glEntryId;
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:14: const PaymentGLEntryScreenLtr({super.key, required this.glEntryId});
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:16: static Future<void> push(BuildContext context, int glEntryId) async {
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:19: builder: (_) => PaymentGLEntryScreenLtr(glEntryId: glEntryId),
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:58: whereArgs: [widget.glEntryId],
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:98: ''', [widget.glEntryId]);
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:162: content: Text('${S.t('confirm_reverse_entry')} #${widget.glEntryId}?'),
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:176: await DBService.reverseEntryGL(widget.glEntryId,
+lib\features\finance\payments\screens\payment_gl_entry_screen_ltr.dart:197: arguments: {'entryId': widget.glEntryId});
+lib\features\finance\payments\screens\unposted_payments_screen.dart:110: final glId = await DBService.getGlEntryIdBySource('PAYMENT', paymentId);
+lib\features\finance\purchases\models\purchase.dart:89: final int? glEntryId;
+lib\features\finance\purchases\models\purchase.dart:100: this.glEntryId,
+lib\features\finance\purchases\models\purchase.dart:112: int? glEntryId,
+lib\features\finance\purchases\models\purchase.dart:123: glEntryId: glEntryId ?? this.glEntryId,
+lib\features\finance\purchases\models\purchase.dart:141: glEntryId:
+lib\features\finance\purchases\models\purchase.dart:158: 'gl_entry_id': glEntryId,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:42: Future<int?> _findGlIdForPurchase(String pid, dynamic glEntryIdCol) async {
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:43: final fromCol = (glEntryIdCol is int)
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:44: ? glEntryIdCol
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:45: : int.tryParse('${glEntryIdCol ?? ''}');
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:47: return DBService.getGlEntryIdBySource('PURCHASE', pid);
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:88: glEntryId: glId,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:94: _Filter.posted => all.where((r) => r.glEntryId != null).toList(),
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:95: _Filter.unposted => all.where((r) => r.glEntryId == null).toList(),
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:127: final exists = await DBService.getGlEntryIdBySource('PURCHASE', purchaseId);
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:242: if (r.glEntryId == null) {
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:249: final revId = await DBService.reverseEntryGL(r.glEntryId!,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:263: if (r.glEntryId == null) {
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:268: await GLEntryScreen.open(context, r.glEntryId!);
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:294: if (r.glEntryId == null) continue;
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:296: await DBService.reverseEntryGL(r.glEntryId!,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:461: if (r.glEntryId != null)
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:463: label: Text('#${r.glEntryId}'),
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:469: r.glEntryId == null ? () => _postOne(r) : null,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:475: r.glEntryId != null ? () => _openOne(r) : null,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:481: r.glEntryId != null ? () => _reverseOne(r) : null,
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:532: final int? glEntryId;
+lib\features\finance\purchases\screens\purchases_gl_audit_screen.dart:542: required this.glEntryId,
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:101: await DBService.getGlEntryIdBySource('PURCHASE', purchaseId);
+lib\features\finance\purchases\screens\unposted_purchases_screen.dart:258: await DBService.getGlEntryIdBySource('PURCHASE', purchaseId);
+lib\features\finance\purchases\services\supplier_payment_service.dart:66: await DBService.getGlEntryIdBySource("SUPPLIER_PAYMENT", key);
+lib\features\finance\screens\payments_screen.dart:703: glEntryId: null,
+lib\features\finance\screens\payments_screen.dart:896: glEntryId: null,
+lib\features\finance\services\accounts_receivable_service.dart:221: glEntryId: null,
+lib\features\finance\services\invoice_database_service.dart:143: return DBService.getGlEntryIdBySource('INVOICE', invId);
+lib\features\purchases\widgets\purchase_gl_button.dart:38: await DBService.getGlEntryIdBySource('PURCHASE', widget.purchaseId);
+lib\features\purchases\widgets\purchase_gl_button.dart:70: final exists = await DBService.getGlEntryIdBySource('PURCHASE', purchaseId);
+lib\features\repairs\screens\recieve_payment_screen.dart:199: glEntryId: null,
+lib\features\repairs\screens\repair_details_screen.dart:50: int? _invoiceGlEntryId;
+lib\features\repairs\screens\repair_details_screen.dart:180: setState(() => _invoiceGlEntryId = null);
+lib\features\repairs\screens\repair_details_screen.dart:195: _invoiceGlEntryId =
+lib\features\repairs\screens\repair_details_screen.dart:199: setState(() => _invoiceGlEntryId = null);
+lib\features\repairs\screens\repair_details_screen.dart:211: if (_invoiceGlEntryId != null) {
+lib\features\repairs\screens\repair_details_screen.dart:213: SnackBar(content: Text('قيد GL موجود بالفعل (#$_invoiceGlEntryId).')),
+lib\features\repairs\screens\repair_details_screen.dart:388: glEntryId: null,
+lib\features\repairs\screens\repair_details_screen.dart:1201: if (_invoiceGlEntryId == null)
+lib\features\repairs\screens\repair_details_screen.dart:1215: 'عرض قيد GL #$_invoiceGlEntryId'),
+lib\features\repairs\screens\repair_details_screen.dart:1222: _invoiceGlEntryId
+lib\features\repairs\services\repair_database_service.dart:542: glEntryId: null,
+lib\features\repairs\services\repair_finance_service.dart:52: glEntryId: null,
+lib\features\suppliers\screens\supplier_cheques_screen.dart:421: if (c.glEntryId != null)
+lib\features\suppliers\screens\supplier_cheques_screen.dart:497: if (c.glEntryId != null)
+lib\features\suppliers\screens\supplier_cheques_screen.dart:587: arguments: {"entryId": c.glEntryId},
+lib\features\vouchers\models\voucher_payment_model.dart:38: final int? glEntryId;
+lib\features\vouchers\models\voucher_payment_model.dart:66: this.glEntryId,
+lib\features\vouchers\models\voucher_payment_model.dart:97: glEntryId: map['gl_entry_id'] is int
+lib\features\vouchers\models\voucher_payment_model.dart:131: 'gl_entry_id': glEntryId,
+lib\features\vouchers\models\voucher_payment_model.dart:160: int? glEntryId,
+lib\features\vouchers\models\voucher_payment_model.dart:184: glEntryId: glEntryId ?? this.glEntryId,
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:25: required int? glEntryId,
+lib\features\vouchers\pdf\payment_voucher_pdf.dart:98: glEntryId?.toString() ?? "—", ttf, ttfBold),
+lib\features\vouchers\screens\payment_vouchers_list_screen.dart:176: glEntryId: row["gl_entry_id"] == null
+lib\features\vouchers\screens\receipt_voucher_screen.dart:303: glEntryId: null,
+lib\features\vouchers\screens\receipt_voucher_screen.dart:358: glEntryId: null,
+lib\features\vouchers\services\voucher_payment_service.dart:243: voucher.copyWith(glEntryId: glId, voucherNumber: voucherNumber),
+lib\features\vouchers\services\voucher_payment_service.dart:280: "gl_entry_id": voucher.glEntryId,
+lib\features\vouchers\services\voucher_payment_service.dart:296: "gl_entry_id": voucher.glEntryId,

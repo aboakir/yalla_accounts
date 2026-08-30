@@ -1,8 +1,0 @@
-﻿Project=yalla_accounts
-CapturedAt=2026-08-28T23:35:51.7746625+03:00
-SourceFilesCopied=1059
-iOSFolderPresent=True
-AndroidFolderPresent=True
-CustomerDatabaseIncluded=NO
-BuildArtifactsIncluded=NO
-AYKAIncluded=NO

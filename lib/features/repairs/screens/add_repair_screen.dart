@@ -343,6 +343,255 @@ class _AddRepairScreenState extends ConsumerState<AddRepairScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width < 600) {
+      return _buildPhone(context);
+    }
+    return _buildDesktop(context);
+  }
+
+  Widget _buildPhone(BuildContext context) {
+    final state = ref.watch(repairFormProvider);
+    final isLast = _currentStep == _stepsTitles.length - 1;
+    final partsTotal = state.parts.fold<double>(
+      0,
+      (sum, part) => sum + ((part['price'] as num?)?.toDouble() ?? 0),
+    );
+    final worksTotal = state.works.fold<double>(
+      0,
+      (sum, work) => sum + ((work['price'] as num?)?.toDouble() ?? 0),
+    );
+    final grandTotal = partsTotal + worksTotal;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          'ملف إصلاح جديد  ${_currentStep + 1}/${_stepsTitles.length}',
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'الكاميرا',
+            onPressed: () => _addImage(ImageSource.camera),
+            icon: const Icon(Icons.photo_camera_outlined),
+          ),
+          IconButton(
+            tooltip: 'المعرض',
+            onPressed: () => _addImage(ImageSource.gallery),
+            icon: const Icon(Icons.photo_library_outlined),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: List.generate(_stepsTitles.length, (index) {
+                    final active = index <= _currentStep;
+                    return Expanded(
+                      child: Container(
+                        height: 5,
+                        margin: EdgeInsetsDirectional.only(
+                          end: index == _stepsTitles.length - 1 ? 0 : 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              active ? AppColors.primary : AppColors.lightGrey,
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  _stepsTitles[_currentStep],
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (state.imagePaths.isNotEmpty)
+            Container(
+              height: 92,
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                scrollDirection: Axis.horizontal,
+                itemCount: state.imagePaths.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, index) {
+                  final path = state.imagePaths[index];
+                  return Stack(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _previewImage(path),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(path),
+                            width: 96,
+                            height: 78,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      PositionedDirectional(
+                        top: 3,
+                        end: 3,
+                        child: InkWell(
+                          onTap: () => ref
+                              .read(repairFormProvider.notifier)
+                              .removeImage(path),
+                          child: const CircleAvatar(
+                            radius: 11,
+                            backgroundColor: Colors.black54,
+                            child: Icon(Icons.close,
+                                size: 14, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          if (isLast)
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Column(
+                children: [
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'التكلفة الفعلية',
+                      prefixIcon: Icon(Icons.calculate_outlined),
+                    ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (value) =>
+                        _actualCost = double.tryParse(value.trim()),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('تفعيل الربط المحاسبي'),
+                    value: _isLedgerEnabled,
+                    activeColor: AppColors.primary,
+                    onChanged: (value) =>
+                        setState(() => _isLedgerEnabled = value),
+                  ),
+                  if (state.paymentMethod == 'شيك')
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _handleChequePayment,
+                        icon: const Icon(Icons.receipt_long_outlined),
+                        label: Text(
+                          state.pendingCheque == null
+                              ? 'إضافة بيانات الشيك'
+                              : 'تعديل بيانات الشيك ${state.pendingCheque!.chequeNo}',
+                        ),
+                      ),
+                    ),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Text(
+                      'الإجمالي: ${MoneyFormatter.format(grandTotal)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                StepVehicleData(formKey: _step1Key),
+                StepBeneficiaryData(formKey: _step2Key),
+                StepWorkData(formKey: _step3Key),
+                StepFinancialData(
+                  formKey: _step4Key,
+                  forceEnableApprove: true,
+                  onChequePaymentSelected: _handleChequePayment,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: AppColors.lightGrey)),
+          ),
+          child: Row(
+            children: [
+              if (_currentStep > 0) ...[
+                SizedBox(
+                  width: 112,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: _isSaving ? null : _previousStep,
+                    child: const Text('السابق'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
+                    onPressed:
+                        _isSaving ? null : (isLast ? _saveFinal : _nextStep),
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(isLast
+                            ? Icons.check_rounded
+                            : Icons.arrow_back_rounded),
+                    label: Text(isLast ? 'حفظ الملف' : 'التالي'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktop(BuildContext context) {
     final state = ref.watch(repairFormProvider);
     final isLast = _currentStep == _stepsTitles.length - 1;
 

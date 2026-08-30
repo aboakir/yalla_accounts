@@ -1,0 +1,7 @@
+﻿Flutter 3.44.8 ظت channel stable ظت https://github.com/flutter/flutter.git
+Framework ظت revision 058e0af2c2 (4 weeks ago) ظت 2026-07-23 10:56:21 -0700
+Engine ظت hash 13ffd72b2f9a5ca4db2a74ea52d5353ec2e8f939 (revision 0cd610717b) (25 days ago) ظت 2026-07-23 16:11:34.000Z
+Tools ظت Dart 3.12.2 ظت DevTools 2.57.0
+
+Dart SDK version: 3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on "windows_x64"
+

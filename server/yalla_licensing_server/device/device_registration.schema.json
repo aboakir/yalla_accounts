@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yalla.local/schemas/device-registration-v1.json",
+  "title": "Yalla Device Registration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "organization_id",
+    "installation_id",
+    "device_id",
+    "public_key",
+    "public_key_algorithm",
+    "public_key_sha256",
+    "fingerprint_hash",
+    "platform",
+    "app_version",
+    "identity_generation"
+  ],
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "installation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "public_key": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 64
+    },
+    "public_key_algorithm": {
+      "const": "ED25519"
+    },
+    "public_key_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "fingerprint_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "platform": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "platform_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 256
+    },
+    "app_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "identity_generation": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

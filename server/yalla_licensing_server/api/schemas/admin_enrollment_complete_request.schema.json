@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yalla.local/schemas/admin_enrollment_complete_request.schema.json",
+  "title": "Yalla Admin Enrollment Complete Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["challenge_id", "new_password", "mfa_method", "mfa_proof"],
+  "properties": {
+    "challenge_id": {"type": "string", "minLength": 16, "maxLength": 128},
+    "new_password": {"type": "string", "minLength": 10, "maxLength": 256},
+    "mfa_method": {"type": "string", "enum": ["TOTP", "WEBAUTHN"]},
+    "mfa_proof": {"type": "object", "minProperties": 1}
+  }
+}

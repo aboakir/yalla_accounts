@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yalla:license-lifecycle-complete-response:v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "lifecycle_event_id",
+    "server_time",
+    "license_envelope",
+    "verification_keyset"
+  ],
+  "properties": {
+    "lifecycle_event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "server_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "license_envelope": {
+      "type": "object"
+    },
+    "verification_keyset": {
+      "type": "object"
+    }
+  }
+}

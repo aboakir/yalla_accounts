@@ -1,0 +1,20 @@
+{
+  "stage": "SEC.012",
+  "server_model_version": 7,
+  "default_validation_interval_days": 30,
+  "default_validation_grace_days": 7,
+  "subscription_policy_fields": [
+    "validation_interval_days",
+    "validation_grace_days"
+  ],
+  "signed_license_fields": [
+    "validation_required_at",
+    "validation_grace_until"
+  ],
+  "client_behavior": {
+    "before_due": "WRITABLE",
+    "due_before_grace_end": "ATTEMPT_ONLINE_VALIDATION_AND_ALLOW_OFFLINE_WRITES",
+    "after_grace_end": "READ_ONLY_VALIDATION_REQUIRED"
+  },
+  "clock_tamper_hardening": "SEC.016"
+}
