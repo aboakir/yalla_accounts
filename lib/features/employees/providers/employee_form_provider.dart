@@ -114,7 +114,7 @@ class EmployeeFormData {
       case EmployeeContractType.contract:
         return (contractAmount ?? 0.0);
       case EmployeeContractType.monthly:
-      return baseSalary;
+        return baseSalary;
     }
   }
 

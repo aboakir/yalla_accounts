@@ -595,9 +595,15 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               },
               child: StatefulBuilder(
                 builder: (ctx, setDlg) {
+                  final viewport = MediaQuery.sizeOf(ctx);
+                  final phone = viewport.width < 600;
                   return SizedBox(
-                    width: 900,
-                    height: 720,
+                    width: phone ? viewport.width - 24 : 900,
+                    height: phone
+                        ? (viewport.height * 0.72)
+                            .clamp(320.0, 720.0)
+                            .toDouble()
+                        : 720,
                     child: Stack(
                       children: [
                         Center(

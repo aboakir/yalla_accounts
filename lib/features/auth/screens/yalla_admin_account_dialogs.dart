@@ -131,7 +131,7 @@ class _YallaAdminEnrollmentDialogState
     return AdaptiveAlertDialog(
       title: const Text('إعداد حساب Yalla الإداري لأول مرة'),
       content: SizedBox(
-        width: 560,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 560,
         child: Form(
           key: _form,
           child: SingleChildScrollView(

@@ -1,5 +1,5 @@
-// 📁 lib/main.dart — Production bootstrap + Riverpod root
-// FINAL — Global EN digits (Latin) while keeping Arabic UI + RTL
+// ًں“پ lib/main.dart â€” Production bootstrap + Riverpod root
+// FINAL â€” Global EN digits (Latin) while keeping Arabic UI + RTL
 
 import 'dart:async';
 import 'dart:ui' as ui show PlatformDispatcher;
@@ -22,12 +22,15 @@ import 'package:yalla_accounts/core/licensing/validation/periodic_license_valida
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/services/commercial_settings_service.dart';
 
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_theme.dart';
+import 'package:yalla_accounts/shared/widgets/yalla_mobile_adaptive.dart';
+
 /// ---------------------------------------------------------------------------
-/// ✅ Locale: Arabic UI but EN digits everywhere
+/// âœ… Locale: Arabic UI but EN digits everywhere
 /// - BCP47 tag: ar-u-nu-latn  (Arabic with Latin numerals)
 /// ---------------------------------------------------------------------------
-const Locale kAppLocale =
-    Locale('ar', 'u-nu-latn'); // مهم: هذا يحوّل الأرقام للاتينية
+const Locale kAppLocale = Locale('ar',
+    'u-nu-latn'); // ظ…ظ‡ظ…: ظ‡ط°ط§ ظٹط­ظˆظ‘ظ„ ط§ظ„ط£ط±ظ‚ط§ظ… ظ„ظ„ط§طھظٹظ†ظٹط©
 const List<Locale> kSupportedLocales = [
   Locale('ar', 'u-nu-latn'),
   Locale('ar'),
@@ -45,7 +48,7 @@ class _YallaObserver extends ProviderObserver {
     ProviderContainer container,
   ) {
     debugPrint(
-      '🧨 [ProviderError] ${provider.name ?? provider.runtimeType}: $error\n$stackTrace',
+      'ًں§¨ [ProviderError] ${provider.name ?? provider.runtimeType}: $error\n$stackTrace',
     );
     super.providerDidFail(provider, error, stackTrace, container);
   }
@@ -71,12 +74,12 @@ class YallaScrollBehavior extends MaterialScrollBehavior {
 }
 
 /// ---------------------------------------------------------------------------
-/// Bootstrap — DB + settings (NO LICENSE)
+/// Bootstrap â€” DB + settings (NO LICENSE)
 /// ---------------------------------------------------------------------------
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ هذا أهم سطر: يخلي intl (DateFormat/NumberFormat) يستخدم أرقام 0-9
+  // âœ… ظ‡ط°ط§ ط£ظ‡ظ… ط³ط·ط±: ظٹط®ظ„ظٹ intl (DateFormat/NumberFormat) ظٹط³طھط®ط¯ظ… ط£ط±ظ‚ط§ظ… 0-9
   Intl.defaultLocale = 'ar-u-nu-latn';
 
   final isDesktop = !kIsWeb &&
@@ -87,12 +90,12 @@ Future<void> _bootstrap() async {
   if (isDesktop) {
     sqfliteFfiInit();
     sq.databaseFactory = databaseFactoryFfi;
-    debugPrint("📌 Using sqflite_common_ffi (Desktop mode)");
+    debugPrint("ًں“Œ Using sqflite_common_ffi (Desktop mode)");
   }
 
   try {
     final path = await DBService.dbFilePath();
-    debugPrint('📂 DB Path = $path');
+    debugPrint('ًں“‚ DB Path = $path');
 
     final db = await DBService.database.timeout(
       const Duration(seconds: 15),
@@ -115,7 +118,7 @@ Future<void> _bootstrap() async {
     final runtimeDecision =
         await LicenseRuntimeService().refreshFromStoredLicense();
     debugPrint(
-      '🔐 SEC.011 runtime mode: ${runtimeDecision.mode} '
+      'ًں”گ SEC.011 runtime mode: ${runtimeDecision.mode} '
       '(${runtimeDecision.reason})',
     );
 
@@ -125,21 +128,21 @@ Future<void> _bootstrap() async {
     PeriodicLicenseValidationScheduler.start();
 
     debugPrint(
-      '✅ DB + commercial presentation settings + device identity + '
+      'âœ… DB + commercial presentation settings + device identity + '
       'license runtime + periodic validation ready',
     );
   } catch (e, st) {
-    debugPrint('🛑 DB bootstrap failed: $e\n$st');
+    debugPrint('ًں›‘ DB bootstrap failed: $e\n$st');
     Error.throwWithStackTrace(e, st);
   }
 
   FlutterError.onError = (details) {
-    debugPrint('🧨 FlutterError: ${details.exceptionAsString()}');
+    debugPrint('ًں§¨ FlutterError: ${details.exceptionAsString()}');
     if (details.stack != null) debugPrint(details.stack.toString());
   };
 
   ui.PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint('🧨 Platform error: $error\n$stack');
+    debugPrint('ًں§¨ Platform error: $error\n$stack');
     return true;
   };
 }
@@ -159,11 +162,11 @@ void main() {
         ),
       );
     } catch (error, stack) {
-      debugPrint('🛑 Startup blocked: $error\n$stack');
+      debugPrint('ًں›‘ Startup blocked: $error\n$stack');
       runApp(_BootstrapFailureApp(error: error));
     }
   }, (error, stack) {
-    debugPrint('❗ Uncaught error: $error\n$stack');
+    debugPrint('â‌— Uncaught error: $error\n$stack');
   });
 }
 
@@ -194,7 +197,7 @@ class _BootstrapFailureApp extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'تعذر فتح قاعدة بيانات Yalla Accounts بأمان',
+                      'طھط¹ط°ط± ظپطھط­ ظ‚ط§ط¹ط¯ط© ط¨ظٹط§ظ†ط§طھ Yalla Accounts ط¨ط£ظ…ط§ظ†',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 22,
@@ -203,8 +206,8 @@ class _BootstrapFailureApp extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'تم إيقاف تشغيل النظام لحماية البيانات. '
-                      'لن يتم إنشاء قاعدة بديلة أو متابعة العمل على قاعدة غير سليمة.',
+                      'طھظ… ط¥ظٹظ‚ط§ظپ طھط´ط؛ظٹظ„ ط§ظ„ظ†ط¸ط§ظ… ظ„ط­ظ…ط§ظٹط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. '
+                      'ظ„ظ† ظٹطھظ… ط¥ظ†ط´ط§ط، ظ‚ط§ط¹ط¯ط© ط¨ط¯ظٹظ„ط© ط£ظˆ ظ…طھط§ط¨ط¹ط© ط§ظ„ط¹ظ…ظ„ ط¹ظ„ظ‰ ظ‚ط§ط¹ط¯ط© ط؛ظٹط± ط³ظ„ظٹظ…ط©.',
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
@@ -238,21 +241,21 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         navigatorKey: AppRoutes.navigatorKey,
 
-        /// 🔥 تشغيل مباشر بدون أي شرط
+        /// ًں”¥ طھط´ط؛ظٹظ„ ظ…ط¨ط§ط´ط± ط¨ط¯ظˆظ† ط£ظٹ ط´ط±ط·
         initialRoute: AppRoutes.startup,
         onGenerateRoute: AppRoutes.onGenerateRoute,
 
-        // ✅ أهم نقطة: Locale عربي لكن بأرقام إنجليزية
+        // âœ… ط£ظ‡ظ… ظ†ظ‚ط·ط©: Locale ط¹ط±ط¨ظٹ ظ„ظƒظ† ط¨ط£ط±ظ‚ط§ظ… ط¥ظ†ط¬ظ„ظٹط²ظٹط©
         locale: kAppLocale,
         supportedLocales: kSupportedLocales,
 
-        // ✅ ضمان إن أي جهاز عربي يرجع على ar-u-nu-latn مباشرة
+        // âœ… ط¶ظ…ط§ظ† ط¥ظ† ط£ظٹ ط¬ظ‡ط§ط² ط¹ط±ط¨ظٹ ظٹط±ط¬ط¹ ط¹ظ„ظ‰ ar-u-nu-latn ظ…ط¨ط§ط´ط±ط©
         localeResolutionCallback: (deviceLocale, supported) {
           if (deviceLocale == null) return kAppLocale;
           if (deviceLocale.languageCode.toLowerCase() == 'ar') {
             return kAppLocale;
           }
-          return kAppLocale; // تطبيقك عربي أساسًا
+          return kAppLocale; // طھط·ط¨ظٹظ‚ظƒ ط¹ط±ط¨ظٹ ط£ط³ط§ط³ظ‹ط§
         },
 
         localizationsDelegates: const [
@@ -261,6 +264,15 @@ class MyApp extends StatelessWidget {
           GlobalCupertinoLocalizations.delegate,
         ],
 
+        // YALLA_FULL_MOBILE_UI_V2
+        builder: (context, child) {
+          final page = child ?? const SizedBox.shrink();
+          if (MediaQuery.sizeOf(context).width >= 600) return page;
+          return Theme(
+            data: YallaMobileTheme.from(Theme.of(context)),
+            child: YallaMobilePage(child: page),
+          );
+        },
         scrollBehavior: YallaScrollBehavior(),
 
         theme: ThemeData(

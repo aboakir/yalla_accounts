@@ -35,7 +35,7 @@ class RepairLedgerService {
 
     // 3) تكلفة العمل (إن لم تكن مخزنة نحسبها للشهر)
     final double costAmount = (repair.workCost ??
-            await WorkCostCalculator.calculateForMonth(repair.receivedDate));
+        await WorkCostCalculator.calculateForMonth(repair.receivedDate));
 
     final String isoDate = repair.receivedDate.toIso8601String();
     final String displayName = repair.beneficiaryName;

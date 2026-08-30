@@ -17,7 +17,8 @@ class PurchaseEntry {
     required this.quantity,
     required this.pricePerUnit,
     required this.unit,
-    required this.date, required String partNumber,
+    required this.date,
+    required String partNumber,
   })  : id = id ?? const Uuid().v4(),
         total = quantity * pricePerUnit;
 
@@ -42,7 +43,8 @@ class PurchaseEntry {
       quantity: map['quantity'],
       pricePerUnit: map['pricePerUnit'],
       unit: map['unit'],
-      date: DateTime.parse(map['date']), partNumber: '',
+      date: DateTime.parse(map['date']),
+      partNumber: '',
     );
   }
 }

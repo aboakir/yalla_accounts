@@ -155,63 +155,72 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(title: const Text('إعدادات الورشة')),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildWorkshopInfoCard(),
-            const SizedBox(height: 20),
-            _buildWorkTimeCard(),
-            const SizedBox(height: 20),
-            _buildSecurityCard(),
-            const SizedBox(height: 25),
-            ElevatedButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.save),
-              label: const Text("حفظ جميع الإعدادات"),
+        body: SafeArea(
+          top: false,
+          child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(
+              context.isPhoneWidth ? 12 : 16,
+              12,
+              context.isPhoneWidth ? 12 : 16,
+              28 + MediaQuery.viewInsetsOf(context).bottom,
             ),
-            const SizedBox(height: 24),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.public_outlined),
-                title: const Text(
-                  'الدولة والعملة والضريبة والترقيم',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: const Text(
-                  'عملة الأساس، دقة الكسور وVAT وإعدادات المستندات',
-                ),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const CommercialSettingsScreen(),
-                    ),
-                  );
-                },
+            children: [
+              _buildWorkshopInfoCard(),
+              const SizedBox(height: 20),
+              _buildWorkTimeCard(),
+              const SizedBox(height: 20),
+              _buildSecurityCard(),
+              const SizedBox(height: 25),
+              ElevatedButton.icon(
+                onPressed: _save,
+                icon: const Icon(Icons.save),
+                label: const Text("حفظ جميع الإعدادات"),
               ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.health_and_safety_outlined),
-                title: const Text(
-                  'صحة البيانات والمحاسبة',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+              const SizedBox(height: 24),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.public_outlined),
+                  title: const Text(
+                    'الدولة والعملة والضريبة والترقيم',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    'عملة الأساس، دقة الكسور وVAT وإعدادات المستندات',
+                  ),
+                  trailing: const Icon(Icons.chevron_left),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const CommercialSettingsScreen(),
+                      ),
+                    );
+                  },
                 ),
-                subtitle: const Text(
-                  'فحص قاعدة البيانات، القيود، الفواتير، السندات، الموردين والشيكات',
-                ),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const DataHealthScreen(),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.health_and_safety_outlined),
+                  title: const Text(
+                    'صحة البيانات والمحاسبة',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    'فحص قاعدة البيانات، القيود، الفواتير، السندات، الموردين والشيكات',
+                  ),
+                  trailing: const Icon(Icons.chevron_left),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const DataHealthScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

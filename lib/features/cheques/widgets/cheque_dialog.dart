@@ -63,7 +63,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
       insetPadding: const EdgeInsets.all(20),
       child: Container(
         padding: const EdgeInsets.all(24),
-        width: 500,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 500,
         child: Form(
           key: _formKey,
           child: Column(

@@ -1,15 +1,15 @@
-// 📁 lib/features/insurance_agent/policies/screens/policy_details_screen.dart
+﻿// ًں“پ lib/features/insurance_agent/policies/screens/policy_details_screen.dart
 //
-// PolicyDetailsScreen — FIXED SCROLL + NO OVERFLOW
-// ✅ Scroll يعمل (فوق/تحت) Desktop + Mobile
-// ✅ لا Overflow في الشيكات (عرض أفقي عند الحاجة)
-// ✅ Sidebar Desktop ثابت + Mobile Overlay
-// ✅ بدون RTL / Directionality (محاذاة يمين فقط)
+// PolicyDetailsScreen â€” FIXED SCROLL + NO OVERFLOW
+// âœ… Scroll ظٹط¹ظ…ظ„ (ظپظˆظ‚/طھط­طھ) Desktop + Mobile
+// âœ… ظ„ط§ Overflow ظپظٹ ط§ظ„ط´ظٹظƒط§طھ (ط¹ط±ط¶ ط£ظپظ‚ظٹ ط¹ظ†ط¯ ط§ظ„ط­ط§ط¬ط©)
+// âœ… Sidebar Desktop ط«ط§ط¨طھ + Mobile Overlay
+// âœ… ط¨ط¯ظˆظ† RTL / Directionality (ظ…ط­ط§ط°ط§ط© ظٹظ…ظٹظ† ظپظ‚ط·)
 //
-// ✅ UPDATED:
-// - عرض "نوع الوثيقة" + "سعر المركبة" من مصدرها الحقيقي (الـ DB row)
-// - Resolve ذكي لأسماء الأعمدة المحتملة (document_type / car_price ...)
-// - عرضهم داخل بطاقة التفاصيل + (Chip) اختياري في الملخص المالي
+// âœ… UPDATED:
+// - ط¹ط±ط¶ "ظ†ظˆط¹ ط§ظ„ظˆط«ظٹظ‚ط©" + "ط³ط¹ط± ط§ظ„ظ…ط±ظƒط¨ط©" ظ…ظ† ظ…طµط¯ط±ظ‡ط§ ط§ظ„ط­ظ‚ظٹظ‚ظٹ (ط§ظ„ظ€ DB row)
+// - Resolve ط°ظƒظٹ ظ„ط£ط³ظ…ط§ط، ط§ظ„ط£ط¹ظ…ط¯ط© ط§ظ„ظ…ط­طھظ…ظ„ط© (document_type / car_price ...)
+// - ط¹ط±ط¶ظ‡ظ… ط¯ط§ط®ظ„ ط¨ط·ط§ظ‚ط© ط§ظ„طھظپط§طµظٹظ„ + (Chip) ط§ط®طھظٹط§ط±ظٹ ظپظٹ ط§ظ„ظ…ظ„ط®طµ ط§ظ„ظ…ط§ظ„ظٹ
 
 import 'dart:convert';
 import 'dart:io';
@@ -28,7 +28,7 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyDetailsScreen extends StatefulWidget {
-  final dynamic policyId; // int أو String
+  final dynamic policyId; // int ط£ظˆ String
   final Map<String, dynamic>? row;
 
   const PolicyDetailsScreen({
@@ -48,26 +48,26 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   // Mobile/Tablet overlay sidebar
   bool _sideOpen = false;
 
-  // ✅ Scroll controller (مهم جدًا عشان السحب يشتغل)
+  // âœ… Scroll controller (ظ…ظ‡ظ… ط¬ط¯ظ‹ط§ ط¹ط´ط§ظ† ط§ظ„ط³ط­ط¨ ظٹط´طھط؛ظ„)
   final ScrollController _scrollCtrl = ScrollController();
 
-  // ✅ Cheques
+  // âœ… Cheques
   List<Map<String, dynamic>> _cheques = [];
   bool _loadingCheques = false;
 
   static const List<String> _collectionOptions = [
-    'غير مدفوع',
-    'مدفوع جزئي',
-    'مدفوع',
-    'أقساط',
+    'ط؛ظٹط± ظ…ط¯ظپظˆط¹',
+    'ظ…ط¯ظپظˆط¹ ط¬ط²ط¦ظٹ',
+    'ظ…ط¯ظپظˆط¹',
+    'ط£ظ‚ط³ط§ط·',
   ];
 
   static const List<String> _officeFollowupOptions = [
-    'جديد',
-    'تم إصدار البوليصة',
-    'تم تسليم البوليصة',
-    'تم التحصيل من العميل',
-    'معلّق/قيد المتابعة',
+    'ط¬ط¯ظٹط¯',
+    'طھظ… ط¥طµط¯ط§ط± ط§ظ„ط¨ظˆظ„ظٹطµط©',
+    'طھظ… طھط³ظ„ظٹظ… ط§ظ„ط¨ظˆظ„ظٹطµط©',
+    'طھظ… ط§ظ„طھط­طµظٹظ„ ظ…ظ† ط§ظ„ط¹ظ…ظٹظ„',
+    'ظ…ط¹ظ„ظ‘ظ‚/ظ‚ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©',
   ];
 
   final _df = DateFormat('yyyy-MM-dd', 'en_US');
@@ -136,7 +136,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 
       if (found == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('⚠️ لم يتم العثور على البوليصة')),
+          const SnackBar(content: Text('âڑ ï¸ڈ ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ط¨ظˆظ„ظٹطµط©')),
         );
         return;
       }
@@ -144,7 +144,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       final pid = found['id'] ?? found['policy_id'] ?? found['uuid'];
       if (pid != null) await _loadCheques(pid);
 
-      // رجّع السكرول لأعلى بعد التحديث (اختياري)
+      // ط±ط¬ظ‘ط¹ ط§ظ„ط³ظƒط±ظˆظ„ ظ„ط£ط¹ظ„ظ‰ ط¨ط¹ط¯ ط§ظ„طھط­ط¯ظٹط« (ط§ط®طھظٹط§ط±ظٹ)
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.jumpTo(0);
       }
@@ -152,7 +152,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل تحميل التفاصيل: $e')),
+        SnackBar(content: Text('â‌Œ ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„طھظپط§طµظٹظ„: $e')),
       );
     }
   }
@@ -179,13 +179,13 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       if (!mounted) return;
       setState(() => _loadingCheques = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل تحميل الشيكات: $e')),
+        SnackBar(content: Text('â‌Œ ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„ط´ظٹظƒط§طھ: $e')),
       );
     }
   }
 
   // ===========================================================================
-  // ✅ Real-source resolving helpers
+  // âœ… Real-source resolving helpers
   // ===========================================================================
   dynamic _resolveFirstValue(Map<String, dynamic> r, List<String> keys) {
     for (final k in keys) {
@@ -206,7 +206,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   }
 
   String _resolveFirstText(Map<String, dynamic> r, List<String> keys,
-      {String fallback = '—'}) {
+      {String fallback = 'â€”'}) {
     final v = _resolveFirstValue(r, keys);
     if (v == null) return fallback;
     final s = v.toString().trim();
@@ -218,9 +218,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     return _toDouble(v);
   }
 
-  // ✅ "نوع الوثيقة" (طرف ثالث / شامل)
+  // âœ… "ظ†ظˆط¹ ط§ظ„ظˆط«ظٹظ‚ط©" (ط·ط±ظپ ط«ط§ظ„ط« / ط´ط§ظ…ظ„)
   String _documentTypeLabel(Map<String, dynamic> r) {
-    // حاول مفاتيح محتملة
+    // ط­ط§ظˆظ„ ظ…ظپط§طھظٹط­ ظ…ط­طھظ…ظ„ط©
     final raw = _resolveFirstText(
       r,
       [
@@ -235,22 +235,22 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       fallback: '',
     ).trim();
 
-    if (raw.isEmpty) return '—';
+    if (raw.isEmpty) return 'â€”';
 
-    // تطبيع بسيط لو كانت القيمة محفوظة بطرق مختلفة
+    // طھط·ط¨ظٹط¹ ط¨ط³ظٹط· ظ„ظˆ ظƒط§ظ†طھ ط§ظ„ظ‚ظٹظ…ط© ظ…ط­ظپظˆط¸ط© ط¨ط·ط±ظ‚ ظ…ط®طھظ„ظپط©
     final s = raw.toLowerCase();
-    if (s.contains('third') || s.contains('tp') || s.contains('طرف')) {
-      return 'طرف ثالث';
+    if (s.contains('third') || s.contains('tp') || s.contains('ط·ط±ظپ')) {
+      return 'ط·ط±ظپ ط«ط§ظ„ط«';
     }
-    if (s.contains('compre') || s.contains('full') || s.contains('شامل')) {
-      return 'شامل';
+    if (s.contains('compre') || s.contains('full') || s.contains('ط´ط§ظ…ظ„')) {
+      return 'ط´ط§ظ…ظ„';
     }
-    return raw; // إذا كانت مكتوبة جاهزة بالعربي (طرف ثالث/شامل) أو أي نص آخر
+    return raw; // ط¥ط°ط§ ظƒط§ظ†طھ ظ…ظƒطھظˆط¨ط© ط¬ط§ظ‡ط²ط© ط¨ط§ظ„ط¹ط±ط¨ظٹ (ط·ط±ظپ ط«ط§ظ„ط«/ط´ط§ظ…ظ„) ط£ظˆ ط£ظٹ ظ†طµ ط¢ط®ط±
   }
 
-  // ✅ "سعر المركبة"
+  // âœ… "ط³ط¹ط± ط§ظ„ظ…ط±ظƒط¨ط©"
   double _vehiclePriceValue(Map<String, dynamic> r) {
-    // أهم مفاتيح متوقعة لسعر المركبة
+    // ط£ظ‡ظ… ظ…ظپط§طھظٹط­ ظ…طھظˆظ‚ط¹ط© ظ„ط³ط¹ط± ط§ظ„ظ…ط±ظƒط¨ط©
     return _resolveFirstDouble(
       r,
       [
@@ -259,7 +259,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         'car_value',
         'vehicle_value',
         'market_value',
-        'sum_insured', // أحيانًا قيمة التأمين = قيمة المركبة
+        'sum_insured', // ط£ط­ظٹط§ظ†ظ‹ط§ ظ‚ظٹظ…ط© ط§ظ„طھط£ظ…ظٹظ† = ظ‚ظٹظ…ط© ط§ظ„ظ…ط±ظƒط¨ط©
         'insured_value',
         'vehicle_sum_insured',
       ],
@@ -268,7 +268,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 
   String _vehiclePriceLabel(Map<String, dynamic> r) {
     final v = _vehiclePriceValue(r);
-    if (v <= 0) return '—';
+    if (v <= 0) return 'â€”';
     return _currency.format(v);
   }
 
@@ -306,9 +306,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   }
 
   String _statusText(Map<String, dynamic> r) {
-    if (_isExpired(r)) return 'منتهية';
-    if (_isExpiringSoon(r)) return 'تنتهي قريبًا';
-    return 'سارية';
+    if (_isExpired(r)) return 'ظ…ظ†طھظ‡ظٹط©';
+    if (_isExpiringSoon(r)) return 'طھظ†طھظ‡ظٹ ظ‚ط±ظٹط¨ظ‹ط§';
+    return 'ط³ط§ط±ظٹط©';
   }
 
   Color _statusColor(Map<String, dynamic> r) {
@@ -430,7 +430,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         candidates: candidates,
       );
       if (col == null) {
-        throw 'لم يُعثر على عمود مناسب: ${candidates.join(", ")}';
+        throw 'ظ„ظ… ظٹظڈط¹ط«ط± ط¹ظ„ظ‰ ط¹ظ…ظˆط¯ ظ…ظ†ط§ط³ط¨: ${candidates.join(", ")}';
       }
 
       String? idCol;
@@ -445,7 +445,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         }
       }
       if (idCol == null) {
-        throw 'لم يُعثر على عمود تعريف للبوليصة (id/policy_id/uuid)';
+        throw 'ظ„ظ… ظٹظڈط¹ط«ط± ط¹ظ„ظ‰ ط¹ظ…ظˆط¯ طھط¹ط±ظٹظپ ظ„ظ„ط¨ظˆظ„ظٹطµط© (id/policy_id/uuid)';
       }
 
       await db.update(
@@ -469,7 +469,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ فشل التحديث: $e')));
+          .showSnackBar(SnackBar(content: Text('â‌Œ ظپط´ظ„ ط§ظ„طھط­ط¯ظٹط«: $e')));
     }
   }
 
@@ -492,7 +492,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         path,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) =>
-            const Center(child: Text('صورة غير صالحة')),
+            const Center(child: Text('طµظˆط±ط© ط؛ظٹط± طµط§ظ„ط­ط©')),
       );
     }
     final f = File(path);
@@ -501,7 +501,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Text(
-            'ملف غير موجود\n$path',
+            'ظ…ظ„ظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯\n$path',
             textAlign: TextAlign.right,
             style: TextStyle(
                 color: Colors.grey.shade700, fontWeight: FontWeight.w700),
@@ -558,16 +558,16 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                     final ok = await showDialog<bool>(
                       context: dlgCtx,
                       builder: (c2) => AdaptiveAlertDialog(
-                        title: const Text('حذف الصورة'),
-                        content: const Text('هل تريد حذف هذه الصورة نهائيًا؟'),
+                        title: const Text('ط­ط°ظپ ط§ظ„طµظˆط±ط©'),
+                        content: const Text('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„طµظˆط±ط© ظ†ظ‡ط§ط¦ظٹظ‹ط§طں'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(c2, false),
-                            child: const Text('إلغاء'),
+                            child: const Text('ط¥ظ„ط؛ط§ط،'),
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(c2, true),
-                            child: const Text('حذف'),
+                            child: const Text('ط­ط°ظپ'),
                           ),
                         ],
                       ),
@@ -581,10 +581,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                 ),
               },
               child: StatefulBuilder(
-                builder: (ctx, setDlg) {
-                  return SizedBox(
-                    width: 900,
-                    height: 720,
+                builder: (ctx, setDlg) { final viewport = MediaQuery.sizeOf(ctx); final phone = viewport.width < 600; return SizedBox(width: phone ? viewport.width - 24 : 900, height: phone ? (viewport.height * 0.72).clamp(320.0, 720.0).toDouble() : 720,
                     child: Stack(
                       children: [
                         Center(
@@ -696,7 +693,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         child: Padding(
           padding: const EdgeInsets.all(8),
           child: Text(
-            'غير موجود',
+            'ط؛ظٹط± ظ…ظˆط¬ظˆط¯',
             textAlign: TextAlign.right,
             style: TextStyle(
                 color: Colors.grey.shade700, fontWeight: FontWeight.w700),
@@ -722,13 +719,13 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                '⏳ عدّاد انتهاء التأمين',
+                'âڈ³ ط¹ط¯ظ‘ط§ط¯ ط§ظ†طھظ‡ط§ط، ط§ظ„طھط£ظ…ظٹظ†',
                 textAlign: TextAlign.right,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               Text(
-                'لا يوجد تاريخ نهاية للتأمين',
+                'ظ„ط§ ظٹظˆط¬ط¯ طھط§ط±ظٹط® ظ†ظ‡ط§ظٹط© ظ„ظ„طھط£ظ…ظٹظ†',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: Colors.grey.shade700,
@@ -757,14 +754,14 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     String subline;
 
     if (remainingDays < 0) {
-      headline = 'منتهية';
-      subline = 'منذ ${remainingDays.abs()} يوم';
+      headline = 'ظ…ظ†طھظ‡ظٹط©';
+      subline = 'ظ…ظ†ط° ${remainingDays.abs()} ظٹظˆظ…';
     } else if (remainingDays == 0) {
-      headline = 'تنتهي اليوم';
-      subline = 'اليوم آخر يوم للتأمين';
+      headline = 'طھظ†طھظ‡ظٹ ط§ظ„ظٹظˆظ…';
+      subline = 'ط§ظ„ظٹظˆظ… ط¢ط®ط± ظٹظˆظ… ظ„ظ„طھط£ظ…ظٹظ†';
     } else {
-      headline = 'متبقي';
-      subline = '$remainingDays يوم';
+      headline = 'ظ…طھط¨ظ‚ظٹ';
+      subline = '$remainingDays ظٹظˆظ…';
     }
 
     double progress = 0.0;
@@ -795,7 +792,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
-                    '⏳ عدّاد انتهاء التأمين',
+                    'âڈ³ ط¹ط¯ظ‘ط§ط¯ ط§ظ†طھظ‡ط§ط، ط§ظ„طھط£ظ…ظٹظ†',
                     textAlign: TextAlign.right,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                   ),
@@ -825,7 +822,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'نهاية التأمين: ${_df.format(end)}',
+              'ظ†ظ‡ط§ظٹط© ط§ظ„طھط£ظ…ظٹظ†: ${_df.format(end)}',
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: Colors.grey.shade700,
@@ -845,7 +842,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'التقدم خلال مدة التأمين',
+                'ط§ظ„طھظ‚ط¯ظ… ط®ظ„ط§ظ„ ظ…ط¯ط© ط§ظ„طھط£ظ…ظٹظ†',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: Colors.grey.shade700,
@@ -865,7 +862,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                   border: Border.all(color: accent.withOpacity(0.35)),
                 ),
                 child: Text(
-                  'تنبيه: متبقي أقل من 12 يوم — جهّز التجديد/التواصل مع العميل',
+                  'طھظ†ط¨ظٹظ‡: ظ…طھط¨ظ‚ظٹ ط£ظ‚ظ„ ظ…ظ† 12 ظٹظˆظ… â€” ط¬ظ‡ظ‘ط² ط§ظ„طھط¬ط¯ظٹط¯/ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¹ظ…ظٹظ„',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     color: accent,
@@ -895,7 +892,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     final plate = (r['vehicle_plate'] ?? '').toString().trim();
     final company = (r['company_name'] ?? '').toString().trim();
 
-    // ✅ NEW: document type + vehicle price chips
+    // âœ… NEW: document type + vehicle price chips
     final docType = _documentTypeLabel(r);
     final carPriceStr = _vehiclePriceLabel(r);
 
@@ -929,7 +926,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     return Card(
       child: ListTile(
         leading: thumbWidget(),
-        title: const Text('الملخص المالي 💰', textAlign: TextAlign.right),
+        title: const Text('ط§ظ„ظ…ظ„ط®طµ ط§ظ„ظ…ط§ظ„ظٹ ًں’°', textAlign: TextAlign.right),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -943,11 +940,11 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                 if (vip)
                   _chip('VIP', AppColors.primary.withOpacity(0.12),
                       AppColors.primary),
-                if (docType != '—')
+                if (docType != 'â€”')
                   _chip(
                       docType, Colors.black.withOpacity(0.06), Colors.black87),
-                if (carPriceStr != '—')
-                  _chip('سعر المركبة: $carPriceStr',
+                if (carPriceStr != 'â€”')
+                  _chip('ط³ط¹ط± ط§ظ„ظ…ط±ظƒط¨ط©: $carPriceStr',
                       Colors.black.withOpacity(0.06), Colors.black87),
                 if (plate.isNotEmpty)
                   _chip(plate, Colors.black.withOpacity(0.06), Colors.black87),
@@ -957,16 +954,16 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            _kv('شراء', buyPrice == 0 ? '—' : _currency.format(buyPrice)),
-            _kv('بيع', sellPrice == 0 ? '—' : _currency.format(sellPrice)),
+            _kv('ط´ط±ط§ط،', buyPrice == 0 ? 'â€”' : _currency.format(buyPrice)),
+            _kv('ط¨ظٹط¹', sellPrice == 0 ? 'â€”' : _currency.format(sellPrice)),
             _kv(
-                'الربح',
+                'ط§ظ„ط±ط¨ط­',
                 (sellPrice == 0 && buyPrice == 0)
-                    ? '—'
+                    ? 'â€”'
                     : _currency.format(profit)),
             if (sellPrice > 0) ...[
-              _kv('المدفوع', _currency.format(paid)),
-              _kv('المتبقي', _currency.format(remaining)),
+              _kv('ط§ظ„ظ…ط¯ظپظˆط¹', _currency.format(paid)),
+              _kv('ط§ظ„ظ…طھط¨ظ‚ظٹ', _currency.format(remaining)),
             ],
           ],
         ),
@@ -978,15 +975,15 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     final start = _parseDate(r['start_date']);
     final end = _parseDate(r['end_date']);
 
-    final plate = (r['vehicle_plate'] ?? '—').toString();
+    final plate = (r['vehicle_plate'] ?? 'â€”').toString();
     final engineSize =
         (r['engine_size'] ?? r['engine_cc'] ?? '').toString().trim();
 
-    final insured = (r['insured_name'] ?? '—').toString();
+    final insured = (r['insured_name'] ?? 'â€”').toString();
     final phone = (r['insured_phone'] ?? '').toString().trim();
-    final company = (r['company_name'] ?? '—').toString();
+    final company = (r['company_name'] ?? 'â€”').toString();
 
-    // ✅ NEW (REAL SOURCE)
+    // âœ… NEW (REAL SOURCE)
     final docType = _documentTypeLabel(r);
     final carPriceStr = _vehiclePriceLabel(r);
 
@@ -1001,35 +998,35 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             const Text(
-              'بيانات المركبة والمستفيد',
+              'ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ظƒط¨ط© ظˆط§ظ„ظ…ط³طھظپظٹط¯',
               textAlign: TextAlign.right,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            _kv('رقم المركبة', plate),
-            _kv('حجم المحرك', engineSize.isEmpty ? '—' : engineSize),
-            _kv('سعر المركبة', carPriceStr),
-            _kv('نوع الوثيقة', docType),
+            _kv('ط±ظ‚ظ… ط§ظ„ظ…ط±ظƒط¨ط©', plate),
+            _kv('ط­ط¬ظ… ط§ظ„ظ…ط­ط±ظƒ', engineSize.isEmpty ? 'â€”' : engineSize),
+            _kv('ط³ط¹ط± ط§ظ„ظ…ط±ظƒط¨ط©', carPriceStr),
+            _kv('ظ†ظˆط¹ ط§ظ„ظˆط«ظٹظ‚ط©', docType),
             const Divider(height: 18),
-            _kv('المؤمَّن له', insured),
-            _kv('الهاتف', phone.isEmpty ? '—' : phone),
+            _kv('ط§ظ„ظ…ط¤ظ…ظ‘ظژظ† ظ„ظ‡', insured),
+            _kv('ط§ظ„ظ‡ط§طھظپ', phone.isEmpty ? 'â€”' : phone),
             const Divider(height: 18),
-            _kv('الشركة', company),
-            _kv('بداية التأمين', start == null ? '—' : _df.format(start)),
-            _kv('نهاية التأمين', end == null ? '—' : _df.format(end)),
-            _kv('VIP', _isVip(r) ? 'نعم' : 'لا'),
-            _kv('الحالة', _statusText(r)),
+            _kv('ط§ظ„ط´ط±ظƒط©', company),
+            _kv('ط¨ط¯ط§ظٹط© ط§ظ„طھط£ظ…ظٹظ†', start == null ? 'â€”' : _df.format(start)),
+            _kv('ظ†ظ‡ط§ظٹط© ط§ظ„طھط£ظ…ظٹظ†', end == null ? 'â€”' : _df.format(end)),
+            _kv('VIP', _isVip(r) ? 'ظ†ط¹ظ…' : 'ظ„ط§'),
+            _kv('ط§ظ„ط­ط§ظ„ط©', _statusText(r)),
             const Divider(height: 18),
-            _kv('آلية الدفع', paymentMethod.isEmpty ? '—' : paymentMethod),
+            _kv('ط¢ظ„ظٹط© ط§ظ„ط¯ظپط¹', paymentMethod.isEmpty ? 'â€”' : paymentMethod),
             const Divider(height: 18),
             const Text(
-              'ملاحظات',
+              'ظ…ظ„ط§ط­ط¸ط§طھ',
               textAlign: TextAlign.right,
               style: TextStyle(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(
-              notes.isEmpty ? '—' : notes,
+              notes.isEmpty ? 'â€”' : notes,
               textAlign: TextAlign.right,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
@@ -1054,7 +1051,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'جاري تحميل الشيكات...',
+                  'ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط´ظٹظƒط§طھ...',
                   textAlign: TextAlign.right,
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
@@ -1072,12 +1069,12 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           child: AdaptiveRow(
             children: [
               const Text(
-                'الشيكات',
+                'ط§ظ„ط´ظٹظƒط§طھ',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Text(
-                'لا توجد شيكات',
+                'ظ„ط§ طھظˆط¬ط¯ ط´ظٹظƒط§طھ',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: Colors.grey.shade700,
@@ -1100,12 +1097,12 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     const wDue = 150.0;
     const wBank = 190.0;
     const wDrawer = 190.0;
-    const wNo = 166.0; // ✅ kill the 2px overflow (desktop rounding)
+    const wNo = 166.0; // âœ… kill the 2px overflow (desktop rounding)
 
-    // ✅ IMPORTANT: this must include row horizontal padding (8 + 8)
+    // âœ… IMPORTANT: this must include row horizontal padding (8 + 8)
     const rowHPad = 8.0;
     final contentW = wAmount + wDue + wBank + wDrawer + wNo;
-    final tableW = contentW + (rowHPad * 2) + 6; // ✅ breathing room ضد rounding
+    final tableW = contentW + (rowHPad * 2) + 6; // âœ… breathing room ط¶ط¯ rounding
 
     Text _cellText(String s, {FontWeight? weight}) {
       return Text(
@@ -1129,19 +1126,19 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           children: [
             SizedBox(
                 width: wAmount,
-                child: _cellText('المبلغ', weight: FontWeight.w800)),
+                child: _cellText('ط§ظ„ظ…ط¨ظ„ط؛', weight: FontWeight.w800)),
             SizedBox(
                 width: wDue,
-                child: _cellText('الاستحقاق', weight: FontWeight.w800)),
+                child: _cellText('ط§ظ„ط§ط³طھط­ظ‚ط§ظ‚', weight: FontWeight.w800)),
             SizedBox(
                 width: wBank,
-                child: _cellText('البنك', weight: FontWeight.w800)),
+                child: _cellText('ط§ظ„ط¨ظ†ظƒ', weight: FontWeight.w800)),
             SizedBox(
                 width: wDrawer,
-                child: _cellText('الساحب', weight: FontWeight.w800)),
+                child: _cellText('ط§ظ„ط³ط§ط­ط¨', weight: FontWeight.w800)),
             SizedBox(
                 width: wNo,
-                child: _cellText('رقم الشيك', weight: FontWeight.w800)),
+                child: _cellText('ط±ظ‚ظ… ط§ظ„ط´ظٹظƒ', weight: FontWeight.w800)),
           ],
         ),
       );
@@ -1150,9 +1147,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     Widget rowItem(Map<String, dynamic> c) {
       final amount = _toDouble(c['amount']);
       final due = _parseDate(c['due_date']);
-      final bank = (c['bank_name'] ?? '—').toString();
-      final drawer = (c['drawer_name'] ?? '—').toString();
-      final number = (c['cheque_number'] ?? '—').toString();
+      final bank = (c['bank_name'] ?? 'â€”').toString();
+      final drawer = (c['drawer_name'] ?? 'â€”').toString();
+      final number = (c['cheque_number'] ?? 'â€”').toString();
 
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: rowHPad),
@@ -1169,7 +1166,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                     weight: FontWeight.w800)),
             SizedBox(
                 width: wDue,
-                child: _cellText(due == null ? '—' : _df.format(due))),
+                child: _cellText(due == null ? 'â€”' : _df.format(due))),
             SizedBox(width: wBank, child: _cellText(bank)),
             SizedBox(width: wDrawer, child: _cellText(drawer)),
             SizedBox(width: wNo, child: _cellText(number)),
@@ -1185,13 +1182,13 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'الشيكات',
+              'ط§ظ„ط´ظٹظƒط§طھ',
               textAlign: TextAlign.right,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
-            // ✅ centered + no overflow + horizontal scroll if needed
+            // âœ… centered + no overflow + horizontal scroll if needed
             LayoutBuilder(
               builder: (ctx, cons) {
                 return ScrollConfiguration(
@@ -1220,7 +1217,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 
             const Divider(height: 18),
             Text(
-              'مجموع الشيكات: ${_currency.format(total)}',
+              'ظ…ط¬ظ…ظˆط¹ ط§ظ„ط´ظٹظƒط§طھ: ${_currency.format(total)}',
               textAlign: TextAlign.right,
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
             ),
@@ -1240,10 +1237,10 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             .inDays;
 
     String expiryHint() {
-      if (remainingDays == null) return '—';
-      if (remainingDays < 0) return 'منتهية منذ ${remainingDays.abs()} يوم';
-      if (remainingDays == 0) return 'تنتهي اليوم';
-      return 'متبقي $remainingDays يوم';
+      if (remainingDays == null) return 'â€”';
+      if (remainingDays < 0) return 'ظ…ظ†طھظ‡ظٹط© ظ…ظ†ط° ${remainingDays.abs()} ظٹظˆظ…';
+      if (remainingDays == 0) return 'طھظ†طھظ‡ظٹ ط§ظ„ظٹظˆظ…';
+      return 'ظ…طھط¨ظ‚ظٹ $remainingDays ظٹظˆظ…';
     }
 
     return Card(
@@ -1254,7 +1251,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           children: [
             Expanded(
               child: Text(
-                'الانتهاء: ${expiryHint()}',
+                'ط§ظ„ط§ظ†طھظ‡ط§ط،: ${expiryHint()}',
                 textAlign: TextAlign.right,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
@@ -1262,7 +1259,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             const SizedBox(width: 8),
             OutlinedButton.icon(
               icon: const Icon(Icons.refresh),
-              label: const Text('تحديث'),
+              label: const Text('طھط­ط¯ظٹط«'),
               onPressed: (_loading || widget.policyId == null)
                   ? null
                   : () async {
@@ -1277,11 +1274,11 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     );
   }
 
-  // ✅ هنا الإصلاح الحقيقي: SizedBox.expand + SingleChildScrollView مع controller
+  // âœ… ظ‡ظ†ط§ ط§ظ„ط¥طµظ„ط§ط­ ط§ظ„ط­ظ‚ظٹظ‚ظٹ: SizedBox.expand + SingleChildScrollView ظ…ط¹ controller
   Widget _buildBody(bool desktop, double contentWidth) {
     final r = _row;
     if (r == null) {
-      return const Center(child: Text('لا توجد بيانات لعرضها'));
+      return const Center(child: Text('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ط¹ط±ط¶ظ‡ط§'));
     }
 
     final images = _extractImages(r);
@@ -1384,14 +1381,14 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           appBar: AppBar(
             backgroundColor: AppColors.primary,
             title: const Text(
-              'تفاصيل البوليصة',
+              'طھظپط§طµظٹظ„ ط§ظ„ط¨ظˆظ„ظٹطµط©',
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
             ),
             iconTheme: const IconThemeData(color: Colors.white),
             actions: [
               IconButton(
-                tooltip: 'تحديث',
+                tooltip: 'طھط­ط¯ظٹط«',
                 onPressed: (_loading || widget.policyId == null)
                     ? null
                     : () async {
@@ -1403,7 +1400,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
               ),
               if (!desktopFixed)
                 IconButton(
-                  tooltip: 'القائمة',
+                  tooltip: 'ط§ظ„ظ‚ط§ط¦ظ…ط©',
                   onPressed: () => _toggleSide(!_sideOpen),
                   icon: const Icon(Icons.menu, color: Colors.white),
                 ),
@@ -1452,7 +1449,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 
       await Process.run('explorer', ['/select,', path]);
     } catch (e) {
-      _toast('تعذر فتح الملف: $e');
+      _toast('طھط¹ط°ط± ظپطھط­ ط§ظ„ظ…ظ„ظپ: $e');
     }
   }
 
@@ -1469,13 +1466,13 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     );
 
     if (col == null) {
-      _toast('⚠️ لم يتم العثور على عمود الصور في insurance_policies');
+      _toast('âڑ ï¸ڈ ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط¹ظ…ظˆط¯ ط§ظ„طµظˆط± ظپظٹ insurance_policies');
       return;
     }
 
     final db = await DatabaseMigration.database;
 
-    // تحديث باستخدام نفس القيمة لكل أعمدة id المحتملة (متحمل)
+    // طھط­ط¯ظٹط« ط¨ط§ط³طھط®ط¯ط§ظ… ظ†ظپط³ ط§ظ„ظ‚ظٹظ…ط© ظ„ظƒظ„ ط£ط¹ظ…ط¯ط© id ط§ظ„ظ…ط­طھظ…ظ„ط© (ظ…طھط­ظ…ظ„)
     await db.update(
       'insurance_policies',
       {col: jsonEncode(images)},
@@ -1483,7 +1480,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       whereArgs: [idValue],
     );
 
-    // حدّث الـ UI
+    // ط­ط¯ظ‘ط« ط§ظ„ظ€ UI
     setState(() {
       _row = {...?r, col: jsonEncode(images)};
     });
@@ -1498,7 +1495,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     if (picked.isEmpty) return;
 
     try {
-      _toast('⏳ جاري معالجة الصور...');
+      _toast('âڈ³ ط¬ط§ط±ظٹ ظ…ط¹ط§ظ„ط¬ط© ط§ظ„طµظˆط±...');
 
       final current = _extractImages(r);
 
@@ -1513,7 +1510,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 
         final savedPath = await ImageStorageService.saveImage(
           image: compressed,
-          module: 'insurance', // ✅ هذا هو الفصل الحقيقي
+          module: 'insurance', // âœ… ظ‡ط°ط§ ظ‡ظˆ ط§ظ„ظپطµظ„ ط§ظ„ط­ظ‚ظٹظ‚ظٹ
           vehicleType: company.isNotEmpty ? company : 'POLICY',
           vehicleNumber: plate.isNotEmpty ? plate : 'NO-PLATE',
           beneficiaryName: insured.isNotEmpty ? insured : 'INSURED',
@@ -1524,9 +1521,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       }
 
       await _savePolicyImagesToDb(current);
-      _toast('✅ تم حفظ الصور');
+      _toast('âœ… طھظ… ط­ظپط¸ ط§ظ„طµظˆط±');
     } catch (e) {
-      _toast('❌ فشل إضافة الصور: $e');
+      _toast('â‌Œ ظپط´ظ„ ط¥ط¶ط§ظپط© ط§ظ„طµظˆط±: $e');
     }
   }
 
@@ -1537,18 +1534,18 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     try {
       final current = _extractImages(r);
 
-      // 1) حذف من القرص
+      // 1) ط­ط°ظپ ظ…ظ† ط§ظ„ظ‚ط±طµ
       if (!_isNetwork(path)) {
         await ImageStorageService.deleteImage(path);
       }
 
-      // 2) حذف من القائمة وتحديث DB
+      // 2) ط­ط°ظپ ظ…ظ† ط§ظ„ظ‚ط§ط¦ظ…ط© ظˆطھط­ط¯ظٹط« DB
       current.removeWhere((p) => p == path);
       await _savePolicyImagesToDb(current);
 
-      _toast('🗑️ تم حذف الصورة');
+      _toast('ًں—‘ï¸ڈ طھظ… ط­ط°ظپ ط§ظ„طµظˆط±ط©');
     } catch (e) {
-      _toast('❌ فشل حذف الصورة: $e');
+      _toast('â‌Œ ظپط´ظ„ ط­ط°ظپ ط§ظ„طµظˆط±ط©: $e');
     }
   }
 
@@ -1605,55 +1602,55 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ✅ Header ثابت + شريط أزرار قابل للسكرول (بدون ما يختفي زر)
+            // âœ… Header ط«ط§ط¨طھ + ط´ط±ظٹط· ط£ط²ط±ط§ط± ظ‚ط§ط¨ظ„ ظ„ظ„ط³ظƒط±ظˆظ„ (ط¨ط¯ظˆظ† ظ…ط§ ظٹط®طھظپظٹ ط²ط±)
             AdaptiveRow(
               children: [
                 const Expanded(
                   child: Text(
-                    '📷 صور المركبة',
+                    'ًں“· طµظˆط± ط§ظ„ظ…ط±ظƒط¨ط©',
                     textAlign: TextAlign.right,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                   ),
                 ),
 
                 IconButton(
-                  tooltip: 'إضافة صور',
+                  tooltip: 'ط¥ط¶ط§ظپط© طµظˆط±',
                   onPressed: _pickImages,
                   icon: const Icon(Icons.add_a_photo),
                 ),
 
                 const SizedBox(width: 8),
 
-                // ✅ هنا أصل المشكلة: لازم Expanded (tight) مش Flexible (loose)
+                // âœ… ظ‡ظ†ط§ ط£طµظ„ ط§ظ„ظ…ط´ظƒظ„ط©: ظ„ط§ط²ظ… Expanded (tight) ظ…ط´ Flexible (loose)
                 Expanded(
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    reverse: true, // عشان الأزرار تبان من اليمين أولاً
+                    reverse: true, // ط¹ط´ط§ظ† ط§ظ„ط£ط²ط±ط§ط± طھط¨ط§ظ† ظ…ظ† ط§ظ„ظٹظ…ظٹظ† ط£ظˆظ„ط§ظ‹
                     child: AdaptiveRow(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         actionBtn(
-                          label: 'معاينة',
+                          label: 'ظ…ط¹ط§ظٹظ†ط©',
                           icon: Icons.visibility,
                           onTap:
                               canPreview ? () => _openPreview(images, 0) : null,
                         ),
                         const SizedBox(width: 8),
                         actionBtn(
-                          label: 'نسخ المسار',
+                          label: 'ظ†ط³ط® ط§ظ„ظ…ط³ط§ط±',
                           icon: Icons.copy,
                           onTap: canPreview
                               ? () async {
                                   await Clipboard.setData(
                                     ClipboardData(text: firstPath),
                                   );
-                                  _toast('تم نسخ المسار');
+                                  _toast('طھظ… ظ†ط³ط® ط§ظ„ظ…ط³ط§ط±');
                                 }
                               : null,
                         ),
                         const SizedBox(width: 8),
                         actionBtn(
-                          label: 'فتح بالمجلد',
+                          label: 'ظپطھط­ ط¨ط§ظ„ظ…ط¬ظ„ط¯',
                           icon: Icons.folder_open,
                           onTap: canPreview
                               ? () => _openInExplorer(firstPath)
@@ -1661,11 +1658,11 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                         ),
                         const SizedBox(width: 8),
                         actionBtn(
-                          label: 'تعديل',
+                          label: 'طھط¹ط¯ظٹظ„',
                           icon: Icons.edit,
                           onTap: canPreview
                               ? () =>
-                                  _toast('زر التعديل جاهز—اربطه لاحقًا بما بدك')
+                                  _toast('ط²ط± ط§ظ„طھط¹ط¯ظٹظ„ ط¬ط§ظ‡ط²â€”ط§ط±ط¨ط·ظ‡ ظ„ط§ط­ظ‚ظ‹ط§ ط¨ظ…ط§ ط¨ط¯ظƒ')
                               : null,
                         ),
                       ],
@@ -1681,7 +1678,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(
-                  'لا توجد صور',
+                  'ظ„ط§ طھظˆط¬ط¯ طµظˆط±',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     color: Colors.grey.shade700,
@@ -1720,7 +1717,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                           fit: BoxFit.cover,
                                           errorBuilder: (_, __, ___) => Center(
                                             child: Text(
-                                              'صورة غير صالحة',
+                                              'طµظˆط±ط© ط؛ظٹط± طµط§ظ„ط­ط©',
                                               textAlign: TextAlign.right,
                                               style: TextStyle(
                                                 color: Colors.grey.shade700,
@@ -1732,7 +1729,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                 ),
                               ),
 
-                              // زر حذف
+                              // ط²ط± ط­ط°ظپ
                               Positioned(
                                 top: 2,
                                 right: 2,
@@ -1741,19 +1738,19 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                     final ok = await showDialog<bool>(
                                       context: context,
                                       builder: (c2) => AdaptiveAlertDialog(
-                                        title: const Text('حذف الصورة'),
+                                        title: const Text('ط­ط°ظپ ط§ظ„طµظˆط±ط©'),
                                         content:
-                                            const Text('تأكيد حذف هذه الصورة؟'),
+                                            const Text('طھط£ظƒظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„طµظˆط±ط©طں'),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(c2, false),
-                                            child: const Text('إلغاء'),
+                                            child: const Text('ط¥ظ„ط؛ط§ط،'),
                                           ),
                                           ElevatedButton(
                                             onPressed: () =>
                                                 Navigator.pop(c2, true),
-                                            child: const Text('حذف'),
+                                            child: const Text('ط­ط°ظپ'),
                                           ),
                                         ],
                                       ),
@@ -1786,7 +1783,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 }
 
 // ===============================
-// 🔑 Intents (Top-Level)
+// ًں”‘ Intents (Top-Level)
 // ===============================
 class MoveSelectionLeftIntent extends Intent {
   const MoveSelectionLeftIntent();
@@ -1803,3 +1800,4 @@ class DismissIntent extends Intent {
 class DeleteImageIntent extends Intent {
   const DeleteImageIntent();
 }
+

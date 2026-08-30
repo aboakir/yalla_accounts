@@ -133,8 +133,12 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
             title: const Text("اختر الملفات المطلوب سدادها",
                 textAlign: TextAlign.center),
             content: SizedBox(
-              width: 700,
-              height: 500,
+              width: MediaQuery.sizeOf(ctx).width < 600 ? double.infinity : 700,
+              height: MediaQuery.sizeOf(ctx).width < 600
+                  ? (MediaQuery.sizeOf(ctx).height * 0.62)
+                      .clamp(320.0, 500.0)
+                      .toDouble()
+                  : 500,
               child: ListView.builder(
                 itemCount: repairsPool.length,
                 itemBuilder: (_, i) {
@@ -417,7 +421,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
 
   Widget _buildForm() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(context.isPhoneWidth ? 12 : 24),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
@@ -488,8 +492,13 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
             return AdaptiveAlertDialog(
               title: const Text("اختر العميل", textAlign: TextAlign.center),
               content: SizedBox(
-                width: 500,
-                height: 500,
+                width:
+                    MediaQuery.sizeOf(ctx).width < 600 ? double.infinity : 500,
+                height: MediaQuery.sizeOf(ctx).width < 600
+                    ? (MediaQuery.sizeOf(ctx).height * 0.58)
+                        .clamp(300.0, 500.0)
+                        .toDouble()
+                    : 500,
                 child: Column(
                   children: [
                     TextField(

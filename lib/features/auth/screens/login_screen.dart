@@ -665,7 +665,7 @@ class _CustomerSignupDialogState extends State<_CustomerSignupDialog> {
     return AdaptiveAlertDialog(
       title: const Text('طلب إنشاء منشأة جديدة'),
       content: SizedBox(
-        width: 560,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 560,
         child: Form(
           key: _form,
           child: SingleChildScrollView(

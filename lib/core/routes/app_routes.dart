@@ -4,6 +4,7 @@
 // - يمرّر RouteSettings لكل MaterialPageRoute للحفاظ على اسم المسار.
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/logout_screen.dart';
@@ -356,7 +357,10 @@ class AppRoutes {
           ? child
           : AuthenticatedRouteGate(
               ownerOnly: ownerOnly,
-              child: child,
+              child: YallaMobileRouteFrame(
+                routeName: routeName,
+                child: child,
+              ),
             ),
       settings: settings,
     );

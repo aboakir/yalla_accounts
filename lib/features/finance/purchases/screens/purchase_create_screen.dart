@@ -168,7 +168,9 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
               textAlign: TextAlign.right,
             ),
             content: SizedBox(
-              width: 500,
+              width: MediaQuery.sizeOf(context).width < 600
+                  ? double.infinity
+                  : 500,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

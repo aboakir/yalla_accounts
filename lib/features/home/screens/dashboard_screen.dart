@@ -7,6 +7,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_bottom_nav.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import '../widgets/action_shortcut_button.dart';
@@ -299,6 +300,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
+        ),
+      ),
+      bottomNavigationBar: Builder(
+        builder: (navContext) => YallaMobileBottomNav(
+          currentRoute: AppRoutes.dashboard,
+          onMore: () => Scaffold.of(navContext).openDrawer(),
         ),
       ),
       floatingActionButton: FloatingActionButton(

@@ -106,53 +106,108 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                   final phone = (r['phone'] ?? '').toString();
                   final address = (r['address'] ?? '').toString();
 
-                  return ListTile(
-                    title: Text(name, textAlign: TextAlign.right),
-                    subtitle: Text(
-                      [
-                        if (phone.isNotEmpty) phone,
-                        if (address.isNotEmpty) address,
-                      ].join(' • '),
-                      textAlign: TextAlign.right,
+                  Future<void> openActions() async {
+                    final value = await showModalBottomSheet<String>(
+                      context: context,
+                      useSafeArea: true,
+                      showDragHandle: true,
+                      builder: (sheetContext) => Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.receipt_long_outlined),
+                              title: const Text('كشف حساب المورد'),
+                              onTap: () =>
+                                  Navigator.pop(sheetContext, 'account'),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.payments_outlined),
+                              title: const Text('شيكات المورد'),
+                              onTap: () =>
+                                  Navigator.pop(sheetContext, 'cheques'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                    if (!mounted || value == null) return;
+                    if (value == 'account') {
+                      SupplierAccountScreen.push(
+                        context,
+                        supplierId: id,
+                        supplierName: name,
+                      );
+                    } else if (value == 'cheques') {
+                      Navigator.pushNamed(
+                        context,
+                        '/suppliers/cheques',
+                        arguments: {
+                          'supplierPid': id,
+                          'supplierName': name,
+                        },
+                      );
+                    }
+                  }
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    elevation: 0,
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: openActions,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              child: Text(
+                                name.trim().isEmpty ? 'م' : name.trim()[0],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    name,
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  if (phone.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      phone,
+                                      textAlign: TextAlign.right,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                  if (address.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      address,
+                                      textAlign: TextAlign.right,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.more_horiz),
+                          ],
+                        ),
+                      ),
                     ),
-                    trailing: const Icon(Icons.chevron_left),
-
-                    // --------------------------- MENU ---------------------------
-                    onTap: () {
-                      showMenu(
-                        context: context,
-                        position: const RelativeRect.fromLTRB(200, 200, 0, 0),
-                        items: const [
-                          PopupMenuItem(
-                            value: 'account',
-                            child: Text("كشف حساب المورد"),
-                          ),
-                          PopupMenuItem(
-                            value: 'cheques',
-                            child: Text("شيكات المورد"),
-                          ),
-                        ],
-                      ).then((value) {
-                        if (value == 'account') {
-                          SupplierAccountScreen.push(
-                            context,
-                            supplierId: id,
-                            supplierName: name,
-                          );
-                        }
-
-                        if (value == 'cheques') {
-                          Navigator.pushNamed(
-                            context,
-                            '/suppliers/cheques',
-                            arguments: {
-                              'supplierPid': id,
-                              'supplierName': name,
-                            },
-                          );
-                        }
-                      });
-                    },
                   );
                 },
               ),

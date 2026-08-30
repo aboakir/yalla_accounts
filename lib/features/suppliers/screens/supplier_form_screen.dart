@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/supplier.dart';
 import '../providers/supplier_provider.dart';
 import '../../../core/constants/colors.dart';
+import '../../../shared/widgets/adaptive_layout.dart';
 
 class SupplierFormScreen extends ConsumerStatefulWidget {
   final Supplier? supplier;
@@ -100,7 +101,12 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(
+                context.isPhoneWidth ? 14 : 20,
+                16,
+                context.isPhoneWidth ? 14 : 20,
+                24 + MediaQuery.viewInsetsOf(context).bottom,
+              ),
               child: Form(
                 key: _formKey,
                 child: ListView(
@@ -109,9 +115,11 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
                     TextFormField(
                       controller: _nameCtrl,
                       textDirection: TextDirection.rtl,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.name],
                       decoration: const InputDecoration(
                         labelText: "اسم المورد",
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.storefront_outlined),
                       ),
                       validator: (v) =>
                           v == null || v.trim().isEmpty ? "الاسم مطلوب" : null,
@@ -122,9 +130,12 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
                     TextFormField(
                       controller: _phoneCtrl,
                       textDirection: TextDirection.rtl,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.telephoneNumber],
                       decoration: const InputDecoration(
                         labelText: "رقم الهاتف (اختياري)",
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.phone_outlined),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -133,32 +144,40 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
                     TextFormField(
                       controller: _addressCtrl,
                       textDirection: TextDirection.rtl,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.streetAddressLine1],
+                      onFieldSubmitted: (_) {
+                        if (!_saving) _save();
+                      },
                       decoration: const InputDecoration(
                         labelText: "العنوان (اختياري)",
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.location_on_outlined),
                       ),
                     ),
                     const SizedBox(height: 30),
 
                     // زر حفظ
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                        ),
-                        onPressed: _saving ? null : _save,
-                        child: _saving
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(
-                                isEdit ? "حفظ التعديلات" : "إضافة المورد",
-                                style: const TextStyle(
+                    SafeArea(
+                      top: false,
+                      child: SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                          ),
+                          onPressed: _saving ? null : _save,
+                          child: _saving
+                              ? const CircularProgressIndicator(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                )
+                              : Text(
+                                  isEdit ? "حفظ التعديلات" : "إضافة المورد",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
                     ),
                   ],

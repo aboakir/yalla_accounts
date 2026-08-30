@@ -21,7 +21,9 @@ class Subscription {
       id: map['id'] as int?,
       userId: map['userId'] as String,
       startDate: DateTime.parse(map['startDate'] as String),
-      endDate: map['endDate'] != null ? DateTime.parse(map['endDate'] as String) : null,
+      endDate: map['endDate'] != null
+          ? DateTime.parse(map['endDate'] as String)
+          : null,
       status: map['status'] as String,
     );
   }

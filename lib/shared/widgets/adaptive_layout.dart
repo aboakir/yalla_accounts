@@ -188,6 +188,86 @@ class AdaptiveDataTable extends StatelessWidget {
         columnSpacing: columnSpacing,
       );
 
+  String _columnLabel(DataColumn column, int index) {
+    final label = column.label;
+    if (label is Text) {
+      final value = label.data?.trim();
+      if (value != null && value.isNotEmpty) return value;
+    }
+    return 'بيان ${index + 1}';
+  }
+
+  Widget _phoneCards(BuildContext context) {
+    if (rows.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2E8E4)),
+        ),
+        child: const Text(
+          'لا توجد بيانات',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFF66736C)),
+        ),
+      );
+    }
+
+    final theme = Theme.of(context);
+    return Column(
+      children: List.generate(rows.length, (rowIndex) {
+        final row = rows[rowIndex];
+        final count = row.cells.length < columns.length
+            ? row.cells.length
+            : columns.length;
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: row.onSelectChanged == null
+                ? null
+                : () => row.onSelectChanged!(true),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              child: Column(
+                children: List.generate(count, (cellIndex) {
+                  final cell = row.cells[cellIndex];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: cellIndex == count - 1 ? 0 : 10,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 92,
+                          child: Text(
+                            _columnLabel(columns[cellIndex], cellIndex),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFF6A756F),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(child: cell.child),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -195,16 +275,23 @@ class AdaptiveDataTable extends StatelessWidget {
         final width = constraints.hasBoundedWidth
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
-        if (width >= YallaBreakpoints.desktop) return _table();
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          primary: false,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: width),
-            child: _table(),
-          ),
-        );
+        // Phone is a real card/list experience, never a squeezed desktop table.
+        if (width < YallaBreakpoints.phone) return _phoneCards(context);
+
+        // Tablet keeps the information-dense table, with safe horizontal scroll.
+        if (width < YallaBreakpoints.desktop) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            primary: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: width),
+              child: _table(),
+            ),
+          );
+        }
+
+        return _table();
       },
     );
   }
@@ -231,21 +318,28 @@ class AdaptiveAlertDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    final insets = MediaQuery.viewInsetsOf(context);
     final compact = size.width < YallaBreakpoints.phone;
     final maxContentWidth =
-        compact ? (size.width - 48).clamp(240.0, 560.0).toDouble() : 640.0;
+        compact ? (size.width - 32).clamp(240.0, 560.0).toDouble() : 640.0;
+    final maxContentHeight = compact
+        ? (size.height - insets.bottom - 120).clamp(220.0, 760.0).toDouble()
+        : double.infinity;
 
     return AlertDialog(
       insetPadding: EdgeInsets.symmetric(
-        horizontal: compact ? 16 : 40,
-        vertical: compact ? 20 : 24,
+        horizontal: compact ? 12 : 40,
+        vertical: compact ? 12 : 24,
       ),
       scrollable: compact,
       title: title,
       content: content == null
           ? null
           : ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxContentWidth),
+              constraints: BoxConstraints(
+                maxWidth: maxContentWidth,
+                maxHeight: maxContentHeight,
+              ),
               child: content!,
             ),
       actions: actions,

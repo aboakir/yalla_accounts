@@ -115,8 +115,7 @@ class PolicyPaymentPlan {
     promissories.clear();
   }
 
-  double get totalCheques =>
-      cheques.fold(0.0, (p, e) => p + (e.amount ?? 0.0));
+  double get totalCheques => cheques.fold(0.0, (p, e) => p + (e.amount ?? 0.0));
 
   double get totalInstallments =>
       installments.fold(0.0, (p, e) => p + (e.amount ?? 0.0));

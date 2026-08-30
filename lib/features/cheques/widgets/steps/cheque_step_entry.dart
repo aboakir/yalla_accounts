@@ -64,10 +64,14 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 120, vertical: 40),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 120,
+        vertical: MediaQuery.sizeOf(context).width < 600 ? 16 : 40,
+      ),
       child: Container(
-        width: 700,
-        padding: const EdgeInsets.all(30),
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 700,
+        padding:
+            EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 14 : 30),
         child: Form(
           key: _formKey,
           child: Column(

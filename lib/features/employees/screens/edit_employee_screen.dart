@@ -339,7 +339,9 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
                           spacing: 16,
                           children: [
                             SizedBox(
-                              width: 420,
+                              width: MediaQuery.sizeOf(context).width < 600
+                                  ? double.infinity
+                                  : 420,
                               child: Column(
                                 children: [
                                   // إجباري
@@ -386,7 +388,9 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
                               ),
                             ),
                             SizedBox(
-                              width: 420,
+                              width: MediaQuery.sizeOf(context).width < 600
+                                  ? double.infinity
+                                  : 420,
                               child: Column(
                                 children: [
                                   // غير إجباري

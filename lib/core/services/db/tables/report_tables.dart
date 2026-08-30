@@ -254,5 +254,4 @@ class ReportTables {
 
     return invoiceId;
   }
-  
 }

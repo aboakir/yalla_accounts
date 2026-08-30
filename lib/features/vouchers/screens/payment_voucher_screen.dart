@@ -136,8 +136,13 @@ ORDER BY pi.date DESC
             return AdaptiveAlertDialog(
               title: const Text("اختر فاتورة", textAlign: TextAlign.center),
               content: SizedBox(
-                width: 600,
-                height: 520,
+                width:
+                    MediaQuery.sizeOf(ctx).width < 600 ? double.infinity : 600,
+                height: MediaQuery.sizeOf(ctx).width < 600
+                    ? (MediaQuery.sizeOf(ctx).height * 0.62)
+                        .clamp(320.0, 520.0)
+                        .toDouble()
+                    : 520,
                 child: Column(
                   children: [
                     TextField(
@@ -276,7 +281,7 @@ ORDER BY pi.date DESC
 
   Widget _buildForm() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(context.isPhoneWidth ? 12 : 24),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 780),
@@ -432,8 +437,13 @@ ORDER BY pi.date DESC
             return AdaptiveAlertDialog(
               title: const Text("اختر المورد", textAlign: TextAlign.center),
               content: SizedBox(
-                width: 500,
-                height: 500,
+                width:
+                    MediaQuery.sizeOf(ctx).width < 600 ? double.infinity : 500,
+                height: MediaQuery.sizeOf(ctx).width < 600
+                    ? (MediaQuery.sizeOf(ctx).height * 0.58)
+                        .clamp(300.0, 500.0)
+                        .toDouble()
+                    : 500,
                 child: Column(
                   children: [
                     TextField(

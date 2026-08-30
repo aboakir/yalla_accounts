@@ -33,5 +33,4 @@ final forecastStatsProvider = FutureProvider<ForecastStats>((ref) async {
   return await service.getForecastStats();
 });
 
-ForecastService() {
-}
+ForecastService() {}

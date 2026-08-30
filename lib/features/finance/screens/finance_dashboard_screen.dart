@@ -280,55 +280,106 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
         bottom: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              AdaptiveRow(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (mobile)
-                    IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.white),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
+          child: mobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.menu, color: Colors.white),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            'لوحة المالية',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  const Text(
-                    'لوحة المالية',
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                    const SizedBox(height: 8),
+                    TextField(
+                      textAlign: TextAlign.right,
+                      decoration: const InputDecoration(
+                        hintText: 'ابحث في القيود والحسابات...',
+                        filled: true,
+                        fillColor: Colors.white,
+                        isDense: true,
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (v) {
+                        setState(() => _query = v);
+                        _load();
+                      },
                     ),
-                  ),
-                ],
-              ),
-              _dateChip(_from == null ? 'من' : _df.format(_from!), _pickFrom),
-              _dateChip(_to == null ? 'إلى' : _df.format(_to!), _pickTo),
-              ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 180, maxWidth: 360),
-                child: TextField(
-                  textAlign: TextAlign.right,
-                  decoration: InputDecoration(
-                    hintText: 'بحث...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    isDense: true,
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _dateChip(
+                            _from == null ? 'من تاريخ' : _df.format(_from!),
+                            _pickFrom,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _dateChip(
+                            _to == null ? 'إلى تاريخ' : _df.format(_to!),
+                            _pickTo,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  onChanged: (v) {
-                    setState(() => _query = v);
-                    _load();
-                  },
+                  ],
+                )
+              : Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    const Text(
+                      'لوحة المالية',
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    _dateChip(
+                      _from == null ? 'من' : _df.format(_from!),
+                      _pickFrom,
+                    ),
+                    _dateChip(
+                      _to == null ? 'إلى' : _df.format(_to!),
+                      _pickTo,
+                    ),
+                    ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(minWidth: 180, maxWidth: 360),
+                      child: TextField(
+                        textAlign: TextAlign.right,
+                        decoration: const InputDecoration(
+                          hintText: 'بحث...',
+                          filled: true,
+                          fillColor: Colors.white,
+                          isDense: true,
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (v) {
+                          setState(() => _query = v);
+                          _load();
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              )
-            ],
-          ),
         ),
       ),
     );
@@ -509,7 +560,7 @@ class _KpiSmall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 180,
+      width: context.isPhoneWidth ? 154 : 180,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),

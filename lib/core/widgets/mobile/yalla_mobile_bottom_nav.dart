@@ -19,7 +19,10 @@ class YallaMobileBottomNav extends StatelessWidget {
   void _go(BuildContext context, String route) {
     final current = ModalRoute.of(context)?.settings.name;
     if (current == route) return;
-    Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => r.isFirst);
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      route,
+      (candidate) => candidate.settings.name == AppRoutes.startup,
+    );
   }
 
   @override

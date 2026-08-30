@@ -97,8 +97,14 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
   Widget build(BuildContext context) {
     if (widget.embedded) {
       return SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _card(_buildForm(context)),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(
+          MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+          12,
+          MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+          24 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: _card(context, _buildForm(context)),
       );
     }
 
@@ -110,23 +116,35 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
         showSearch: false,
       ),
       drawer: const YallaSidebar(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _card(_buildForm(context)),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(
+            MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+            12,
+            MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+            24 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: _card(context, _buildForm(context)),
+        ),
       ),
     );
   }
 
-  Widget _card(Widget child) {
+  Widget _card(BuildContext context, Widget child) {
+    final phone = MediaQuery.sizeOf(context).width < 600;
     return Center(
       child: Container(
-        padding: const EdgeInsets.all(24),
+        width: double.infinity,
+        padding: EdgeInsets.all(phone ? 14 : 24),
         constraints: const BoxConstraints(maxWidth: 760),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 3)),
+            BoxShadow(
+                color: Colors.black12, blurRadius: 12, offset: Offset(0, 3)),
           ],
         ),
         child: child,
@@ -151,24 +169,17 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-
           if (isEndorsedLocked)
             _lockBanner("هذا الشيك مظهّر — لا يمكن تعديل بياناته"),
-
           if (isPaymentLocked)
             _lockBanner("هذا الشيك مرتبط بدفعة — لا يمكن تعديل بياناته"),
-
           const SizedBox(height: 12),
-
           _section("نسخ بيانات من شيك آخر"),
           _copyChequeButton(),
-
           const Divider(height: 32),
-
           _section('معلومات الشيك'),
           _input(chequeNoCtrl, 'رقم الشيك', locked: locked),
           _input(drawerNameCtrl, 'اسم محرر الشيك', locked: locked),
-
           const SizedBox(height: 20),
           _section('النوع والحالة'),
           _dropdownEnum<ChequeType>(
@@ -180,7 +191,6 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
           ),
           if (chequeType == ChequeType.outgoing)
             _supplierDropdown(locked: locked),
-
           _dropdownEnum<ChequeStatus>(
             label: 'حالة الشيك',
             value: chequeStatus,
@@ -188,40 +198,45 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
             formatter: _fmtStatus,
             onChanged: locked ? null : (v) => setState(() => chequeStatus = v),
           ),
-
           const SizedBox(height: 20),
           _section('تفاصيل البنك'),
           _input(bankNameCtrl, 'اسم البنك', locked: locked),
           _input(branchCtrl, 'الفرع', locked: locked),
-
           const SizedBox(height: 20),
           _section('القيمة'),
-          _input(amountCtrl, 'المبلغ', type: TextInputType.number, locked: locked),
+          _input(amountCtrl, 'المبلغ',
+              type: TextInputType.number, locked: locked),
           _dropdown(
             label: 'العملة',
             value: currency,
-            items: const {'ILS': 'شيكل', 'USD': 'دولار', 'JOD': 'دينار', 'EUR': 'يورو'},
+            items: const {
+              'ILS': 'شيكل',
+              'USD': 'دولار',
+              'JOD': 'دينار',
+              'EUR': 'يورو'
+            },
             onChanged: locked ? null : (v) => setState(() => currency = v),
           ),
-
           const SizedBox(height: 20),
           _section('التواريخ'),
           _dateField('تاريخ الإصدار', issueDate,
               locked ? null : (v) => setState(() => issueDate = v)),
           _dateField('تاريخ الاستحقاق', dueDate,
               locked ? null : (v) => setState(() => dueDate = v)),
-
           const SizedBox(height: 20),
           _section('ملاحظات'),
           _input(notesCtrl, 'ملاحظات', maxLines: 3, locked: false),
-
           const SizedBox(height: 30),
           locked
               ? _lockedButton()
-              : ElevatedButton.icon(
-                  icon: const Icon(Icons.save),
-                  label: const Text('حفظ'),
-                  onPressed: () => _save(context),
+              : SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.save),
+                    label: const Text('حفظ'),
+                    onPressed: () => _save(context),
+                  ),
                 ),
         ],
       ),
@@ -258,7 +273,8 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
 
     if (issueDate != null && dueDate != null && dueDate!.isBefore(issueDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تاريخ الاستحقاق يجب أن يكون بعد تاريخ الإصدار")),
+        const SnackBar(
+            content: Text("تاريخ الاستحقاق يجب أن يكون بعد تاريخ الإصدار")),
       );
       return;
     }
@@ -284,7 +300,8 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
       updatedAt: now,
       sourceType: c?.sourceType,
       sourceId: c?.sourceId,
-      supplierPid: chequeType == ChequeType.outgoing ? supplierPid : c?.supplierPid,
+      supplierPid:
+          chequeType == ChequeType.outgoing ? supplierPid : c?.supplierPid,
       clientId: c?.clientId,
       originChequeId: c?.originChequeId,
       isEndorsed: c?.isEndorsed ?? 0,

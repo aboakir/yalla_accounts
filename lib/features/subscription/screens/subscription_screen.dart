@@ -109,114 +109,127 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      body: Center(
-        child: Container(
-          width: 500,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black12)],
-          ),
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      AdaptiveRow(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              width: MediaQuery.sizeOf(context).width < 600
+                  ? double.infinity
+                  : 500,
+              padding: EdgeInsets.all(
+                MediaQuery.sizeOf(context).width < 600 ? 16 : 24,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(blurRadius: 8, color: Colors.black12)
+                ],
+              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "تفعيل الاشتراك",
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
+                          // Header
                           AdaptiveRow(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              IconButton(
-                                onPressed: () {
-                                  Navigator.pushReplacementNamed(
-                                      context, '/login');
-                                },
-                                icon: const Icon(Icons.arrow_back_ios),
+                              const Text(
+                                "تفعيل الاشتراك",
+                                style: TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
                               ),
-                              IconButton(
-                                onPressed: _exitApp,
-                                icon: const Icon(Icons.close),
-                              ),
+                              AdaptiveRow(
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      Navigator.pushReplacementNamed(
+                                          context, '/login');
+                                    },
+                                    icon: const Icon(Icons.arrow_back_ios),
+                                  ),
+                                  IconButton(
+                                    onPressed: _exitApp,
+                                    icon: const Icon(Icons.close),
+                                  ),
+                                ],
+                              )
                             ],
-                          )
-                        ],
-                      ),
-                      const Divider(),
-                      const SizedBox(height: 12),
-                      const Text(
-                        "💡 خطوات تفعيل الاشتراك:",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text("1️⃣ اختر الباقة المناسبة من القائمة أدناه."),
-                      const Text("2️⃣ حوّل المبلغ إلى الحساب البنكي."),
-                      const Text("3️⃣ أرسل صورة الحوالة عبر واتساب."),
-                      const Text("4️⃣ يتم التفعيل يدويًا خلال 24 ساعة."),
-                      const SizedBox(height: 16),
-
-                      ElevatedButton.icon(
-                        onPressed: _openWhatsApp,
-                        icon: const FaIcon(FontAwesomeIcons.whatsapp),
-                        label: const Text("تواصل مع فريق يلا عبر واتساب"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(45),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                          const Divider(),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "💡 خطوات تفعيل الاشتراك:",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                              "1️⃣ اختر الباقة المناسبة من القائمة أدناه."),
+                          const Text("2️⃣ حوّل المبلغ إلى الحساب البنكي."),
+                          const Text("3️⃣ أرسل صورة الحوالة عبر واتساب."),
+                          const Text("4️⃣ يتم التفعيل يدويًا خلال 24 ساعة."),
+                          const SizedBox(height: 16),
 
-                      const Text(
-                        "🧾 الباقات المتوفرة:",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 12),
-
-                      ..._plans.map((plan) => GestureDetector(
-                            onTap: () {
-                              if (plan.price != 0) {
-                                _openWhatsApp();
-                              }
-                            },
-                            child: Card(
+                          ElevatedButton.icon(
+                            onPressed: _openWhatsApp,
+                            icon: const FaIcon(FontAwesomeIcons.whatsapp),
+                            label: const Text("تواصل مع فريق يلا عبر واتساب"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(45),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              elevation: 3,
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: ListTile(
-                                  title: Text(plan.name),
-                                  subtitle:
-                                      Text(plan.description ?? "بدون وصف"),
-                                  trailing: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text("${plan.price} شيكل"),
-                                      Text("لمدة ${plan.durationDays} يوم"),
-                                    ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          const Text(
+                            "🧾 الباقات المتوفرة:",
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 12),
+
+                          ..._plans.map((plan) => GestureDetector(
+                                onTap: () {
+                                  if (plan.price != 0) {
+                                    _openWhatsApp();
+                                  }
+                                },
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 3,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: ListTile(
+                                      title: Text(plan.name),
+                                      subtitle:
+                                          Text(plan.description ?? "بدون وصف"),
+                                      trailing: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text("${plan.price} شيكل"),
+                                          Text("لمدة ${plan.durationDays} يوم"),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          )),
-                    ],
-                  ),
-                ),
+                              )),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
         ),
       ),
     );

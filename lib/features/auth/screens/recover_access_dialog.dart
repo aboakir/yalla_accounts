@@ -149,7 +149,7 @@ class _RecoverAccessDialogState extends ConsumerState<RecoverAccessDialog> {
       child: AdaptiveAlertDialog(
         title: const Text('استعادة بيانات الدخول'),
         content: SizedBox(
-          width: 500,
+          width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 500,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,

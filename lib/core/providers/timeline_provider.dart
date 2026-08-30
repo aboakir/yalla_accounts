@@ -45,5 +45,4 @@ final timelineProvider = FutureProvider<TimelineStats>((ref) async {
   );
 });
 
-TimelineService() {
-}
+TimelineService() {}

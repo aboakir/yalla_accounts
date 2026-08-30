@@ -1,6 +1,5 @@
 // 📁 lib/features/finance/models/financial_models.dart
 
-
 /// نموذج إحصائيات لوحة القيادة
 class DashboardStats {
   final double totalRevenue;

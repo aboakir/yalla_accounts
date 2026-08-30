@@ -7,6 +7,8 @@ import 'package:yalla_accounts/features/finance/services/accounts_receivable_ser
 /// هذا الموفر يعيد قائمة الدفعات (كلها) لإصلاح معين
 /// وللحصول على الدفعات غير المسددة فقط:
 ///   ref.watch(pendingArProvider(repairId)).then((all) => all.where((e) => !e.isPaid))
-final pendingArProvider = FutureProvider.family<List<AccountsReceivableEntry>, String>(
-  (ref, repairId) => AccountsReceivableService.instance.getEntriesByRepair(repairId),
+final pendingArProvider =
+    FutureProvider.family<List<AccountsReceivableEntry>, String>(
+  (ref, repairId) =>
+      AccountsReceivableService.instance.getEntriesByRepair(repairId),
 );
