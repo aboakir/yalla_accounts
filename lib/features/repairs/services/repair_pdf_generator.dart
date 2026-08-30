@@ -254,10 +254,11 @@ class RepairPdfGenerator {
     final bytes = await generate(repair);
 
     Directory? dir;
-    try {
-      dir = await getDownloadsDirectory();
-    } catch (_) {}
-
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      try {
+        dir = await getDownloadsDirectory();
+      } catch (_) {}
+    }
     dir ??= await getApplicationDocumentsDirectory();
     if (!await dir.exists()) await dir.create(recursive: true);
 

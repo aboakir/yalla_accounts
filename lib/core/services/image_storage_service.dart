@@ -1,17 +1,32 @@
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class ImageStorageService {
   // -------------------------------------------------------------------------
   // 1) اختيار القرص الأساسي (D ثم C)
   // -------------------------------------------------------------------------
   static Future<String> _getRootDirectory() async {
-    final dDrive = Directory('D:\\');
-    if (await dDrive.exists()) {
-      return 'D:\\YallaAccounts';
+    // Mobile platforms are sandboxed: never write to Windows drive paths.
+    if (Platform.isIOS || Platform.isAndroid) {
+      final docs = await getApplicationDocumentsDirectory();
+      final root = Directory(p.join(docs.path, 'YallaAccounts'));
+      if (!await root.exists()) await root.create(recursive: true);
+      return root.path;
     }
-    return 'C:\\YallaAccounts';
+
+    // Preserve the existing desktop storage contract.
+    if (Platform.isWindows) {
+      final dDrive = Directory('D:\\');
+      if (await dDrive.exists()) return 'D:\\YallaAccounts';
+      return 'C:\\YallaAccounts';
+    }
+
+    final docs = await getApplicationDocumentsDirectory();
+    final root = Directory(p.join(docs.path, 'YallaAccounts'));
+    if (!await root.exists()) await root.create(recursive: true);
+    return root.path;
   }
 
   // -------------------------------------------------------------------------
