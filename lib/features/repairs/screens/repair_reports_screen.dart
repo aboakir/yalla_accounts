@@ -166,8 +166,13 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
     return Scaffold(
       drawer: isDesktop
           ? null
-          : const Drawer(
-              child: YallaSidebar(currentRoute: '/repairs/repair-reports')),
+          : Drawer(
+              width: MediaQuery.sizeOf(context).width,
+              shape: const RoundedRectangleBorder(),
+              child: const SafeArea(
+                child: YallaSidebar(currentRoute: '/repairs/repair-reports'),
+              ),
+            ),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: const Text('📊 تقارير الإصلاح',
@@ -218,63 +223,108 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: ListView(
                     children: [
-                      AdaptiveRow(
-                        children: [
-                          DropdownButton<String>(
-                            value: filterType,
-                            items: filterOptions
-                                .map((e) =>
-                                    DropdownMenuItem(value: e, child: Text(e)))
-                                .toList(),
-                            onChanged: (val) =>
-                                setState(() => filterType = val!),
-                          ),
-                          const SizedBox(width: 12),
-                          if (filterType.contains('السنة'))
+                      if (constraints.maxWidth < 600)
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            _phoneDropdown(
+                              value: filterType,
+                              label: 'الفترة',
+                              items: filterOptions,
+                              onChanged: (val) =>
+                                  setState(() => filterType = val!),
+                            ),
+                            if (filterType.contains('السنة'))
+                              _phoneDropdown(
+                                value: selectedYear,
+                                label: 'السنة',
+                                items: years,
+                                onChanged: (val) =>
+                                    setState(() => selectedYear = val),
+                              ),
+                            if (filterType.contains('الشهر'))
+                              _phoneDropdown(
+                                value: selectedMonth,
+                                label: 'الشهر',
+                                items: months,
+                                onChanged: (val) =>
+                                    setState(() => selectedMonth = val),
+                              ),
+                            _phoneDropdown(
+                              value: selectedPaymentStatus ?? 'الكل',
+                              label: 'الدفع',
+                              items: paymentStatuses,
+                              onChanged: (val) =>
+                                  setState(() => selectedPaymentStatus = val),
+                            ),
+                            _phoneDropdown(
+                              value: selectedVehicleStatus ?? 'الكل',
+                              label: 'حالة المركبة',
+                              items: vehicleStatuses,
+                              onChanged: (val) =>
+                                  setState(() => selectedVehicleStatus = val),
+                            ),
+                          ],
+                        )
+                      else
+                        AdaptiveRow(
+                          children: [
                             DropdownButton<String>(
-                              value: selectedYear,
-                              hint: const Text('اختر السنة'),
-                              items: years
-                                  .map((y) => DropdownMenuItem(
-                                      value: y, child: Text(y)))
+                              value: filterType,
+                              items: filterOptions
+                                  .map((e) => DropdownMenuItem(
+                                      value: e, child: Text(e)))
                                   .toList(),
                               onChanged: (val) =>
-                                  setState(() => selectedYear = val),
+                                  setState(() => filterType = val!),
                             ),
-                          const SizedBox(width: 12),
-                          if (filterType.contains('الشهر'))
+                            const SizedBox(width: 12),
+                            if (filterType.contains('السنة'))
+                              DropdownButton<String>(
+                                value: selectedYear,
+                                hint: const Text('اختر السنة'),
+                                items: years
+                                    .map((y) => DropdownMenuItem(
+                                        value: y, child: Text(y)))
+                                    .toList(),
+                                onChanged: (val) =>
+                                    setState(() => selectedYear = val),
+                              ),
+                            const SizedBox(width: 12),
+                            if (filterType.contains('الشهر'))
+                              DropdownButton<String>(
+                                value: selectedMonth,
+                                hint: const Text('اختر الشهر'),
+                                items: months
+                                    .map((m) => DropdownMenuItem(
+                                        value: m, child: Text(m)))
+                                    .toList(),
+                                onChanged: (val) =>
+                                    setState(() => selectedMonth = val),
+                              ),
+                            const SizedBox(width: 12),
                             DropdownButton<String>(
-                              value: selectedMonth,
-                              hint: const Text('اختر الشهر'),
-                              items: months
-                                  .map((m) => DropdownMenuItem(
-                                      value: m, child: Text(m)))
+                              value: selectedPaymentStatus ?? 'الكل',
+                              items: paymentStatuses
+                                  .map((s) => DropdownMenuItem(
+                                      value: s, child: Text(s)))
                                   .toList(),
                               onChanged: (val) =>
-                                  setState(() => selectedMonth = val),
+                                  setState(() => selectedPaymentStatus = val),
                             ),
-                          const SizedBox(width: 12),
-                          DropdownButton<String>(
-                            value: selectedPaymentStatus ?? 'الكل',
-                            items: paymentStatuses
-                                .map((s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)))
-                                .toList(),
-                            onChanged: (val) =>
-                                setState(() => selectedPaymentStatus = val),
-                          ),
-                          const SizedBox(width: 12),
-                          DropdownButton<String>(
-                            value: selectedVehicleStatus ?? 'الكل',
-                            items: vehicleStatuses
-                                .map((s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)))
-                                .toList(),
-                            onChanged: (val) =>
-                                setState(() => selectedVehicleStatus = val),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 12),
+                            DropdownButton<String>(
+                              value: selectedVehicleStatus ?? 'الكل',
+                              items: vehicleStatuses
+                                  .map((s) => DropdownMenuItem(
+                                      value: s, child: Text(s)))
+                                  .toList(),
+                              onChanged: (val) =>
+                                  setState(() => selectedVehicleStatus = val),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 20),
                       Wrap(
                         spacing: 12,
@@ -298,7 +348,7 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
-                        height: 200,
+                        height: constraints.maxWidth < 600 ? 160 : 200,
                         child: PieChart(
                           PieChartData(sections: [
                             PieChartSectionData(
@@ -314,7 +364,7 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
-                        height: 200,
+                        height: constraints.maxWidth < 600 ? 170 : 200,
                         child: BarChart(
                           BarChartData(
                             barGroups: chartItems.asMap().entries.map((e) {
@@ -365,9 +415,41 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
     );
   }
 
+  Widget _phoneDropdown({
+    required String? value,
+    required String label,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final width = (MediaQuery.sizeOf(context).width - 42) / 2;
+    return SizedBox(
+      width: width,
+      child: DropdownButtonFormField<String>(
+        value: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        items: items
+            .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+            .toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
   Widget _summaryBox(String title, String value, IconData icon) {
+    final phone = MediaQuery.sizeOf(context).width < 600;
+    final width = phone ? (MediaQuery.sizeOf(context).width - 44) / 2 : 160.0;
     return Container(
-      width: 160,
+      width: width,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.primary.withOpacity(0.05),

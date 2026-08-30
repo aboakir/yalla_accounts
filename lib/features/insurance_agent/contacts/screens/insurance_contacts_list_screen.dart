@@ -1,9 +1,9 @@
-﻿// ًں“پ lib/features/insurance_agent/contacts/screens/insurance_contacts_list_screen.dart
+// lib/features/insurance_agent/contacts/screens/insurance_contacts_list_screen.dart
 //
-// InsuranceContactsListScreen â€” UPDATED (Hamburger + Back + Right Overlay Sidebar)
-// âœ… ط²ط± ظ‡ط§ظ…ط¨ط±ط¬ط± (Overlay Sidebar ظ…ظ† ط§ظ„ظٹظ…ظٹظ†) ط¹ظ„ظ‰ Desktop + Mobile
-// âœ… ط³ظ‡ظ… ط±ط¬ظˆط¹ ظپظٹ AppBar
-// âœ… ط¨ط§ظ‚ظٹ ط§ظ„ظ…ظٹط²ط§طھ ظƒظ…ط§ ظ‡ظٹ: Tabs 13 + Add/Edit Dialog + SharedPrefs + PDF + Filters
+// InsuranceContactsListScreen — UPDATED (Hamburger + Back + Right Overlay Sidebar)
+// ✅ زر هامبرجر (Overlay Sidebar من اليمين) على Desktop + Mobile
+// ✅ سهم رجوع في AppBar
+// ✅ باقي الميزات كما هي: Tabs 13 + Add/Edit Dialog + SharedPrefs + PDF + Filters
 
 import 'dart:convert';
 
@@ -15,7 +15,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 
-// âœ… Sidebar
+// ✅ Sidebar
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -37,10 +37,10 @@ class _InsuranceContactsListScreenState
   bool _busy = false;
   String _query = '';
 
-  // âœ… ظپظ„طھط±: ط¹ط±ط¶ ظپظ‚ط· ط§ظ„ظ‚ط±ظٹط¨ط© (<= 30 ظٹظˆظ…) â€” ظٹط´طھط؛ظ„ ظپظ‚ط· ظ„ظ…ظ† ظ„ط¯ظٹظ‡ظ… endDate
+  // ✅ فلتر: عرض فقط القريبة (<= 30 يوم) — يشتغل فقط لمن لديهم endDate
   bool _expiring30Only = false;
 
-  // âœ… Sidebar overlay state
+  // ✅ Sidebar overlay state
   bool _sideOpen = false;
 
   late final TabController _tabController;
@@ -51,14 +51,14 @@ class _InsuranceContactsListScreenState
   void initState() {
     super.initState();
 
-    // âœ… 13 طھط¨ظˆظٹط¨: 0=ط¨ط¯ظˆظ† طھط§ط±ظٹط®, 1..12=ط§ظ„ط£ط´ظ‡ط±
+    // ✅ 13 تبويب: 0=بدون تاريخ, 1..12=الأشهر
     final now = DateTime.now();
     _tabController = TabController(length: 13, vsync: this);
 
-    // ط§ظپطھط±ط§ط¶ظٹظ‹ط§ ط§ظپطھط­ ط´ظ‡ط± ط§ظ„ظٹظˆظ… (ظ„ط£ظ† 0 = ط¨ط¯ظˆظ† طھط§ط±ظٹط®)
+    // افتراضيًا افتح شهر اليوم (لأن 0 = بدون تاريخ)
     _tabController.index = now.month;
 
-    // âœ… ط¥طµظ„ط§ط­ ظ…ظ‡ظ…: ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط§ظ„ط´ط§ط´ط© ط¹ظ†ط¯ طھط؛ظٹظٹط± ط§ظ„طھط¨ظˆظٹط¨
+    // ✅ إصلاح مهم: إعادة بناء الشاشة عند تغيير التبويب
     _tabController.addListener(() {
       if (!mounted) return;
       if (_tabController.indexIsChanging) return;
@@ -125,9 +125,9 @@ class _InsuranceContactsListScreenState
         _items = list.map(_LeadContact.fromJson).toList();
       }
 
-      // âœ… طھط±طھظٹط¨ ط¹ط§ظ…:
-      // 1) ط§ظ„ظ„ظٹ ط¹ظ†ط¯ظ‡ endDate ط§ظ„ط£ظ‚ط±ط¨ ط£ظˆظ„ظ‹ط§
-      // 2) ط§ظ„ظ„ظٹ ط¨ط¯ظˆظ† endDate ظٹط¬ظٹ ط¢ط®ط±
+      // ✅ ترتيب عام:
+      // 1) اللي عنده endDate الأقرب أولًا
+      // 2) اللي بدون endDate يجي آخر
       _items.sort((a, b) {
         final ad = a.endDate;
         final bd = b.endDate;
@@ -173,42 +173,42 @@ class _InsuranceContactsListScreenState
     return left >= 0 && left <= 30;
   }
 
-  // tabIndex: 0 = ط¨ط¯ظˆظ† طھط§ط±ظٹط®, 1..12 = ط´ظ‡ط±
+  // tabIndex: 0 = بدون تاريخ, 1..12 = شهر
   List<_LeadContact> _itemsForTab(int tabIndex) {
     final q = _query.trim();
 
     final list = _items.where((e) {
-      // âœ… ط¨ط­ط«
+      // ✅ بحث
       if (!_matchesQuery(e, q)) return false;
 
-      // âœ… طھط¨ظˆظٹط¨ ط¨ط¯ظˆظ† طھط§ط±ظٹط®
+      // ✅ تبويب بدون تاريخ
       if (tabIndex == 0) {
         return e.endDate == null;
       }
 
-      // âœ… طھط¨ظˆظٹط¨ط§طھ ط§ظ„ط£ط´ظ‡ط±
+      // ✅ تبويبات الأشهر
       final d = e.endDate;
       if (d == null) return false;
 
-      final month = tabIndex; // ظ„ط£ظ† tabIndex ظ†ظپط³ظ‡ ظ‡ظˆ ط§ظ„ط´ظ‡ط± 1..12
+      final month = tabIndex; // لأن tabIndex نفسه هو الشهر 1..12
       if (d.month != month) return false;
 
-      // âœ… ظپظ„طھط± ط§ظ„ظ‚ط±ظٹط¨ط© (ظٹط¹ظ…ظ„ ظپظ‚ط· ظ„ظ„ط£ط´ظ‡ط±)
+      // ✅ فلتر القريبة (يعمل فقط للأشهر)
       if (_expiring30Only && !_isExpiringWithin30(e)) return false;
 
       return true;
     }).toList();
 
-    // طھط±طھظٹط¨ ط¯ط§ط®ظ„ ط§ظ„طھط¨ظˆظٹط¨:
+    // ترتيب داخل التبويب:
     if (tabIndex == 0) {
-      // ط¨ط¯ظˆظ† طھط§ط±ظٹط®: ط§ظ„ط£ط­ط¯ط« طھط­ط¯ظٹط«ظ‹ط§/ط¥ظ†ط´ط§ط،ظ‹ ط£ظˆظ„ظ‹ط§
+      // بدون تاريخ: الأحدث تحديثًا/إنشاءً أولًا
       list.sort((a, b) {
         final bx = b.updatedAt ?? b.createdAt ?? DateTime(2000);
         final ax = a.updatedAt ?? a.createdAt ?? DateTime(2000);
         return bx.compareTo(ax);
       });
     } else {
-      // ط§ظ„ط£ط´ظ‡ط±: ط§ظ„ط£ظ‚ط±ط¨ ط§ظ†طھظ‡ط§ط،ظ‹ ط£ظˆظ„ظ‹ط§
+      // الأشهر: الأقرب انتهاءً أولًا
       list.sort((a, b) =>
           (a.endDate ?? DateTime(2100)).compareTo(b.endDate ?? DateTime(2100)));
     }
@@ -244,7 +244,7 @@ class _InsuranceContactsListScreenState
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('âœ… طھظ… ط­ظپط¸ ط§ظ„ط²ط¨ظˆظ† ظپظٹ ظ‚ط§ط¦ظ…ط© ط§ظ„طھظˆط§طµظ„')),
+      const SnackBar(content: Text('✅ تم حفظ الزبون في قائمة التواصل')),
     );
   }
 
@@ -264,7 +264,7 @@ class _InsuranceContactsListScreenState
       if (idx >= 0) _items[idx] = edited;
     });
 
-    // ط¥ط¹ط§ط¯ط© طھط±طھظٹط¨ ط¹ط§ظ…
+    // إعادة ترتيب عام
     _items.sort((a, b) {
       final ad = a.endDate;
       final bd = b.endDate;
@@ -278,7 +278,7 @@ class _InsuranceContactsListScreenState
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('âœ… طھظ… طھط­ط¯ظٹط« ط¨ظٹط§ظ†ط§طھ ط§ظ„ط²ط¨ظˆظ†')),
+      const SnackBar(content: Text('✅ تم تحديث بيانات الزبون')),
     );
   }
 
@@ -286,15 +286,15 @@ class _InsuranceContactsListScreenState
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AdaptiveAlertDialog(
-        title: const Text('ط¥ظ„ط؛ط§ط، ط§ظ„طھظˆط§طµظ„'),
+        title: const Text('إلغاء التواصل'),
         content: Text(
-          'ظ…طھط£ظƒط¯ ط¨ط¯ظƒ طھط­ط°ظپ "${(lead.name ?? '').trim().isEmpty ? 'ط¨ط¯ظˆظ† ط§ط³ظ…' : lead.name!.trim()}"طں',
+          'متأكد بدك تحذف "${(lead.name ?? '').trim().isEmpty ? 'بدون اسم' : lead.name!.trim()}"؟',
           textAlign: TextAlign.right,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('ط¥ظ„ط؛ط§ط،'),
+            child: const Text('إلغاء'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -311,7 +311,7 @@ class _InsuranceContactsListScreenState
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ًں—‘ï¸ڈ طھظ… ط­ط°ظپ ط§ظ„ط³ط¬ظ„')),
+      const SnackBar(content: Text('🗑️ تم حذف السجل')),
     );
   }
 
@@ -336,30 +336,30 @@ class _InsuranceContactsListScreenState
     if (items.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ظ„ط§ ظٹظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„ط·ط¨ط§ط¹ط© ظپظٹ ظ‡ط°ط§ ط§ظ„ط¹ط±ط¶')),
+        const SnackBar(content: Text('لا يوجد بيانات للطباعة في هذا العرض')),
       );
       return;
     }
 
     final title = tabIndex == 0
-        ? 'ظ‚ط§ط¦ظ…ط© ط§ظ„طھظˆط§طµظ„ â€” ط¨ط¯ظˆظ† طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،'
-        : 'ظ‚ط§ط¦ظ…ط© ط§ظ„طھظˆط§طµظ„ â€” ط´ظ‡ط± $tabIndex';
+        ? 'قائمة التواصل — بدون تاريخ انتهاء'
+        : 'قائمة التواصل — شهر $tabIndex';
 
     final headers = <String>[
-      'ط§ظ„ط§ط³ظ…',
-      'ط§ظ„ظ‡ط§طھظپ',
-      'ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©',
-      'ط§ظ†طھظ‡ط§ط، ط§ظ„طھط£ظ…ظٹظ†',
-      'ط§ظ„ط­ط§ظ„ط©',
+      'الاسم',
+      'الهاتف',
+      'نوع المركبة',
+      'انتهاء التأمين',
+      'الحالة',
     ];
 
     String statusText(_LeadContact e) {
       final d = e.endDate;
-      if (d == null) return 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+      if (d == null) return 'غير معروف';
       final left = _daysLeft(d);
-      if (left < 0) return 'ظ…ظ†طھظ‡ظٹط©';
-      if (left <= 30) return 'ظ…طھط¨ظ‚ظٹ $left ظٹظˆظ…';
-      return 'ط³ط§ط±ظٹط©';
+      if (left < 0) return 'منتهية';
+      if (left <= 30) return 'متبقي $left يوم';
+      return 'سارية';
     }
 
     final rows = items.map((e) {
@@ -391,12 +391,12 @@ class _InsuranceContactsListScreenState
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('âœ… طھظ… ط¥ظ†ط´ط§ط، PDF ظˆظپطھط­ظ‡')),
+        const SnackBar(content: Text('✅ تم إنشاء PDF وفتحه')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('â‌Œ ظپط´ظ„ ط¥ظ†ط´ط§ط، PDF: $e')),
+        SnackBar(content: Text('❌ فشل إنشاء PDF: $e')),
       );
     }
   }
@@ -415,7 +415,7 @@ class _InsuranceContactsListScreenState
     final w = MediaQuery.of(context).size.width;
     final isWide = w >= 900;
 
-    // âœ… ط¹ط±ط¶ ط§ظ„ط³ط§ظٹط¯ط¨ط§ط±
+    // ✅ عرض السايدبار
     final sideW = (w >= 1200) ? 320.0 : 300.0;
 
     final tabIndex = _tabController.index;
@@ -426,20 +426,20 @@ class _InsuranceContactsListScreenState
         backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          'ظ‚ط§ط¦ظ…ط© ط§ظ„طھظˆط§طµظ„',
+          'قائمة التواصل',
           style: TextStyle(color: Colors.white),
         ),
 
-        // âœ… ط³ظ‡ظ… ط§ظ„ط±ط¬ظˆط¹
+        // ✅ سهم الرجوع
         leading: IconButton(
-          tooltip: 'ط±ط¬ظˆط¹',
+          tooltip: 'رجوع',
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             if (Navigator.canPop(context)) {
               Navigator.pop(context);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('â„¹ï¸ڈ ظ„ط§ ظٹظˆط¬ط¯ طµظپط­ط© ط³ط§ط¨ظ‚ط© ظ„ظ„ط±ط¬ظˆط¹')),
+                const SnackBar(content: Text('ℹ️ لا يوجد صفحة سابقة للرجوع')),
               );
             }
           },
@@ -447,24 +447,24 @@ class _InsuranceContactsListScreenState
 
         actions: [
           IconButton(
-            tooltip: 'طھطµط¯ظٹط± PDF (ط§ظ„ط¹ط±ط¶ ط§ظ„ط­ط§ظ„ظٹ)',
+            tooltip: 'تصدير PDF (العرض الحالي)',
             onPressed: _busy ? null : _exportCurrentTabPdf,
             icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
           ),
           IconButton(
-            tooltip: 'طھط­ط¯ظٹط«',
+            tooltip: 'تحديث',
             onPressed: _busy ? null : _load,
             icon: const Icon(Icons.refresh, color: Colors.white),
           ),
           IconButton(
-            tooltip: 'ط¥ط¶ط§ظپط© ط²ط¨ظˆظ† ظ…ط­طھظ…ظ„',
+            tooltip: 'إضافة زبون محتمل',
             onPressed: _busy ? null : _openAddDialog,
             icon: const Icon(Icons.person_add_alt_1, color: Colors.white),
           ),
 
-          // âœ… ط§ظ„ظ‡ط§ظ…ط¨ط±ط¬ط± ط¯ط§ط¦ظ…ط§ظ‹
+          // ✅ الهامبرجر دائماً
           IconButton(
-            tooltip: _sideOpen ? 'ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ‚ط§ط¦ظ…ط©' : 'ط§ظ„ظ‚ط§ط¦ظ…ط©',
+            tooltip: _sideOpen ? 'إغلاق القائمة' : 'القائمة',
             onPressed: () => _toggleSide(!_sideOpen),
             icon:
                 Icon(_sideOpen ? Icons.close : Icons.menu, color: Colors.white),
@@ -483,7 +483,7 @@ class _InsuranceContactsListScreenState
               unselectedLabelColor: Colors.white70,
               indicatorColor: Colors.white,
               tabs: [
-                const Tab(child: Text('ط¨ط¯ظˆظ† طھط§ط±ظٹط®')),
+                const Tab(child: Text('بدون تاريخ')),
                 ...List.generate(12, (i) {
                   final m = i + 1;
                   final expCount = _countExpiring30InMonth(m);
@@ -520,11 +520,11 @@ class _InsuranceContactsListScreenState
         backgroundColor: AppColors.primary,
         onPressed: _busy ? null : _openAddDialog,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('ط¥ط¶ط§ظپط©', style: TextStyle(color: Colors.white)),
+        label: const Text('إضافة', style: TextStyle(color: Colors.white)),
       ),
       body: Stack(
         children: [
-          // ط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„ط£ط³ط§ط³ظٹ
+          // المحتوى الأساسي
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -578,7 +578,7 @@ class _InsuranceContactsListScreenState
             ),
           ),
 
-          // âœ… Sidebar Overlay
+          // ✅ Sidebar Overlay
           _rightOverlaySidebar(width: sideW),
         ],
       ),
@@ -628,15 +628,15 @@ class _HeaderBar extends StatelessWidget {
         if (busy) const SizedBox(width: 10),
         Text(
           isNoDateTab
-              ? 'ط§ظ„ظ…ط¹ط±ظˆط¶: $shown (ط¨ط¯ظˆظ† طھط§ط±ظٹط®)'
-              : 'ط§ظ„ظ…ط¹ط±ظˆط¶: $shown (ط§ظ„ط´ظ‡ط± $tabIndex)',
+              ? 'المعروض: $shown (بدون تاريخ)'
+              : 'المعروض: $shown (الشهر $tabIndex)',
           style: TextStyle(color: Colors.grey.shade700),
         ),
         const Spacer(),
         Tooltip(
           message: isNoDateTab
-              ? 'ظپظ„طھط± â‰¤30 ظٹظˆظ… ظٹط­طھط§ط¬ طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،'
-              : 'ط¹ط±ط¶ ظپظ‚ط· ط§ظ„طھظٹ طھظ†طھظ‡ظٹ ط®ظ„ط§ظ„ 30 ظٹظˆظ…',
+              ? 'فلتر ≤30 يوم يحتاج تاريخ انتهاء'
+              : 'عرض فقط التي تنتهي خلال 30 يوم',
           child: InkWell(
             onTap: isNoDateTab ? null : onToggleExpiring30,
             borderRadius: BorderRadius.circular(12),
@@ -668,8 +668,8 @@ class _HeaderBar extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       isNoDateTab
-                          ? 'â‰¤ 30 ظٹظˆظ…'
-                          : 'â‰¤ 30 ظٹظˆظ… ($expiringCountInTab)',
+                          ? '≤ 30 يوم'
+                          : '≤ 30 يوم ($expiringCountInTab)',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: expiring30Only
@@ -689,7 +689,7 @@ class _HeaderBar extends StatelessWidget {
           child: TextField(
             textAlign: TextAlign.right,
             decoration: InputDecoration(
-              hintText: 'ط¨ط­ط« ط¨ط§ظ„ط§ط³ظ… / ط§ظ„ظ‡ط§طھظپ / ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©',
+              hintText: 'بحث بالاسم / الهاتف / نوع المركبة',
               prefixIcon: const Icon(Icons.search),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -740,7 +740,7 @@ class _ExpiringBanner extends StatelessWidget {
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
-                'ظ‡ط°ط§ ط§ظ„طھط¨ظˆظٹط¨ ظ„ظ„ط²ط¨ط§ط¦ظ† ط¨ط¯ظˆظ† طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،طŒ ظ„ط°ظ„ظƒ طھظ†ط¨ظٹظ‡ط§طھ â‰¤30 ظٹظˆظ… ظ„ط§ طھظ†ط·ط¨ظ‚ ظ‡ظ†ط§.',
+                'هذا التبويب للزبائن بدون تاريخ انتهاء، لذلك تنبيهات ≤30 يوم لا تنطبق هنا.',
                 textAlign: TextAlign.right,
               ),
             ),
@@ -763,7 +763,7 @@ class _ExpiringBanner extends StatelessWidget {
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
-                'âœ… ظ„ط§ ظٹظˆط¬ط¯ ظ…ظ„ظپط§طھ طھظ†طھظ‡ظٹ ط®ظ„ط§ظ„ 30 ظٹظˆظ… ظپظٹ ظ‡ط°ط§ ط§ظ„ط´ظ‡ط± (ط­ط³ط¨ ط§ظ„ط¨ط­ط« ط§ظ„ط­ط§ظ„ظٹ).',
+                '✅ لا يوجد ملفات تنتهي خلال 30 يوم في هذا الشهر (حسب البحث الحالي).',
                 textAlign: TextAlign.right,
               ),
             ),
@@ -785,7 +785,7 @@ class _ExpiringBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'âڑ ï¸ڈ طھظ†ط¨ظٹظ‡: ظٹظˆط¬ط¯ $count ظ…ظ„ظپ/ظ…ظ„ظپط§طھ طھظ†طھظ‡ظٹ ط®ظ„ط§ظ„ 30 ظٹظˆظ… ظپظٹ ظ‡ط°ط§ ط§ظ„ط´ظ‡ط± (ط­ط³ط¨ ط§ظ„ط¨ط­ط« ط§ظ„ط­ط§ظ„ظٹ).',
+              '⚠️ تنبيه: يوجد $count ملف/ملفات تنتهي خلال 30 يوم في هذا الشهر (حسب البحث الحالي).',
               textAlign: TextAlign.right,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -801,7 +801,7 @@ class _ExpiringBanner extends StatelessWidget {
               color: Colors.orange.shade800,
             ),
             label:
-                Text(expiring30Only ? 'ط¥ظ„ط؛ط§ط، ظپظ„طھط± ط§ظ„ظ‚ط±ظٹط¨ط©' : 'ط¹ط±ط¶ ط§ظ„ظ‚ط±ظٹط¨ط© ظپظ‚ط·'),
+                Text(expiring30Only ? 'إلغاء فلتر القريبة' : 'عرض القريبة فقط'),
           ),
         ],
       ),
@@ -834,13 +834,13 @@ class _EmptyState extends StatelessWidget {
             Icon(Icons.contact_phone, size: 48, color: Colors.grey.shade600),
             const SizedBox(height: 10),
             const Text(
-              'ظ„ط§ ظٹظˆط¬ط¯ ط²ط¨ط§ط¦ظ† ظپظٹ ظ‡ط°ط§ ط§ظ„ط¹ط±ط¶.',
+              'لا يوجد زبائن في هذا العرض.',
               textAlign: TextAlign.center,
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             Text(
-              'ط¬ط±ظ‘ط¨ ط§ظ„ط¨ط­ط« ط£ظˆ طھط؛ظٹظٹط± ط§ظ„طھط¨ظˆظٹط¨طŒ ط£ظˆ ط£ط¶ظپ ط²ط¨ظˆظ† ط¬ط¯ظٹط¯.',
+              'جرّب البحث أو تغيير التبويب، أو أضف زبون جديد.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade700),
             ),
@@ -848,7 +848,7 @@ class _EmptyState extends StatelessWidget {
             FilledButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('ط¥ط¶ط§ظپط© ط²ط¨ظˆظ†'),
+              label: const Text('إضافة زبون'),
             )
           ],
         ),
@@ -889,11 +889,11 @@ class _WideTable extends StatelessWidget {
 
   String _statusText(_LeadContact e) {
     final d = e.endDate;
-    if (d == null) return 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+    if (d == null) return 'غير معروف';
     final left = daysLeft(d);
-    if (left < 0) return 'ظ…ظ†طھظ‡ظٹط©';
-    if (left <= 30) return 'ظ…طھط¨ظ‚ظٹ $left ظٹظˆظ…';
-    return 'ط³ط§ط±ظٹط©';
+    if (left < 0) return 'منتهية';
+    if (left <= 30) return 'متبقي $left يوم';
+    return 'سارية';
   }
 
   @override
@@ -908,12 +908,12 @@ class _WideTable extends StatelessWidget {
             dataRowMinHeight: 56,
             dataRowMaxHeight: 72,
             columns: const [
-              DataColumn(label: Text('ط§ظ„ط§ط³ظ…')),
-              DataColumn(label: Text('ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ')),
-              DataColumn(label: Text('ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©')),
-              DataColumn(label: Text('ط§ظ†طھظ‡ط§ط، ط§ظ„طھط£ظ…ظٹظ†')),
-              DataColumn(label: Text('ط§ظ„ط­ط§ظ„ط©')),
-              DataColumn(label: Text('ط¥ط¬ط±ط§ط،ط§طھ')),
+              DataColumn(label: Text('الاسم')),
+              DataColumn(label: Text('رقم الهاتف')),
+              DataColumn(label: Text('نوع المركبة')),
+              DataColumn(label: Text('انتهاء التأمين')),
+              DataColumn(label: Text('الحالة')),
+              DataColumn(label: Text('إجراءات')),
             ],
             rows: items.map((e) {
               final end = e.endDate == null ? '-' : nfDate.format(e.endDate!);
@@ -955,11 +955,11 @@ class _WideTable extends StatelessWidget {
                           onPressed: () => onInsure(e),
                           icon: const Icon(Icons.verified_user,
                               color: AppColors.primary),
-                          label: const Text('طھط£ظ…ظٹظ† ط§ظ„ظ…ط±ظƒط¨ط©'),
+                          label: const Text('تأمين المركبة'),
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          tooltip: 'طھط¹ط¯ظٹظ„',
+                          tooltip: 'تعديل',
                           onPressed: () => onEdit(e),
                           icon: const Icon(Icons.edit_outlined,
                               color: Colors.blueGrey),
@@ -1020,11 +1020,11 @@ class _CardsList extends StatelessWidget {
 
   String _statusText(_LeadContact e) {
     final d = e.endDate;
-    if (d == null) return 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+    if (d == null) return 'غير معروف';
     final left = daysLeft(d);
-    if (left < 0) return 'ظ…ظ†طھظ‡ظٹط©';
-    if (left <= 30) return 'ظ…طھط¨ظ‚ظٹ $left ظٹظˆظ…';
-    return 'ط³ط§ط±ظٹط©';
+    if (left < 0) return 'منتهية';
+    if (left <= 30) return 'متبقي $left يوم';
+    return 'سارية';
   }
 
   @override
@@ -1057,14 +1057,14 @@ class _CardsList extends StatelessWidget {
                         color: Colors.redAccent),
                   ),
                   IconButton(
-                    tooltip: 'طھط¹ط¯ظٹظ„',
+                    tooltip: 'تعديل',
                     onPressed: () => onEdit(e),
                     icon:
                         const Icon(Icons.edit_outlined, color: Colors.blueGrey),
                   ),
                   const Spacer(),
                   Text(
-                    (e.name ?? '').trim().isEmpty ? 'ط¨ط¯ظˆظ† ط§ط³ظ…' : e.name!.trim(),
+                    (e.name ?? '').trim().isEmpty ? 'بدون اسم' : e.name!.trim(),
                     textAlign: TextAlign.right,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
@@ -1087,13 +1087,13 @@ class _CardsList extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  Text('ط§ظ„ط­ط§ظ„ط©', style: TextStyle(color: Colors.grey.shade700)),
+                  Text('الحالة', style: TextStyle(color: Colors.grey.shade700)),
                 ],
               ),
               const SizedBox(height: 10),
-              _kv('ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ', _dashIfEmpty(e.phone)),
-              _kv('ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©', _dashIfEmpty(e.vehicleMake)),
-              _kv('ط§ظ†طھظ‡ط§ط، ط§ظ„طھط£ظ…ظٹظ†', end),
+              _kv('رقم الهاتف', _dashIfEmpty(e.phone)),
+              _kv('نوع المركبة', _dashIfEmpty(e.vehicleMake)),
+              _kv('انتهاء التأمين', end),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
@@ -1101,7 +1101,7 @@ class _CardsList extends StatelessWidget {
                   onPressed: () => onInsure(e),
                   icon:
                       const Icon(Icons.verified_user, color: AppColors.primary),
-                  label: const Text('طھط£ظ…ظٹظ† ط§ظ„ظ…ط±ظƒط¨ط©'),
+                  label: const Text('تأمين المركبة'),
                 ),
               ),
             ],
@@ -1198,7 +1198,7 @@ class _LeadDialogState extends State<_LeadDialog> {
     if (allEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('âڑ ï¸ڈ ط£ط¯ط®ظ„ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ظ…ط¹ظ„ظˆظ…ط© ظˆط§ط­ط¯ط© ظ‚ط¨ظ„ ط§ظ„ط­ظپط¸')),
+            content: Text('⚠️ أدخل على الأقل معلومة واحدة قبل الحفظ')),
       );
       return;
     }
@@ -1220,11 +1220,11 @@ class _LeadDialogState extends State<_LeadDialog> {
   @override
   Widget build(BuildContext context) {
     final endText = _endDate == null
-        ? 'ط¨ط¯ظˆظ† طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،'
+        ? 'بدون تاريخ انتهاء'
         : widget.nfDate.format(_endDate!);
 
     return AdaptiveAlertDialog(
-      title: Text(isEdit ? 'طھط¹ط¯ظٹظ„ ط²ط¨ظˆظ† ظ…ط­طھظ…ظ„' : 'ط¥ط¶ط§ظپط© ط²ط¨ظˆظ† ظ…ط­طھظ…ظ„'),
+      title: Text(isEdit ? 'تعديل زبون محتمل' : 'إضافة زبون محتمل'),
       content: SizedBox(
         width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 560,
         child: Column(
@@ -1233,7 +1233,7 @@ class _LeadDialogState extends State<_LeadDialog> {
             TextField(
               controller: _name,
               textAlign: TextAlign.right,
-              decoration: const InputDecoration(labelText: 'ط§ظ„ط§ط³ظ… (ط§ط®طھظٹط§ط±ظٹ)'),
+              decoration: const InputDecoration(labelText: 'الاسم (اختياري)'),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -1241,14 +1241,14 @@ class _LeadDialogState extends State<_LeadDialog> {
               textAlign: TextAlign.right,
               keyboardType: TextInputType.phone,
               decoration:
-                  const InputDecoration(labelText: 'ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ (ط§ط®طھظٹط§ط±ظٹ)'),
+                  const InputDecoration(labelText: 'رقم الهاتف (اختياري)'),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _vehicleMake,
               textAlign: TextAlign.right,
               decoration:
-                  const InputDecoration(labelText: 'ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط© (ط§ط®طھظٹط§ط±ظٹ)'),
+                  const InputDecoration(labelText: 'نوع المركبة (اختياري)'),
             ),
             const SizedBox(height: 12),
             Align(
@@ -1266,7 +1266,7 @@ class _LeadDialogState extends State<_LeadDialog> {
                     TextButton.icon(
                       onPressed: _clearEndDate,
                       icon: const Icon(Icons.clear),
-                      label: const Text('ظ…ط³ط­ ط§ظ„طھط§ط±ظٹط®'),
+                      label: const Text('مسح التاريخ'),
                     ),
                 ],
               ),
@@ -1277,7 +1277,7 @@ class _LeadDialogState extends State<_LeadDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('ط¥ظ„ط؛ط§ط،'),
+          child: const Text('إلغاء'),
         ),
         FilledButton(
           onPressed: _submit,
@@ -1336,4 +1336,3 @@ class _LeadContact {
     );
   }
 }
-

@@ -64,23 +64,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AdaptiveAlertDialog(
-          title:
-              const Text('ًں”’ ط§ظ†طھظ‡ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„طھط¬ط±ظٹط¨ظٹط©'),
+          title: const Text('🔒 انتهاء النسخة التجريبية'),
           content: const Text(
-            'ظ„ظ‚ط¯ ظˆطµظ„طھ ط¥ظ„ظ‰ ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„ظ†ط³ط®ط© ط§ظ„طھط¬ط±ظٹط¨ظٹط© (10 ظ…ظ„ظپط§طھ ط¥طµظ„ط§ط­).\n\n'
-            'ظ„طھطھظ…ظƒظ† ظ…ظ† ط¥ط¶ط§ظپط© ظ…ط±ظƒط¨ط§طھ ط¬ط¯ظٹط¯ط©طŒ ظٹط±ط¬ظ‰ طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ.',
+            'لقد وصلت إلى الحد الأقصى للنسخة التجريبية (10 ملفات إصلاح).\n\n'
+            'لتتمكن من إضافة مركبات جديدة، يرجى تفعيل الاشتراك.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('ظ„ط§ط­ظ‚ظ‹ط§'),
+              child: const Text('لاحقًا'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 Navigator.pushNamed(context, AppRoutes.technicalSupport);
               },
-              child: const Text('طھظˆط§طµظ„ ظ„طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ'),
+              child: const Text('تواصل لتفعيل الاشتراك'),
             ),
           ],
         ),
@@ -203,7 +202,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Expanded(
                             child: _kpiCard(
-                              'ظ…ظ„ظپط§طھ ظ…ظپطھظˆط­ط©',
+                              'ملفات مفتوحة',
                               '$repairCount',
                               Icons.folder_open_rounded,
                             ),
@@ -211,7 +210,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _kpiCard(
-                              'ط¬ط§ظ‡ط²ط© ظ„ظ„طھط³ظ„ظٹظ…',
+                              'جاهزة للتسليم',
                               '$readyRepairCount',
                               Icons.task_alt_rounded,
                             ),
@@ -223,31 +222,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Expanded(
                             child: _kpiCard(
-                              'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ظ„ظپط§طھ',
-                              'â‚ھ ${money.format(repairFilesValue)}',
+                              'إجمالي الملفات',
+                              '₪ ${money.format(repairFilesValue)}',
                               Icons.receipt_long_rounded,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _kpiCard(
-                              'ظ…طھط¨ظ‚ظٹ ظ„ظ„طھط­طµظٹظ„',
-                              'â‚ھ ${money.format(repairRemaining)}',
+                              'متبقي للتحصيل',
+                              '₪ ${money.format(repairRemaining)}',
                               Icons.account_balance_wallet_outlined,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 28),
-                      _sectionHeader('ط¥ط¬ط±ط§ط،ط§طھ ط³ط±ظٹط¹ط©',
-                          trailing: 'ط§ظ„ط£ظƒط«ط± ط§ط³طھط®ط¯ط§ظ…ظ‹ط§'),
+                      _sectionHeader('إجراءات سريعة',
+                          trailing: 'الأكثر استخدامًا'),
                       const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
                             child: _quickAction(
                               icon: Icons.directions_car_filled_rounded,
-                              label: 'ظ…ظ„ظپط§طھ ط§ظ„ط¥طµظ„ط§ط­',
+                              label: 'ملفات الإصلاح',
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 AppRoutes.repairs,
@@ -258,7 +257,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Expanded(
                             child: _quickAction(
                               icon: Icons.add_rounded,
-                              label: 'ظ…ظ„ظپ ط¬ط¯ظٹط¯',
+                              label: 'ملف جديد',
                               onTap: () async {
                                 if (!await _canAddNewRepair() || !mounted) {
                                   return;
@@ -272,7 +271,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Expanded(
                             child: _quickAction(
                               icon: Icons.payments_outlined,
-                              label: 'طھط­طµظٹظ„ ط¯ظپط¹ط©',
+                              label: 'تحصيل دفعة',
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 AppRoutes.receiptVoucher,
@@ -285,11 +284,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _collectionCard(money),
                       const SizedBox(height: 26),
                       _sectionHeader(
-                        'ط¢ط®ط± ط§ظ„ظ…ظ„ظپط§طھ',
+                        'آخر الملفات',
                         action: TextButton(
                           onPressed: () =>
                               Navigator.pushNamed(context, AppRoutes.repairs),
-                          child: const Text('ط¹ط±ط¶ ط§ظ„ظƒظ„'),
+                          child: const Text('عرض الكل'),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -333,7 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           IconButton(
             key: const Key('yalla_mobile_menu_button'),
-            tooltip: 'ط§ظ„ظ‚ط§ط¦ظ…ط©',
+            tooltip: 'القائمة',
             onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
             icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
           ),
@@ -350,7 +349,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 Text(
-                  'ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…',
+                  'لوحة التحكم',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 21,
@@ -361,7 +360,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'طھط­ط¯ظٹط«',
+            tooltip: 'تحديث',
             onPressed: _loadAll,
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
           ),
@@ -473,12 +472,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'ط­ط§ظ„ط© ط§ظ„طھط­طµظٹظ„',
+                    'حالة التحصيل',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'ظ†ط³ط¨ط© ط§ظ„ظ…ط¯ظپظˆط¹ ظ…ظ† ط§ظ„ظ…ظ„ظپط§طھ',
+                    'نسبة المدفوع من الملفات',
                     style: TextStyle(color: Colors.black54, fontSize: 13),
                   ),
                 ],
@@ -497,12 +496,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             children: [
               Expanded(
-                  child: _miniValue(
-                      'ظ…ط¯ظپظˆط¹', 'â‚ھ ${money.format(repairPaid)}')),
+                  child: _miniValue('مدفوع', '₪ ${money.format(repairPaid)}')),
               Expanded(
                   child: _miniValue(
-                      'ظ…طھط¨ظ‚ظٹ', 'â‚ھ ${money.format(repairRemaining)}')),
-              Expanded(child: _miniValue('ظ…ظ„ظپ', '$repairCount')),
+                      'متبقي', '₪ ${money.format(repairRemaining)}')),
+              Expanded(child: _miniValue('ملف', '$repairCount')),
             ],
           ),
         ],
@@ -557,8 +555,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Expanded(
                 child: Text(
                   repairCount == 0
-                      ? 'ظ„ط§ طھظˆط¬ط¯ ظ…ظ„ظپط§طھ ط¥طµظ„ط§ط­ ط¨ط¹ط¯'
-                      : 'ظ„ط¯ظٹظƒ $repairCount ظ…ظ„ظپ ط¥طµظ„ط§ط­ â€” ط§ظپطھط­ ط§ظ„ظ‚ط§ط¦ظ…ط© ظ„ط¹ط±ط¶ ط§ظ„طھظپط§طµظٹظ„',
+                      ? 'لا توجد ملفات إصلاح بعد'
+                      : 'لديك $repairCount ملف إصلاح — افتح القائمة لعرض التفاصيل',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -676,13 +674,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Builder(
                     builder: (headerContext) => IconButton(
                       key: const Key('yalla_mobile_menu_button'),
-                      tooltip: 'ط§ظ„ظ‚ط§ط¦ظ…ط©',
+                      tooltip: 'القائمة',
                       onPressed: () => Scaffold.of(headerContext).openDrawer(),
                       icon: const Icon(Icons.menu, color: Colors.white),
                     ),
                   ),
                 const Text(
-                  "ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…",
+                  "لوحة التحكم",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Colors.white, fontSize: 20),
@@ -722,13 +720,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionTitle("ط§ط®طھطµط§ط±ط§طھ ط³ط±ظٹط¹ط©"),
+                const SectionTitle("اختصارات سريعة"),
                 const SizedBox(height: 14),
                 AdaptiveRow(
                   children: [
                     Expanded(
                       child: ActionShortcutButton(
-                        label: "ط¥ط¶ط§ظپط© ظ…ط±ظƒط¨ط©",
+                        label: "إضافة مركبة",
                         onTap: () async {
                           final allowed = await _canAddNewRepair();
                           if (!allowed || !mounted) return;
@@ -739,7 +737,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ActionShortcutButton(
-                        label: "ظپط§طھظˆط±ط© ط´ط±ط§ط،",
+                        label: "فاتورة شراء",
                         onTap: () => Navigator.pushNamed(
                           context,
                           AppRoutes.purchaseCreate,
@@ -749,7 +747,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ActionShortcutButton(
-                        label: "ط³ظ†ط¯ ظ‚ط¨ط¶",
+                        label: "سند قبض",
                         onTap: () => Navigator.pushNamed(
                           context,
                           AppRoutes.receiptVoucher,
@@ -770,7 +768,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle("طھط­ظ„ظٹظ„ ظ…ط§ظ„ظٹ ط´ظ‡ط±ظٹ"),
+        const SectionTitle("تحليل مالي شهري"),
         const SizedBox(height: 14),
         Container(
           height: 420,
@@ -796,7 +794,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      "ط§ظ„ظ…ظ„ط®طµ ط§ظ„ظ…ط§ظ„ظٹ ط§ظ„ط´ظ‡ط±ظٹ",
+                      "الملخص المالي الشهري",
                       style: TextStyle(
                         color: AppColors.secondary,
                         fontSize: 18,
@@ -805,22 +803,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 22),
                     _summaryLine(
-                        "ط§ظ„ط¯ط®ظ„", monthlyIncomeTotal, AppColors.primary),
+                        "الدخل", monthlyIncomeTotal, AppColors.primary),
                     const SizedBox(height: 14),
                     _summaryLine(
-                      "ط§ظ„ظ…طµط§ط±ظٹظپ",
+                      "المصاريف",
                       monthlyExpensesTotal,
                       const Color(0xFFFF9800),
                     ),
                     const SizedBox(height: 14),
                     _summaryLine(
-                      monthlyProfit >= 0 ? "ط§ظ„ط±ط¨ط­" : "ط§ظ„ط®ط³ط§ط±ط©",
+                      monthlyProfit >= 0 ? "الربح" : "الخسارة",
                       monthlyProfit.abs(),
                       monthlyProfit >= 0 ? AppColors.success : AppColors.danger,
                     ),
                     const SizedBox(height: 14),
                     _summaryLine(
-                      "ظ‡ط§ظ…ط´ ط§ظ„ط±ط¨ط­ظٹط©",
+                      "هامش الربحية",
                       monthlyMargin,
                       AppColors.secondary,
                       percent: true,

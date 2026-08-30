@@ -1,8 +1,8 @@
 import 'dart:ui' as ui;
-// ًں“پ lib/features/repairs/screens/repair_details_screen.dart
-// - ط­ط§ظ„ط© ط§ظ„طھط£ظ…ظٹظ† + ط­ط§ظ„ط© ط§ظ„ظ…ط±ظƒط¨ط© ط¬ظ†ط¨ ط¨ط¹ط¶ ط¯ط§ط®ظ„ ط§ظ„ط¨ط·ط§ظ‚ط© ط§ظ„ظٹط³ط±ظ‰.
-// - طھط­ط¯ظٹط« ط°ظƒظٹ ظ„ط£ط³ظ…ط§ط، ط§ظ„ط£ط¹ظ…ط¯ط© (ظٹظƒطھط´ظپ ط§ظ„ط¹ظ…ظˆط¯ ط§ظ„طµط­ظٹط­ ظ‚ط¨ظ„ UPDATE).
-// - ط¯ظپط¹ط§طھطŒ ط§ط¹طھظ…ط§ط¯ ظ†ظ‡ط§ط¦ظٹطŒ طµظˆط±طŒ PDFطŒ GL.
+// 📁 lib/features/repairs/screens/repair_details_screen.dart
+// - حالة التأمين + حالة المركبة جنب بعض داخل البطاقة اليسرى.
+// - تحديث ذكي لأسماء الأعمدة (يكتشف العمود الصحيح قبل UPDATE).
+// - دفعات، اعتماد نهائي، صور، PDF، GL.
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -55,23 +55,23 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   final ScrollController _imagesScrollCtrl = ScrollController();
 
   static const List<_PayMethod> _methods = [
-    _PayMethod('cash', 'ط§ظ„طµظ†ط¯ظˆظ‚ (1000)'),
-    _PayMethod('bank', 'ط§ظ„ط¨ظ†ظƒ (1010)'),
+    _PayMethod('cash', 'الصندوق (1000)'),
+    _PayMethod('bank', 'البنك (1010)'),
   ];
 
-  // ط®ظٹط§ط±ط§طھ ط§ظ„ظ‚ظˆط§ط¦ظ…
+  // خيارات القوائم
   static const List<String> _insuranceOptions = [
-    'طھظ… طھط³ظ„ظٹظ… ط§ظ„ظپط§طھظˆط±ط©',
-    'طھظ… ط§ظ„طھط³ط¯ظٹط¯ ظپظٹ ط§ظ„طھط¹ظˆظٹط¶ط§طھ',
-    'طھظ… ط§ظ„طھط³ط¯ظٹط¯ ظپظٹ ط§ظ„ظ…ط§ظ„ظٹط©',
-    'طھظ… ط§ظ„طµط±ظپ',
+    'تم تسليم الفاتورة',
+    'تم التسديد في التعويضات',
+    'تم التسديد في المالية',
+    'تم الصرف',
   ];
 
   static const List<String> _vehicleOptions = [
-    'طھظ… ط§ظ„ط§ط³طھظ„ط§ظ…',
-    'ظ‚ظٹط¯ ط§ظ„ط¥طµظ„ط§ط­',
-    'ط¬ط§ظ‡ط²ط© ظ„ظ„طھط³ظ„ظٹظ…',
-    'طھظ… ط§ظ„طھط³ظ„ظٹظ…',
+    'تم الاستلام',
+    'قيد الإصلاح',
+    'جاهزة للتسليم',
+    'تم التسليم',
   ];
 
   @override
@@ -114,7 +114,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     }
   }
 
-  // ===== ظƒط´ظپ ط§ط³ظ… ط§ظ„ط¹ظ…ظˆط¯ ط§ظ„ط­ظ‚ظٹظ‚ظٹ ظˆطھط­ط¯ظٹط«ظ‡ ط¨ط´ظƒظ„ ط¢ظ…ظ† =====
+  // ===== كشف اسم العمود الحقيقي وتحديثه بشكل آمن =====
   Future<String?> _findExistingColumn(List<String> candidates) async {
     final db = await DBService.database;
     final rows = await db.rawQuery('PRAGMA table_info(repairs)');
@@ -133,7 +133,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     try {
       final col = await _findExistingColumn(candidates);
       if (col == null) {
-        throw 'ظ„ظ… ظٹظڈط¹ط«ط± ط¹ظ„ظ‰ ط¹ظ…ظˆط¯ ظ…ظ†ط§ط³ط¨ (${candidates.join(", ")}) ظپظٹ ط¬ط¯ظˆظ„ repairs';
+        throw 'لم يُعثر على عمود مناسب (${candidates.join(", ")}) في جدول repairs';
       }
       final db = await DBService.database;
       await db.update('repairs', {col: value},
@@ -144,12 +144,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           .showSnackBar(SnackBar(content: Text(successMsg)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ظپط´ظ„ طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط©: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('فشل تحديث الحالة: $e')));
     }
   }
 
-  // طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط§طھ ط¨ط§ط³طھط®ط¯ط§ظ… ط§ظ„ظƒط´ظپ ط§ظ„ط°ظƒظٹ
+  // تحديث الحالات باستخدام الكشف الذكي
   Future<void> _updateInsuranceStatus(String value) async {
     await _updateColumnSmart(
       candidates: [
@@ -159,7 +159,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         'insurance_followup_status',
       ],
       value: value,
-      successMsg: 'طھظ… طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„طھط£ظ…ظٹظ†',
+      successMsg: 'تم تحديث حالة التأمين',
     );
   }
 
@@ -172,7 +172,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         'status_vehicle',
       ],
       value: value,
-      successMsg: 'طھظ… طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ظ…ط±ظƒط¨ط©',
+      successMsg: 'تم تحديث حالة المركبة',
     );
   }
 
@@ -207,16 +207,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     final invId = _repair.invoiceId;
     if (invId == null || invId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('ظ„ط§ طھظˆط¬ط¯ ظپط§طھظˆط±ط© ظ„ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ.')),
+        const SnackBar(content: Text('لا توجد فاتورة لهذا الملف.')),
       );
       return;
     }
     if (_invoiceGlEntryId != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                'ظ‚ظٹط¯ GL ظ…ظˆط¬ظˆط¯ ط¨ط§ظ„ظپط¹ظ„ (#$_invoiceGlEntryId).')),
+        SnackBar(content: Text('قيد GL موجود بالفعل (#$_invoiceGlEntryId).')),
       );
       return;
     }
@@ -224,32 +221,30 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       final id = await DBService.postInvoiceGLFromId(invId);
       await _refreshInvoiceGl();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('âœ… طھظ… طھط±ط­ظٹظ„ ظ‚ظٹط¯ ط§ظ„ظپط§طھظˆط±ط© GL (#$id)')),
+        SnackBar(content: Text('✅ تم ترحيل قيد الفاتورة GL (#$id)')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('â‌Œ ظپط´ظ„ طھط±ط­ظٹظ„ GL: $e')),
+        SnackBar(content: Text('❌ فشل ترحيل GL: $e')),
       );
     }
   }
 
-  // ===== ط§ط¹طھظ…ط§ط¯ ظ†ظ‡ط§ط¦ظٹ =====
+  // ===== اعتماد نهائي =====
   Future<void> _confirmFinalApproval() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AdaptiveAlertDialog(
-        title: const Text('ط§ط¹طھظ…ط§ط¯ ط§ظ„ط³ط¹ط± ط§ظ„ظ†ظ‡ط§ط¦ظٹ'),
-        content: const Text(
-            'ظ‡ظ„ طھط±ظٹط¯ ط§ط¹طھظ…ط§ط¯ ط§ظ„ط³ط¹ط± ط§ظ„ظ†ظ‡ط§ط¦ظٹ ظˆطھط³ط¬ظٹظ„ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹطں'),
+        title: const Text('اعتماد السعر النهائي'),
+        content:
+            const Text('هل تريد اعتماد السعر النهائي وتسجيل القيد المحاسبي؟'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('ط¥ظ„ط؛ط§ط،')),
+              child: const Text('إلغاء')),
           ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('طھط£ظƒظٹط¯')),
+              child: const Text('تأكيد')),
         ],
       ),
     );
@@ -261,34 +256,30 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       await _reloadRepair();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'âœ… طھظ… ط§ظ„ط§ط¹طھظ…ط§ط¯ ظˆط¥ظ†ط´ط§ط، ط§ظ„ظ‚ظٹط¯ ظˆط§ظ„ظپط§طھظˆط±ط©')),
+        const SnackBar(content: Text('✅ تم الاعتماد وإنشاء القيد والفاتورة')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('â‌Œ ظپط´ظ„ ط§ظ„ط§ط¹طھظ…ط§ط¯: $e')),
+        SnackBar(content: Text('❌ فشل الاعتماد: $e')),
       );
     } finally {
       if (mounted) setState(() => _approving = false);
     }
   }
 
-  // ===== ط§ظ„ط¯ظپط¹ط§طھ =====
+  // ===== الدفعات =====
   Future<void> _addPayment() async {
     if (_repair.id.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'ظ„ط§ ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ط¯ظپط¹ط© ظ‚ط¨ظ„ ط­ظپط¸ ظ…ظ„ظپ ط§ظ„ط¥طµظ„ط§ط­.')),
+            content: Text('لا يمكن إضافة دفعة قبل حفظ ملف الإصلاح.')),
       );
       return;
     }
 
     final amountCtrl = TextEditingController();
-    final notesCtrl =
-        TextEditingController(text: 'ط¯ظپط¹ط© ط¹ظ„ظ‰ ظ…ظ„ظپ ط¥طµظ„ط§ط­');
+    final notesCtrl = TextEditingController(text: 'دفعة على ملف إصلاح');
     DateTime payDate = DateTime.now();
     _PayMethod method = _methods.first;
 
@@ -296,7 +287,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setM) => AdaptiveAlertDialog(
-          title: const Text('ط¥ط¶ط§ظپط© ط¯ظپط¹ط©'),
+          title: const Text('إضافة دفعة'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -305,8 +296,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   controller: amountCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                      labelText: 'ط§ظ„ظ…ط¨ظ„ط؛', hintText: '0.00'),
+                  decoration:
+                      InputDecoration(labelText: 'المبلغ', hintText: '0.00'),
                   autofocus: true,
                 ),
                 const SizedBox(height: 10),
@@ -317,13 +308,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           DropdownMenuItem(value: m, child: Text(m.label)))
                       .toList(),
                   onChanged: (v) => setM(() => method = v ?? _methods.first),
-                  decoration:
-                      InputDecoration(labelText: 'ط·ط±ظٹظ‚ط© ط§ظ„ط¯ظپط¹'),
+                  decoration: InputDecoration(labelText: 'طريقة الدفع'),
                 ),
                 const SizedBox(height: 10),
                 AdaptiveRow(
                   children: [
-                    const Text('ط§ظ„طھط§ط±ظٹط®: '),
+                    const Text('التاريخ: '),
                     TextButton(
                       onPressed: () async {
                         final d = await showDatePicker(
@@ -342,8 +332,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 TextFormField(
                   controller: notesCtrl,
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                      labelText: 'ظ…ظ„ط§ط­ط¸ط§طھ (ط§ط®طھظٹط§ط±ظٹ)'),
+                  decoration:
+                      const InputDecoration(labelText: 'ملاحظات (اختياري)'),
                 ),
               ],
             ),
@@ -351,7 +341,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('ط¥ظ„ط؛ط§ط،')),
+                child: const Text('إلغاء')),
             ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('ط­ظپط¸')),
@@ -365,22 +355,22 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     final raw = amountCtrl.text.trim().replaceAll(',', '');
     final amount = double.tryParse(raw) ?? 0.0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ط£ط¯ط®ظ„ ظ…ط¨ظ„ط؛ظ‹ط§ طµط§ظ„ط­ظ‹ط§')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('أدخل مبلغًا صالحًا')));
       return;
     }
 
     final remaining = (_repair.totalFileValue) - (_repair.totalPaidAmount);
     if (remaining <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ط§ظ„ظ…ظ„ظپ ظ…ط³ط¯ط¯ ط¨ط§ظ„ظƒط§ظ…ظ„')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('الملف مسدد بالكامل')));
       return;
     }
     if (amount > remaining + 0.0001) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                'ط§ظ„ظ…ط¨ظ„ط؛ ظٹطھط¬ط§ظˆط² ط§ظ„ظ…طھط¨ظ‚ظٹ (${_currency.format(remaining)})')),
+            content:
+                Text('المبلغ يتجاوز المتبقي (${_currency.format(remaining)})')),
       );
       return;
     }
@@ -395,13 +385,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       date: payDate,
       method: method.key,
       accountName: method.key,
-      status: "confirmed", // â†گ String ط¨ط¯ظ„ Enum
+      status: "confirmed", // ← String بدل Enum
       notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
       attachments: null,
       glEntryId: null,
 
-      // REQUIRED â€” ظ„ط§ط²ظ… ظ…ظˆط¬ظˆط¯ ط­ط³ط¨ ط§ظ„ظ…ظˆط¯ظٹظ„
-      isIncome: true, // â†گ ظ„ط£ظ†ظ‡ط§ ط¯ظپط¹ط© ظ‚ط¨ط¶ ظ„ظ„ط¹ظ…ظٹظ„
+      // REQUIRED — لازم موجود حسب الموديل
+      isIncome: true, // ← لأنها دفعة قبض للعميل
     );
 
     try {
@@ -412,26 +402,25 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         descriptionOverride:
             notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
       );
-// طھط­ط¯ظٹط« ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¯ظپظˆط¹ط§طھ ط¯ط§ط®ظ„ repairs ط¨ط¹ط¯ ط¥ط¶ط§ظپط© ط§ظ„ط¯ظپط¹ط©
+// تحديث إجمالي المدفوعات داخل repairs بعد إضافة الدفعة
       final repSvc = await RepairsService.instance();
       await repSvc.updateTotalsFromPayments(_repair.id);
 
-      await _reloadRepair(); // ط¥ط¹ط§ط¯ط© طھط­ظ…ظٹظ„ ط¨ط¹ط¯ طھط­ط¯ظٹط« totals
+      await _reloadRepair(); // إعادة تحميل بعد تحديث totals
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                'âœ… طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ظپط¹ط©: ${_currency.format(amount)}')),
+            content: Text('✅ تم تسجيل الدفعة: ${_currency.format(amount)}')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('â‌Œ ظپط´ظ„ ط§ظ„ط­ظپط¸: $e')));
+          .showSnackBar(SnackBar(content: Text('❌ فشل الحفظ: $e')));
     }
   }
 
-  // ===== ط§ظ„طµظˆط± =====
+  // ===== الصور =====
   Future<void> _pickImages() async {
     final picker = ImagePicker();
     final picked = await picker.pickMultiImage();
@@ -440,19 +429,18 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     try {
       final svc = await RepairsService.instance();
 
-      // ظ„ط¥ط¸ظ‡ط§ط± ط£ظ† ط§ظ„ظ†ط¸ط§ظ… ظٹط¹ظ…ظ„ ظˆظ„ط§ ظٹط¹ظ„ظ‚
+      // لإظهار أن النظام يعمل ولا يعلق
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('âڈ³ ط¬ط§ط±ظٹ ظ…ط¹ط§ظ„ط¬ط© ط§ظ„طµظˆط±...')),
+        const SnackBar(content: Text('⏳ جاري معالجة الصور...')),
       );
 
       for (final raw in picked) {
-        // 1) ط¶ط؛ط· ط§ظ„طµظˆط±ط©
+        // 1) ضغط الصورة
         final compressed =
             await ImageStorageService.compressImage(XFile(raw.path));
 
-        // 2) ط­ظپط¸ ط§ظ„طµظˆط±ط©
+        // 2) حفظ الصورة
         final savedPath = await ImageStorageService.saveImage(
           image: compressed,
           vehicleType: _repair.vehicleType,
@@ -461,10 +449,10 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           receivedDate: _repair.receivedDate,
         );
 
-        // 3) ط¥ط¶ط§ظپط© ط§ظ„ظ…ط³ط§ط± ط¥ظ„ظ‰ DB
+        // 3) إضافة المسار إلى DB
         await svc.addImagePath(repairId: _repair.id, path: savedPath);
 
-        // 4) ط¥ظ†ط´ط§ط، Thumbnail ط¥ط°ط§ ظ„ظٹط³ ظ…ظˆط¬ظˆط¯ظ‹ط§
+        // 4) إنشاء Thumbnail إذا ليس موجودًا
         if ((_repair.thumbnailPath ?? '').isEmpty) {
           final thumbPath =
               await ImageStorageService.generateThumbnail(savedPath);
@@ -478,12 +466,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       await _reloadRepair();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('âœ… طھظ… ط­ظپط¸ ط§ظ„طµظˆط±')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('✅ تم حفظ الصور')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('â‌Œ ظپط´ظ„ ط¥ط¶ط§ظپط© ط§ظ„طµظˆط±: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل إضافة الصور: $e')));
     }
   }
 
@@ -491,13 +479,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     try {
       final svc = await RepairsService.instance();
 
-      // 1) ط­ط°ظپ ظ…ظ† ط§ظ„ظ‚ط±طµ
+      // 1) حذف من القرص
       await ImageStorageService.deleteImage(path);
 
-      // 2) ط­ط°ظپ ظ…ظ† DB
+      // 2) حذف من DB
       await svc.removeImagePath(path: path);
 
-      // 3) ط¥ط²ط§ظ„ط© ط§ظ„ط؛ظ„ط§ظپ ط¥ظ† ظƒط§ظ† ظ‡ظˆ ظ†ظپط³ظ‡
+      // 3) إزالة الغلاف إن كان هو نفسه
       if (_repair.thumbnailPath == path) {
         await svc.updateThumbnail(
           repairId: _repair.id,
@@ -508,17 +496,17 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       await _reloadRepair();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ًں—‘ï¸ڈ طھظ… ط­ط°ظپ ط§ظ„طµظˆط±ط©')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('🗑️ تم حذف الصورة')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('â‌Œ ظپط´ظ„ ط­ط°ظپ ط§ظ„طµظˆط±ط©: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل حذف الصورة: $e')));
     }
   }
 
 // ===============================
-// ًں”چ ط¹ط§ط±ط¶ ط§ظ„طµظˆط± ظ…ط¹ ط¯ط¹ظ… ط§ظ„ط£ط³ظ‡ظ… + Delete + ESC
+// 🔍 عارض الصور مع دعم الأسهم + Delete + ESC
 // ===============================
   void _openPreview(List<String> images, int start) {
     int current = start;
@@ -570,13 +558,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                     final ok = await showDialog<bool>(
                       context: dlgCtx,
                       builder: (_) => AdaptiveAlertDialog(
-                        title: const Text('ط­ط°ظپ ط§ظ„طµظˆط±ط©'),
-                        content: const Text(
-                            'ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„طµظˆط±ط© ظ†ظ‡ط§ط¦ظٹظ‹ط§طں'),
+                        title: const Text('حذف الصورة'),
+                        content: const Text('هل تريد حذف هذه الصورة نهائيًا؟'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(_, false),
-                            child: const Text('ط¥ظ„ط؛ط§ط،'),
+                            child: const Text('إلغاء'),
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(_, true),
@@ -617,7 +604,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           ),
                         ),
 
-                        // ط²ط± ط¥ط؛ظ„ط§ظ‚
+                        // زر إغلاق
                         Positioned(
                           top: 10,
                           right: 10,
@@ -628,7 +615,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           ),
                         ),
 
-                        // ط³ظ‡ظ… ظٹط³ط§ط±
+                        // سهم يسار
                         if (images.length > 1)
                           Positioned(
                             left: 10,
@@ -647,7 +634,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                             ),
                           ),
 
-                        // ط³ظ‡ظ… ظٹظ…ظٹظ†
+                        // سهم يمين
                         if (images.length > 1)
                           Positioned(
                             right: 10,
@@ -684,12 +671,11 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       final path = '${tempDir.path}/repair_${_repair.id}.pdf';
       final file = File(path);
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([XFile(path)],
-          text: 'ظƒط´ظپ ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط©');
+      await Share.shareXFiles([XFile(path)], text: 'كشف إصلاح المركبة');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('â‌Œ ظپط´ظ„ ط§ظ„ظ…ط´ط§ط±ظƒط©: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل المشاركة: $e')));
     }
   }
 
@@ -699,8 +685,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       await Printing.layoutPdf(onLayout: (_) async => bytes);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('â‌Œ ظپط´ظ„ ط§ظ„ط·ط¨ط§ط¹ط©: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل الطباعة: $e')));
     }
   }
 
@@ -737,11 +723,11 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   children: const [
                     Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text('ط§ظ„ظˆطµظپ',
+                        child: Text('الوصف',
                             style: TextStyle(fontWeight: FontWeight.bold))),
                     Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text('ط§ظ„ط³ط¹ط±',
+                        child: Text('السعر',
                             style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
                 ),
@@ -762,7 +748,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
-  // ط´ط±ظٹط· ط§ظ„طµظˆط±
+  // شريط الصور
   Widget _buildImagesStrip() {
     if (_repair.imagePaths.isEmpty) {
       return Card(
@@ -771,12 +757,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           child: AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('ًں“· طµظˆط± ط§ظ„ظ…ط±ظƒط¨ط©',
+              const Text('📷 صور المركبة',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               IconButton(
                 icon: const Icon(Icons.add_a_photo),
                 onPressed: _pickImages,
-                tooltip: 'ط¥ط¶ط§ظپط© طµظˆط±',
+                tooltip: 'إضافة صور',
               ),
             ],
           ),
@@ -793,13 +779,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('ًں“· طµظˆط± ط§ظ„ظ…ط±ظƒط¨ط©',
+                const Text('📷 صور المركبة',
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 IconButton(
                   icon: const Icon(Icons.add_a_photo),
                   onPressed: _pickImages,
-                  tooltip: 'ط¥ط¶ط§ظپط© طµظˆط±',
+                  tooltip: 'إضافة صور',
                 ),
               ],
             ),
@@ -827,7 +813,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                               borderRadius: BorderRadius.circular(6),
                               child: Image.file(
                                 File(
-                                    path), // â†گ ط§ظ„طµظˆط±ط© ط§ظ„طµط­ظٹط­ط© ظˆظ„ظٹط³ ط§ظ„ظ€ thumbnail
+                                    path), // ← الصورة الصحيحة وليس الـ thumbnail
                                 key: ValueKey(path),
                                 width: 120,
                                 height: 120,
@@ -842,14 +828,14 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                   final ok = await showDialog<bool>(
                                     context: context,
                                     builder: (_) => AdaptiveAlertDialog(
-                                      title: const Text('ط­ط°ظپ ط§ظ„طµظˆط±ط©'),
-                                      content: const Text(
-                                          'طھط£ظƒظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„طµظˆط±ط©طں'),
+                                      title: const Text('حذف الصورة'),
+                                      content:
+                                          const Text('تأكيد حذف هذه الصورة؟'),
                                       actions: [
                                         TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(_, false),
-                                            child: const Text('ط¥ظ„ط؛ط§ط،')),
+                                            child: const Text('إلغاء')),
                                         ElevatedButton(
                                             onPressed: () =>
                                                 Navigator.pop(_, true),
@@ -883,7 +869,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
-  // ===== ظ„ظˆط­ط© ط§ظ„ط­ط§ظ„ط© â€” ظ†طµظپ ط§ظ„ظ…ط³ط§ط­ط© ظ„ظƒظ„ ظ‚ط§ط¦ظ…ط©طŒ ط¬ظ†ط¨ ط¨ط¹ط¶ =====
+  // ===== لوحة الحالة — نصف المساحة لكل قائمة، جنب بعض =====
   Widget _buildStatusPanel() {
     final currentInsurance =
         normalizeOrNull(_repair.insuranceStatus, _insuranceOptions) ??
@@ -897,12 +883,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         padding: const EdgeInsets.all(12),
         child: AdaptiveRow(
           children: [
-            // ط­ط§ظ„ط© ط§ظ„طھط£ظ…ظٹظ†
+            // حالة التأمين
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('ط­ط§ظ„ط© ط§ظ„طھط£ظ…ظٹظ†',
+                  const Text('حالة التأمين',
                       style:
                           TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
@@ -929,12 +915,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
             const SizedBox(width: 16),
 
-            // ط­ط§ظ„ط© ط§ظ„ظ…ط±ظƒط¨ط©
+            // حالة المركبة
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('ط­ط§ظ„ط© ط§ظ„ظ…ط±ظƒط¨ط©',
+                  const Text('حالة المركبة',
                       style:
                           TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
@@ -964,7 +950,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
-  // ط´ط±ظٹط· ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ
+  // شريط الإجراءات
   Widget _buildActionsBar() {
     final remaining = (_repair.totalFileValue) - (_repair.totalPaidAmount);
     return Card(
@@ -975,7 +961,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           children: [
             Expanded(
               child: Text(
-                'ط§ظ„ظ…طھط¨ظ‚ظٹ: ${MoneyFormatter.format(remaining)}',
+                'المتبقي: ${MoneyFormatter.format(remaining)}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
                 textAlign: TextAlign.right,
               ),
@@ -983,7 +969,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             const SizedBox(width: 8),
             const Padding(
               padding: EdgeInsetsDirectional.only(start: 8),
-              child: Text('âœ… طھظ… ط§ظ„ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ',
+              child: Text('✅ تم الاعتماد المحاسبي',
                   style: TextStyle(color: Colors.green)),
             ),
           ],
@@ -1042,7 +1028,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                value.isEmpty ? 'â€”' : value,
+                value.isEmpty ? '—' : value,
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
@@ -1059,7 +1045,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         foregroundColor: Colors.white,
         title: Text(
           _repair.vehicleNumber.isEmpty
-              ? 'طھظپط§طµظٹظ„ ظ…ظ„ظپ ط§ظ„ط¥طµظ„ط§ط­'
+              ? 'تفاصيل ملف الإصلاح'
               : _repair.vehicleNumber,
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
@@ -1077,13 +1063,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                       await RepairPdfGenerator.saveToFileAndOpen(_repair);
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('طھظ… ط¥ظ†ط´ط§ط، PDF: ${file.path}')),
+                    SnackBar(content: Text('تم إنشاء PDF: ${file.path}')),
                   );
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('ظپط´ظ„ ط¥ظ†ط´ط§ط، PDF: $e')),
+                    SnackBar(content: Text('فشل إنشاء PDF: $e')),
                   );
                 }
               }
@@ -1093,21 +1078,21 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 value: 'share',
                 child: ListTile(
                   leading: Icon(Icons.ios_share_rounded),
-                  title: Text('ظ…ط´ط§ط±ظƒط© PDF'),
+                  title: Text('مشاركة PDF'),
                 ),
               ),
               PopupMenuItem(
                 value: 'save',
                 child: ListTile(
                   leading: Icon(Icons.picture_as_pdf_outlined),
-                  title: Text('ظ…ط¹ط§ظٹظ†ط© / ط­ظپط¸ PDF'),
+                  title: Text('معاينة / حفظ PDF'),
                 ),
               ),
               PopupMenuItem(
                 value: 'print',
                 child: ListTile(
                   leading: Icon(Icons.print_outlined),
-                  title: Text('ط·ط¨ط§ط¹ط©'),
+                  title: Text('طباعة'),
                 ),
               ),
             ],
@@ -1134,13 +1119,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             Row(
               children: [
                 metric(
-                  'ظ‚ظٹظ…ط© ط§ظ„ظ…ظ„ظپ',
+                  'قيمة الملف',
                   MoneyFormatter.format(_repair.totalFileValue),
                   Icons.receipt_long_outlined,
                 ),
                 const SizedBox(width: 10),
                 metric(
-                  'ط§ظ„ظ…ط¯ظپظˆط¹',
+                  'المدفوع',
                   MoneyFormatter.format(_repair.totalPaidAmount),
                   Icons.payments_outlined,
                 ),
@@ -1150,13 +1135,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             Row(
               children: [
                 metric(
-                  'ط§ظ„ظ…طھط¨ظ‚ظٹ',
+                  'المتبقي',
                   MoneyFormatter.format(remaining),
                   Icons.account_balance_wallet_outlined,
                 ),
                 const SizedBox(width: 10),
                 metric(
-                  'ط§ظ„ط­ط§ظ„ط©',
+                  'الحالة',
                   vehicleStatus,
                   Icons.car_repair_outlined,
                 ),
@@ -1175,24 +1160,21 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 child: Column(
                   children: [
                     infoRow(
-                        'ط§ظ„ظ…ط±ظƒط¨ط©',
+                        'المركبة',
                         '${_repair.vehicleType} ${_repair.vehicleModel}',
                         Icons.directions_car_outlined),
                     const Divider(height: 1),
-                    infoRow('ط§ظ„ظ…ط³طھظپظٹط¯', _repair.beneficiaryName,
+                    infoRow('المستفيد', _repair.beneficiaryName,
                         Icons.person_outline_rounded),
                     const Divider(height: 1),
-                    infoRow('ظ†ظˆط¹ ط§ظ„ط¥طµظ„ط§ط­', repairType,
-                        Icons.build_outlined),
+                    infoRow('نوع الإصلاح', repairType, Icons.build_outlined),
                     const Divider(height: 1),
-                    infoRow(
-                        'طھط§ط±ظٹط® ط§ظ„ط§ط³طھظ„ط§ظ…',
-                        _df.format(_repair.receivedDate),
+                    infoRow('تاريخ الاستلام', _df.format(_repair.receivedDate),
                         Icons.calendar_today_outlined),
-                    if (_repair.beneficiaryType == 'ط´ط±ظƒط© طھط£ظ…ظٹظ†') ...[
+                    if (_repair.beneficiaryType == 'شركة تأمين') ...[
                       const Divider(height: 1),
-                      infoRow('ط§ظ„طھط£ظ…ظٹظ†', insuranceStatus,
-                          Icons.shield_outlined),
+                      infoRow(
+                          'التأمين', insuranceStatus, Icons.shield_outlined),
                     ],
                   ],
                 ),
@@ -1211,7 +1193,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                     ),
                     onPressed: _addPayment,
                     icon: const Icon(Icons.add_card_rounded),
-                    label: const Text('ط¥ط¶ط§ظپط© ط¯ظپط¹ط©'),
+                    label: const Text('إضافة دفعة'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1222,7 +1204,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                     ),
                     onPressed: _pickImages,
                     icon: const Icon(Icons.add_a_photo_outlined),
-                    label: const Text('ط¥ط¶ط§ظپط© طµظˆط±'),
+                    label: const Text('إضافة صور'),
                   ),
                 ),
               ],
@@ -1230,9 +1212,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             const SizedBox(height: 14),
             _buildImagesStrip(),
             const SizedBox(height: 14),
-            _buildDataTable('ط£ط¹ظ…ط§ظ„ ط§ظ„ط¥طµظ„ط§ط­', _repairWorks),
+            _buildDataTable('أعمال الإصلاح', _repairWorks),
             const SizedBox(height: 12),
-            _buildDataTable('ط§ظ„ظ‚ط·ط¹ ط§ظ„ظ…ط·ظ„ظˆط¨ط©', _repairParts),
+            _buildDataTable('القطع المطلوبة', _repairParts),
             const SizedBox(height: 14),
             _buildActionsBar(),
             if (hasInvoice) ...[
@@ -1243,7 +1225,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   arguments: _repair.invoiceId!,
                 ),
                 icon: const Icon(Icons.receipt_long_outlined),
-                label: const Text('ط¹ط±ط¶ ط§ظ„ظپط§طھظˆط±ط©'),
+                label: const Text('عرض الفاتورة'),
               ),
             ],
           ],
@@ -1259,7 +1241,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     final String? firstImg =
         _repair.imagePaths.isNotEmpty ? _repair.imagePaths.first : null;
 
-// ط¥ط°ط§ ظƒط§ظ† ظ„ظ„ظ…ظ„ظپ طµظˆط±ط© ط؛ظ„ط§ظپ ظ…ظˆط¬ظˆط¯ط© ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ â†’ ط§ط³طھط®ط¯ظ…ظ‡ط§
+// إذا كان للملف صورة غلاف موجودة في قاعدة البيانات → استخدمها
     final String? thumb = _repair.thumbnailPath?.isNotEmpty == true
         ? _repair.thumbnailPath
         : firstImg;
@@ -1298,10 +1280,10 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           Expanded(
             child: Scaffold(
               appBar: AppBar(
-                title: const Text('طھظپط§طµظٹظ„ ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط©'),
+                title: const Text('تفاصيل إصلاح المركبة'),
                 actions: [
                   IconButton(
-                    tooltip: 'ط­ظپط¸ ظ…ظ„ظپ PDF ظˆظپطھط­ظ‡',
+                    tooltip: 'حفظ ملف PDF وفتحه',
                     icon: const Icon(Icons.picture_as_pdf),
                     onPressed: () async {
                       try {
@@ -1309,21 +1291,20 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                             await RepairPdfGenerator.saveToFileAndOpen(_repair);
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text(
-                                'âœ… طھظ… ط§ظ„ط­ظپط¸ ظˆط§ظ„ظپطھط­:\n${file.path}')));
+                            content: Text('✅ تم الحفظ والفتح:\n${file.path}')));
                       } catch (e) {
                         if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('â‌Œ ظپط´ظ„ ط¥ظ†ط´ط§ط، PDF: $e')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('❌ فشل إنشاء PDF: $e')));
                       }
                     },
                   ),
                   IconButton(
-                      tooltip: 'ظ…ط´ط§ط±ظƒط© PDF',
+                      tooltip: 'مشاركة PDF',
                       icon: const Icon(Icons.share),
                       onPressed: _sharePdf),
                   IconButton(
-                      tooltip: 'ط·ط¨ط§ط¹ط©',
+                      tooltip: 'طباعة',
                       icon: const Icon(Icons.print),
                       onPressed: _printPdf),
                 ],
@@ -1334,11 +1315,11 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // ط§ظ„طµظپ ط§ظ„ط¹ظ„ظˆظٹ
+                          // الصف العلوي
                           AdaptiveRow(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // ط§ظ„ط¹ظ…ظˆط¯ ط§ظ„ط£ظٹط³ط±: ط§ظ„ظ…ط§ظ„ظٹط© + ظ„ظˆط­ط© ط§ظ„ط­ط§ظ„ط©
+                              // العمود الأيسر: المالية + لوحة الحالة
                               Expanded(
                                 flex: 3,
                                 child: Column(
@@ -1350,25 +1331,25 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                         leading: RepairThumb(
                                           repairId: _repair.id,
                                           fallbackFirstPath:
-                                              thumb, // â†گ ط§ط³طھط¨ط¯ظ„ظ†ط§ firstImg ط¨ط§ظ„ظ€ thumbnail
+                                              thumb, // ← استبدلنا firstImg بالـ thumbnail
                                           size: 56,
                                           borderRadius:
                                               BorderRadius.circular(8),
                                         ),
-                                        title: const Text(
-                                            'ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© ًں’°'),
+                                        title:
+                                            const Text('البيانات المالية 💰'),
                                         subtitle: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                                'ط­ط§ظ„ط© ط§ظ„ط³ط¯ط§ط¯: ${_repair.displayPaymentStatus}'),
+                                                'حالة السداد: ${_repair.displayPaymentStatus}'),
                                             Text(
-                                                'ظ‚ظٹظ…ط© ط§ظ„ظ…ظ„ظپ: ${MoneyFormatter.format(_repair.totalFileValue)}'),
+                                                'قيمة الملف: ${MoneyFormatter.format(_repair.totalFileValue)}'),
                                             Text(
-                                                'ط§ظ„ظ…ط¯ظپظˆط¹: ${MoneyFormatter.format(_repair.totalPaidAmount)}'),
+                                                'المدفوع: ${MoneyFormatter.format(_repair.totalPaidAmount)}'),
                                             Text(
-                                                'ط§ظ„ظ…طھط¨ظ‚ظٹ: ${MoneyFormatter.format(_repair.remainingAmount)}'),
+                                                'المتبقي: ${MoneyFormatter.format(_repair.remainingAmount)}'),
                                           ],
                                         ),
                                       ),
@@ -1379,36 +1360,34 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                 ),
                               ),
                               const SizedBox(width: 24),
-                              // ط§ظ„ط¹ظ…ظˆط¯ ط§ظ„ط£ظٹظ…ظ†: ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ظƒط¨ط© ظˆط§ظ„ظ…ط³طھظپظٹط¯ + ط§ظ„ظپط§طھظˆط±ط©/GL
+                              // العمود الأيمن: بيانات المركبة والمستفيد + الفاتورة/GL
                               Expanded(
                                 flex: 4,
                                 child: Card(
                                   child: ListTile(
-                                    title: const Text(
-                                        'ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ظƒط¨ط© ظˆط§ظ„ظ…ط³طھظپظٹط¯'),
+                                    title:
+                                        const Text('بيانات المركبة والمستفيد'),
                                     subtitle: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('ظ†ظˆط¹: ${_repair.vehicleType}'),
+                                        Text('نوع: ${_repair.vehicleType}'),
                                         Text(
-                                            'ط§ظ„ظ…ظˆط¯ظٹظ„: ${_repair.vehicleModel}'),
+                                            'الموديل: ${_repair.vehicleModel}'),
+                                        Text('رقم: ${_repair.vehicleNumber}'),
                                         Text(
-                                            'ط±ظ‚ظ…: ${_repair.vehicleNumber}'),
-                                        Text(
-                                            'طھط§ط±ظٹط® ط§ظ„ط§ط³طھظ„ط§ظ…: ${f.format(_repair.receivedDate)}'),
-                                        Text('ظ†ظˆط¹ ط§ظ„ط¹ظ…ظ„: $repairType'),
-                                        Text(
-                                            'ط­ط§ظ„ط© ط§ظ„ظ…ط±ظƒط¨ط©: $vehicleStatus'),
+                                            'تاريخ الاستلام: ${f.format(_repair.receivedDate)}'),
+                                        Text('نوع العمل: $repairType'),
+                                        Text('حالة المركبة: $vehicleStatus'),
                                         const SizedBox(height: 8),
                                         Text(
-                                            'ظ†ظˆط¹ ط§ظ„ظ…ط³طھظپظٹط¯: ${_repair.beneficiaryType}'),
+                                            'نوع المستفيد: ${_repair.beneficiaryType}'),
                                         Text(
-                                            'ط§ظ„ط§ط³ظ…: ${_repair.beneficiaryName}'),
+                                            'الاسم: ${_repair.beneficiaryName}'),
                                         if (_repair.beneficiaryType ==
-                                            'ط´ط±ظƒط© طھط£ظ…ظٹظ†')
+                                            'شركة تأمين')
                                           Text(
-                                              'ظ…طھط§ط¨ط¹ط© ط§ظ„طھط£ظ…ظٹظ†: $insuranceStatus'),
+                                              'متابعة التأمين: $insuranceStatus'),
                                         const SizedBox(height: 12),
                                         if (hasInvoice)
                                           if (!hasInvoice)
@@ -1419,13 +1398,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                                 icon: const Icon(
                                                     Icons.playlist_add),
                                                 label: const Text(
-                                                    'ط¥ظ†ط´ط§ط، ظپط§طھظˆط±ط© ظˆطھط±ط­ظٹظ„ GL'),
+                                                    'إنشاء فاتورة وترحيل GL'),
                                                 onPressed: () async {
                                                   try {
                                                     final db = await DBService
                                                         .database;
 
-                                                    // 1) ط¥ظ†ط´ط§ط، ظپط§طھظˆط±ط© ط¬ط¯ظٹط¯ط©
+                                                    // 1) إنشاء فاتورة جديدة
                                                     final invoiceId =
                                                         await DBService
                                                             .createInvoiceForRepair(
@@ -1436,7 +1415,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                                           .totalFileValue,
                                                     );
 
-                                                    // 2) طھط­ط¯ظٹط« repair â†’ invoiceId
+                                                    // 2) تحديث repair → invoiceId
                                                     await db.update(
                                                       'repairs',
                                                       {
@@ -1447,12 +1426,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                                       whereArgs: [_repair.id],
                                                     );
 
-                                                    // 3) طھط±ط­ظٹظ„ ظ‚ظٹط¯ GL
+                                                    // 3) ترحيل قيد GL
                                                     final glId = await DBService
                                                         .postInvoiceGLFromId(
                                                             invoiceId);
 
-                                                    // 4) ط¥ط¹ط§ط¯ط© طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ
+                                                    // 4) إعادة تحميل البيانات
                                                     await _reloadRepair();
 
                                                     if (!mounted) return;
@@ -1462,7 +1441,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                                         .showSnackBar(
                                                       SnackBar(
                                                         content: Text(
-                                                            'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظپط§طھظˆط±ط© ظˆطھط±ط­ظٹظ„ GL (#$glId)'),
+                                                            'تم إنشاء الفاتورة وترحيل GL (#$glId)'),
                                                       ),
                                                     );
                                                   } catch (e) {
@@ -1472,7 +1451,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                                         .showSnackBar(
                                                       SnackBar(
                                                           content: Text(
-                                                              'ظپط´ظ„ ط§ظ„ط¹ظ…ظ„ظٹط©: $e')),
+                                                              'فشل العملية: $e')),
                                                     );
                                                   }
                                                 },
@@ -1485,8 +1464,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                             ElevatedButton.icon(
                                               icon: const Icon(
                                                   Icons.receipt_long),
-                                              label: const Text(
-                                                  'ط¹ط±ط¶ ط§ظ„ظپط§طھظˆط±ط©'),
+                                              label: const Text('عرض الفاتورة'),
                                               onPressed: () {
                                                 Navigator.of(context).pushNamed(
                                                   AppRoutes.invoiceView,
@@ -1499,7 +1477,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                                 icon: const Icon(
                                                     Icons.playlist_add),
                                                 label: const Text(
-                                                    'طھط±ط­ظٹظ„ GL ظ„ظ„ظپط§طھظˆط±ط©'),
+                                                    'ترحيل GL للفاتورة'),
                                                 onPressed:
                                                     _postInvoiceGLIfMissing,
                                               )
@@ -1508,7 +1486,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                                 icon: const Icon(
                                                     Icons.account_balance),
                                                 label: Text(
-                                                    'ط¹ط±ط¶ ظ‚ظٹط¯ GL #$_invoiceGlEntryId'),
+                                                    'عرض قيد GL #$_invoiceGlEntryId'),
                                                 onPressed: () {
                                                   Navigator.of(context)
                                                       .pushNamed(
@@ -1548,26 +1526,23 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                             ],
                           ),
 
-                          // ط´ط±ظٹط· ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ
+                          // شريط الإجراءات
                           _buildActionsBar(),
 
                           const SizedBox(height: 16),
 
-                          // ط´ط±ظٹط· ط§ظ„طµظˆط±
+                          // شريط الصور
                           _buildImagesStrip(),
 
                           const SizedBox(height: 16),
 
-                          // ط§ظ„ط¬ط¯ط§ظˆظ„
-                          _buildDataTable(
-                              'ط£ط¹ظ…ط§ظ„ ط§ظ„ط¥طµظ„ط§ط­', _repairWorks),
+                          // الجداول
+                          _buildDataTable('أعمال الإصلاح', _repairWorks),
                           const SizedBox(height: 16),
-                          _buildDataTable(
-                              'ط§ظ„ظ‚ط·ط¹ ط§ظ„ظ…ط·ظ„ظˆط¨ط©', _repairParts),
+                          _buildDataTable('القطع المطلوبة', _repairParts),
                         ],
                       )
-                    : const Center(
-                        child: Text('ط§ظ„ط´ط§ط´ط© طµط؛ظٹط±ط© ط¬ط¯ظ‹ط§')),
+                    : const Center(child: Text('الشاشة صغيرة جدًا')),
               ),
             ),
           ),
@@ -1583,7 +1558,7 @@ class _PayMethod {
   const _PayMethod(this.key, this.label);
 }
 // ===============================
-// ًں”‘ Intents (Top-Level)
+// 🔑 Intents (Top-Level)
 // ===============================
 
 class MoveSelectionLeftIntent extends Intent {

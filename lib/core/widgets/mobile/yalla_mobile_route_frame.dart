@@ -30,6 +30,8 @@ class YallaMobileRouteFrame extends StatelessWidget {
 
     return Scaffold(
       drawer: Drawer(
+        width: MediaQuery.sizeOf(context).width,
+        shape: const RoundedRectangleBorder(),
         child: SafeArea(
           child: YallaSidebar(currentRoute: routeName),
         ),

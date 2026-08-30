@@ -1,7 +1,7 @@
-// ًں“پ lib/features/repairs/screens/repairs_screen.dart
+// 📁 lib/features/repairs/screens/repairs_screen.dart
 //
-// RepairsScreen â€” ط¥ط¯ط§ط±ط© ظ…ظ„ظپط§طھ ط§ظ„ط¥طµظ„ط§ط­
-// ط¥طµظ„ط§ط­ ط®ط·ط£ hit test ط¹ط¨ط± طھط¹ط·ظٹظ„ FAB ط¹ظ†ط¯ظ…ط§ ظ„ط§ طھظƒظˆظ† ط§ظ„ط´ط§ط´ط© current ط£ظˆ ط¨ط¯ظˆظ† ظ‚ظٹظˆط¯ Layout.
+// RepairsScreen — إدارة ملفات الإصلاح
+// إصلاح خطأ hit test عبر تعطيل FAB عندما لا تكون الشاشة current أو بدون قيود Layout.
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -12,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
-// import 'package:yalla_accounts/features/finance/screens/add_purchase_screen.dart'; // ظ…ط¹ط·ظ‘ظ„ ظ…ط¤ظ‚طھظ‹ط§
+// import 'package:yalla_accounts/features/finance/screens/add_purchase_screen.dart'; // معطّل مؤقتًا
 
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_provider.dart';
@@ -30,7 +30,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_bottom_nav.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
-// âœ… ط«ظˆط§ط¨طھ ظ…ظˆط­ظ‘ط¯ط©
+// ✅ ثوابت موحّدة
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
@@ -46,8 +46,8 @@ class RepairsScreen extends ConsumerStatefulWidget {
 
 class _RepairsScreenState extends ConsumerState<RepairsScreen> {
   String searchText = '';
-  String selectedStatus = 'ط§ظ„ظƒظ„';
-  String selectedType = 'ط§ظ„ظƒظ„';
+  String selectedStatus = 'الكل';
+  String selectedType = 'الكل';
   DateTime? fromDate;
   DateTime? toDate;
   static const int initialLimit = 10;
@@ -60,7 +60,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
       context: context,
       firstDate: DateTime(2020, 1, 1),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      helpText: 'ظ†ط·ط§ظ‚ ط§ظ„طھط§ط±ظٹط®',
+      helpText: 'نطاق التاريخ',
     );
     if (picked != null) {
       setState(() {
@@ -91,10 +91,10 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ًں”• ط´ط±ط§ط، ظ‚ط·ط¹ ط؛ظٹط§ط± â€” ظ…ط¹ط·ظ‘ظ„ ظ…ط¤ظ‚طھظ‹ط§
+            // 🔕 شراء قطع غيار — معطّل مؤقتًا
             ListTile(
               leading: const Icon(Icons.shopping_cart),
-              title: const Text('ًں›’ ط´ط±ط§ط، ظ‚ط·ط¹ ط؛ظٹط§ط±'),
+              title: const Text('🛒 شراء قطع غيار'),
               onTap: () async {
                 Navigator.pop(context);
                 if (!mounted) {
@@ -103,14 +103,14 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 showDialog<void>(
                   context: context,
                   builder: (ctx) => AdaptiveAlertDialog(
-                    title: const Text('ط؛ظٹط± ظ…طھط§ط­ ظ…ط¤ظ‚طھظ‹ط§'),
+                    title: const Text('غير متاح مؤقتًا'),
                     content: const Text(
-                      'ظ…ظٹط²ط© "ط´ط±ط§ط، ظ‚ط·ط¹ ط؛ظٹط§ط±" ط³طھظڈظپط¹ظ‘ظ„ ظ„ط§ط­ظ‚ظ‹ط§ ط¨ط¹ط¯ ط¥ط¶ط§ظپط© ط§ظ„ط´ط§ط´ط© ط§ظ„ظ…ط·ظ„ظˆط¨ط©.',
+                      'ميزة "شراء قطع غيار" ستُفعّل لاحقًا بعد إضافة الشاشة المطلوبة.',
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('ط­ط³ظ†ظ‹ط§'),
+                        child: const Text('حسنًا'),
                       ),
                     ],
                   ),
@@ -119,7 +119,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.build),
-              title: const Text('âڑ™ï¸ڈ ط¥ط¶ط§ظپط© ط¥طµظ„ط§ط­ ط¬ط¯ظٹط¯'),
+              title: const Text('⚙️ إضافة إصلاح جديد'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -138,7 +138,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
   void _handleQuickFilter(String type) {
     setState(() {
-      selectedStatus = (type == 'paid') ? 'ظ…ط³ط¯ط¯' : 'ط؛ظٹط± ظ…ط³ط¯ط¯';
+      selectedStatus = (type == 'paid') ? 'مسدد' : 'غير مسدد';
     });
   }
 
@@ -146,18 +146,18 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
-        title: const Text('طھط£ظƒظٹط¯ ط§ظ„ط§ط¹طھظ…ط§ط¯'),
+        title: const Text('تأكيد الاعتماد'),
         content: const Text(
-          'ظ‡ظ„ طھط±ظٹط¯ ط§ط¹طھظ…ط§ط¯ ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ ظˆطھظˆظ„ظٹط¯ ظ‚ظٹط¯ ظ…ط­ط§ط³ط¨ظٹطں',
+          'هل تريد اعتماد هذا الملف وتوليد قيد محاسبي؟',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ط¥ظ„ط؛ط§ط،'),
+            child: const Text('إلغاء'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('ط§ط¹طھظ…ط§ط¯'),
+            child: const Text('اعتماد'),
           ),
         ],
       ),
@@ -170,7 +170,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'âœ… طھظ… ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ…ظ„ظپ ظˆطھظˆظ„ظٹط¯ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ',
+              '✅ تم اعتماد الملف وتوليد القيد المحاسبي',
             ),
           ),
         );
@@ -180,17 +180,17 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           return;
         }
         ScaffoldMessenger.of(this.context).showSnackBar(
-          SnackBar(content: Text('â‌Œ ظپط´ظ„ ط§ظ„ط§ط¹طھظ…ط§ط¯: $e')),
+          SnackBar(content: Text('❌ فشل الاعتماد: $e')),
         );
       }
     }
   }
 
-  // ًں§¾ طھطµط¯ظٹط± PDF
+  // 🧾 تصدير PDF
   Future<void> exportToPdf(List<Repair> data) async {
     final df = DateFormat('yyyy-MM-dd');
 
-    // طھط¬ظ‡ظٹط² ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¬ط¯ظˆظ„
+    // تجهيز بيانات الجدول
     final List<List<String>> rows = data.map((r) {
       final fv = _fileValue(r);
       final pv = _paidValue(r);
@@ -210,18 +210,18 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
       ];
     }).toList();
 
-    // طھظˆظ„ظٹط¯ PDF ط¹ط¨ط± ط§ظ„ظ†ط¸ط§ظ… ط§ظ„ظ…ط±ظƒط²ظٹ
+    // توليد PDF عبر النظام المركزي
     final bytes = await YallaPdfService.generateTablePdf(
-      title: "ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط±ظƒط¨ط§طھ",
+      title: "قائمة المركبات",
       headers: [
-        'ط§ظ„طھط§ط±ظٹط®',
-        'ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©',
-        'ط±ظ‚ظ… ط§ظ„ظ…ط±ظƒط¨ط©',
-        'ط§ظ„ظ…ط³طھظپظٹط¯',
-        'ظ‚ظٹظ…ط© ط§ظ„ظ…ظ„ظپ',
-        'ط§ظ„ظ…ط¯ظپظˆط¹',
-        'ط§ظ„ظ…طھط¨ظ‚ظٹ',
-        'ط­ط§ظ„ط© ط§ظ„ط³ط¯ط§ط¯',
+        'التاريخ',
+        'نوع المركبة',
+        'رقم المركبة',
+        'المستفيد',
+        'قيمة الملف',
+        'المدفوع',
+        'المتبقي',
+        'حالة السداد',
       ],
       rows: rows,
     );
@@ -234,27 +234,27 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("ًں“„ طھظ… طھظˆظ„ظٹط¯ ط§ظ„ظ…ظ„ظپ: ${file.path}"),
+          content: Text("📄 تم توليد الملف: ${file.path}"),
         ),
       );
     }
   }
 
-  // ًں“ٹ طھطµط¯ظٹط± Excel
+  // 📊 تصدير Excel
   Future<void> exportToExcel(List<Repair> data) async {
     final excel = Excel.createExcel();
     final sheet = excel['Vehicles'];
     final df = DateFormat('yyyy-MM-dd');
 
     sheet.appendRow([
-      TextCellValue('ط§ظ„طھط§ط±ظٹط®'),
-      TextCellValue('ظ†ظˆط¹ ط§ظ„ظ…ط±ظƒط¨ط©'),
-      TextCellValue('ط±ظ‚ظ… ط§ظ„ظ…ط±ظƒط¨ط©'),
-      TextCellValue('ط§ظ„ظ…ط³طھظپظٹط¯'),
-      TextCellValue('ظ‚ظٹظ…ط© ط§ظ„ظ…ظ„ظپ'),
-      TextCellValue('ط§ظ„ظ…ط¯ظپظˆط¹'),
-      TextCellValue('ط§ظ„ظ…طھط¨ظ‚ظٹ'),
-      TextCellValue('ط­ط§ظ„ط© ط§ظ„ط³ط¯ط§ط¯'),
+      TextCellValue('التاريخ'),
+      TextCellValue('نوع المركبة'),
+      TextCellValue('رقم المركبة'),
+      TextCellValue('المستفيد'),
+      TextCellValue('قيمة الملف'),
+      TextCellValue('المدفوع'),
+      TextCellValue('المتبقي'),
+      TextCellValue('حالة السداد'),
     ]);
 
     for (final r in data) {
@@ -282,7 +282,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('âœ… طھظ… ط­ظپط¸ Excel ظپظٹ ${file.path}')),
+        SnackBar(content: Text('✅ تم حفظ Excel في ${file.path}')),
       );
     }
   }
@@ -298,7 +298,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit),
-              title: const Text('طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ„ظپ'),
+              title: const Text('تعديل الملف'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -313,7 +313,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.verified),
-              title: const Text('ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ‚ظٹط¯ ط§ظ„ظ…ط­ط§ط³ط¨ظٹ'),
+              title: const Text('اعتماد القيد المحاسبي'),
               onTap: () {
                 Navigator.pop(context);
                 _approveRepairLedger(context, r);
@@ -321,7 +321,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.receipt_long),
-              title: const Text('ظ‚ظٹظˆط¯ ط§ظ„ظٹظˆظ…ظٹط© ظ„ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ'),
+              title: const Text('قيود اليومية لهذا الملف'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(
@@ -333,7 +333,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.payments),
-              title: const Text('ط¯ظپط¹ط§طھ ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ'),
+              title: const Text('دفعات هذا الملف'),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(
@@ -354,7 +354,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: const Text(
-                'ط­ط°ظپ ط§ظ„ظ…ظ„ظپ',
+                'حذف الملف',
                 style: TextStyle(color: Colors.red),
               ),
               onTap: () async {
@@ -369,7 +369,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     );
   }
 
-  // ===== FAB ط¢ظ…ظ† =====
+  // ===== FAB آمن =====
   Widget _buildFab() {
     return FloatingActionButton(
       onPressed: _openAddMenu,
@@ -405,15 +405,19 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const Drawer(
-        child: SafeArea(child: YallaSidebar(currentRoute: '/repairs')),
+      drawer: Drawer(
+        width: MediaQuery.sizeOf(context).width,
+        shape: const RoundedRectangleBorder(),
+        child: const SafeArea(
+          child: YallaSidebar(currentRoute: '/repairs'),
+        ),
       ),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط§طھ',
+          'إصلاح المركبات',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
         centerTitle: true,
@@ -431,15 +435,15 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             itemBuilder: (_) => const [
               PopupMenuItem(
                 value: 'date',
-                child: Text('طھط­ط¯ظٹط¯ ط§ظ„ظپطھط±ط©'),
+                child: Text('تحديد الفترة'),
               ),
               PopupMenuItem(
                 value: 'analytics',
-                child: Text('طھط­ظ„ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ'),
+                child: Text('تحليل البيانات'),
               ),
               PopupMenuDivider(),
-              PopupMenuItem(value: 'pdf', child: Text('طھطµط¯ظٹط± PDF')),
-              PopupMenuItem(value: 'excel', child: Text('طھطµط¯ظٹط± Excel')),
+              PopupMenuItem(value: 'pdf', child: Text('تصدير PDF')),
+              PopupMenuItem(value: 'excel', child: Text('تصدير Excel')),
             ],
           ),
         ],
@@ -454,8 +458,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             TextField(
               onChanged: (v) => setState(() => searchText = v),
               decoration: InputDecoration(
-                hintText:
-                    'ط§ط¨ط­ط« ط¨ط§ظ„ظ…ط±ظƒط¨ط©طŒ ط§ظ„ط±ظ‚ظ… ط£ظˆ ط§ظ„ظ…ط³طھظپظٹط¯...',
+                hintText: 'ابحث بالمركبة، الرقم أو المستفيد...',
                 prefixIcon: const Icon(Icons.search_rounded),
                 filled: true,
                 fillColor: Colors.white,
@@ -470,13 +473,13 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _phoneFilterChip('ط§ظ„ظƒظ„'),
+                  _phoneFilterChip('الكل'),
                   const SizedBox(width: 8),
-                  _phoneFilterChip('ط؛ظٹط± ظ…ط³ط¯ط¯'),
+                  _phoneFilterChip('غير مسدد'),
                   const SizedBox(width: 8),
-                  _phoneFilterChip('ظ…ط³ط¯ط¯ ط¬ط²ط¦ظٹ'),
+                  _phoneFilterChip('مسدد جزئي'),
                   const SizedBox(width: 8),
-                  _phoneFilterChip('ظ…ط³ط¯ط¯'),
+                  _phoneFilterChip('مسدد'),
                 ],
               ),
             ),
@@ -492,12 +495,12 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             Row(
               children: [
                 Text(
-                  '${activeAll.length} ظ…ظ„ظپ ظ†ط´ط·',
+                  '${activeAll.length} ملف نشط',
                   style: const TextStyle(color: Colors.black54),
                 ),
                 const Spacer(),
                 const Text(
-                  'ظ…ظ„ظپط§طھ ط§ظ„ط¥طµظ„ط§ط­',
+                  'ملفات الإصلاح',
                   style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                 ),
               ],
@@ -518,7 +521,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                       ),
                     ),
                     child: Text(
-                      'ط¹ط±ط¶ ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ„ظپط§طھ (${activeAll.length})',
+                      'عرض جميع الملفات (${activeAll.length})',
                     ),
                   ),
                 ),
@@ -532,7 +535,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                     ),
                     const Spacer(),
                     const Text(
-                      'ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط³ط¯ط¯ط©',
+                      'الملفات المسددة',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -599,7 +602,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
               ),
               const Spacer(),
               const Text(
-                'ط­ط§ظ„ط© ط§ظ„طھط­طµظٹظ„',
+                'حالة التحصيل',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
               ),
             ],
@@ -615,8 +618,8 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           const SizedBox(height: 18),
           Row(
             children: [
-              Expanded(child: _phoneMetric('ظ…ط¯ظپظˆط¹', paid)),
-              Expanded(child: _phoneMetric('ظ…طھط¨ظ‚ظٹ', remaining)),
+              Expanded(child: _phoneMetric('مدفوع', paid)),
+              Expanded(child: _phoneMetric('متبقي', remaining)),
               Expanded(
                 child: Column(
                   children: [
@@ -628,7 +631,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                       ),
                     ),
                     const Text(
-                      'ظ…ظ„ظپ',
+                      'ملف',
                       style: TextStyle(color: Colors.black54),
                     ),
                   ],
@@ -662,10 +665,10 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final remaining = (total - paid).clamp(0.0, double.infinity);
     final status = normalizeOrNull(r.paymentStatus, kPaymentStatuses) ??
         r.paymentStatus ??
-        'ط؛ظٹط± ظ…ط³ط¯ط¯';
-    final statusColor = status == 'ظ…ط³ط¯ط¯'
+        'غير مسدد';
+    final statusColor = status == 'مسدد'
         ? AppColors.success
-        : (status == 'ظ…ط³ط¯ط¯ ط¬ط²ط¦ظٹ' ? Colors.orange : AppColors.danger);
+        : (status == 'مسدد جزئي' ? Colors.orange : AppColors.danger);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -726,7 +729,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'ط¥ط¬ط±ط§ط،ط§طھ ط§ظ„ظ…ظ„ظپ',
+                      tooltip: 'إجراءات الملف',
                       onPressed: () => _openQuickActions(r),
                       icon: const Icon(Icons.more_vert_rounded),
                     ),
@@ -755,7 +758,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                     ),
                     const Spacer(),
                     Text(
-                      'ط§ظ„ظ…طھط¨ظ‚ظٹ ${MoneyFormatter.format(remaining)}',
+                      'المتبقي ${MoneyFormatter.format(remaining)}',
                       style: TextStyle(
                         color: remaining > 0
                             ? AppColors.danger
@@ -765,7 +768,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ ${MoneyFormatter.format(total)}',
+                      'الإجمالي ${MoneyFormatter.format(total)}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ],
@@ -791,7 +794,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           Icon(Icons.car_repair_rounded, size: 42, color: AppColors.primary),
           SizedBox(height: 12),
           Text(
-            'ظ„ط§ طھظˆط¬ط¯ ظ…ظ„ظپط§طھ ظ…ط·ط§ط¨ظ‚ط©',
+            'لا توجد ملفات مطابقة',
             style: TextStyle(fontWeight: FontWeight.w800),
           ),
         ],
@@ -804,7 +807,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final isDesktop = Responsive.isDesktop(context);
     final allRepairs = ref.watch(repairListProvider);
 
-    // ظپظ„طھط±ط©
+    // فلترة
     final filtered = allRepairs.where((r) {
       final q = searchText.trim().toLowerCase();
 
@@ -819,10 +822,10 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         kPaymentStatuses,
       );
       final matchesStatus =
-          selectedStatus == 'ط§ظ„ظƒظ„' || normalizedStatus == selectedStatus;
+          selectedStatus == 'الكل' || normalizedStatus == selectedStatus;
 
-      final matchesType = selectedType == 'ط§ظ„ظƒظ„' ||
-          r.beneficiaryType.trim() == selectedType;
+      final matchesType =
+          selectedType == 'الكل' || r.beneficiaryType.trim() == selectedType;
 
       final matchesDate = (fromDate == null || toDate == null)
           ? true
@@ -835,8 +838,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
     final activeAll = filtered
         .where(
-          (r) =>
-              normalizeOrNull(r.paymentStatus, kPaymentStatuses) != 'ظ…ط³ط¯ط¯',
+          (r) => normalizeOrNull(r.paymentStatus, kPaymentStatuses) != 'مسدد',
         )
         .toList();
 
@@ -846,12 +848,11 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final hasMoreActive = !widget.showAll && activeAll.length > initialLimit;
     final archived = filtered
         .where(
-          (r) =>
-              normalizeOrNull(r.paymentStatus, kPaymentStatuses) == 'ظ…ط³ط¯ط¯',
+          (r) => normalizeOrNull(r.paymentStatus, kPaymentStatuses) == 'مسدد',
         )
         .toList();
 
-    // âœ… ط¥ط¸ظ‡ط§ط± FAB ظپظ‚ط· ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ط´ط§ط´ط© current ظˆظ„ظ‡ط§ ظ‚ظٹظˆط¯ ط­ظ‚ظٹظ‚ظٹط©
+    // ✅ إظهار FAB فقط إذا كانت الشاشة current ولها قيود حقيقية
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
     final size = MediaQuery.sizeOf(context);
     final hasLayout = size.width > 0 && size.height > 0;
@@ -875,19 +876,19 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: const Text(
-          'ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط§طھ',
+          'إصلاح المركبات',
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.date_range),
-            tooltip: 'طھط­ط¯ظٹط¯ ط§ظ„ظپطھط±ط©',
+            tooltip: 'تحديد الفترة',
             onPressed: _selectDateRange,
           ),
           IconButton(
             icon: const Icon(Icons.bar_chart),
-            tooltip: 'طھط­ظ„ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ',
+            tooltip: 'تحليل البيانات',
             onPressed: () => Navigator.pushNamed(context, '/repair-analytics'),
           ),
         ],
@@ -911,8 +912,8 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                     onReset: () {
                       setState(() {
                         searchText = '';
-                        selectedStatus = 'ط§ظ„ظƒظ„';
-                        selectedType = 'ط§ظ„ظƒظ„';
+                        selectedStatus = 'الكل';
+                        selectedType = 'الكل';
                         fromDate = null;
                         toDate = null;
                       });
@@ -931,7 +932,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'ط¬ظ…ظٹط¹ ط§ظ„ظ…ط±ظƒط¨ط§طھ',
+                        'جميع المركبات',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       PopupMenuButton<String>(
@@ -941,10 +942,10 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                           if (v == 'excel') exportToExcel(filtered);
                         },
                         itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'pdf', child: Text('ًں“„ PDF')),
+                          PopupMenuItem(value: 'pdf', child: Text('📄 PDF')),
                           PopupMenuItem(
                             value: 'excel',
-                            child: Text('ًں“ٹ Excel'),
+                            child: Text('📊 Excel'),
                           ),
                         ],
                       ),
@@ -952,7 +953,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                   ),
                   const SizedBox(height: 8),
                   if (allRepairs.isEmpty)
-                    const Center(child: Text('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ'))
+                    const Center(child: Text('لا توجد بيانات'))
                   else
                     Column(
                       children: [
@@ -996,7 +997,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                             child: OutlinedButton.icon(
                               icon: const Icon(Icons.list),
                               label: Text(
-                                'ط¹ط±ط¶ ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ„ظپط§طھ (${activeAll.length})',
+                                'عرض جميع الملفات (${activeAll.length})',
                               ),
                               onPressed: () {
                                 Navigator.push(
@@ -1013,7 +1014,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                           const SizedBox(height: 24),
                           const Divider(),
                           const Text(
-                            'ًں“پ ط§ظ„ظ…ظ„ظپط§طھ ط§ظ„ظ…ط¤ط±ط´ظپط©',
+                            '📁 الملفات المؤرشفة',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const Divider(),
