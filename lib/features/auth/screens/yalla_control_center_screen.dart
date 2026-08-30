@@ -24,33 +24,36 @@ class _ControlSection {
 
 const _sections = <_ControlSection>[
   _ControlSection(
-      'dashboard', 'لوحة Yalla', '/dashboard', Icons.dashboard_outlined),
-  _ControlSection('onboarding', 'طلبات التسجيل', '/onboarding-requests',
-      Icons.person_add_alt_1_outlined),
-  _ControlSection(
-      'organizations', 'المنشآت', '/organizations', Icons.business_outlined),
-  _ControlSection('subscriptions', 'الاشتراكات', '/subscriptions',
+      'dashboard', 'ظ„ظˆط­ط© Yalla', '/dashboard', Icons.dashboard_outlined),
+  _ControlSection('onboarding', 'ط·ظ„ط¨ط§طھ ط§ظ„طھط³ط¬ظٹظ„',
+      '/onboarding-requests', Icons.person_add_alt_1_outlined),
+  _ControlSection('organizations', 'ط§ظ„ظ…ظ†ط´ط¢طھ', '/organizations',
+      Icons.business_outlined),
+  _ControlSection('subscriptions', 'ط§ظ„ط§ط´طھط±ط§ظƒط§طھ', '/subscriptions',
       Icons.credit_card_outlined),
-  _ControlSection('licenses', 'التراخيص', '/licenses', Icons.verified_outlined),
-  _ControlSection('devices', 'الأجهزة', '/devices', Icons.devices_outlined),
-  _ControlSection('plans', 'الخطط', '/plans', Icons.layers_outlined),
-  _ControlSection('features', 'المزايا', '/features', Icons.extension_outlined),
   _ControlSection(
-      'entitlements', 'الاستحقاقات', '/entitlements', Icons.tune_outlined),
+      'licenses', 'ط§ظ„طھط±ط§ط®ظٹطµ', '/licenses', Icons.verified_outlined),
   _ControlSection(
-      'activations', 'التفعيلات', '/activations', Icons.key_outlined),
+      'devices', 'ط§ظ„ط£ط¬ظ‡ط²ط©', '/devices', Icons.devices_outlined),
+  _ControlSection('plans', 'ط§ظ„ط®ط·ط·', '/plans', Icons.layers_outlined),
   _ControlSection(
-      'renewals', 'التجديدات', '/renewals', Icons.autorenew_outlined),
-  _ControlSection('overrides', 'التجاوزات', '/overrides',
+      'features', 'ط§ظ„ظ…ط²ط§ظٹط§', '/features', Icons.extension_outlined),
+  _ControlSection('entitlements', 'ط§ظ„ط§ط³طھط­ظ‚ط§ظ‚ط§طھ', '/entitlements',
+      Icons.tune_outlined),
+  _ControlSection(
+      'activations', 'ط§ظ„طھظپط¹ظٹظ„ط§طھ', '/activations', Icons.key_outlined),
+  _ControlSection(
+      'renewals', 'ط§ظ„طھط¬ط¯ظٹط¯ط§طھ', '/renewals', Icons.autorenew_outlined),
+  _ControlSection('overrides', 'ط§ظ„طھط¬ط§ظˆط²ط§طھ', '/overrides',
       Icons.admin_panel_settings_outlined),
-  _ControlSection('security-events', 'أحداث الأمان', '/security-events',
-      Icons.shield_outlined),
-  _ControlSection(
-      'audit-logs', 'سجل التدقيق', '/audit-logs', Icons.fact_check_outlined),
-  _ControlSection('admin-users', 'مسؤولو Yalla', '/admin-users',
+  _ControlSection('security-events', 'ط£ط­ط¯ط§ط« ط§ظ„ط£ظ…ط§ظ†',
+      '/security-events', Icons.shield_outlined),
+  _ControlSection('audit-logs', 'ط³ط¬ظ„ ط§ظ„طھط¯ظ‚ظٹظ‚', '/audit-logs',
+      Icons.fact_check_outlined),
+  _ControlSection('admin-users', 'ظ…ط³ط¤ظˆظ„ظˆ Yalla', '/admin-users',
       Icons.manage_accounts_outlined),
-  _ControlSection('customer-preview', 'معاينة تطبيق العميل', '/dashboard',
-      Icons.preview_outlined),
+  _ControlSection('customer-preview', 'ظ…ط¹ط§ظٹظ†ط© طھط·ط¨ظٹظ‚ ط§ظ„ط¹ظ…ظٹظ„',
+      '/dashboard', Icons.preview_outlined),
   _ControlSection(
       'break-glass', 'Break Glass', '/break-glass', Icons.emergency_outlined),
 ];
@@ -164,13 +167,16 @@ class _YallaControlCenterScreenState
         return;
       }
       if (error.statusCode == 401) {
-        await _logout(message: 'انتهت جلسة الإدارة. سجل الدخول مرة أخرى.');
+        await _logout(
+            message:
+                'ط§ظ†طھظ‡طھ ط¬ظ„ط³ط© ط§ظ„ط¥ط¯ط§ط±ط©. ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
         return;
       }
       setState(() => _error = error.message);
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'تعذر تحميل بيانات Control Center.');
+        setState(
+            () => _error = 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ Control Center.');
       }
     } finally {
       if (mounted) {
@@ -223,7 +229,7 @@ class _YallaControlCenterScreenState
       await _showProvisioningResult(result);
       await _loadSelected();
     } on YallaAdminAuthException catch (e) {
-      _snack('تعذر إنشاء الزبون: ${e.message}', error: true);
+      _snack('طھط¹ط°ط± ط¥ظ†ط´ط§ط، ط§ظ„ط²ط¨ظˆظ†: ${e.message}', error: true);
     }
   }
 
@@ -242,7 +248,7 @@ class _YallaControlCenterScreenState
       await _showProvisioningResult(result);
       await _loadSelected();
     } on YallaAdminAuthException catch (e) {
-      _snack('تعذر اعتماد الطلب: ${e.message}', error: true);
+      _snack('طھط¹ط°ط± ط§ط¹طھظ…ط§ط¯ ط§ظ„ط·ظ„ط¨: ${e.message}', error: true);
     }
   }
 
@@ -255,19 +261,20 @@ class _YallaControlCenterScreenState
     final reason = await showDialog<String>(
       context: context,
       builder: (ctx) => AdaptiveAlertDialog(
-        title: const Text('رفض طلب التسجيل'),
+        title: const Text('ط±ظپط¶ ط·ظ„ط¨ ط§ظ„طھط³ط¬ظٹظ„'),
         content: TextField(
           controller: controller,
           minLines: 2,
           maxLines: 4,
-          decoration: const InputDecoration(labelText: 'سبب الرفض'),
+          decoration: const InputDecoration(labelText: 'ط³ط¨ط¨ ط§ظ„ط±ظپط¶'),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('ط¥ظ„ط؛ط§ط،')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('رفض'),
+            child: const Text('ط±ظپط¶'),
           ),
         ],
       ),
@@ -283,7 +290,7 @@ class _YallaControlCenterScreenState
           );
       await _loadSelected();
     } on YallaAdminAuthException catch (e) {
-      _snack('تعذر رفض الطلب: ${e.message}', error: true);
+      _snack('طھط¹ط°ط± ط±ظپط¶ ط§ظ„ط·ظ„ط¨: ${e.message}', error: true);
     }
   }
 
@@ -294,21 +301,22 @@ class _YallaControlCenterScreenState
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AdaptiveAlertDialog(
-        title: const Text('تم تجهيز الزبون'),
+        title: const Text('طھظ… طھط¬ظ‡ظٹط² ط§ظ„ط²ط¨ظˆظ†'),
         content: SizedBox(
-          width: 520,
+          width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 520,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Organization ID: $organizationId'),
               const SizedBox(height: 12),
-              const Text('كود التفعيل — يظهر هنا لمرة واحدة:',
+              const Text(
+                  'ظƒظˆط¯ ط§ظ„طھظپط¹ظٹظ„ â€” ظٹط¸ظ‡ط± ظ‡ظ†ط§ ظ„ظ…ط±ط© ظˆط§ط­ط¯ط©:',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               SelectableText(
                 activationCode.isEmpty
-                    ? 'لم يصدر كود في هذا الرد.'
+                    ? 'ظ„ظ… ظٹطµط¯ط± ظƒظˆط¯ ظپظٹ ظ‡ط°ط§ ط§ظ„ط±ط¯.'
                     : activationCode,
                 style: const TextStyle(
                     fontSize: 20,
@@ -318,8 +326,8 @@ class _YallaControlCenterScreenState
               const SizedBox(height: 12),
               Text(
                 result['environment']?.toString() == 'LOCAL_DEVELOPMENT_ONLY'
-                    ? 'هذا كود تجريبي صادر من Local Dev Harness لتجربة دورة onboarding والمتابعة. الاسترداد الحقيقي للكود على جهاز زبون جديد سيتم من Licensing Server الإنتاجي. كلمة مرور مالك المنشأة يختارها الزبون بنفسه بعد التفعيل.'
-                    : 'يرسل هذا الكود للزبون. بعد تفعيل نسخته، ينشئ الزبون حساب مالك المنشأة بنفسه من شاشة الدخول. لا يتم إنشاء كلمة مرور للزبون من Control Center.',
+                    ? 'ظ‡ط°ط§ ظƒظˆط¯ طھط¬ط±ظٹط¨ظٹ طµط§ط¯ط± ظ…ظ† Local Dev Harness ظ„طھط¬ط±ط¨ط© ط¯ظˆط±ط© onboarding ظˆط§ظ„ظ…طھط§ط¨ط¹ط©. ط§ظ„ط§ط³طھط±ط¯ط§ط¯ ط§ظ„ط­ظ‚ظٹظ‚ظٹ ظ„ظ„ظƒظˆط¯ ط¹ظ„ظ‰ ط¬ظ‡ط§ط² ط²ط¨ظˆظ† ط¬ط¯ظٹط¯ ط³ظٹطھظ… ظ…ظ† Licensing Server ط§ظ„ط¥ظ†طھط§ط¬ظٹ. ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ…ط§ظ„ظƒ ط§ظ„ظ…ظ†ط´ط£ط© ظٹط®طھط§ط±ظ‡ط§ ط§ظ„ط²ط¨ظˆظ† ط¨ظ†ظپط³ظ‡ ط¨ط¹ط¯ ط§ظ„طھظپط¹ظٹظ„.'
+                    : 'ظٹط±ط³ظ„ ظ‡ط°ط§ ط§ظ„ظƒظˆط¯ ظ„ظ„ط²ط¨ظˆظ†. ط¨ط¹ط¯ طھظپط¹ظٹظ„ ظ†ط³ط®طھظ‡طŒ ظٹظ†ط´ط¦ ط§ظ„ط²ط¨ظˆظ† ط­ط³ط§ط¨ ظ…ط§ظ„ظƒ ط§ظ„ظ…ظ†ط´ط£ط© ط¨ظ†ظپط³ظ‡ ظ…ظ† ط´ط§ط´ط© ط§ظ„ط¯ط®ظˆظ„. ظ„ط§ ظٹطھظ… ط¥ظ†ط´ط§ط، ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ„ظ„ط²ط¨ظˆظ† ظ…ظ† Control Center.',
               ),
             ],
           ),
@@ -329,14 +337,14 @@ class _YallaControlCenterScreenState
             TextButton.icon(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: activationCode));
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('تم نسخ كود التفعيل')));
+                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                    content: Text('طھظ… ظ†ط³ط® ظƒظˆط¯ ط§ظ„طھظپط¹ظٹظ„')));
               },
               icon: const Icon(Icons.copy),
-              label: const Text('نسخ الكود'),
+              label: const Text('ظ†ط³ط® ط§ظ„ظƒظˆط¯'),
             ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('تم')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('طھظ…')),
         ],
       ),
     );
@@ -346,7 +354,8 @@ class _YallaControlCenterScreenState
     try {
       final owner = await ref.read(userServiceProvider).getOwner();
       if (owner == null) {
-        _snack('لا يوجد Owner في قاعدة العميل المحلية لفتح المعاينة.',
+        _snack(
+            'ظ„ط§ ظٹظˆط¬ط¯ Owner ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¹ظ…ظٹظ„ ط§ظ„ظ…ط­ظ„ظٹط© ظ„ظپطھط­ ط§ظ„ظ…ط¹ط§ظٹظ†ط©.',
             error: true);
         return;
       }
@@ -365,13 +374,14 @@ class _YallaControlCenterScreenState
       await sessions.endEphemeralPreviewSession();
       ref.read(currentUserProvider.notifier).state = null;
     } catch (e) {
-      _snack('تعذر فتح معاينة العميل المحلية: $e', error: true);
+      _snack('طھط¹ط°ط± ظپطھط­ ظ…ط¹ط§ظٹظ†ط© ط§ظ„ط¹ظ…ظٹظ„ ط§ظ„ظ…ط­ظ„ظٹط©: $e',
+          error: true);
     }
   }
 
   Future<void> _openActionDialog() async {
     if (!widget.identity.isSuperOwner) {
-      _snack('هذه العملية تتطلب YALLA_SUPER_OWNER.');
+      _snack('ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© طھطھط·ظ„ط¨ YALLA_SUPER_OWNER.');
       return;
     }
     final action = await showDialog<_ActionRequest>(
@@ -392,10 +402,12 @@ class _YallaControlCenterScreenState
                 requestedState: action.requestedState,
                 breakGlassGrantId: action.breakGlassGrantId,
               );
-      _snack('تم إرسال الإجراء بنجاح: ${response['status'] ?? 'ACCEPTED'}');
+      _snack(
+          'طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط¥ط¬ط±ط§ط، ط¨ظ†ط¬ط§ط­: ${response['status'] ?? 'ACCEPTED'}');
       await _loadSelected();
     } on YallaAdminAuthException catch (error) {
-      _snack('رفض الخادم الإجراء: ${error.message}', error: true);
+      _snack('ط±ظپط¶ ط§ظ„ط®ط§ط¯ظ… ط§ظ„ط¥ط¬ط±ط§ط،: ${error.message}',
+          error: true);
     }
   }
 
@@ -406,7 +418,8 @@ class _YallaControlCenterScreenState
     String dayField,
   ) async {
     if (!widget.identity.isSuperOwner) {
-      _snack('هذه العملية تتطلب YALLA_SUPER_OWNER.', error: true);
+      _snack('ظ‡ط°ظ‡ ط§ظ„ط¹ظ…ظ„ظٹط© طھطھط·ظ„ط¨ YALLA_SUPER_OWNER.',
+          error: true);
       return;
     }
 
@@ -436,7 +449,8 @@ class _YallaControlCenterScreenState
     }
 
     if (organizationId.isEmpty) {
-      _snack('السجل لا يحتوي Organization ID صالحًا.', error: true);
+      _snack('ط§ظ„ط³ط¬ظ„ ظ„ط§ ظٹط­طھظˆظٹ Organization ID طµط§ظ„ط­ظ‹ط§.',
+          error: true);
       return;
     }
 
@@ -458,19 +472,19 @@ class _YallaControlCenterScreenState
       final after = _asMap(response['after_state']);
       final status = after['status'] ?? response['status'] ?? 'APPLIED';
       final billing = after['billing_status'];
-      final suffix = billing == null ? '' : ' — الدفع: $billing';
+      final suffix = billing == null ? '' : ' â€” ط§ظ„ط¯ظپط¹: $billing';
       _snack('$actionLabel: $status$suffix');
       await _loadSelected();
     } on YallaAdminAuthException catch (error) {
-      _snack('تعذر تنفيذ $actionLabel: ${error.message}', error: true);
+      _snack('طھط¹ط°ط± طھظ†ظپظٹط° $actionLabel: ${error.message}', error: true);
     } catch (error) {
-      _snack('تعذر تنفيذ $actionLabel: $error', error: true);
+      _snack('طھط¹ط°ط± طھظ†ظپظٹط° $actionLabel: $error', error: true);
     }
   }
 
   Future<void> _openBreakGlassDialog() async {
     if (!widget.identity.isSuperOwner) {
-      _snack('Break Glass يتطلب YALLA_SUPER_OWNER.', error: true);
+      _snack('Break Glass ظٹطھط·ظ„ط¨ YALLA_SUPER_OWNER.', error: true);
       return;
     }
     final request = await showDialog<_BreakGlassRequest>(
@@ -489,7 +503,7 @@ class _YallaControlCenterScreenState
       final contextId = reauth['reauth_context_id']?.toString().trim() ?? '';
       if (contextId.isEmpty) {
         throw const YallaAdminAuthException(
-            'الخادم لم يُصدر سياق إعادة تحقق صالحًا.');
+            'ط§ظ„ط®ط§ط¯ظ… ظ„ظ… ظٹظڈطµط¯ط± ط³ظٹط§ظ‚ ط¥ط¹ط§ط¯ط© طھط­ظ‚ظ‚ طµط§ظ„ط­ظ‹ط§.');
       }
       final result = await service.openBreakGlass(
         organizationId: request.organizationId,
@@ -497,10 +511,10 @@ class _YallaControlCenterScreenState
         durationMinutes: request.durationMinutes,
         reauthContextId: contextId,
       );
-      _snack('تم فتح Break Glass: ${result['grant_id'] ?? 'ACTIVE'}');
+      _snack('طھظ… ظپطھط­ Break Glass: ${result['grant_id'] ?? 'ACTIVE'}');
       await _loadSelected();
     } on YallaAdminAuthException catch (error) {
-      _snack('تعذر فتح Break Glass: ${error.message}', error: true);
+      _snack('طھط¹ط°ط± ظپطھط­ Break Glass: ${error.message}', error: true);
     }
   }
 
@@ -527,7 +541,7 @@ class _YallaControlCenterScreenState
         appBar: AppBar(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          title: Text('Yalla Control Center — ${_section.label}'),
+          title: Text('Yalla Control Center â€” ${_section.label}'),
           actions: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -543,11 +557,11 @@ class _YallaControlCenterScreenState
               ),
             ),
             IconButton(
-                tooltip: 'تحديث',
+                tooltip: 'طھط­ط¯ظٹط«',
                 onPressed: _loading ? null : _loadSelected,
                 icon: const Icon(Icons.refresh)),
             IconButton(
-                tooltip: 'تسجيل الخروج',
+                tooltip: 'طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬',
                 onPressed: _logout,
                 icon: const Icon(Icons.logout)),
             const SizedBox(width: 8),
@@ -591,7 +605,7 @@ class _YallaControlCenterScreenState
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${widget.identity.email} — جلسة Yalla الإدارية محمية بالخادم وMFA.',
+              '${widget.identity.email} â€” ط¬ظ„ط³ط© Yalla ط§ظ„ط¥ط¯ط§ط±ظٹط© ظ…ط­ظ…ظٹط© ط¨ط§ظ„ط®ط§ط¯ظ… ظˆMFA.',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
@@ -605,7 +619,7 @@ class _YallaControlCenterScreenState
             style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
             onPressed: _openActionDialog,
             icon: const Icon(Icons.bolt_outlined),
-            label: const Text('إجراء إداري'),
+            label: const Text('ط¥ط¬ط±ط§ط، ط¥ط¯ط§ط±ظٹ'),
           ),
         ],
       ),
@@ -628,7 +642,7 @@ class _YallaControlCenterScreenState
               style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
               onPressed: _createCustomer,
               icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('إنشاء زبون جديد'),
+              label: const Text('ط¥ظ†ط´ط§ط، ط²ط¨ظˆظ† ط¬ط¯ظٹط¯'),
             ),
           if (showCreate) const SizedBox(width: 10),
           if (_section.id == 'customer-preview')
@@ -636,12 +650,12 @@ class _YallaControlCenterScreenState
               style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
               onPressed: _openLocalCustomerPreview,
               icon: const Icon(Icons.open_in_new),
-              label: const Text('فتح تطبيق العميل المحلي'),
+              label: const Text('ظپطھط­ طھط·ط¨ظٹظ‚ ط§ظ„ط¹ظ…ظٹظ„ ط§ظ„ظ…ط­ظ„ظٹ'),
             ),
           const Spacer(),
           if (_section.id == 'onboarding')
             const Text(
-                'طلبات الزبائن من شاشة الدخول تظهر هنا للمراجعة والاعتماد.'),
+                'ط·ظ„ط¨ط§طھ ط§ظ„ط²ط¨ط§ط¦ظ† ظ…ظ† ط´ط§ط´ط© ط§ظ„ط¯ط®ظˆظ„ طھط¸ظ‡ط± ظ‡ظ†ط§ ظ„ظ„ظ…ط±ط§ط¬ط¹ط© ظˆط§ظ„ط§ط¹طھظ…ط§ط¯.'),
         ],
       ),
     );
@@ -697,7 +711,7 @@ class _YallaControlCenterScreenState
               FilledButton.icon(
                   onPressed: _loadSelected,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('إعادة المحاولة')),
+                  label: const Text('ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©')),
             ],
           ),
         ),
@@ -736,7 +750,7 @@ class _YallaControlCenterScreenState
     return _PayloadView(
         payload: _payload,
         emptyLabel:
-            'لا توجد سجلات بعد. استخدم أدوات القسم أو أنشئ زبونًا جديدًا.');
+            'ظ„ط§ طھظˆط¬ط¯ ط³ط¬ظ„ط§طھ ط¨ط¹ط¯. ط§ط³طھط®ط¯ظ… ط£ط¯ظˆط§طھ ط§ظ„ظ‚ط³ظ… ط£ظˆ ط£ظ†ط´ط¦ ط²ط¨ظˆظ†ظ‹ط§ ط¬ط¯ظٹط¯ظ‹ط§.');
   }
 }
 
@@ -749,30 +763,38 @@ class _DashboardView extends StatelessWidget {
     final map = _asMap(payload);
     final counts = _asMap(map['counts']);
     final cards = <(String, Object?, IconData)>[
-      ('المنشآت', counts['organizations'] ?? 0, Icons.business_outlined),
+      ('ط§ظ„ظ…ظ†ط´ط¢طھ', counts['organizations'] ?? 0, Icons.business_outlined),
       (
-        'طلبات التسجيل',
+        'ط·ظ„ط¨ط§طھ ط§ظ„طھط³ط¬ظٹظ„',
         counts['pending_onboarding'] ?? 0,
         Icons.person_add_alt_1_outlined
       ),
       (
-        'الاشتراكات النشطة',
+        'ط§ظ„ط§ط´طھط±ط§ظƒط§طھ ط§ظ„ظ†ط´ط·ط©',
         counts['active_subscriptions'] ?? 0,
         Icons.credit_card_outlined
       ),
       (
-        'اشتراكات مجمدة',
+        'ط§ط´طھط±ط§ظƒط§طھ ظ…ط¬ظ…ط¯ط©',
         counts['suspended_subscriptions'] ?? 0,
         Icons.pause_circle_outline
       ),
-      ('غير مدفوعة', counts['unpaid_subscriptions'] ?? 0, Icons.money_off),
-      ('الأجهزة', counts['devices'] ?? 0, Icons.devices_outlined),
       (
-        'تفعيلات بانتظار الاستخدام',
+        'ط؛ظٹط± ظ…ط¯ظپظˆط¹ط©',
+        counts['unpaid_subscriptions'] ?? 0,
+        Icons.money_off
+      ),
+      ('ط§ظ„ط£ط¬ظ‡ط²ط©', counts['devices'] ?? 0, Icons.devices_outlined),
+      (
+        'طھظپط¹ظٹظ„ط§طھ ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ط§ط³طھط®ط¯ط§ظ…',
         counts['pending_activations'] ?? 0,
         Icons.key_outlined
       ),
-      ('أحداث الأمان', counts['security_events'] ?? 0, Icons.shield_outlined),
+      (
+        'ط£ط­ط¯ط§ط« ط§ظ„ط£ظ…ط§ظ†',
+        counts['security_events'] ?? 0,
+        Icons.shield_outlined
+      ),
     ];
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -819,13 +841,13 @@ class _DashboardView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('حالة Control Center',
+                const Text('ط­ط§ظ„ط© Control Center',
                     style:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
-                Text(map['message']?.toString() ?? 'الخادم متصل.'),
+                Text(map['message']?.toString() ?? 'ط§ظ„ط®ط§ط¯ظ… ظ…طھطµظ„.'),
                 const SizedBox(height: 6),
-                Text('Environment: ${map['environment'] ?? '—'}'),
+                Text('Environment: ${map['environment'] ?? 'â€”'}'),
               ],
             ),
           ),
@@ -848,9 +870,9 @@ class _OnboardingView extends StatelessWidget {
     if (rows.isEmpty) {
       return const _EmptyState(
         icon: Icons.person_add_alt_1_outlined,
-        title: 'لا توجد طلبات تسجيل حتى الآن',
+        title: 'ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ طھط³ط¬ظٹظ„ ط­طھظ‰ ط§ظ„ط¢ظ†',
         message:
-            'يمكن للزبون إرسال طلب من شاشة الدخول، أو يمكنك إنشاء زبون مباشرة من Control Center.',
+            'ظٹظ…ظƒظ† ظ„ظ„ط²ط¨ظˆظ† ط¥ط±ط³ط§ظ„ ط·ظ„ط¨ ظ…ظ† ط´ط§ط´ط© ط§ظ„ط¯ط®ظˆظ„طŒ ط£ظˆ ظٹظ…ظƒظ†ظƒ ط¥ظ†ط´ط§ط، ط²ط¨ظˆظ† ظ…ط¨ط§ط´ط±ط© ظ…ظ† Control Center.',
       );
     }
     return ListView.separated(
@@ -869,29 +891,31 @@ class _OnboardingView extends StatelessWidget {
                 AdaptiveRow(children: [
                   Expanded(
                       child: Text(
-                          row['organization_name']?.toString() ?? 'طلب منشأة',
+                          row['organization_name']?.toString() ??
+                              'ط·ظ„ط¨ ظ…ظ†ط´ط£ط©',
                           style: const TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold))),
                   Chip(label: Text(status.isEmpty ? 'UNKNOWN' : status))
                 ]),
                 const SizedBox(height: 8),
                 Text(
-                    'المالك: ${row['owner_name'] ?? '—'} — ${row['owner_email'] ?? '—'}'),
+                    'ط§ظ„ظ…ط§ظ„ظƒ: ${row['owner_name'] ?? 'â€”'} â€” ${row['owner_email'] ?? 'â€”'}'),
                 Text(
-                    'الدولة: ${row['country_code'] ?? '—'}   الهاتف: ${row['phone'] ?? '—'}'),
-                Text('Request ID: ${row['request_id'] ?? '—'}'),
+                    'ط§ظ„ط¯ظˆظ„ط©: ${row['country_code'] ?? 'â€”'}   ط§ظ„ظ‡ط§طھظپ: ${row['phone'] ?? 'â€”'}'),
+                Text('Request ID: ${row['request_id'] ?? 'â€”'}'),
                 if (status == 'PENDING') ...[
                   const SizedBox(height: 12),
                   AdaptiveRow(children: [
                     FilledButton.icon(
                         onPressed: () => onApprove(row),
                         icon: const Icon(Icons.check),
-                        label: const Text('موافقة وإصدار كود التفعيل')),
+                        label: const Text(
+                            'ظ…ظˆط§ظپظ‚ط© ظˆط¥طµط¯ط§ط± ظƒظˆط¯ ط§ظ„طھظپط¹ظٹظ„')),
                     const SizedBox(width: 8),
                     OutlinedButton.icon(
                         onPressed: () => onReject(row),
                         icon: const Icon(Icons.close),
-                        label: const Text('رفض')),
+                        label: const Text('ط±ظپط¶')),
                   ]),
                 ],
               ],
@@ -923,8 +947,9 @@ class _OrganizationAdministrationView extends StatelessWidget {
     if (rows.isEmpty) {
       return const _EmptyState(
         icon: Icons.business_outlined,
-        title: 'لا توجد منشآت بعد',
-        message: 'أنشئ زبونًا جديدًا أو وافق على طلب تسجيل أولًا.',
+        title: 'ظ„ط§ طھظˆط¬ط¯ ظ…ظ†ط´ط¢طھ ط¨ط¹ط¯',
+        message:
+            'ط£ظ†ط´ط¦ ط²ط¨ظˆظ†ظ‹ط§ ط¬ط¯ظٹط¯ظ‹ط§ ط£ظˆ ظˆط§ظپظ‚ ط¹ظ„ظ‰ ط·ظ„ط¨ طھط³ط¬ظٹظ„ ط£ظˆظ„ظ‹ط§.',
       );
     }
     return ListView.separated(
@@ -948,33 +973,33 @@ class _OrganizationAdministrationView extends StatelessWidget {
                 onPressed: () => onAction(
                   row,
                   'ORGANIZATION.SUSPEND',
-                  'تجميد المنشأة',
+                  'طھط¬ظ…ظٹط¯ ط§ظ„ظ…ظ†ط´ط£ط©',
                   '',
                 ),
                 icon: const Icon(Icons.pause_circle_outline),
-                label: const Text('تجميد'),
+                label: const Text('طھط¬ظ…ظٹط¯'),
               ),
             if (status == 'SUSPENDED')
               FilledButton.icon(
                 onPressed: () => onAction(
                   row,
                   'ORGANIZATION.RESUME',
-                  'إعادة تفعيل المنشأة',
+                  'ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ ط§ظ„ظ…ظ†ط´ط£ط©',
                   '',
                 ),
                 icon: const Icon(Icons.play_circle_outline),
-                label: const Text('إعادة تفعيل'),
+                label: const Text('ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„'),
               ),
             if (status != 'ACTIVE' && status != 'SUSPENDED')
               FilledButton.icon(
                 onPressed: () => onAction(
                   row,
                   'ORGANIZATION.ACTIVATE',
-                  'تفعيل المنشأة',
+                  'طھظپط¹ظٹظ„ ط§ظ„ظ…ظ†ط´ط£ط©',
                   '',
                 ),
                 icon: const Icon(Icons.check_circle_outline),
-                label: const Text('تفعيل'),
+                label: const Text('طھظپط¹ظٹظ„'),
               ),
           ],
         );
@@ -1003,8 +1028,9 @@ class _SubscriptionAdministrationView extends StatelessWidget {
     if (rows.isEmpty) {
       return const _EmptyState(
         icon: Icons.credit_card_outlined,
-        title: 'لا توجد اشتراكات بعد',
-        message: 'ستظهر الاشتراكات هنا بعد إنشاء أول منشأة.',
+        title: 'ظ„ط§ طھظˆط¬ط¯ ط§ط´طھط±ط§ظƒط§طھ ط¨ط¹ط¯',
+        message:
+            'ط³طھط¸ظ‡ط± ط§ظ„ط§ط´طھط±ط§ظƒط§طھ ظ‡ظ†ط§ ط¨ط¹ط¯ ط¥ظ†ط´ط§ط، ط£ظˆظ„ ظ…ظ†ط´ط£ط©.',
       );
     }
     return ListView.separated(
@@ -1019,8 +1045,8 @@ class _SubscriptionAdministrationView extends StatelessWidget {
         final remainingDays = row['remaining_days'];
         final remainingHours = row['remaining_hours'];
         final remaining = remainingDays == null
-            ? 'غير محدد'
-            : '$remainingDays يوم (${remainingHours ?? '—'} ساعة)';
+            ? 'ط؛ظٹط± ظ…ط­ط¯ط¯'
+            : '$remainingDays ظٹظˆظ… (${remainingHours ?? 'â€”'} ط³ط§ط¹ط©)';
 
         final actions = <Widget>[];
         if (status == 'TRIAL') {
@@ -1029,11 +1055,11 @@ class _SubscriptionAdministrationView extends StatelessWidget {
               onPressed: () => onAction(
                 row,
                 'SUBSCRIPTION.ACTIVATE',
-                'تفعيل الاشتراك',
+                'طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ',
                 '',
               ),
               icon: const Icon(Icons.check_circle_outline),
-              label: const Text('تفعيل'),
+              label: const Text('طھظپط¹ظٹظ„'),
             ),
           );
           actions.add(
@@ -1041,11 +1067,11 @@ class _SubscriptionAdministrationView extends StatelessWidget {
               onPressed: () => onAction(
                 row,
                 'SUBSCRIPTION.TRIAL_EXTEND',
-                'تمديد التجربة',
+                'طھظ…ط¯ظٹط¯ ط§ظ„طھط¬ط±ط¨ط©',
                 'extension_days',
               ),
               icon: const Icon(Icons.more_time),
-              label: const Text('تمديد التجربة'),
+              label: const Text('طھظ…ط¯ظٹط¯ ط§ظ„طھط¬ط±ط¨ط©'),
             ),
           );
         } else if (status == 'ACTIVE') {
@@ -1054,11 +1080,11 @@ class _SubscriptionAdministrationView extends StatelessWidget {
               onPressed: () => onAction(
                 row,
                 'SUBSCRIPTION.SUSPEND',
-                'تجميد الاشتراك',
+                'طھط¬ظ…ظٹط¯ ط§ظ„ط§ط´طھط±ط§ظƒ',
                 '',
               ),
               icon: const Icon(Icons.pause_circle_outline),
-              label: const Text('تجميد'),
+              label: const Text('طھط¬ظ…ظٹط¯'),
             ),
           );
         } else if (status == 'SUSPENDED') {
@@ -1067,11 +1093,11 @@ class _SubscriptionAdministrationView extends StatelessWidget {
               onPressed: () => onAction(
                 row,
                 'SUBSCRIPTION.REACTIVATE',
-                'إعادة تفعيل الاشتراك',
+                'ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ',
                 '',
               ),
               icon: const Icon(Icons.play_circle_outline),
-              label: const Text('إعادة تفعيل'),
+              label: const Text('ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„'),
             ),
           );
         } else if (status == 'CANCELLED') {
@@ -1080,11 +1106,11 @@ class _SubscriptionAdministrationView extends StatelessWidget {
               onPressed: () => onAction(
                 row,
                 'SUBSCRIPTION.RESTORE',
-                'استعادة الاشتراك',
+                'ط§ط³طھط¹ط§ط¯ط© ط§ظ„ط§ط´طھط±ط§ظƒ',
                 '',
               ),
               icon: const Icon(Icons.restore),
-              label: const Text('استعادة'),
+              label: const Text('ط§ط³طھط¹ط§ط¯ط©'),
             ),
           );
         }
@@ -1095,11 +1121,11 @@ class _SubscriptionAdministrationView extends StatelessWidget {
               onPressed: () => onAction(
                 row,
                 'SUBSCRIPTION.EXTEND',
-                'تمديد المدة',
+                'طھظ…ط¯ظٹط¯ ط§ظ„ظ…ط¯ط©',
                 'extension_days',
               ),
               icon: const Icon(Icons.date_range_outlined),
-              label: const Text('تمديد المدة'),
+              label: const Text('طھظ…ط¯ظٹط¯ ط§ظ„ظ…ط¯ط©'),
             ),
           );
           actions.add(
@@ -1107,11 +1133,11 @@ class _SubscriptionAdministrationView extends StatelessWidget {
               onPressed: () => onAction(
                 row,
                 'SUBSCRIPTION.RENEW',
-                'تجديد الاشتراك',
+                'طھط¬ط¯ظٹط¯ ط§ظ„ط§ط´طھط±ط§ظƒ',
                 'renewal_days',
               ),
               icon: const Icon(Icons.autorenew_outlined),
-              label: const Text('تجديد'),
+              label: const Text('طھط¬ط¯ظٹط¯'),
             ),
           );
           actions.add(
@@ -1121,27 +1147,30 @@ class _SubscriptionAdministrationView extends StatelessWidget {
                 billing == 'PAID'
                     ? 'SUBSCRIPTION.MARK_UNPAID'
                     : 'SUBSCRIPTION.MARK_PAID',
-                billing == 'PAID' ? 'تحديد كغير مدفوع' : 'تحديد كمدفوع',
+                billing == 'PAID'
+                    ? 'طھط­ط¯ظٹط¯ ظƒط؛ظٹط± ظ…ط¯ظپظˆط¹'
+                    : 'طھط­ط¯ظٹط¯ ظƒظ…ط¯ظپظˆط¹',
                 '',
               ),
               icon: Icon(
                 billing == 'PAID' ? Icons.money_off : Icons.payments_outlined,
               ),
-              label: Text(billing == 'PAID' ? 'غير مدفوع' : 'مدفوع'),
+              label:
+                  Text(billing == 'PAID' ? 'ط؛ظٹط± ظ…ط¯ظپظˆط¹' : 'ظ…ط¯ظپظˆط¹'),
             ),
           );
         }
 
         return _AdminRecordCard(
-          title: 'اشتراك ${row['plan_code'] ?? ''}',
+          title: 'ط§ط´طھط±ط§ظƒ ${row['plan_code'] ?? ''}',
           status: status,
-          secondaryStatus: 'الدفع: $billing',
+          secondaryStatus: 'ط§ظ„ط¯ظپط¹: $billing',
           fields: <String, Object?>{
             'Subscription ID': row['subscription_id'],
             'Organization ID': row['organization_id'],
-            'بداية الاشتراك': row['started_at'],
-            'نهاية الاشتراك': row['expires_at'],
-            'المدة المتبقية': remaining,
+            'ط¨ط¯ط§ظٹط© ط§ظ„ط§ط´طھط±ط§ظƒ': row['started_at'],
+            'ظ†ظ‡ط§ظٹط© ط§ظ„ط§ط´طھط±ط§ظƒ': row['expires_at'],
+            'ط§ظ„ظ…ط¯ط© ط§ظ„ظ…طھط¨ظ‚ظٹط©': remaining,
             'MAX_USERS': row['max_users'],
             'MAX_DEVICES': row['max_devices'],
           },
@@ -1172,9 +1201,9 @@ class _DeviceAdministrationView extends StatelessWidget {
     if (rows.isEmpty) {
       return const _EmptyState(
         icon: Icons.devices_outlined,
-        title: 'لا توجد أجهزة مسجلة بعد',
+        title: 'ظ„ط§ طھظˆط¬ط¯ ط£ط¬ظ‡ط²ط© ظ…ط³ط¬ظ„ط© ط¨ط¹ط¯',
         message:
-            'عندما يسجل العميل جهازًا عبر مسار التفعيل سيظهر هنا، ويمكنك تفعيله أو تعطيله من هذه الشاشة.',
+            'ط¹ظ†ط¯ظ…ط§ ظٹط³ط¬ظ„ ط§ظ„ط¹ظ…ظٹظ„ ط¬ظ‡ط§ط²ظ‹ط§ ط¹ط¨ط± ظ…ط³ط§ط± ط§ظ„طھظپط¹ظٹظ„ ط³ظٹط¸ظ‡ط± ظ‡ظ†ط§طŒ ظˆظٹظ…ظƒظ†ظƒ طھظپط¹ظٹظ„ظ‡ ط£ظˆ طھط¹ط·ظٹظ„ظ‡ ظ…ظ† ظ‡ط°ظ‡ ط§ظ„ط´ط§ط´ط©.',
       );
     }
     return ListView.separated(
@@ -1202,22 +1231,22 @@ class _DeviceAdministrationView extends StatelessWidget {
                 onPressed: () => onAction(
                   row,
                   'DEVICE.DEACTIVATE',
-                  'تعطيل الجهاز',
+                  'طھط¹ط·ظٹظ„ ط§ظ„ط¬ظ‡ط§ط²',
                   '',
                 ),
                 icon: const Icon(Icons.pause_circle_outline),
-                label: const Text('تعطيل'),
+                label: const Text('طھط¹ط·ظٹظ„'),
               ),
             if (status == 'SUSPENDED')
               FilledButton.icon(
                 onPressed: () => onAction(
                   row,
                   'DEVICE.ACTIVATE',
-                  'تفعيل الجهاز',
+                  'طھظپط¹ظٹظ„ ط§ظ„ط¬ظ‡ط§ط²',
                   '',
                 ),
                 icon: const Icon(Icons.play_circle_outline),
-                label: const Text('تفعيل'),
+                label: const Text('طھظپط¹ظٹظ„'),
               ),
           ],
         );
@@ -1322,17 +1351,17 @@ class _CustomerPreviewInfo extends StatelessWidget {
                 Icon(Icons.preview_outlined,
                     size: 56, color: AppColors.primary),
                 const SizedBox(height: 14),
-                const Text('معاينة تطبيق العميل',
+                const Text('ظ…ط¹ط§ظٹظ†ط© طھط·ط¨ظٹظ‚ ط§ظ„ط¹ظ…ظٹظ„',
                     style:
                         TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 const Text(
-                  'يفتح هذا الوضع واجهة العميل الحقيقية فوق قاعدة البيانات المحلية الموجودة على جهاز التطوير، بهوية Owner محلية مؤقتة. يمكنك مراجعة الأقسام والتنقل بينها ثم العودة إلى Control Center.',
+                  'ظٹظپطھط­ ظ‡ط°ط§ ط§ظ„ظˆط¶ط¹ ظˆط§ط¬ظ‡ط© ط§ظ„ط¹ظ…ظٹظ„ ط§ظ„ط­ظ‚ظٹظ‚ظٹط© ظپظˆظ‚ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ظ„ظٹط© ط§ظ„ظ…ظˆط¬ظˆط¯ط© ط¹ظ„ظ‰ ط¬ظ‡ط§ط² ط§ظ„طھط·ظˆظٹط±طŒ ط¨ظ‡ظˆظٹط© Owner ظ…ط­ظ„ظٹط© ظ…ط¤ظ‚طھط©. ظٹظ…ظƒظ†ظƒ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£ظ‚ط³ط§ظ… ظˆط§ظ„طھظ†ظ‚ظ„ ط¨ظٹظ†ظ‡ط§ ط«ظ… ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ Control Center.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'هذا ليس دخولًا إلى بيانات عميل بعيد. الوصول إلى قاعدة عميل بعيدة يحتاج طبقة Cloud/Remote Support في SEC.017 ويظل خاضعًا للصلاحيات وBreak Glass.',
+                  'ظ‡ط°ط§ ظ„ظٹط³ ط¯ط®ظˆظ„ظ‹ط§ ط¥ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ط¹ظ…ظٹظ„ ط¨ط¹ظٹط¯. ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ظ‚ط§ط¹ط¯ط© ط¹ظ…ظٹظ„ ط¨ط¹ظٹط¯ط© ظٹط­طھط§ط¬ ط·ط¨ظ‚ط© Cloud/Remote Support ظپظٹ SEC.017 ظˆظٹط¸ظ„ ط®ط§ط¶ط¹ظ‹ط§ ظ„ظ„طµظ„ط§ط­ظٹط§طھ ظˆBreak Glass.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.black54),
                 ),
@@ -1340,7 +1369,8 @@ class _CustomerPreviewInfo extends StatelessWidget {
                 FilledButton.icon(
                     onPressed: onOpen,
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('فتح تطبيق العميل المحلي')),
+                    label: const Text(
+                        'ظپطھط­ طھط·ط¨ظٹظ‚ ط§ظ„ط¹ظ…ظٹظ„ ط§ظ„ظ…ط­ظ„ظٹ')),
               ],
             ),
           ),
@@ -1373,14 +1403,15 @@ class _CustomerPreviewShell extends StatelessWidget {
                       const Icon(Icons.preview_outlined, color: Colors.white),
                       const SizedBox(width: 8),
                       Expanded(
-                          child: Text('وضع معاينة العميل — Owner: $ownerLabel',
+                          child: Text(
+                              'ظˆط¶ط¹ ظ…ط¹ط§ظٹظ†ط© ط§ظ„ط¹ظ…ظٹظ„ â€” Owner: $ownerLabel',
                               style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold))),
                       TextButton.icon(
                         onPressed: () => Navigator.pop(context),
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        label: const Text('العودة إلى Control Center',
+                        label: const Text('ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ Control Center',
                             style: TextStyle(color: Colors.white)),
                       ),
                       const SizedBox(width: 12),
@@ -1399,7 +1430,8 @@ class _CustomerPreviewShell extends StatelessWidget {
 
 class _PayloadView extends StatelessWidget {
   const _PayloadView(
-      {required this.payload, this.emptyLabel = 'لا توجد سجلات في هذا القسم.'});
+      {required this.payload,
+      this.emptyLabel = 'ظ„ط§ طھظˆط¬ط¯ ط³ط¬ظ„ط§طھ ظپظٹ ظ‡ط°ط§ ط§ظ„ظ‚ط³ظ….'});
   final Object? payload;
   final String emptyLabel;
 
@@ -1411,7 +1443,8 @@ class _PayloadView extends StatelessWidget {
         return _EmptyState(
             icon: Icons.inbox_outlined,
             title: emptyLabel,
-            message: 'سيظهر المحتوى هنا بمجرد وجود بيانات على الخادم.');
+            message:
+                'ط³ظٹط¸ظ‡ط± ط§ظ„ظ…ط­طھظˆظ‰ ظ‡ظ†ط§ ط¨ظ…ط¬ط±ط¯ ظˆط¬ظˆط¯ ط¨ظٹط§ظ†ط§طھ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ….');
       }
       return ListView.separated(
         padding: const EdgeInsets.all(20),
@@ -1528,7 +1561,7 @@ String _display(Object? value) {
   if (value is Map || value is List) {
     return jsonEncode(value);
   }
-  return value?.toString() ?? '—';
+  return value?.toString() ?? 'â€”';
 }
 
 class _CustomerCreateRequest {
@@ -1601,9 +1634,9 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
   @override
   Widget build(BuildContext context) {
     return AdaptiveAlertDialog(
-      title: const Text('إنشاء زبون جديد'),
+      title: const Text('ط¥ظ†ط´ط§ط، ط²ط¨ظˆظ† ط¬ط¯ظٹط¯'),
       content: SizedBox(
-        width: 620,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 620,
         child: Form(
           key: _form,
           child: SingleChildScrollView(
@@ -1611,22 +1644,24 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
               children: [
                 TextFormField(
                     controller: _name,
-                    decoration: const InputDecoration(labelText: 'اسم المنشأة'),
+                    decoration: const InputDecoration(
+                        labelText: 'ط§ط³ظ… ط§ظ„ظ…ظ†ط´ط£ط©'),
                     validator: (v) => (v?.trim().length ?? 0) < 2
-                        ? 'اسم المنشأة مطلوب'
+                        ? 'ط§ط³ظ… ط§ظ„ظ…ظ†ط´ط£ط© ظ…ط·ظ„ظˆط¨'
                         : null),
                 TextFormField(
                     controller: _email,
-                    decoration:
-                        const InputDecoration(labelText: 'بريد مالك المنشأة'),
-                    validator: (v) =>
-                        (v?.contains('@') ?? false) ? null : 'بريد صحيح مطلوب'),
+                    decoration: const InputDecoration(
+                        labelText: 'ط¨ط±ظٹط¯ ظ…ط§ظ„ظƒ ط§ظ„ظ…ظ†ط´ط£ط©'),
+                    validator: (v) => (v?.contains('@') ?? false)
+                        ? null
+                        : 'ط¨ط±ظٹط¯ طµط­ظٹط­ ظ…ط·ظ„ظˆط¨'),
                 AdaptiveRow(children: [
                   Expanded(
                       child: TextFormField(
                           controller: _country,
-                          decoration:
-                              const InputDecoration(labelText: 'رمز الدولة'))),
+                          decoration: const InputDecoration(
+                              labelText: 'ط±ظ…ط² ط§ظ„ط¯ظˆظ„ط©'))),
                   const SizedBox(width: 10),
                   Expanded(
                       child: TextFormField(
@@ -1658,7 +1693,7 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
                 ]),
                 const SizedBox(height: 12),
                 const Text(
-                    'سيُنشأ Organization + Subscription + License/Entitlements ويصدر كود تفعيل لمرة واحدة. الزبون يختار كلمة مروره بنفسه بعد تفعيل نسخته.',
+                    'ط³ظٹظڈظ†ط´ط£ Organization + Subscription + License/Entitlements ظˆظٹطµط¯ط± ظƒظˆط¯ طھظپط¹ظٹظ„ ظ„ظ…ط±ط© ظˆط§ط­ط¯ط©. ط§ظ„ط²ط¨ظˆظ† ظٹط®طھط§ط± ظƒظ„ظ…ط© ظ…ط±ظˆط±ظ‡ ط¨ظ†ظپط³ظ‡ ط¨ط¹ط¯ طھظپط¹ظٹظ„ ظ†ط³ط®طھظ‡.',
                     style: TextStyle(color: Colors.black54)),
               ],
             ),
@@ -1668,8 +1703,10 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء')),
-        FilledButton(onPressed: _submit, child: const Text('إنشاء وإصدار كود'))
+            child: const Text('ط¥ظ„ط؛ط§ط،')),
+        FilledButton(
+            onPressed: _submit,
+            child: const Text('ط¥ظ†ط´ط§ط، ظˆط¥طµط¯ط§ط± ظƒظˆط¯'))
       ],
     );
   }
@@ -1728,7 +1765,7 @@ class _ManagedActionDialogState extends State<_ManagedActionDialog> {
     return AdaptiveAlertDialog(
       title: Text(widget.actionLabel),
       content: SizedBox(
-        width: 460,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 460,
         child: Form(
           key: _form,
           child: Column(
@@ -1738,11 +1775,12 @@ class _ManagedActionDialogState extends State<_ManagedActionDialog> {
                 controller: _reason,
                 autofocus: true,
                 decoration: const InputDecoration(
-                  labelText: 'سبب الإجراء',
-                  hintText: 'مثال: دفعة مستلمة / طلب العميل / تمديد تجربة',
+                  labelText: 'ط³ط¨ط¨ ط§ظ„ط¥ط¬ط±ط§ط،',
+                  hintText:
+                      'ظ…ط«ط§ظ„: ط¯ظپط¹ط© ظ…ط³طھظ„ظ…ط© / ط·ظ„ط¨ ط§ظ„ط¹ظ…ظٹظ„ / طھظ…ط¯ظٹط¯ طھط¬ط±ط¨ط©',
                 ),
                 validator: (value) => (value?.trim().length ?? 0) < 3
-                    ? 'اكتب سببًا واضحًا للإجراء'
+                    ? 'ط§ظƒطھط¨ ط³ط¨ط¨ظ‹ط§ ظˆط§ط¶ط­ظ‹ط§ ظ„ظ„ط¥ط¬ط±ط§ط،'
                     : null,
               ),
               if (asksDays) ...[
@@ -1752,13 +1790,13 @@ class _ManagedActionDialogState extends State<_ManagedActionDialog> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: widget.dayField == 'renewal_days'
-                        ? 'مدة التجديد بالأيام'
-                        : 'عدد أيام التمديد',
+                        ? 'ظ…ط¯ط© ط§ظ„طھط¬ط¯ظٹط¯ ط¨ط§ظ„ط£ظٹط§ظ…'
+                        : 'ط¹ط¯ط¯ ط£ظٹط§ظ… ط§ظ„طھظ…ط¯ظٹط¯',
                   ),
                   validator: (value) {
                     final days = int.tryParse(value?.trim() ?? '');
                     if (days == null || days < 1 || days > 3650) {
-                      return 'أدخل رقمًا بين 1 و3650 يومًا';
+                      return 'ط£ط¯ط®ظ„ ط±ظ‚ظ…ظ‹ط§ ط¨ظٹظ† 1 ظˆ3650 ظٹظˆظ…ظ‹ط§';
                     }
                     return null;
                   },
@@ -1771,11 +1809,11 @@ class _ManagedActionDialogState extends State<_ManagedActionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء'),
+          child: const Text('ط¥ظ„ط؛ط§ط،'),
         ),
         FilledButton(
           onPressed: _submit,
-          child: const Text('تنفيذ'),
+          child: const Text('طھظ†ظپظٹط°'),
         ),
       ],
     );
@@ -1847,8 +1885,8 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
         (key, value) => MapEntry(key.toString(), value),
       );
     } catch (_) {
-      setState(
-          () => _jsonError = 'requested_state يجب أن يكون JSON object صالحًا.');
+      setState(() => _jsonError =
+          'requested_state ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† JSON object طµط§ظ„ط­ظ‹ط§.');
       return;
     }
 
@@ -1868,9 +1906,9 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
   @override
   Widget build(BuildContext context) {
     return AdaptiveAlertDialog(
-      title: const Text('إجراء Yalla إداري'),
+      title: const Text('ط¥ط¬ط±ط§ط، Yalla ط¥ط¯ط§ط±ظٹ'),
       content: SizedBox(
-        width: 620,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 620,
         child: SingleChildScrollView(
           child: Form(
             key: _form,
@@ -1891,7 +1929,7 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
                 TextFormField(
                     controller: _organization,
                     decoration: const InputDecoration(
-                        labelText: 'Organization ID (عند الحاجة)')),
+                        labelText: 'Organization ID (ط¹ظ†ط¯ ط§ظ„ط­ط§ط¬ط©)')),
                 TextFormField(
                     controller: _targetType,
                     decoration:
@@ -1902,9 +1940,9 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
                         const InputDecoration(labelText: 'Target entity ID')),
                 TextFormField(
                   controller: _reason,
-                  decoration: const InputDecoration(labelText: 'السبب'),
+                  decoration: const InputDecoration(labelText: 'ط§ظ„ط³ط¨ط¨'),
                   validator: (value) => (value?.trim().length ?? 0) < 8
-                      ? 'السبب يجب ألا يقل عن 8 أحرف.'
+                      ? 'ط§ظ„ط³ط¨ط¨ ظٹط¬ط¨ ط£ظ„ط§ ظٹظ‚ظ„ ط¹ظ† 8 ط£ط­ط±ظپ.'
                       : null,
                 ),
                 TextFormField(
@@ -1920,7 +1958,8 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
                 TextFormField(
                     controller: _breakGlass,
                     decoration: const InputDecoration(
-                        labelText: 'Break Glass Grant ID (للعمليات القسرية)')),
+                        labelText:
+                            'Break Glass Grant ID (ظ„ظ„ط¹ظ…ظ„ظٹط§طھ ط§ظ„ظ‚ط³ط±ظٹط©)')),
               ],
             ),
           ),
@@ -1929,8 +1968,8 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء')),
-        FilledButton(onPressed: _submit, child: const Text('إرسال')),
+            child: const Text('ط¥ظ„ط؛ط§ط،')),
+        FilledButton(onPressed: _submit, child: const Text('ط¥ط±ط³ط§ظ„')),
       ],
     );
   }
@@ -1980,9 +2019,9 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
   @override
   Widget build(BuildContext context) {
     return AdaptiveAlertDialog(
-      title: const Text('فتح Break Glass'),
+      title: const Text('ظپطھط­ Break Glass'),
       content: SizedBox(
-        width: 520,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 520,
         child: Form(
           key: _form,
           child: Column(
@@ -1992,21 +2031,21 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
                 controller: _organization,
                 decoration: const InputDecoration(labelText: 'Organization ID'),
                 validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'مطلوب' : null,
+                    value == null || value.trim().isEmpty ? 'ظ…ط·ظ„ظˆط¨' : null,
               ),
               TextFormField(
                 controller: _reason,
-                decoration: const InputDecoration(labelText: 'السبب'),
+                decoration: const InputDecoration(labelText: 'ط§ظ„ط³ط¨ط¨'),
                 validator: (value) => (value?.trim().length ?? 0) < 15
-                    ? 'السبب يجب ألا يقل عن 15 حرفًا.'
+                    ? 'ط§ظ„ط³ط¨ط¨ ظٹط¬ط¨ ط£ظ„ط§ ظٹظ‚ظ„ ط¹ظ† 15 ط­ط±ظپظ‹ط§.'
                     : null,
               ),
               DropdownButtonFormField<int>(
                 initialValue: _duration,
-                decoration: const InputDecoration(labelText: 'المدة'),
+                decoration: const InputDecoration(labelText: 'ط§ظ„ظ…ط¯ط©'),
                 items: const [5, 10, 15, 30, 45, 60]
                     .map((value) => DropdownMenuItem(
-                        value: value, child: Text('$value دقيقة')))
+                        value: value, child: Text('$value ط¯ظ‚ظٹظ‚ط©')))
                     .toList(growable: false),
                 onChanged: (value) => setState(() => _duration = value ?? 15),
               ),
@@ -2014,7 +2053,7 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
                 controller: _password,
                 obscureText: _obscure,
                 decoration: InputDecoration(
-                  labelText: 'كلمة مرور Yalla الحالية',
+                  labelText: 'ظƒظ„ظ…ط© ظ…ط±ظˆط± Yalla ط§ظ„ط­ط§ظ„ظٹط©',
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscure = !_obscure),
                     icon: Icon(
@@ -2022,14 +2061,16 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
                   ),
                 ),
                 validator: (value) =>
-                    value == null || value.isEmpty ? 'مطلوب' : null,
+                    value == null || value.isEmpty ? 'ظ…ط·ظ„ظˆط¨' : null,
               ),
               TextFormField(
                 controller: _totp,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'رمز MFA (TOTP)'),
-                validator: (value) =>
-                    (value?.trim().length ?? 0) < 6 ? 'أدخل رمز MFA.' : null,
+                decoration:
+                    const InputDecoration(labelText: 'ط±ظ…ط² MFA (TOTP)'),
+                validator: (value) => (value?.trim().length ?? 0) < 6
+                    ? 'ط£ط¯ط®ظ„ ط±ظ…ط² MFA.'
+                    : null,
               ),
             ],
           ),
@@ -2038,7 +2079,7 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء')),
+            child: const Text('ط¥ظ„ط؛ط§ط،')),
         FilledButton(
           onPressed: () {
             if (!_form.currentState!.validate()) {
@@ -2054,7 +2095,7 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
               ),
             );
           },
-          child: const Text('إعادة التحقق والفتح'),
+          child: const Text('ط¥ط¹ط§ط¯ط© ط§ظ„طھط­ظ‚ظ‚ ظˆط§ظ„ظپطھط­'),
         ),
       ],
     );

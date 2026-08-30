@@ -74,7 +74,7 @@ class _YallaAdminEnrollmentDialogState
       final service = ref.read(yallaAdminAuthServiceProvider);
       if (!service.isConfigured) {
         throw const YallaAdminAuthException(
-          'Yalla Licensing Server غير مهيأ في هذا الإصدار.',
+          'Yalla Licensing Server ط؛ظٹط± ظ…ظ‡ظٹط£ ظپظٹ ظ‡ط°ط§ ط§ظ„ط¥طµط¯ط§ط±.',
         );
       }
       final result = await service.startEnrollment(
@@ -97,7 +97,7 @@ class _YallaAdminEnrollmentDialogState
   Future<void> _complete() async {
     if (!_form.currentState!.validate() || _loading) return;
     if (_password.text != _confirm.text) {
-      _snack('كلمتا المرور غير متطابقتين.', error: true);
+      _snack('ظƒظ„ظ…طھط§ ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± ظ…طھط·ط§ط¨ظ‚طھظٹظ†.', error: true);
       return;
     }
     setState(() => _loading = true);
@@ -129,7 +129,8 @@ class _YallaAdminEnrollmentDialogState
   Widget build(BuildContext context) {
     final started = _challengeId != null;
     return AdaptiveAlertDialog(
-      title: const Text('إعداد حساب Yalla الإداري لأول مرة'),
+      title: const Text(
+          'ط¥ط¹ط¯ط§ط¯ ط­ط³ط§ط¨ Yalla ط§ظ„ط¥ط¯ط§ط±ظٹ ظ„ط£ظˆظ„ ظ…ط±ط©'),
       content: SizedBox(
         width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 560,
         child: Form(
@@ -140,8 +141,8 @@ class _YallaAdminEnrollmentDialogState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'هذا المسار خاص بحسابات Yalla الإدارية فقط. '
-                  'لا ينشئ حساب منشأة ولا يعمل دون Enrollment Secret لمرة واحدة صادر من الخادم.',
+                  'ظ‡ط°ط§ ط§ظ„ظ…ط³ط§ط± ط®ط§طµ ط¨ط­ط³ط§ط¨ط§طھ Yalla ط§ظ„ط¥ط¯ط§ط±ظٹط© ظپظ‚ط·. '
+                  'ظ„ط§ ظٹظ†ط´ط¦ ط­ط³ط§ط¨ ظ…ظ†ط´ط£ط© ظˆظ„ط§ ظٹط¹ظ…ظ„ ط¯ظˆظ† Enrollment Secret ظ„ظ…ط±ط© ظˆط§ط­ط¯ط© طµط§ط¯ط± ظ…ظ† ط§ظ„ط®ط§ط¯ظ….',
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -149,13 +150,13 @@ class _YallaAdminEnrollmentDialogState
                   enabled: !started,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'البريد الإداري',
+                    labelText: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ط¯ط§ط±ظٹ',
                     prefixIcon: Icon(Icons.alternate_email),
                   ),
                   validator: (value) {
                     final text = value?.trim() ?? '';
                     if (!text.contains('@')) {
-                      return 'أدخل بريدًا إداريًا صالحًا.';
+                      return 'ط£ط¯ط®ظ„ ط¨ط±ظٹط¯ظ‹ط§ ط¥ط¯ط§ط±ظٹظ‹ط§ طµط§ظ„ط­ظ‹ط§.';
                     }
                     return null;
                   },
@@ -166,7 +167,7 @@ class _YallaAdminEnrollmentDialogState
                     controller: _secret,
                     obscureText: _obscureSecret,
                     decoration: InputDecoration(
-                      labelText: 'Enrollment Secret لمرة واحدة',
+                      labelText: 'Enrollment Secret ظ„ظ…ط±ط© ظˆط§ط­ط¯ط©',
                       prefixIcon: const Icon(Icons.vpn_key_outlined),
                       suffixIcon: IconButton(
                         onPressed: () => setState(
@@ -180,7 +181,7 @@ class _YallaAdminEnrollmentDialogState
                       ),
                     ),
                     validator: (value) => value == null || value.isEmpty
-                        ? 'Enrollment Secret مطلوب.'
+                        ? 'Enrollment Secret ظ…ط·ظ„ظˆط¨.'
                         : null,
                   ),
                 ] else ...[
@@ -197,7 +198,7 @@ class _YallaAdminEnrollmentDialogState
                     controller: _password,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      labelText: 'كلمة المرور الجديدة',
+                      labelText: 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط©',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         onPressed: () => setState(
@@ -211,29 +212,29 @@ class _YallaAdminEnrollmentDialogState
                       ),
                     ),
                     validator: (value) => (value?.length ?? 0) < 10
-                        ? 'استخدم 10 أحرف على الأقل.'
+                        ? 'ط§ط³طھط®ط¯ظ… 10 ط£ط­ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„.'
                         : null,
                   ),
                   TextFormField(
                     controller: _confirm,
                     obscureText: _obscurePassword,
                     decoration: const InputDecoration(
-                      labelText: 'تأكيد كلمة المرور',
+                      labelText: 'طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',
                       prefixIcon: Icon(Icons.lock_reset_outlined),
                     ),
                     validator: (value) => value == null || value.isEmpty
-                        ? 'تأكيد كلمة المرور مطلوب.'
+                        ? 'طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ…ط·ظ„ظˆط¨.'
                         : null,
                   ),
                   TextFormField(
                     controller: _totp,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'رمز MFA من تطبيق المصادقة',
+                      labelText: 'ط±ظ…ط² MFA ظ…ظ† طھط·ط¨ظٹظ‚ ط§ظ„ظ…طµط§ط¯ظ‚ط©',
                       prefixIcon: Icon(Icons.security_outlined),
                     ),
                     validator: (value) => (value?.trim().length ?? 0) < 6
-                        ? 'أدخل رمز MFA.'
+                        ? 'ط£ط¯ط®ظ„ ط±ظ…ط² MFA.'
                         : null,
                   ),
                 ],
@@ -245,7 +246,7 @@ class _YallaAdminEnrollmentDialogState
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.of(context).pop(false),
-          child: const Text('إلغاء'),
+          child: const Text('ط¥ظ„ط؛ط§ط،'),
         ),
         FilledButton(
           onPressed: _loading ? null : (started ? _complete : _start),
@@ -254,7 +255,9 @@ class _YallaAdminEnrollmentDialogState
                   dimension: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(started ? 'إكمال التفعيل' : 'التحقق من Enrollment'),
+              : Text(started
+                  ? 'ط¥ظƒظ…ط§ظ„ ط§ظ„طھظپط¹ظٹظ„'
+                  : 'ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† Enrollment'),
         ),
       ],
     );
@@ -308,14 +311,14 @@ class _YallaAdminRecoveryDialogState
       if (!mounted) return;
       setState(() => _started = true);
       _snack(
-        'إذا كان الحساب مؤهلًا، أرسل الخادم تعليمات الاستعادة. '
-        'أكمل الحقول بالمعلومات المستلمة.',
+        'ط¥ط°ط§ ظƒط§ظ† ط§ظ„ط­ط³ط§ط¨ ظ…ط¤ظ‡ظ„ظ‹ط§طŒ ط£ط±ط³ظ„ ط§ظ„ط®ط§ط¯ظ… طھط¹ظ„ظٹظ…ط§طھ ط§ظ„ط§ط³طھط¹ط§ط¯ط©. '
+        'ط£ظƒظ…ظ„ ط§ظ„ط­ظ‚ظˆظ„ ط¨ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ط³طھظ„ظ…ط©.',
       );
     } catch (_) {
       if (mounted) {
         setState(() => _started = true);
         _snack(
-          'إذا كان الحساب مؤهلًا، أرسل الخادم تعليمات الاستعادة.',
+          'ط¥ط°ط§ ظƒط§ظ† ط§ظ„ط­ط³ط§ط¨ ظ…ط¤ظ‡ظ„ظ‹ط§طŒ ط£ط±ط³ظ„ ط§ظ„ط®ط§ط¯ظ… طھط¹ظ„ظٹظ…ط§طھ ط§ظ„ط§ط³طھط¹ط§ط¯ط©.',
         );
       }
     } finally {
@@ -329,7 +332,9 @@ class _YallaAdminRecoveryDialogState
         _secret.text.isEmpty ||
         _code.text.trim().isEmpty ||
         _newPassword.text.length < 10) {
-      _snack('أكمل جميع بيانات الاستعادة المطلوبة.', error: true);
+      _snack(
+          'ط£ظƒظ…ظ„ ط¬ظ…ظٹط¹ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط³طھط¹ط§ط¯ط© ط§ظ„ظ…ط·ظ„ظˆط¨ط©.',
+          error: true);
       return;
     }
     setState(() => _loading = true);
@@ -361,9 +366,9 @@ class _YallaAdminRecoveryDialogState
   @override
   Widget build(BuildContext context) {
     return AdaptiveAlertDialog(
-      title: const Text('استعادة حساب Yalla الإداري'),
+      title: const Text('ط§ط³طھط¹ط§ط¯ط© ط­ط³ط§ط¨ Yalla ط§ظ„ط¥ط¯ط§ط±ظٹ'),
       content: SizedBox(
-        width: 540,
+        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 540,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -372,7 +377,8 @@ class _YallaAdminRecoveryDialogState
                 controller: _email,
                 enabled: !_started,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'البريد الإداري'),
+                decoration: const InputDecoration(
+                    labelText: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ط¯ط§ط±ظٹ'),
               ),
               if (_started) ...[
                 TextField(
@@ -392,7 +398,7 @@ class _YallaAdminRecoveryDialogState
                   controller: _newPassword,
                   obscureText: _obscure,
                   decoration: InputDecoration(
-                    labelText: 'كلمة المرور الجديدة',
+                    labelText: 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط©',
                     suffixIcon: IconButton(
                       onPressed: () => setState(() => _obscure = !_obscure),
                       icon: Icon(
@@ -408,11 +414,13 @@ class _YallaAdminRecoveryDialogState
       actions: [
         TextButton(
           onPressed: _loading ? null : () => Navigator.of(context).pop(false),
-          child: const Text('إلغاء'),
+          child: const Text('ط¥ظ„ط؛ط§ط،'),
         ),
         FilledButton(
           onPressed: _loading ? null : (_started ? _complete : _start),
-          child: Text(_started ? 'إكمال الاستعادة' : 'بدء الاستعادة'),
+          child: Text(_started
+              ? 'ط¥ظƒظ…ط§ظ„ ط§ظ„ط§ط³طھط¹ط§ط¯ط©'
+              : 'ط¨ط¯ط، ط§ظ„ط§ط³طھط¹ط§ط¯ط©'),
         ),
       ],
     );

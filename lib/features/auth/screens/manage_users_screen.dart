@@ -38,7 +38,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      _showError('تعذر تحميل المستخدمين: $e');
+      _showError('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†: $e');
     }
   }
 
@@ -70,14 +70,14 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
       await ref.read(userServiceProvider).updateStatus(user.id, next);
       await _reload();
     } catch (e) {
-      _showError('تعذر تغيير حالة المستخدم: $e');
+      _showError('طھط¹ط°ط± طھط؛ظٹظٹط± ط­ط§ظ„ط© ط§ظ„ظ…ط³طھط®ط¯ظ…: $e');
     }
   }
 
   Future<void> _resetPassword(AppUser user) async {
     if (user.isOwner) {
       _showError(
-        'كلمة مرور المالك لا تُعاد من إدارة المستخدمين. استخدم استعادة حساب المالك.',
+        'ظƒظ„ظ…ط© ظ…ط±ظˆط± ط§ظ„ظ…ط§ظ„ظƒ ظ„ط§ طھظڈط¹ط§ط¯ ظ…ظ† ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†. ط§ط³طھط®ط¯ظ… ط§ط³طھط¹ط§ط¯ط© ط­ط³ط§ط¨ ط§ظ„ظ…ط§ظ„ظƒ.',
       );
       return;
     }
@@ -91,7 +91,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'تم تعيين كلمة مرور مؤقتة. سيُطلب من المستخدم تغييرها عند أول دخول.',
+            'طھظ… طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ…ط¤ظ‚طھط©. ط³ظٹظڈط·ظ„ط¨ ظ…ظ† ط§ظ„ظ…ط³طھط®ط¯ظ… طھط؛ظٹظٹط±ظ‡ط§ ط¹ظ†ط¯ ط£ظˆظ„ ط¯ط®ظˆظ„.',
           ),
         ),
       );
@@ -117,7 +117,8 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
         textDirection: TextDirection.rtl,
         child: Scaffold(
           body: Center(
-            child: Text('إدارة المستخدمين متاحة لمالك المنشأة فقط.'),
+            child: Text(
+                'ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† ظ…طھط§ط­ط© ظ„ظ…ط§ظ„ظƒ ط§ظ„ظ…ظ†ط´ط£ط© ظپظ‚ط·.'),
           ),
         ),
       );
@@ -127,10 +128,10 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('المستخدمون والصلاحيات'),
+          title: const Text('ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ† ظˆط§ظ„طµظ„ط§ط­ظٹط§طھ'),
           actions: [
             IconButton(
-              tooltip: 'تحديث',
+              tooltip: 'طھط­ط¯ظٹط«',
               onPressed: _loading ? null : _reload,
               icon: const Icon(Icons.refresh),
             ),
@@ -139,12 +140,12 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _loading ? null : _addUser,
           icon: const Icon(Icons.person_add_alt_1),
-          label: const Text('إضافة مستخدم'),
+          label: const Text('ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ…'),
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : _users.isEmpty
-                ? const Center(child: Text('لا يوجد مستخدمون.'))
+                ? const Center(child: Text('ظ„ط§ ظٹظˆط¬ط¯ ظ…ط³طھط®ط¯ظ…ظˆظ†.'))
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                     itemCount: _users.length,
@@ -174,7 +175,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                                 Text(user.email),
                               Text(RoleKeys.displayNameAr(user.role)),
                               Text(
-                                active ? 'نشط' : 'مجمّد',
+                                active ? 'ظ†ط´ط·' : 'ظ…ط¬ظ…ظ‘ط¯',
                                 style: TextStyle(
                                   color: active
                                       ? Colors.green.shade700
@@ -183,7 +184,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                               ),
                               if (user.mustChangePassword)
                                 const Text(
-                                  'مطلوب تغيير كلمة المرور عند الدخول القادم',
+                                  'ظ…ط·ظ„ظˆط¨ طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¹ظ†ط¯ ط§ظ„ط¯ط®ظˆظ„ ط§ظ„ظ‚ط§ط¯ظ…',
                                   style: TextStyle(color: Colors.deepOrange),
                                 ),
                             ],
@@ -208,7 +209,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                                 value: 'edit',
                                 child: ListTile(
                                   leading: Icon(Icons.edit_outlined),
-                                  title: Text('تعديل المستخدم'),
+                                  title: Text('طھط¹ط¯ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…'),
                                   contentPadding: EdgeInsets.zero,
                                 ),
                               ),
@@ -217,7 +218,8 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                                   value: 'reset',
                                   child: ListTile(
                                     leading: Icon(Icons.password),
-                                    title: Text('تعيين كلمة مرور مؤقتة'),
+                                    title: Text(
+                                        'طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ…ط¤ظ‚طھط©'),
                                     contentPadding: EdgeInsets.zero,
                                   ),
                                 ),
@@ -232,8 +234,8 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                                     ),
                                     title: Text(
                                       active
-                                          ? 'تجميد المستخدم'
-                                          : 'إعادة تفعيل المستخدم',
+                                          ? 'طھط¬ظ…ظٹط¯ ط§ظ„ظ…ط³طھط®ط¯ظ…'
+                                          : 'ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…',
                                     ),
                                     contentPadding: EdgeInsets.zero,
                                   ),
@@ -289,7 +291,9 @@ class _ResetUserPasswordDialogState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إعادة تعيين كلمة المرور: $e')),
+        SnackBar(
+            content: Text(
+                'طھط¹ط°ط± ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±: $e')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -304,7 +308,9 @@ class _ResetUserPasswordDialogState
     return InputDecoration(
       labelText: label,
       suffixIcon: IconButton(
-        tooltip: obscure ? 'إظهار كلمة المرور' : 'إخفاء كلمة المرور',
+        tooltip: obscure
+            ? 'ط¥ط¸ظ‡ط§ط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±'
+            : 'ط¥ط®ظپط§ط، ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',
         icon: Icon(
           obscure ? Icons.visibility_off : Icons.visibility,
         ),
@@ -316,17 +322,17 @@ class _ResetUserPasswordDialogState
   @override
   Widget build(BuildContext context) {
     return AdaptiveAlertDialog(
-      title: Text('كلمة مرور مؤقتة — ${widget.user.name}'),
+      title: Text('ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ…ط¤ظ‚طھط© â€” ${widget.user.name}'),
       content: Form(
         key: _formKey,
         child: SizedBox(
-          width: 420,
+          width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 420,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'لن تظهر كلمة المرور القديمة. أنشئ كلمة مؤقتة جديدة، '
-                'وسيُجبر المستخدم على تغييرها عند أول دخول.',
+                'ظ„ظ† طھط¸ظ‡ط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ظ‚ط¯ظٹظ…ط©. ط£ظ†ط´ط¦ ظƒظ„ظ…ط© ظ…ط¤ظ‚طھط© ط¬ط¯ظٹط¯ط©طŒ '
+                'ظˆط³ظٹظڈط¬ط¨ط± ط§ظ„ظ…ط³طھط®ط¯ظ… ط¹ظ„ظ‰ طھط؛ظٹظٹط±ظ‡ط§ ط¹ظ†ط¯ ط£ظˆظ„ ط¯ط®ظˆظ„.',
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -335,7 +341,7 @@ class _ResetUserPasswordDialogState
                 autocorrect: false,
                 enableSuggestions: false,
                 decoration: _decoration(
-                  label: 'كلمة المرور المؤقتة',
+                  label: 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ظ…ط¤ظ‚طھط©',
                   obscure: _obscurePassword,
                   toggle: () {
                     setState(
@@ -353,7 +359,7 @@ class _ResetUserPasswordDialogState
                 autocorrect: false,
                 enableSuggestions: false,
                 decoration: _decoration(
-                  label: 'تأكيد كلمة المرور',
+                  label: 'طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',
                   obscure: _obscureConfirm,
                   toggle: () {
                     setState(
@@ -363,7 +369,7 @@ class _ResetUserPasswordDialogState
                 ),
                 validator: (value) {
                   if (value != _password.text) {
-                    return 'كلمتا المرور غير متطابقتين';
+                    return 'ظƒظ„ظ…طھط§ ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± ظ…طھط·ط§ط¨ظ‚طھظٹظ†';
                   }
                   return UserService.validatePasswordPolicy(value ?? '');
                 },
@@ -375,7 +381,7 @@ class _ResetUserPasswordDialogState
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('إلغاء'),
+          child: const Text('ط¥ظ„ط؛ط§ط،'),
         ),
         FilledButton(
           onPressed: _saving ? null : _submit,
@@ -385,7 +391,7 @@ class _ResetUserPasswordDialogState
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('حفظ كلمة المرور المؤقتة'),
+              : const Text('ط­ظپط¸ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ظ…ط¤ظ‚طھط©'),
         ),
       ],
     );
