@@ -23,7 +23,8 @@ class YallaMobileRouteFrame extends StatelessWidget {
       routeName == AppRoutes.homeDashboard ||
       routeName == AppRoutes.repairs ||
       routeName == AppRoutes.repairsList ||
-      routeName == AppRoutes.repairsDashboard;
+      routeName == AppRoutes.repairsDashboard ||
+      routeName == AppRoutes.vehiclesList;
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +32,9 @@ class YallaMobileRouteFrame extends StatelessWidget {
     if (_screenAlreadyOwnsPhoneNav) return child;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F8FA),
       drawer: Drawer(
-        width: (MediaQuery.sizeOf(context).width * 0.88).clamp(280.0, 390.0),
+        width: MediaQuery.sizeOf(context).width,
         shape: const RoundedRectangleBorder(),
         child: SafeArea(
           child: YallaSidebar(currentRoute: routeName),

@@ -233,8 +233,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     final current =
         ModalRoute.of(context)?.settings.name ?? widget.currentRoute;
     final scaffoldState = Scaffold.maybeOf(context);
-    final drawerIsOpen =
-        scaffoldState?.isDrawerOpen == true ||
+    final drawerIsOpen = scaffoldState?.isDrawerOpen == true ||
         scaffoldState?.isEndDrawerOpen == true;
 
     // A sidebar destination tap on phone must finish closing the Drawer before
@@ -327,8 +326,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     required String title,
     required String route,
   }) {
-    final bool active =
-        (widget.currentRoute == route) ||
+    final bool active = (widget.currentRoute == route) ||
         (ModalRoute.of(context)?.settings.name == route);
 
     final line = Container(
@@ -504,7 +502,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       builder: (_, __) => Material(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: SizedBox(
-          width: _widthAnim.value,
+          width: context.isDesktopWidth ? _widthAnim.value : double.infinity,
           child: Column(
             children: [
               SidebarHeader(
@@ -546,7 +544,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         title: 'إصلاح المركبات',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rRepairsRoot) ??
-                            false,
+                                false,
                         children: repairsItems
                             .map(
                               (e) =>
@@ -561,7 +559,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         title: 'وكيل التأمين',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rInsuranceRoot) ??
-                            false,
+                                false,
                         children: insuranceAgentItems
                             .map(
                               (e) =>
@@ -607,7 +605,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         title: 'المشتريات',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rPurchRoot) ??
-                            false,
+                                false,
                         children: purchasesItems
                             .map(
                               (e) =>
@@ -623,9 +621,9 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         title: 'العملاء والموردون',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith('/clients') ==
-                                true ||
-                            widget.currentRoute?.startsWith('/suppliers') ==
-                                true,
+                                    true ||
+                                widget.currentRoute?.startsWith('/suppliers') ==
+                                    true,
                         children: clientsSuppliersItems,
                       ),
 
@@ -636,7 +634,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         title: 'المالية',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rFinanceRoot) ??
-                            false,
+                                false,
                         children: financeItems
                             .map(
                               (e) =>
@@ -652,7 +650,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         title: 'الشيكات',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rChequesRoot) ??
-                            false,
+                                false,
                         children: chequesItems
                             .map(
                               (e) =>
@@ -748,7 +746,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                       title: 'الإعدادات',
                       isInitiallyExpanded:
                           widget.currentRoute?.startsWith(rSettingsRoot) ??
-                          false,
+                              false,
                       children: [
                         _tile(
                           icon: Icons.store,

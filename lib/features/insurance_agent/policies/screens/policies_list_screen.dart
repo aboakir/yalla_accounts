@@ -754,7 +754,7 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
         final desktopTable = w >= 980;
 
         // عرض السايدبار
-        final sideW = (w >= 1200) ? 320.0 : 300.0;
+        final sideW = w < 600 ? w : ((w >= 1200) ? 320.0 : 300.0);
 
         final monthBusy = _monthLoading[_tabController.index] == true;
 
