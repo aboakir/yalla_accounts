@@ -13,9 +13,14 @@ class YallaMobilePage extends StatelessWidget {
           context,
         ).clamp(minScaleFactor: 0.9, maxScaleFactor: 1.2),
       ),
-      child: GestureDetector(
+      child: Listener(
         behavior: HitTestBehavior.translucent,
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        onPointerDown: (_) {
+          final focus = FocusManager.instance.primaryFocus;
+          if (focus != null && !focus.hasPrimaryFocus) {
+            focus.unfocus();
+          }
+        },
         child: child,
       ),
     );
