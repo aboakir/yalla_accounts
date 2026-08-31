@@ -249,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               label: 'ملفات الإصلاح',
                               onTap: () => Navigator.pushNamed(
                                 context,
-                                AppRoutes.repairs,
+                                AppRoutes.repairsDashboard,
                               ),
                             ),
                           ),
@@ -286,8 +286,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _sectionHeader(
                         'آخر الملفات',
                         action: TextButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, AppRoutes.repairs),
+                          onPressed: () => Navigator.pushNamed(
+                              context, AppRoutes.repairsDashboard),
                           child: const Text('عرض الكل'),
                         ),
                       ),
@@ -530,7 +530,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.pushNamed(context, AppRoutes.repairs),
+        onTap: () => Navigator.pushNamed(context, AppRoutes.repairsDashboard),
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(

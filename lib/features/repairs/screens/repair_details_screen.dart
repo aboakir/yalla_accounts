@@ -624,8 +624,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           child: InteractiveViewer(
                             minScale: 0.5,
                             maxScale: 5,
-                            child: Image.file(
-                              File(images[current]),
+                            child: _resolvedMediaImage(
+                              images[current],
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -867,6 +867,46 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
+  Widget _resolvedMediaImage(
+    String storedPath, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+  }) {
+    return FutureBuilder<File?>(
+      future: LocalMediaResolver.firstExisting([storedPath]),
+      builder: (context, snapshot) {
+        final file = snapshot.data;
+        if (file == null) {
+          return Container(
+            width: width,
+            height: height,
+            color: AppColors.lightGrey,
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.image_not_supported_outlined,
+              color: Colors.black38,
+            ),
+          );
+        }
+        return Image.file(
+          file,
+          key: ValueKey(file.path),
+          width: width,
+          height: height,
+          fit: fit,
+          errorBuilder: (_, __, ___) => Container(
+            width: width,
+            height: height,
+            color: AppColors.lightGrey,
+            alignment: Alignment.center,
+            child: const Icon(Icons.broken_image_outlined),
+          ),
+        );
+      },
+    );
+  }
+
   // شريط الصور
   Widget _buildImagesStrip() {
     if (_repair.imagePaths.isEmpty) {
@@ -933,14 +973,10 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(6),
-                              child: Image.file(
-                                File(
-                                  path,
-                                ), // ← الصورة الصحيحة وليس الـ thumbnail
-                                key: ValueKey(path),
+                              child: _resolvedMediaImage(
+                                path,
                                 width: 120,
                                 height: 120,
-                                fit: BoxFit.cover,
                               ),
                             ),
                             Positioned(
@@ -1567,83 +1603,79 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                             'متابعة التأمين: $insuranceStatus',
                                           ),
                                         const SizedBox(height: 12),
-                                        if (hasInvoice)
-                                          if (!hasInvoice)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 12,
-                                              ),
-                                              child: OutlinedButton.icon(
-                                                icon: const Icon(
-                                                  Icons.playlist_add,
-                                                ),
-                                                label: const Text(
-                                                  'إنشاء فاتورة وترحيل GL',
-                                                ),
-                                                onPressed: () async {
-                                                  try {
-                                                    final db = await DBService
-                                                        .database;
-
-                                                    // 1) إنشاء فاتورة جديدة
-                                                    final invoiceId =
-                                                        await DBService
-                                                            .createInvoiceForRepair(
-                                                      repairId: _repair.id,
-                                                      clientId:
-                                                          _repair.clientId,
-                                                      total: _repair
-                                                          .totalFileValue,
-                                                    );
-
-                                                    // 2) تحديث repair → invoiceId
-                                                    await db.update(
-                                                      'repairs',
-                                                      {
-                                                        'invoice_id': invoiceId,
-                                                        'invoiceId': invoiceId,
-                                                      },
-                                                      where: 'id = ?',
-                                                      whereArgs: [_repair.id],
-                                                    );
-
-                                                    // 3) ترحيل قيد GL
-                                                    final glId = await DBService
-                                                        .postInvoiceGLFromId(
-                                                      invoiceId,
-                                                    );
-
-                                                    // 4) إعادة تحميل البيانات
-                                                    await _reloadRepair();
-
-                                                    if (!context.mounted)
-                                                      return;
-
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          'تم إنشاء الفاتورة وترحيل GL (#$glId)',
-                                                        ),
-                                                      ),
-                                                    );
-                                                  } catch (e) {
-                                                    if (!context.mounted)
-                                                      return;
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          'فشل العملية: $e',
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                              ),
+                                        if (!hasInvoice)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 12,
                                             ),
+                                            child: OutlinedButton.icon(
+                                              icon: const Icon(
+                                                Icons.playlist_add,
+                                              ),
+                                              label: const Text(
+                                                'إنشاء فاتورة وترحيل GL',
+                                              ),
+                                              onPressed: () async {
+                                                try {
+                                                  final db =
+                                                      await DBService.database;
+
+                                                  // 1) إنشاء فاتورة جديدة
+                                                  final invoiceId =
+                                                      await DBService
+                                                          .createInvoiceForRepair(
+                                                    repairId: _repair.id,
+                                                    clientId: _repair.clientId,
+                                                    total:
+                                                        _repair.totalFileValue,
+                                                  );
+
+                                                  // 2) تحديث repair → invoiceId
+                                                  await db.update(
+                                                    'repairs',
+                                                    {
+                                                      'invoice_id': invoiceId,
+                                                      'invoiceId': invoiceId,
+                                                    },
+                                                    where: 'id = ?',
+                                                    whereArgs: [_repair.id],
+                                                  );
+
+                                                  // 3) ترحيل قيد GL
+                                                  final glId = await DBService
+                                                      .postInvoiceGLFromId(
+                                                    invoiceId,
+                                                  );
+
+                                                  // 4) إعادة تحميل البيانات
+                                                  await _reloadRepair();
+
+                                                  if (!context.mounted) return;
+
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'تم إنشاء الفاتورة وترحيل GL (#$glId)',
+                                                      ),
+                                                    ),
+                                                  );
+                                                } catch (e) {
+                                                  if (!context.mounted) return;
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'فشل العملية: $e',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
                                         Wrap(
                                           spacing: 8,
                                           runSpacing: 8,

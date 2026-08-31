@@ -209,10 +209,12 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
           _filters(),
           const SizedBox(height: 18),
           Expanded(
-            child: ScrollConfiguration(
-              behavior: const DesktopScrollBehavior(),
-              child: _table(),
-            ),
+            child: MediaQuery.sizeOf(context).width < 600
+                ? _mobileReceiptList()
+                : ScrollConfiguration(
+                    behavior: const DesktopScrollBehavior(),
+                    child: _table(),
+                  ),
           ),
         ],
       ),
@@ -319,6 +321,110 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
               ),
               onPressed: filtered.isEmpty ? null : _exportListPdf,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileReceiptList() {
+    if (filtered.isEmpty) {
+      return const Center(
+        child: Text(
+          'لا توجد سندات قبض مطابقة',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.only(bottom: 16),
+      itemCount: filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) => _mobileReceiptCard(filtered[index]),
+    );
+  }
+
+  Widget _mobileReceiptCard(Map<String, Object?> row) {
+    final rawDate = (row['date'] ?? '').toString();
+    final date = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+    final amountRaw = row['amount'];
+    final amount = amountRaw is num
+        ? amountRaw.toDouble()
+        : double.tryParse('$amountRaw') ?? 0.0;
+    final method = (row['method'] ?? '').toString().toUpperCase();
+    final client = (row['clientName'] ?? '').toString().trim();
+    final notes = (row['notes'] ?? '').toString().trim();
+    final gl = (row['gl_entry_id'] ?? '').toString().trim();
+
+    Widget line(IconData icon, String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 19, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                value.isEmpty ? '—' : value,
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: Colors.black54)),
+          ],
+        ),
+      );
+    }
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'PDF',
+                  icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                  onPressed: () async {
+                    final bytes =
+                        await YallaPdfService.generateReceiptVoucherPdf(
+                      voucherId: (row['id'] ?? '').toString(),
+                      date: rawDate,
+                      clientName: client,
+                      amount: amount,
+                      method: method,
+                      notes: notes.isEmpty ? null : notes,
+                    );
+                    if (!context.mounted) return;
+                    await YallaPdfService.saveAndOpen(
+                      bytes: bytes,
+                      fileName: "receipt_${row['id']}.pdf",
+                    );
+                  },
+                ),
+                const Spacer(),
+                Text(
+                  'سند قبض #${row['id']}',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            const Divider(),
+            line(Icons.calendar_today_outlined, 'التاريخ', date),
+            line(Icons.person_outline, 'العميل', client),
+            line(Icons.payments_outlined, 'المبلغ',
+                '${amount.toStringAsFixed(2)} ₪'),
+            line(Icons.account_balance_wallet_outlined, 'الطريقة', method),
+            line(Icons.menu_book_outlined, 'GL', gl),
+            if (notes.isNotEmpty) line(Icons.notes_outlined, 'ملاحظات', notes),
           ],
         ),
       ),

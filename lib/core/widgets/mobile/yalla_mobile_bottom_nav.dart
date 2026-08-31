@@ -59,7 +59,7 @@ class YallaMobileBottomNav extends StatelessWidget {
                 _go(context, AppRoutes.dashboard);
                 break;
               case 1:
-                _go(context, AppRoutes.repairs);
+                _go(context, AppRoutes.repairsDashboard);
                 break;
               case 2:
                 Navigator.of(context).pushNamed(AppRoutes.repairsAdd);
