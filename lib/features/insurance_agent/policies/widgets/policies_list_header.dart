@@ -210,63 +210,9 @@ class PoliciesListHeader extends StatelessWidget {
   }
 
   Widget _buildMonthTabsBar(bool isDisabled) {
-    Widget monthTabs() => SizedBox(
-          height: 46,
-          child: TabBar(
-            controller: tabController,
-            isScrollable: true,
-            labelStyle: const TextStyle(fontWeight: FontWeight.w900),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-            indicator: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.25),
-              ),
-            ),
-            labelColor: AppColors.primary,
-            unselectedLabelColor: Colors.grey.shade800,
-            tabs: List.generate(
-              12,
-              (i) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Tab(text: _monthLabel(i)),
-              ),
-            ),
-          ),
-        );
-
-    Widget actions({required bool compact}) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _quickBtn(
-              text: compact ? '30 يوم' : 'تنتهي خلال 30 يوم',
-              icon: Icons.schedule,
-              onTap: isDisabled ? null : onToggleExpiring30,
-              active: expiring30Only,
-              color: Colors.orange,
-            ),
-            const SizedBox(width: 8),
-            _quickBtn(
-              text: 'أرشيف',
-              icon: Icons.archive_outlined,
-              onTap: isDisabled ? null : onOpenArchive,
-              color: const Color(0xFF5B5BD6),
-            ),
-            const SizedBox(width: 8),
-            _quickBtn(
-              text: 'PDF',
-              icon: Icons.picture_as_pdf,
-              onTap: isDisabled ? null : onExportPdf,
-              compactLabel: true,
-              color: Colors.red,
-            ),
-          ],
-        );
-
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -281,33 +227,73 @@ class PoliciesListHeader extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (_, c) {
-          final phone = c.maxWidth < 600;
-          if (phone) {
-            return Column(
-              children: [
-                monthTabs(),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    reverse: true,
-                    physics: const BouncingScrollPhysics(),
-                    child: actions(compact: true),
+          final narrow = c.maxWidth < 980;
+
+          return AdaptiveRow(
+            children: [
+              // Month tabs
+              Expanded(
+                child: SizedBox(
+                  height: 46,
+                  child: TabBar(
+                    controller: tabController,
+                    isScrollable: true,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w900),
+                    unselectedLabelStyle:
+                        const TextStyle(fontWeight: FontWeight.w700),
+                    indicator: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.25),
+                      ),
+                    ),
+                    labelColor: AppColors.primary,
+                    unselectedLabelColor: Colors.grey.shade800,
+                    tabs: List.generate(
+                      12,
+                      (i) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Tab(text: _monthLabel(i)),
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            );
-          }
+              ),
 
-          return Row(
-            children: [
-              Expanded(child: monthTabs()),
               const SizedBox(width: 12),
+
+              // Buttons group (right side)
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
-                child: actions(compact: c.maxWidth < 980),
+                child: AdaptiveRow(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _quickBtn(
+                      text: 'تنتهي خلال 30 يوم',
+                      icon: Icons.schedule,
+                      onTap: isDisabled ? null : onToggleExpiring30,
+                      active: expiring30Only,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(width: 10),
+                    _quickBtn(
+                      text: 'أرشيف',
+                      icon: Icons.archive_outlined,
+                      onTap: isDisabled ? null : onOpenArchive,
+                      color: const Color(0xFF5B5BD6), // بنفسجي مميز
+                    ),
+                    const SizedBox(width: 10),
+                    _quickBtn(
+                      text: narrow ? 'PDF' : 'تصدير PDF',
+                      icon: Icons.picture_as_pdf,
+                      onTap: isDisabled ? null : onExportPdf,
+                      compactLabel: narrow,
+                      color: Colors.red,
+                    ),
+                  ],
+                ),
               ),
             ],
           );
@@ -409,7 +395,7 @@ class PoliciesListHeader extends StatelessWidget {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            'شهر الانتهاء: $monthText',
+            'End Month: $monthText',
             textAlign: TextAlign.right,
             style: TextStyle(
               color: Colors.grey.shade700,

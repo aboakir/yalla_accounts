@@ -8,8 +8,10 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_bottom_nav.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import '../services/p03_home_service.dart';
 import '../widgets/action_shortcut_button.dart';
 import '../widgets/monthly_pie_chart.dart';
 import '../widgets/profit_indicator.dart';
@@ -25,6 +27,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = true;
+  P03HomeSnapshot? _phoneSnapshot;
 
   double monthlyIncomeFiles = 0;
   double monthlyIncomePayments = 0;
@@ -147,6 +150,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     repairRemaining = repairFilesValue;
     readyRepairCount = 0;
 
+    _phoneSnapshot = await P03HomeService.load();
+
     if (mounted) setState(() => _loading = false);
   }
 
@@ -177,7 +182,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPhoneDashboard() {
-    final money = NumberFormat('#,##0.##');
+    final snapshot = _phoneSnapshot ??
+        const P03HomeSnapshot(
+          workshopName: 'ورشتي',
+          currencySymbol: '₪',
+          repairsReceivedToday: 0,
+          receiptsToday: 0,
+          paymentsToday: 0,
+          chequesDueToday: 0,
+          attentionCount: 0,
+          attention: <P03AttentionItem>[],
+          recentRepairs: <P03RecentRepair>[],
+        );
+
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const Drawer(
@@ -187,112 +204,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: SafeArea(
         child: Builder(
-          builder: (scaffoldContext) => RefreshIndicator(
+          builder: (headerContext) => RefreshIndicator(
             color: AppColors.primary,
             onRefresh: _loadAll,
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                SliverToBoxAdapter(child: _phoneHeader(scaffoldContext)),
+                SliverToBoxAdapter(
+                  child: _phoneHeader(headerContext, snapshot),
+                ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _kpiCard(
-                              'ملفات مفتوحة',
-                              '$repairCount',
-                              Icons.folder_open_rounded,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _kpiCard(
-                              'جاهزة للتسليم',
-                              '$readyRepairCount',
-                              Icons.task_alt_rounded,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _kpiCard(
-                              'إجمالي الملفات',
-                              '₪ ${money.format(repairFilesValue)}',
-                              Icons.receipt_long_rounded,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _kpiCard(
-                              'متبقي للتحصيل',
-                              '₪ ${money.format(repairRemaining)}',
-                              Icons.account_balance_wallet_outlined,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-                      _sectionHeader('إجراءات سريعة',
-                          trailing: 'الأكثر استخدامًا'),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _quickAction(
-                              icon: Icons.directions_car_filled_rounded,
-                              label: 'ملفات الإصلاح',
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                AppRoutes.repairsDashboard,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _quickAction(
-                              icon: Icons.add_rounded,
-                              label: 'ملف جديد',
-                              onTap: () async {
-                                if (!await _canAddNewRepair() || !mounted) {
-                                  return;
-                                }
-                                Navigator.pushNamed(
-                                    context, AppRoutes.repairsAdd);
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _quickAction(
-                              icon: Icons.payments_outlined,
-                              label: 'تحصيل دفعة',
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                AppRoutes.receiptVoucher,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      _todaySummary(snapshot),
+                      const SizedBox(height: 22),
+                      _attentionSection(snapshot),
                       const SizedBox(height: 24),
-                      _collectionCard(money),
+                      _sectionHeader(
+                        'إجراءات سريعة',
+                        trailing: 'الأكثر استخدامًا',
+                      ),
+                      const SizedBox(height: 12),
+                      _quickActionsGrid(),
                       const SizedBox(height: 26),
                       _sectionHeader(
                         'آخر الملفات',
                         action: TextButton(
-                          onPressed: () => Navigator.pushNamed(
-                              context, AppRoutes.repairsDashboard),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, AppRoutes.repairs),
                           child: const Text('عرض الكل'),
                         ),
                       ),
                       const SizedBox(height: 10),
-                      _recentRepairPlaceholder(),
+                      _recentRepairs(snapshot),
                     ]),
                   ),
                 ),
@@ -304,111 +249,413 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bottomNavigationBar: Builder(
         builder: (navContext) => YallaMobileBottomNav(
           currentRoute: AppRoutes.dashboard,
+          onAdd: _showAddSheet,
           onMore: () => Scaffold.of(navContext).openDrawer(),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        onPressed: () async {
-          if (!await _canAddNewRepair() || !mounted) {
-            return;
-          }
-          Navigator.pushNamed(context, AppRoutes.repairsAdd);
-        },
-        child: const Icon(Icons.add_rounded),
       ),
     );
   }
 
-  Widget _phoneHeader(BuildContext scaffoldContext) {
+  Widget _phoneHeader(
+    BuildContext headerContext,
+    P03HomeSnapshot snapshot,
+  ) {
+    final greeting = DateTime.now().hour < 12
+        ? 'صباح الخير'
+        : DateTime.now().hour < 18
+            ? 'مساء الخير'
+            : 'أهلًا بك';
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 16, 14),
+      padding: const EdgeInsets.fromLTRB(10, 10, 14, 16),
       decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
-      child: Row(
+      child: AdaptiveRow(
         children: [
           IconButton(
             key: const Key('yalla_mobile_menu_button'),
             tooltip: 'القائمة',
-            onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+            onPressed: () => Scaffold.of(headerContext).openDrawer(),
             icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
           ),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  'YALLA ACCOUNTS',
-                  style: TextStyle(
+                  greeting,
+                  style: const TextStyle(
                     color: Colors.white70,
-                    fontSize: 11,
-                    letterSpacing: .8,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  'لوحة التحكم',
-                  style: TextStyle(
+                  snapshot.workshopName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 21,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: _loadAll,
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+          const SizedBox(width: 4),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                key: const Key('yalla_home_notifications_button'),
+                tooltip: 'التنبيهات',
+                onPressed: () => _showNotificationCenter(snapshot),
+                icon: const Icon(
+                  Icons.notifications_none_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              if (snapshot.attentionCount > 0)
+                PositionedDirectional(
+                  top: 3,
+                  end: 2,
+                  child: Container(
+                    constraints:
+                        const BoxConstraints(minWidth: 18, minHeight: 18),
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      snapshot.attentionCount > 99
+                          ? '99+'
+                          : '${snapshot.attentionCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _kpiCard(String title, String value, IconData icon) {
+  Widget _todaySummary(P03HomeSnapshot snapshot) {
+    final money = NumberFormat('#,##0.##');
+    final net = snapshot.netCashToday;
+    final netLabel = '${snapshot.currencySymbol} ${money.format(net.abs())}';
+
     return Container(
-      constraints: const BoxConstraints(minHeight: 116),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: _phoneCardStyle(),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          AdaptiveRow(
             children: [
-              Icon(icon, color: AppColors.primary, size: 22),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.lightGreen,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.today_rounded,
+                  color: AppColors.primary,
+                ),
+              ),
               const Spacer(),
-              Flexible(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(
-                    color: AppColors.secondary,
-                    fontSize: 14,
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'ملخص اليوم',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
+                  SizedBox(height: 2),
+                  Text(
+                    'ما يحتاج أن تعرفه الآن',
+                    style: TextStyle(color: Colors.black54, fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            net >= 0 ? 'صافي حركة النقد اليوم' : 'صافي الصرف أعلى اليوم',
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            net >= 0 ? netLabel : '- $netLabel',
+            textAlign: TextAlign.right,
+            textDirection: ui.TextDirection.ltr,
+            style: TextStyle(
+              color: net >= 0 ? AppColors.primary : AppColors.danger,
+              fontSize: 31,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Divider(height: 1),
+          const SizedBox(height: 14),
+          AdaptiveRow(
+            children: [
+              Expanded(
+                child: _todayMetric(
+                  'ملفات دخلت اليوم',
+                  '${snapshot.repairsReceivedToday}',
+                  Icons.car_repair_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _todayMetric(
+                  'قبض اليوم',
+                  '${snapshot.currencySymbol} ${money.format(snapshot.receiptsToday)}',
+                  Icons.south_west_rounded,
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          Directionality(
-            textDirection: ui.TextDirection.ltr,
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.textDark,
-                fontSize: 23,
-                fontWeight: FontWeight.w800,
+          const SizedBox(height: 8),
+          AdaptiveRow(
+            children: [
+              Expanded(
+                child: _todayMetric(
+                  'صرف اليوم',
+                  '${snapshot.currencySymbol} ${money.format(snapshot.paymentsToday)}',
+                  Icons.north_east_rounded,
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _todayMetric(
+                  'شيكات اليوم',
+                  '${snapshot.chequesDueToday}',
+                  Icons.event_available_rounded,
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _todayMetric(String label, String value, IconData icon) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 78),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.lightGrey),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textDirection: ui.TextDirection.ltr,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+              color: AppColors.textDark,
+            ),
+          ),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.black54, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _attentionSection(P03HomeSnapshot snapshot) {
+    final visible = snapshot.attention.take(3).toList(growable: false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionHeader(
+          'يحتاج انتباهك',
+          trailing: snapshot.attentionCount == 0
+              ? 'لا يوجد عاجل'
+              : '${snapshot.attentionCount} عنصر',
+        ),
+        const SizedBox(height: 10),
+        if (visible.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.lightGreen.withOpacity(.55),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.primary.withOpacity(.18)),
+            ),
+            child: const Text(
+              'لا توجد عناصر عاجلة الآن.',
+              textAlign: TextAlign.right,
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          )
+        else
+          ...visible.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _attentionTile(item, snapshot.currencySymbol),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _attentionTile(
+    P03AttentionItem item,
+    String currencySymbol, {
+    VoidCallback? onTap,
+  }) {
+    final money = NumberFormat('#,##0.##');
+    final isCheque = item.kind != P03AttentionKind.staleUnpaidRepair;
+    final isOverdue = item.kind == P03AttentionKind.overdueCheque;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(17),
+        onTap: onTap ?? () => _openAttention(item),
+        child: Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(
+              color: isOverdue
+                  ? AppColors.danger.withOpacity(.35)
+                  : AppColors.lightGrey,
+            ),
+          ),
+          child: AdaptiveRow(
+            children: [
+              Icon(
+                isCheque
+                    ? Icons.account_balance_wallet_outlined
+                    : Icons.car_repair_outlined,
+                color: isOverdue ? AppColors.danger : AppColors.primary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      item.title,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    if (item.subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        item.subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (item.amount != null) ...[
+                const SizedBox(width: 10),
+                Text(
+                  '$currencySymbol ${money.format(item.amount)}',
+                  textDirection: ui.TextDirection.ltr,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_left_rounded, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openAttention(P03AttentionItem item) {
+    final isCheque = item.kind != P03AttentionKind.staleUnpaidRepair;
+    Navigator.pushNamed(
+      context,
+      isCheque ? AppRoutes.chequesDashboard : AppRoutes.repairs,
+    );
+  }
+
+  Widget _quickActionsGrid() {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 1.75,
+      children: [
+        _quickAction(
+          icon: Icons.add_road_rounded,
+          label: 'إصلاح جديد',
+          onTap: _openNewRepair,
+        ),
+        _quickAction(
+          icon: Icons.payments_outlined,
+          label: 'سند قبض',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.receiptVoucher),
+        ),
+        _quickAction(
+          icon: Icons.person_add_alt_1_rounded,
+          label: 'إضافة عميل',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.clientAdd),
+        ),
+        _quickAction(
+          icon: Icons.edit_calendar_rounded,
+          label: 'إضافة شيك',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.chequesAdd),
+        ),
+      ],
     );
   }
 
@@ -424,8 +671,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Container(
-          height: 104,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.lightGrey),
             borderRadius: BorderRadius.circular(18),
@@ -433,13 +679,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: AppColors.primary, size: 28),
-              const SizedBox(height: 10),
+              Icon(icon, color: AppColors.primary, size: 27),
+              const SizedBox(height: 8),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 2,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -448,119 +695,221 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _collectionCard(NumberFormat money) {
-    final pct = repairFilesValue <= 0
-        ? 0.0
-        : (repairPaid / repairFilesValue * 100).clamp(0, 100).toDouble();
+  Widget _recentRepairs(P03HomeSnapshot snapshot) {
+    if (snapshot.recentRepairs.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: _phoneCardStyle(),
+        child: const Text(
+          'لا توجد ملفات إصلاح بعد.',
+          textAlign: TextAlign.right,
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      );
+    }
+
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: _phoneCardStyle(),
       child: Column(
         children: [
-          Row(
-            children: [
-              Text(
-                '${pct.toStringAsFixed(0)}%',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const Spacer(),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'حالة التحصيل',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    'نسبة المدفوع من الملفات',
-                    style: TextStyle(color: Colors.black54, fontSize: 13),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          LinearProgressIndicator(
-            value: pct / 100,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(99),
-            backgroundColor: AppColors.lightGrey,
-            color: AppColors.primary,
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                  child: _miniValue('مدفوع', '₪ ${money.format(repairPaid)}')),
-              Expanded(
-                  child: _miniValue(
-                      'متبقي', '₪ ${money.format(repairRemaining)}')),
-              Expanded(child: _miniValue('ملف', '$repairCount')),
-            ],
-          ),
+          for (var index = 0;
+              index < snapshot.recentRepairs.length;
+              index++) ...[
+            _recentRepairTile(snapshot.recentRepairs[index]),
+            if (index < snapshot.recentRepairs.length - 1)
+              const Divider(height: 1),
+          ],
         ],
       ),
     );
   }
 
-  Widget _miniValue(String label, String value) {
-    return Column(
-      children: [
-        Directionality(
-          textDirection: ui.TextDirection.ltr,
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
+  Widget _recentRepairTile(P03RecentRepair repair) {
+    final displayDate =
+        repair.date.length >= 10 ? repair.date.substring(0, 10) : repair.date;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      onTap: () => _openRepair(repair.id),
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppColors.lightGreen,
+          borderRadius: BorderRadius.circular(13),
         ),
-        const SizedBox(height: 3),
-        Text(label, style: const TextStyle(color: Colors.black54)),
-      ],
+        child: const Icon(
+          Icons.directions_car_filled_rounded,
+          color: AppColors.primary,
+        ),
+      ),
+      title: Text(
+        repair.title,
+        textAlign: TextAlign.right,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+      subtitle: Text(
+        [
+          repair.subtitle,
+          if (repair.status.isNotEmpty) repair.status,
+          if (displayDate.isNotEmpty) displayDate,
+        ].join(' • '),
+        textAlign: TextAlign.right,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: const Icon(Icons.chevron_left_rounded),
     );
   }
 
-  Widget _recentRepairPlaceholder() {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.pushNamed(context, AppRoutes.repairsDashboard),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.lightGrey),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
+  Future<void> _openRepair(String id) async {
+    final repair = await RepairDatabaseService.getRepairById(id);
+    if (!mounted) return;
+    if (repair == null) {
+      Navigator.pushNamed(context, AppRoutes.repairs);
+      return;
+    }
+    Navigator.pushNamed(
+      context,
+      AppRoutes.repairDetail,
+      arguments: repair,
+    );
+  }
+
+  Future<void> _openNewRepair() async {
+    if (!await _canAddNewRepair() || !mounted) return;
+    Navigator.pushNamed(context, AppRoutes.repairsAdd);
+  }
+
+  void _showAddSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'إضافة جديدة',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _addSheetTile(
+              sheetContext,
+              icon: Icons.add_road_rounded,
+              title: 'إصلاح جديد',
+              onOpen: _openNewRepair,
+            ),
+            _addSheetTile(
+              sheetContext,
+              icon: Icons.payments_outlined,
+              title: 'سند قبض',
+              route: AppRoutes.receiptVoucher,
+            ),
+            _addSheetTile(
+              sheetContext,
+              icon: Icons.person_add_alt_1_rounded,
+              title: 'إضافة عميل',
+              route: AppRoutes.clientAdd,
+            ),
+            _addSheetTile(
+              sheetContext,
+              icon: Icons.edit_calendar_rounded,
+              title: 'إضافة شيك',
+              route: AppRoutes.chequesAdd,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _addSheetTile(
+    BuildContext sheetContext, {
+    required IconData icon,
+    required String title,
+    String? route,
+    Future<void> Function()? onOpen,
+  }) {
+    return ListTile(
+      minTileHeight: 54,
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(
+        title,
+        textAlign: TextAlign.right,
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+      trailing: const Icon(Icons.chevron_left_rounded),
+      onTap: () {
+        Navigator.pop(sheetContext);
+        if (onOpen != null) {
+          onOpen();
+        } else if (route != null) {
+          Navigator.pushNamed(context, route);
+        }
+      },
+    );
+  }
+
+  void _showNotificationCenter(P03HomeSnapshot snapshot) {
+    showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: .72,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.lightGreen,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.directions_car_filled_rounded,
-                  color: AppColors.primary,
-                ),
+              AdaptiveRow(
+                children: [
+                  Text(
+                    snapshot.attentionCount == 0
+                        ? 'لا يوجد جديد'
+                        : '${snapshot.attentionCount} يحتاج متابعة',
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                  const Spacer(),
+                  const Text(
+                    'التنبيهات',
+                    style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
+                  ),
+                ],
               ),
-              const SizedBox(width: 14),
+              const SizedBox(height: 12),
               Expanded(
-                child: Text(
-                  repairCount == 0
-                      ? 'لا توجد ملفات إصلاح بعد'
-                      : 'لديك $repairCount ملف إصلاح — افتح القائمة لعرض التفاصيل',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
+                child: snapshot.attention.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'لا توجد عناصر عاجلة الآن.',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: snapshot.attention.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, index) {
+                          final item = snapshot.attention[index];
+                          return _attentionTile(
+                            item,
+                            snapshot.currencySymbol,
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              _openAttention(item);
+                            },
+                          );
+                        },
+                      ),
               ),
-              const Icon(Icons.chevron_left_rounded),
             ],
           ),
         ),
@@ -568,13 +917,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _sectionHeader(String title, {String? trailing, Widget? action}) {
-    return Row(
+  Widget _sectionHeader(
+    String title, {
+    String? trailing,
+    Widget? action,
+  }) {
+    return AdaptiveRow(
       children: [
         if (action != null)
           action
         else if (trailing != null)
-          Text(trailing, style: const TextStyle(color: Colors.black54)),
+          Text(
+            trailing,
+            style: const TextStyle(color: Colors.black54),
+          ),
         const Spacer(),
         Text(
           title,

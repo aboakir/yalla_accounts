@@ -1,19 +1,17 @@
-import 'dart:io';
 // 📁 lib/features/repairs/widgets/repair_thumb.dart
 //
 // نسخة موحّدة — تعتمد دائمًا على thumbnail_path إذا موجود
 // وإذا غير موجود → أول صورة من fallbackFirstPath
 // تضمن وحدة الصورة في جميع الشاشات
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
-import 'package:yalla_accounts/shared/utils/local_media_resolver.dart';
 
 class RepairThumb extends StatelessWidget {
   final String repairId;
   final String? fallbackFirstPath;
-  final List<String> fallbackPaths;
   final double size;
   final BorderRadius? borderRadius;
 
@@ -21,26 +19,32 @@ class RepairThumb extends StatelessWidget {
     super.key,
     required this.repairId,
     this.fallbackFirstPath,
-    this.fallbackPaths = const <String>[],
     this.size = 48,
     this.borderRadius,
   });
 
-  Future<File?> _resolveCover() async {
-    final dbThumb = await DBService.getRepairThumbnailPath(repairId);
-    return LocalMediaResolver.firstExisting([
-      dbThumb,
-      fallbackFirstPath,
-      ...fallbackPaths,
-    ]);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<File?>(
-      future: _resolveCover(),
+    return FutureBuilder<String?>(
+      future: DBService.getRepairThumbnailPath(repairId),
       builder: (context, snap) {
-        final file = snap.data;
+        // 1) أول شيء: thumbnail_path من قاعدة البيانات
+        String? cover = snap.data;
+
+        // 2) إذا الـ thumbnail_path غير موجود → fallback
+        if (cover == null || cover.isEmpty) {
+          cover = fallbackFirstPath;
+        }
+
+        File? file;
+        if (cover != null && cover.isNotEmpty) {
+          final f = File(cover);
+          if (f.existsSync()) {
+            file = f;
+          }
+        }
+
+        // 3) واجهة العرض
         final widgetContent = SizedBox(
           width: size,
           height: size,
@@ -49,22 +53,12 @@ class RepairThumb extends StatelessWidget {
                   file,
                   fit: BoxFit.cover,
                   filterQuality: FilterQuality.medium,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: AppColors.lightGrey,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.directions_car,
-                      color: AppColors.primary,
-                    ),
-                  ),
                 )
               : Container(
                   color: AppColors.lightGrey,
                   alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.directions_car,
-                    color: AppColors.primary,
-                  ),
+                  child: const Icon(Icons.directions_car,
+                      color: AppColors.primary),
                 ),
         );
 

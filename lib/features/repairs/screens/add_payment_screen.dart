@@ -85,7 +85,6 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     final remaining =
         (widget.repair.totalFileValue - totalPaid).clamp(0.0, double.infinity);
 
-    if (!mounted) return;
     if (amount > remaining) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('المبلغ يتجاوز المتبقي')),

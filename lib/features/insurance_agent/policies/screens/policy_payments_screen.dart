@@ -1,23 +1,23 @@
-// ًں“پ lib/features/insurance_agent/policies/screens/policy_payments_screen.dart
+// 📁 lib/features/insurance_agent/policies/screens/policy_payments_screen.dart
 //
-// PolicyPaymentsScreen â€” ط¯ظپط¹ط§طھ ط¨ظˆظ„ظٹطµط© ط§ظ„طھط£ظ…ظٹظ† (DB REAL)
-// âœ… ط¹ط±ط¶ ط§ظ„ط¯ظپط¹ط§طھ + ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¯ظپظˆط¹ + ط§ظ„ظ…طھط¨ظ‚ظٹ (ط¥ط°ط§ طھظˆظپط± ط³ط¹ط± ط§ظ„ط¨ظٹط¹)
-// âœ… ط¥ط¶ط§ظپط© ط¯ظپط¹ط© (Dialog) + ط­ط°ظپ ط¯ظپط¹ط©
-// âœ… ط¨ط¯ظˆظ† RTL / Directionality / TextDirection (ظ…ط­ط§ط°ط§ط© ظٹظ…ظٹظ† ظپظ‚ط·)
-// âœ… ظٹط¹ظ…ظ„ ط¹ظ„ظ‰ Desktop/Mobile
+// PolicyPaymentsScreen — دفعات بوليصة التأمين (DB REAL)
+// ✅ عرض الدفعات + إجمالي المدفوع + المتبقي (إذا توفر سعر البيع)
+// ✅ إضافة دفعة (Dialog) + حذف دفعة
+// ✅ بدون RTL / Directionality / TextDirection (محاذاة يمين فقط)
+// ✅ يعمل على Desktop/Mobile
 //
-// ظ…ظ„ط§ط­ط¸ط© ظ…ظ‡ظ…ط© ط¬ط¯ط§ظ‹:
-// ظ‡ط°ط§ ط§ظ„ظ…ظ„ظپ ظٹظپطھط±ط¶ ظˆط¬ظˆط¯ ط¬ط¯ظˆظ„ ط¨ط§ط³ظ…: insurance_policy_payments
-// ط¨ط§ظ„ط£ط¹ظ…ط¯ط© ط§ظ„ظ…ظ‚طھط±ط­ط© (ظ…ط±ظ†ط©):
-// - id (INTEGER PRIMARY KEY AUTOINCREMENT)   ط£ظˆ uuid
-// - policy_id / policyId / policy_uuid      (ط£ظٹ ظˆط§ط­ط¯ ظ…ظ†ظ‡ظ…)
+// ملاحظة مهمة جداً:
+// هذا الملف يفترض وجود جدول باسم: insurance_policy_payments
+// بالأعمدة المقترحة (مرنة):
+// - id (INTEGER PRIMARY KEY AUTOINCREMENT)   أو uuid
+// - policy_id / policyId / policy_uuid      (أي واحد منهم)
 // - amount (REAL)
-// - pay_date (TEXT)  ط£ظˆ payment_date / date
+// - pay_date (TEXT)  أو payment_date / date
 // - method (TEXT)    (CASH / CHEQUE / INSTALLMENT / TRANSFER ...)
 // - notes (TEXT)
 // - created_at (TEXT)
 //
-// ط¥ط°ط§ ظƒط§ظ† ط§ط³ظ… ط§ظ„ط¬ط¯ظˆظ„/ط§ظ„ط£ط¹ظ…ط¯ط© ظ…ط®طھظ„ظپ ط¹ظ†ط¯ظƒطŒ ط¹ط¯ظ‘ظ„ ظپظ‚ط· ط§ظ„ظ€ getters ط¯ط§ط®ظ„ ط§ظ„ظ…ظ„ظپ (ظ…ظڈط¹ظ„ظ‘ظ…ط©).
+// إذا كان اسم الجدول/الأعمدة مختلف عندك، عدّل فقط الـ getters داخل الملف (مُعلّمة).
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -28,8 +28,7 @@ import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyPaymentsScreen extends StatefulWidget {
   final dynamic policyId; // id / uuid / policy_id
-  final Map<String, dynamic>?
-      row; // ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¨ظˆظ„ظٹطµط© (ط§ط®طھظٹط§ط±ظٹ)
+  final Map<String, dynamic>? row; // بيانات البوليصة (اختياري)
 
   const PolicyPaymentsScreen({
     super.key,
@@ -73,7 +72,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // Column mapping for payments table (ط¹ط¯ظ‘ظ„ ظ‡ظ†ط§ ظپظ‚ط· ط¥ط°ط§ ط¹ظ†ط¯ظƒ ط£ط³ظ…ط§ط، ظ…ط®طھظ„ظپط©)
+  // Column mapping for payments table (عدّل هنا فقط إذا عندك أسماء مختلفة)
   dynamic _paymentId(Map<String, dynamic> p) =>
       p['id'] ?? p['uuid'] ?? p['payment_id'];
 
@@ -92,12 +91,12 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
   }
 
   String _policyFkColumnGuess(Map<String, dynamic> sampleRow) {
-    // ط´ظˆظپ ط´ظˆ ظ…ظˆط¬ظˆط¯ ط¨ط§ظ„طµظپطŒ ظˆط§ط®طھط± ط§ظ„ط£ظ†ط³ط¨ ظƒظ€ FK
+    // شوف شو موجود بالصف، واختر الأنسب كـ FK
     if (sampleRow.containsKey('policy_id')) return 'policy_id';
     if (sampleRow.containsKey('policyId')) return 'policyId';
     if (sampleRow.containsKey('policy_uuid')) return 'policy_uuid';
     if (sampleRow.containsKey('policyUuid')) return 'policyUuid';
-    // ط§ظ„ط§ظپطھط±ط§ط¶ظٹ:
+    // الافتراضي:
     return 'policy_id';
   }
 
@@ -118,7 +117,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     try {
       final db = await DatabaseMigration.database;
 
-      // طھط£ظƒظٹط¯ ظˆط¬ظˆط¯ ط§ظ„ط¬ط¯ظˆظ„
+      // تأكيد وجود الجدول
       final tables = await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
         ['insurance_policy_payments'],
@@ -129,12 +128,12 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
           _payments = [];
           _loading = false;
           _error =
-              'ط¬ط¯ظˆظ„ insurance_policy_payments ط؛ظٹط± ظ…ظˆط¬ظˆط¯. ط£ظ†ط´ط¦ظ‡ ظپظٹ ط§ظ„ظ€ migration ط£ظˆظ„ط§ظ‹.';
+              'جدول insurance_policy_payments غير موجود. أنشئه في الـ migration أولاً.';
         });
         return;
       }
 
-      // ظ†ط¬ظٹط¨ ط¹ظٹظ†ط© طµظپ ظˆط§ط­ط¯ ط¹ط´ط§ظ† ظ†ط®ظ…ظ‘ظ† ط§ط³ظ… ط¹ظ…ظˆط¯ FK
+      // نجيب عينة صف واحد عشان نخمّن اسم عمود FK
       final sample = await db.query(
         'insurance_policy_payments',
         limit: 1,
@@ -159,7 +158,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'â‌Œ ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„ط¯ظپط¹ط§طھ: $e';
+        _error = '❌ فشل تحميل الدفعات: $e';
       });
     }
   }
@@ -191,135 +190,127 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AdaptiveAlertDialog(
-          title: const Text('ط¥ط¶ط§ظپط© ط¯ظپط¹ط©', textAlign: TextAlign.right),
-          content: SizedBox(
-            width: MediaQuery.sizeOf(dialogContext).width < 600
-                ? double.infinity
-                : 520,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.right,
-                  decoration: InputDecoration(
-                    labelText: 'ط§ظ„ظ…ط¨ظ„ط؛',
-                    isDense: true,
-                    filled: true,
-                    fillColor: const Color(0xFFF7F8FA),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+      builder: (_) => AdaptiveAlertDialog(
+        title: const Text('إضافة دفعة', textAlign: TextAlign.right),
+        content: SizedBox(
+          width: 520,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: amountCtrl,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.right,
+                decoration: InputDecoration(
+                  labelText: 'المبلغ',
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xFFF7F8FA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: method,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: 'ط·ط±ظٹظ‚ط© ط§ظ„ط¯ظپط¹',
-                    isDense: true,
-                    filled: true,
-                    fillColor: const Color(0xFFF7F8FA),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'CASH', child: Text('ظ†ظ‚ط¯ط§ظ‹')),
-                    DropdownMenuItem(value: 'CHEQUE', child: Text('ط´ظٹظƒ')),
-                    DropdownMenuItem(
-                        value: 'INSTALLMENT', child: Text('ط£ظ‚ط³ط§ط·')),
-                    DropdownMenuItem(
-                        value: 'TRANSFER', child: Text('طھط­ظˆظٹظ„')),
-                    DropdownMenuItem(value: 'BANK', child: Text('ط¨ظ†ظƒ')),
-                  ],
-                  onChanged: (v) => method = v ?? 'CASH',
-                ),
-                const SizedBox(height: 10),
-                InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: dialogContext,
-                      initialDate: payDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      payDate = picked;
-                      if (!dialogContext.mounted) return;
-                      setDialogState(() => payDate = picked);
-                    }
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FA),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: AdaptiveRow(
-                      children: [
-                        const Icon(Icons.date_range),
-                        const Spacer(),
-                        Text(
-                          DateFormat('yyyy-MM-dd').format(payDate),
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: notesCtrl,
-                  maxLines: 2,
-                  textAlign: TextAlign.right,
-                  decoration: InputDecoration(
-                    labelText: 'ظ…ظ„ط§ط­ط¸ط§طھ (ط§ط®طھظٹط§ط±ظٹ)',
-                    isDense: true,
-                    filled: true,
-                    fillColor: const Color(0xFFF7F8FA),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('ط¥ظ„ط؛ط§ط،'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
               ),
-              onPressed: () {
-                final amt = _toDouble(amountCtrl.text);
-                if (amt <= 0) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(
-                        content: Text('âڑ ï¸ڈ ط£ط¯ط®ظ„ ظ…ط¨ظ„ط؛ طµط­ظٹط­')),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: method,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: 'طريقة الدفع',
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xFFF7F8FA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'CASH', child: Text('نقداً')),
+                  DropdownMenuItem(value: 'CHEQUE', child: Text('شيك')),
+                  DropdownMenuItem(value: 'INSTALLMENT', child: Text('أقساط')),
+                  DropdownMenuItem(value: 'TRANSFER', child: Text('تحويل')),
+                  DropdownMenuItem(value: 'BANK', child: Text('بنك')),
+                ],
+                onChanged: (v) => method = v ?? 'CASH',
+              ),
+              const SizedBox(height: 10),
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: payDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
                   );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              child:
-                  const Text('ط­ظپط¸', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+                  if (picked != null) {
+                    payDate = picked;
+                    // ignore: use_build_context_synchronously
+                    (context as Element).markNeedsBuild();
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.black12),
+                  ),
+                  child: AdaptiveRow(
+                    children: [
+                      const Icon(Icons.date_range),
+                      const Spacer(),
+                      Text(
+                        DateFormat('yyyy-MM-dd').format(payDate),
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: notesCtrl,
+                maxLines: 2,
+                textAlign: TextAlign.right,
+                decoration: InputDecoration(
+                  labelText: 'ملاحظات (اختياري)',
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xFFF7F8FA),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            onPressed: () {
+              final amt = _toDouble(amountCtrl.text);
+              if (amt <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('⚠️ أدخل مبلغ صحيح')),
+                );
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: const Text('حفظ', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
 
@@ -346,7 +337,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     try {
       final db = await DatabaseMigration.database;
 
-      // طھط®ظ…ظٹظ† ط¹ظ…ظˆط¯ FK
+      // تخمين عمود FK
       final sample = await db.query(
         'insurance_policy_payments',
         limit: 1,
@@ -368,13 +359,13 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('âœ… طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط¯ظپط¹ط©')),
+        const SnackBar(content: Text('✅ تم إضافة الدفعة')),
       );
       await _loadPayments();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('â‌Œ ظپط´ظ„ ط¥ط¶ط§ظپط© ط§ظ„ط¯ظپط¹ط©: $e')),
+        SnackBar(content: Text('❌ فشل إضافة الدفعة: $e')),
       );
     }
   }
@@ -384,9 +375,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     final pid = _paymentId(p);
     if (pid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('âڑ ï¸ڈ ظ„ط§ ظٹظ…ظƒظ† طھط­ط¯ظٹط¯ ظ…ط¹ط±ظپ ط§ظ„ط¯ظپط¹ط©')),
+        const SnackBar(content: Text('⚠️ لا يمكن تحديد معرف الدفعة')),
       );
       return;
     }
@@ -394,18 +383,18 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AdaptiveAlertDialog(
-        title: const Text('طھط£ظƒظٹط¯ ط§ظ„ط­ط°ظپ', textAlign: TextAlign.right),
-        content: const Text('ظ‡ظ„ طھط±ظٹط¯ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط¯ظپط¹ط©طں',
-            textAlign: TextAlign.right),
+        title: const Text('تأكيد الحذف', textAlign: TextAlign.right),
+        content:
+            const Text('هل تريد حذف هذه الدفعة؟', textAlign: TextAlign.right),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ط¥ظ„ط؛ط§ط،'),
+            child: const Text('إلغاء'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('ط­ط°ظپ', style: TextStyle(color: Colors.white)),
+            child: const Text('حذف', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -416,7 +405,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     try {
       final db = await DatabaseMigration.database;
 
-      // ط­ط¯ظ‘ط¯ ط¹ظ…ظˆط¯ ط§ظ„ظ…ط¹ط±ظپ ط­ط³ط¨ ط§ظ„ظ…ظˆط¬ظˆط¯
+      // حدّد عمود المعرف حسب الموجود
       String idCol = 'id';
       if (p.containsKey('id')) idCol = 'id';
       if (p.containsKey('uuid')) idCol = 'uuid';
@@ -430,13 +419,13 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('âœ… طھظ… ط­ط°ظپ ط§ظ„ط¯ظپط¹ط©')),
+        const SnackBar(content: Text('✅ تم حذف الدفعة')),
       );
       await _loadPayments();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('â‌Œ ظپط´ظ„ ط­ط°ظپ ط§ظ„ط¯ظپط¹ط©: $e')),
+        SnackBar(content: Text('❌ فشل حذف الدفعة: $e')),
       );
     }
   }
@@ -508,8 +497,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
   // ---------------------------------------------------------------------------
   Widget _paymentsList() {
     if (_payments.isEmpty) {
-      return const Center(
-          child: Text('ظ„ط§ طھظˆط¬ط¯ ط¯ظپط¹ط§طھ ظ„ظ‡ط°ظ‡ ط§ظ„ط¨ظˆظ„ظٹطµط©'));
+      return const Center(child: Text('لا توجد دفعات لهذه البوليصة'));
     }
 
     return ListView.separated(
@@ -544,7 +532,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
               AdaptiveRow(
                 children: [
                   IconButton(
-                    tooltip: 'ط­ط°ظپ',
+                    tooltip: 'حذف',
                     onPressed: () => _deletePayment(p),
                     icon: const Icon(Icons.delete, color: Colors.red),
                   ),
@@ -561,7 +549,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'ط§ظ„ط·ط±ظٹظ‚ط©: ${_methodLabel(method)}',
+                'الطريقة: ${_methodLabel(method)}',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: Colors.grey.shade800,
@@ -570,7 +558,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
               ),
               if (d != null)
                 Text(
-                  'ط§ظ„طھط§ط±ظٹط®: ${DateFormat('yyyy-MM-dd').format(d)}',
+                  'التاريخ: ${DateFormat('yyyy-MM-dd').format(d)}',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     color: Colors.grey.shade700,
@@ -580,7 +568,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
               if (notes.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'ظ…ظ„ط§ط­ط¸ط§طھ: $notes',
+                  'ملاحظات: $notes',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     color: Colors.grey.shade700,
@@ -598,8 +586,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
   // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final title =
-        _plate.isEmpty ? 'ط¯ظپط¹ط§طھ ط§ظ„ط¨ظˆظ„ظٹطµط©' : 'ط¯ظپط¹ط§طھ $_plate';
+    final title = _plate.isEmpty ? 'دفعات البوليصة' : 'دفعات $_plate';
 
     return Scaffold(
       appBar: AppBar(
@@ -612,7 +599,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            tooltip: 'طھط­ط¯ظٹط«',
+            tooltip: 'تحديث',
             onPressed: _loading ? null : _loadPayments,
             icon: const Icon(Icons.refresh, color: Colors.white),
           ),
@@ -645,7 +632,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                     children: [
                       if (_company.isNotEmpty)
                         Text(
-                          'ط§ظ„ط´ط±ظƒط©: $_company',
+                          'الشركة: $_company',
                           textAlign: TextAlign.right,
                           style: TextStyle(
                             color: Colors.grey.shade800,
@@ -654,7 +641,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                         ),
                       const SizedBox(height: 12),
 
-                      // Summary row (ط³ط·ط± ظˆط§ط­ط¯ ظ…ط¹ Scroll ط¹ظ†ط¯ ط§ظ„ط­ط§ط¬ط©)
+                      // Summary row (سطر واحد مع Scroll عند الحاجة)
                       SizedBox(
                         height: 92,
                         child: LayoutBuilder(
@@ -670,7 +657,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                                   SizedBox(
                                     width: cardW,
                                     child: _summaryCard(
-                                      title: 'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¯ظپط¹ط§طھ',
+                                      title: 'إجمالي الدفعات',
                                       value: _totalPaid.toStringAsFixed(2),
                                       icon: Icons.payments,
                                       accent: Colors.teal,
@@ -680,7 +667,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                                   SizedBox(
                                     width: cardW,
                                     child: _summaryCard(
-                                      title: 'ط³ط¹ط± ط§ظ„ط¨ظٹط¹',
+                                      title: 'سعر البيع',
                                       value: _policySellPrice <= 0
                                           ? '-'
                                           : _policySellPrice.toStringAsFixed(2),
@@ -692,7 +679,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                                   SizedBox(
                                     width: cardW,
                                     child: _summaryCard(
-                                      title: 'ط§ظ„ظ…طھط¨ظ‚ظٹ',
+                                      title: 'المتبقي',
                                       value: _policySellPrice <= 0
                                           ? '-'
                                           : _remaining.toStringAsFixed(2),
@@ -743,15 +730,15 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
   String _methodLabel(String m) {
     switch (m.toUpperCase()) {
       case 'CASH':
-        return 'ظ†ظ‚ط¯ط§ظ‹';
+        return 'نقداً';
       case 'CHEQUE':
-        return 'ط´ظٹظƒ';
+        return 'شيك';
       case 'INSTALLMENT':
-        return 'ط£ظ‚ط³ط§ط·';
+        return 'أقساط';
       case 'TRANSFER':
-        return 'طھط­ظˆظٹظ„';
+        return 'تحويل';
       case 'BANK':
-        return 'ط¨ظ†ظƒ';
+        return 'بنك';
       default:
         return m.isEmpty ? '-' : m;
     }

@@ -318,7 +318,7 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
       await notifier.updateCheque(cheque);
     }
 
-    if (!context.mounted) return;
+    if (!mounted) return;
     Navigator.pop(context, true);
   }
 

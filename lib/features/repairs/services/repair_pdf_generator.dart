@@ -24,7 +24,6 @@ import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/models/workshop_settings.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
-import 'package:yalla_accounts/shared/utils/local_media_resolver.dart';
 
 class RepairPdfGenerator {
   static late _FontSet _gFonts;
@@ -189,17 +188,10 @@ class RepairPdfGenerator {
 // IMAGES — SAFE PAGED GRID (NO MultiPage / NO Wrap / NO Freeze)
 // =====================================================================
 
-    final resolvedImageFiles = await Future.wait(
-      repair.imagePaths.map(
-        (storedPath) => LocalMediaResolver.firstExisting([storedPath]),
-      ),
-    );
-    final imageBytes = <Uint8List>[];
-    for (final file in resolvedImageFiles.whereType<File>()) {
-      try {
-        imageBytes.add(await file.readAsBytes());
-      } catch (_) {}
-    }
+    final imageBytes = repair.imagePaths
+        .where((p) => p.isNotEmpty && File(p).existsSync())
+        .map((p) => File(p).readAsBytesSync())
+        .toList();
 
     const imagesPerPage = 6; // شبكة ثابتة 2 × 3
 

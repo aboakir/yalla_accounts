@@ -58,7 +58,6 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         if (!mounted) return;
 
         await Future.delayed(const Duration(milliseconds: 300));
-        if (!mounted) return;
         showDialog(
           context: context,
           builder: (_) => AdaptiveAlertDialog(
@@ -96,7 +95,6 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("❌ تعذر فتح واتساب")),
       );

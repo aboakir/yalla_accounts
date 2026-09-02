@@ -334,7 +334,6 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
       ));
     }
 
-    if (!mounted) return;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,

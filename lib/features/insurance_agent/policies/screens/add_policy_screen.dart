@@ -8,8 +8,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
-import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 
@@ -147,10 +145,7 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
     );
 
     // ✅ المطلوب: الرجوع لقائمة التأمينات + إشارة نجاح
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.insurancePoliciesList,
-      (route) => route.settings.name == AppRoutes.dashboard || route.isFirst,
-    );
+    Navigator.pop(context, true);
   }
 
   @override
@@ -158,22 +153,7 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
     final titleColor = Colors.grey.shade700;
 
     return Scaffold(
-      drawer: Drawer(
-        width: MediaQuery.sizeOf(context).width,
-        shape: const RoundedRectangleBorder(),
-        child: const SafeArea(
-          child: YallaSidebar(currentRoute: AppRoutes.insuranceAgentAddNew),
-        ),
-      ),
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: Builder(
-          builder: (menuContext) => IconButton(
-            tooltip: 'القائمة',
-            icon: const Icon(Icons.menu_rounded, color: Colors.white),
-            onPressed: () => Scaffold.of(menuContext).openDrawer(),
-          ),
-        ),
         backgroundColor: AppColors.primary,
         title: const Text(
           'إضافة تأمين جديد',

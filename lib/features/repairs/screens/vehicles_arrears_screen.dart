@@ -414,7 +414,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 0),
+          constraints: const BoxConstraints(minWidth: 980),
           child: Scrollbar(
             thumbVisibility: true,
             child: SingleChildScrollView(

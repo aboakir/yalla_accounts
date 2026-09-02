@@ -28,7 +28,6 @@ import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
-import 'package:yalla_accounts/shared/utils/local_media_resolver.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -137,22 +136,16 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         throw 'لم يُعثر على عمود مناسب (${candidates.join(", ")}) في جدول repairs';
       }
       final db = await DBService.database;
-      await db.update(
-        'repairs',
-        {col: value},
-        where: 'id = ?',
-        whereArgs: [_repair.id],
-      );
+      await db.update('repairs', {col: value},
+          where: 'id = ?', whereArgs: [_repair.id]);
       await _reloadRepair();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(successMsg)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(successMsg)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('فشل تحديث الحالة: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('فشل تحديث الحالة: $e')));
     }
   }
 
@@ -227,15 +220,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     try {
       final id = await DBService.postInvoiceGLFromId(invId);
       await _refreshInvoiceGl();
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('✅ تم ترحيل قيد الفاتورة GL (#$id)')),
       );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل ترحيل GL: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ فشل ترحيل GL: $e')),
+      );
     }
   }
 
@@ -245,18 +236,15 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       context: context,
       builder: (_) => AdaptiveAlertDialog(
         title: const Text('اعتماد السعر النهائي'),
-        content: const Text(
-          'هل تريد اعتماد السعر النهائي وتسجيل القيد المحاسبي؟',
-        ),
+        content:
+            const Text('هل تريد اعتماد السعر النهائي وتسجيل القيد المحاسبي؟'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('إلغاء')),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('تأكيد'),
-          ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('تأكيد')),
         ],
       ),
     );
@@ -272,9 +260,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل الاعتماد: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ فشل الاعتماد: $e')),
+      );
     } finally {
       if (mounted) setState(() => _approving = false);
     }
@@ -285,8 +273,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     if (_repair.id.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('لا يمكن إضافة دفعة قبل حفظ ملف الإصلاح.'),
-        ),
+            content: Text('لا يمكن إضافة دفعة قبل حفظ ملف الإصلاح.')),
       );
       return;
     }
@@ -307,22 +294,18 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               children: [
                 TextFormField(
                   controller: amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'المبلغ',
-                    hintText: '0.00',
-                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration:
+                      InputDecoration(labelText: 'المبلغ', hintText: '0.00'),
                   autofocus: true,
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<_PayMethod>(
                   value: method,
                   items: _methods
-                      .map(
-                        (m) => DropdownMenuItem(value: m, child: Text(m.label)),
-                      )
+                      .map((m) =>
+                          DropdownMenuItem(value: m, child: Text(m.label)))
                       .toList(),
                   onChanged: (v) => setM(() => method = v ?? _methods.first),
                   decoration: InputDecoration(labelText: 'طريقة الدفع'),
@@ -349,52 +332,45 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 TextFormField(
                   controller: notesCtrl,
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'ملاحظات (اختياري)',
-                  ),
+                  decoration:
+                      const InputDecoration(labelText: 'ملاحظات (اختياري)'),
                 ),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('إلغاء'),
-            ),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء')),
             ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('حفظ'),
-            ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('ط­ظپط¸')),
           ],
         ),
       ),
     );
 
-    if (ok != true || !mounted) return;
+    if (ok != true) return;
 
     final raw = amountCtrl.text.trim().replaceAll(',', '');
     final amount = double.tryParse(raw) ?? 0.0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('أدخل مبلغًا صالحًا')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('أدخل مبلغًا صالحًا')));
       return;
     }
 
     final remaining = (_repair.totalFileValue) - (_repair.totalPaidAmount);
     if (remaining <= 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('الملف مسدد بالكامل')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('الملف مسدد بالكامل')));
       return;
     }
     if (amount > remaining + 0.0001) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'المبلغ يتجاوز المتبقي (${_currency.format(remaining)})',
-          ),
-        ),
+            content:
+                Text('المبلغ يتجاوز المتبقي (${_currency.format(remaining)})')),
       );
       return;
     }
@@ -426,7 +402,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         descriptionOverride:
             notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
       );
-      // تحديث إجمالي المدفوعات داخل repairs بعد إضافة الدفعة
+// تحديث إجمالي المدفوعات داخل repairs بعد إضافة الدفعة
       final repSvc = await RepairsService.instance();
       await repSvc.updateTotalsFromPayments(_repair.id);
 
@@ -435,14 +411,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ تم تسجيل الدفعة: ${_currency.format(amount)}'),
-        ),
+            content: Text('✅ تم تسجيل الدفعة: ${_currency.format(amount)}')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل الحفظ: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل الحفظ: $e')));
     }
   }
 
@@ -457,15 +431,14 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
       // لإظهار أن النظام يعمل ولا يعلق
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('⏳ جاري معالجة الصور...')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⏳ جاري معالجة الصور...')),
+      );
 
       for (final raw in picked) {
         // 1) ضغط الصورة
-        final compressed = await ImageStorageService.compressImage(
-          XFile(raw.path),
-        );
+        final compressed =
+            await ImageStorageService.compressImage(XFile(raw.path));
 
         // 2) حفظ الصورة
         final savedPath = await ImageStorageService.saveImage(
@@ -481,24 +454,24 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
         // 4) إنشاء Thumbnail إذا ليس موجودًا
         if ((_repair.thumbnailPath ?? '').isEmpty) {
-          final thumbPath = await ImageStorageService.generateThumbnail(
-            savedPath,
+          final thumbPath =
+              await ImageStorageService.generateThumbnail(savedPath);
+          await svc.updateThumbnail(
+            repairId: _repair.id,
+            thumbPath: thumbPath,
           );
-          await svc.updateThumbnail(repairId: _repair.id, thumbPath: thumbPath);
         }
       }
 
       await _reloadRepair();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('✅ تم حفظ الصور')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('✅ تم حفظ الصور')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل إضافة الصور: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل إضافة الصور: $e')));
     }
   }
 
@@ -514,26 +487,27 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
       // 3) إزالة الغلاف إن كان هو نفسه
       if (_repair.thumbnailPath == path) {
-        await svc.updateThumbnail(repairId: _repair.id, thumbPath: null);
+        await svc.updateThumbnail(
+          repairId: _repair.id,
+          thumbPath: null,
+        );
       }
 
       await _reloadRepair();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('🗑️ تم حذف الصورة')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('🗑️ تم حذف الصورة')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل حذف الصورة: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل حذف الصورة: $e')));
     }
   }
 
-  // ===============================
-  // 🔍 عارض الصور مع دعم الأسهم + Delete + ESC
-  // ===============================
+// ===============================
+// 🔍 عارض الصور مع دعم الأسهم + Delete + ESC
+// ===============================
   void _openPreview(List<String> images, int start) {
     int current = start;
 
@@ -593,14 +567,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(_, true),
-                            child: const Text('حذف'),
+                            child: const Text('ط­ط°ظپ'),
                           ),
                         ],
                       ),
                     );
                     if (ok == true) {
                       await _deleteImage(images[current]);
-                      if (!dlgCtx.mounted) return null;
                       Navigator.pop(dlgCtx);
                     }
                     return null;
@@ -624,8 +597,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           child: InteractiveViewer(
                             minScale: 0.5,
                             maxScale: 5,
-                            child: _resolvedMediaImage(
-                              images[current],
+                            child: Image.file(
+                              File(images[current]),
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -636,11 +609,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           top: 10,
                           right: 10,
                           child: IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 30,
-                            ),
+                            icon: const Icon(Icons.close,
+                                color: Colors.white, size: 30),
                             onPressed: () => Navigator.pop(dlgCtx),
                           ),
                         ),
@@ -653,10 +623,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                             bottom: 0,
                             child: IconButton(
                               iconSize: 44,
-                              icon: const Icon(
-                                Icons.arrow_back_ios,
-                                color: Colors.white,
-                              ),
+                              icon: const Icon(Icons.arrow_back_ios,
+                                  color: Colors.white),
                               onPressed: () {
                                 setDlg(() {
                                   current = (current - 1 + images.length) %
@@ -674,10 +642,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                             bottom: 0,
                             child: IconButton(
                               iconSize: 44,
-                              icon: const Icon(
-                                Icons.arrow_forward_ios,
-                                color: Colors.white,
-                              ),
+                              icon: const Icon(Icons.arrow_forward_ios,
+                                  color: Colors.white),
                               onPressed: () {
                                 setDlg(() {
                                   current = (current + 1) % images.length;
@@ -708,9 +674,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       await Share.shareXFiles([XFile(path)], text: 'كشف إصلاح المركبة');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل المشاركة: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل المشاركة: $e')));
     }
   }
 
@@ -720,9 +685,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       await Printing.layoutPdf(onLayout: (_) async => bytes);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل الطباعة: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل الطباعة: $e')));
     }
   }
 
@@ -737,90 +701,20 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
   Widget _buildDataTable(String title, List<Map<String, dynamic>> data) {
     final normalized = data.map(_normalizeRow).toList();
-    final isPhone = MediaQuery.sizeOf(context).width < 600;
-
-    if (isPhone) {
-      return Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.lightGrey),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 10),
-              if (normalized.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'لا توجد بيانات',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                )
-              else
-                ...normalized.map(
-                  (row) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FA),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          MoneyFormatter.format(row['price'] as double),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            row['name']?.toString() ?? '',
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
+            Text(title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             Table(
               columnWidths: const {
                 0: FlexColumnWidth(3),
-                1: FlexColumnWidth(2),
+                1: FlexColumnWidth(2)
               },
               border: TableBorder.all(color: Colors.grey),
               children: [
@@ -828,82 +722,29 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   decoration: BoxDecoration(color: Colors.grey[200]),
                   children: const [
                     Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text(
-                        'الوصف',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                        padding: EdgeInsets.all(8.0),
+                        child: Text('الوصف',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
                     Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text(
-                        'السعر',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                        padding: EdgeInsets.all(8.0),
+                        child: Text('السعر',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
                   ],
                 ),
-                ...normalized.map(
-                  (row) => TableRow(
-                    children: [
+                ...normalized.map((row) => TableRow(children: [
                       Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(row['name']?.toString() ?? ''),
-                      ),
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(row['name'] ?? '')),
                       Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          MoneyFormatter.format(row['price'] as double),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                              MoneyFormatter.format(row['price'] as double))),
+                    ])),
               ],
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _resolvedMediaImage(
-    String storedPath, {
-    double? width,
-    double? height,
-    BoxFit fit = BoxFit.cover,
-  }) {
-    return FutureBuilder<File?>(
-      future: LocalMediaResolver.firstExisting([storedPath]),
-      builder: (context, snapshot) {
-        final file = snapshot.data;
-        if (file == null) {
-          return Container(
-            width: width,
-            height: height,
-            color: AppColors.lightGrey,
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.black38,
-            ),
-          );
-        }
-        return Image.file(
-          file,
-          key: ValueKey(file.path),
-          width: width,
-          height: height,
-          fit: fit,
-          errorBuilder: (_, __, ___) => Container(
-            width: width,
-            height: height,
-            color: AppColors.lightGrey,
-            alignment: Alignment.center,
-            child: const Icon(Icons.broken_image_outlined),
-          ),
-        );
-      },
     );
   }
 
@@ -916,10 +757,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           child: AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                '📷 صور المركبة',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+              const Text('📷 صور المركبة',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               IconButton(
                 icon: const Icon(Icons.add_a_photo),
                 onPressed: _pickImages,
@@ -940,10 +779,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             AdaptiveRow(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '📷 صور المركبة',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                const Text('📷 صور المركبة',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 IconButton(
                   icon: const Icon(Icons.add_a_photo),
                   onPressed: _pickImages,
@@ -973,10 +811,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(6),
-                              child: _resolvedMediaImage(
-                                path,
+                              child: Image.file(
+                                File(
+                                    path), // ← الصورة الصحيحة وليس الـ thumbnail
+                                key: ValueKey(path),
                                 width: 120,
                                 height: 120,
+                                fit: BoxFit.cover,
                               ),
                             ),
                             Positioned(
@@ -988,20 +829,17 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                     context: context,
                                     builder: (_) => AdaptiveAlertDialog(
                                       title: const Text('حذف الصورة'),
-                                      content: const Text(
-                                        'تأكيد حذف هذه الصورة؟',
-                                      ),
+                                      content:
+                                          const Text('تأكيد حذف هذه الصورة؟'),
                                       actions: [
                                         TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(_, false),
-                                          child: const Text('إلغاء'),
-                                        ),
+                                            onPressed: () =>
+                                                Navigator.pop(_, false),
+                                            child: const Text('إلغاء')),
                                         ElevatedButton(
-                                          onPressed: () =>
-                                              Navigator.pop(_, true),
-                                          child: const Text('حذف'),
-                                        ),
+                                            onPressed: () =>
+                                                Navigator.pop(_, true),
+                                            child: const Text('ط­ط°ظپ')),
                                       ],
                                     ),
                                   );
@@ -1012,11 +850,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                 child: const CircleAvatar(
                                   radius: 12,
                                   backgroundColor: Colors.black54,
-                                  child: Icon(
-                                    Icons.close,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
+                                  child: Icon(Icons.close,
+                                      color: Colors.white, size: 16),
                                 ),
                               ),
                             ),
@@ -1053,10 +888,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'حالة التأمين',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
+                  const Text('حالة التأمين',
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     isExpanded: true,
@@ -1068,10 +902,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                         .toList(),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                     onChanged: (v) {
                       if (v != null) _updateInsuranceStatus(v);
@@ -1088,10 +920,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'حالة المركبة',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
+                  const Text('حالة المركبة',
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     isExpanded: true,
@@ -1103,10 +934,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                         .toList(),
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                     onChanged: (v) {
                       if (v != null) _updateVehicleStatus(v);
@@ -1140,10 +969,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             const SizedBox(width: 8),
             const Padding(
               padding: EdgeInsetsDirectional.only(start: 8),
-              child: Text(
-                '✅ تم الاعتماد المحاسبي',
-                style: TextStyle(color: Colors.green),
-              ),
+              child: Text('✅ تم الاعتماد المحاسبي',
+                  style: TextStyle(color: Colors.green)),
             ),
           ],
         ),
@@ -1232,18 +1059,17 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 await _printPdf();
               } else if (value == 'save') {
                 try {
-                  final file = await RepairPdfGenerator.saveToFileAndOpen(
-                    _repair,
-                  );
+                  final file =
+                      await RepairPdfGenerator.saveToFileAndOpen(_repair);
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('تم إنشاء PDF: ${file.path}')),
                   );
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('فشل إنشاء PDF: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('فشل إنشاء PDF: $e')),
+                  );
                 }
               }
             },
@@ -1279,29 +1105,17 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
           children: [
-            FutureBuilder<File?>(
-              future: LocalMediaResolver.firstExisting([
-                _repair.thumbnailPath,
-                ..._repair.imagePaths,
-              ]),
-              builder: (context, snapshot) {
-                final file = snapshot.data;
-                if (file == null) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.file(
-                      file,
-                      height: 185,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
-                );
-              },
-            ),
+            if (thumb != null && File(thumb).existsSync())
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.file(
+                  File(thumb),
+                  height: 185,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            if (thumb != null) const SizedBox(height: 12),
             Row(
               children: [
                 metric(
@@ -1326,7 +1140,11 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   Icons.account_balance_wallet_outlined,
                 ),
                 const SizedBox(width: 10),
-                metric('الحالة', vehicleStatus, Icons.car_repair_outlined),
+                metric(
+                  'الحالة',
+                  vehicleStatus,
+                  Icons.car_repair_outlined,
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -1342,31 +1160,21 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 child: Column(
                   children: [
                     infoRow(
-                      'المركبة',
-                      '${_repair.vehicleType} ${_repair.vehicleModel}',
-                      Icons.directions_car_outlined,
-                    ),
+                        'المركبة',
+                        '${_repair.vehicleType} ${_repair.vehicleModel}',
+                        Icons.directions_car_outlined),
                     const Divider(height: 1),
-                    infoRow(
-                      'المستفيد',
-                      _repair.beneficiaryName,
-                      Icons.person_outline_rounded,
-                    ),
+                    infoRow('المستفيد', _repair.beneficiaryName,
+                        Icons.person_outline_rounded),
                     const Divider(height: 1),
                     infoRow('نوع الإصلاح', repairType, Icons.build_outlined),
                     const Divider(height: 1),
-                    infoRow(
-                      'تاريخ الاستلام',
-                      _df.format(_repair.receivedDate),
-                      Icons.calendar_today_outlined,
-                    ),
+                    infoRow('تاريخ الاستلام', _df.format(_repair.receivedDate),
+                        Icons.calendar_today_outlined),
                     if (_repair.beneficiaryType == 'شركة تأمين') ...[
                       const Divider(height: 1),
                       infoRow(
-                        'التأمين',
-                        insuranceStatus,
-                        Icons.shield_outlined,
-                      ),
+                          'التأمين', insuranceStatus, Icons.shield_outlined),
                     ],
                   ],
                 ),
@@ -1433,7 +1241,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     final String? firstImg =
         _repair.imagePaths.isNotEmpty ? _repair.imagePaths.first : null;
 
-    // إذا كان للملف صورة غلاف موجودة في قاعدة البيانات → استخدمها
+// إذا كان للملف صورة غلاف موجودة في قاعدة البيانات → استخدمها
     final String? thumb = _repair.thumbnailPath?.isNotEmpty == true
         ? _repair.thumbnailPath
         : firstImg;
@@ -1445,10 +1253,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     final repairType =
         normalizeOrNull(_repair.repairType, kRepairTypes) ?? _repair.repairType;
     final vehicleStatus = normalizeValue(
-          _repair.vehicleStatus,
-          kVehicleStatuses,
-          aliases: kVehicleStatusAliases,
-        ) ??
+            _repair.vehicleStatus, kVehicleStatuses,
+            aliases: kVehicleStatusAliases) ??
         _repair.vehicleStatus;
     final insuranceStatus =
         normalizeOrNull(_repair.insuranceStatus, _insuranceOptions) ??
@@ -1481,33 +1287,26 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                     icon: const Icon(Icons.picture_as_pdf),
                     onPressed: () async {
                       try {
-                        final file = await RepairPdfGenerator.saveToFileAndOpen(
-                          _repair,
-                        );
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('✅ تم الحفظ والفتح:\n${file.path}'),
-                          ),
-                        );
+                        final file =
+                            await RepairPdfGenerator.saveToFileAndOpen(_repair);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('✅ تم الحفظ والفتح:\n${file.path}')));
                       } catch (e) {
-                        if (!context.mounted) return;
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('❌ فشل إنشاء PDF: $e')),
-                        );
+                            SnackBar(content: Text('❌ فشل إنشاء PDF: $e')));
                       }
                     },
                   ),
                   IconButton(
-                    tooltip: 'مشاركة PDF',
-                    icon: const Icon(Icons.share),
-                    onPressed: _sharePdf,
-                  ),
+                      tooltip: 'مشاركة PDF',
+                      icon: const Icon(Icons.share),
+                      onPressed: _sharePdf),
                   IconButton(
-                    tooltip: 'طباعة',
-                    icon: const Icon(Icons.print),
-                    onPressed: _printPdf,
-                  ),
+                      tooltip: 'طباعة',
+                      icon: const Icon(Icons.print),
+                      onPressed: _printPdf),
                 ],
               ),
               body: SingleChildScrollView(
@@ -1533,31 +1332,24 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                           repairId: _repair.id,
                                           fallbackFirstPath:
                                               thumb, // ← استبدلنا firstImg بالـ thumbnail
-                                          fallbackPaths: _repair.imagePaths,
                                           size: 56,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
-                                        title: const Text(
-                                          'البيانات المالية 💰',
-                                        ),
+                                        title:
+                                            const Text('البيانات المالية 💰'),
                                         subtitle: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'حالة السداد: ${_repair.displayPaymentStatus}',
-                                            ),
+                                                'حالة السداد: ${_repair.displayPaymentStatus}'),
                                             Text(
-                                              'قيمة الملف: ${MoneyFormatter.format(_repair.totalFileValue)}',
-                                            ),
+                                                'قيمة الملف: ${MoneyFormatter.format(_repair.totalFileValue)}'),
                                             Text(
-                                              'المدفوع: ${MoneyFormatter.format(_repair.totalPaidAmount)}',
-                                            ),
+                                                'المدفوع: ${MoneyFormatter.format(_repair.totalPaidAmount)}'),
                                             Text(
-                                              'المتبقي: ${MoneyFormatter.format(_repair.remainingAmount)}',
-                                            ),
+                                                'المتبقي: ${MoneyFormatter.format(_repair.remainingAmount)}'),
                                           ],
                                         ),
                                       ),
@@ -1573,117 +1365,105 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                 flex: 4,
                                 child: Card(
                                   child: ListTile(
-                                    title: const Text(
-                                      'بيانات المركبة والمستفيد',
-                                    ),
+                                    title:
+                                        const Text('بيانات المركبة والمستفيد'),
                                     subtitle: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text('نوع: ${_repair.vehicleType}'),
                                         Text(
-                                          'الموديل: ${_repair.vehicleModel}',
-                                        ),
+                                            'الموديل: ${_repair.vehicleModel}'),
                                         Text('رقم: ${_repair.vehicleNumber}'),
                                         Text(
-                                          'تاريخ الاستلام: ${f.format(_repair.receivedDate)}',
-                                        ),
+                                            'تاريخ الاستلام: ${f.format(_repair.receivedDate)}'),
                                         Text('نوع العمل: $repairType'),
                                         Text('حالة المركبة: $vehicleStatus'),
                                         const SizedBox(height: 8),
                                         Text(
-                                          'نوع المستفيد: ${_repair.beneficiaryType}',
-                                        ),
+                                            'نوع المستفيد: ${_repair.beneficiaryType}'),
                                         Text(
-                                          'الاسم: ${_repair.beneficiaryName}',
-                                        ),
+                                            'الاسم: ${_repair.beneficiaryName}'),
                                         if (_repair.beneficiaryType ==
                                             'شركة تأمين')
                                           Text(
-                                            'متابعة التأمين: $insuranceStatus',
-                                          ),
+                                              'متابعة التأمين: $insuranceStatus'),
                                         const SizedBox(height: 12),
-                                        if (!hasInvoice)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 12,
-                                            ),
-                                            child: OutlinedButton.icon(
-                                              icon: const Icon(
-                                                Icons.playlist_add,
-                                              ),
-                                              label: const Text(
-                                                'إنشاء فاتورة وترحيل GL',
-                                              ),
-                                              onPressed: () async {
-                                                try {
-                                                  final db =
-                                                      await DBService.database;
+                                        if (hasInvoice)
+                                          if (!hasInvoice)
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 12),
+                                              child: OutlinedButton.icon(
+                                                icon: const Icon(
+                                                    Icons.playlist_add),
+                                                label: const Text(
+                                                    'إنشاء فاتورة وترحيل GL'),
+                                                onPressed: () async {
+                                                  try {
+                                                    final db = await DBService
+                                                        .database;
 
-                                                  // 1) إنشاء فاتورة جديدة
-                                                  final invoiceId =
-                                                      await DBService
-                                                          .createInvoiceForRepair(
-                                                    repairId: _repair.id,
-                                                    clientId: _repair.clientId,
-                                                    total:
-                                                        _repair.totalFileValue,
-                                                  );
+                                                    // 1) إنشاء فاتورة جديدة
+                                                    final invoiceId =
+                                                        await DBService
+                                                            .createInvoiceForRepair(
+                                                      repairId: _repair.id,
+                                                      clientId:
+                                                          _repair.clientId,
+                                                      total: _repair
+                                                          .totalFileValue,
+                                                    );
 
-                                                  // 2) تحديث repair → invoiceId
-                                                  await db.update(
-                                                    'repairs',
-                                                    {
-                                                      'invoice_id': invoiceId,
-                                                      'invoiceId': invoiceId,
-                                                    },
-                                                    where: 'id = ?',
-                                                    whereArgs: [_repair.id],
-                                                  );
+                                                    // 2) تحديث repair → invoiceId
+                                                    await db.update(
+                                                      'repairs',
+                                                      {
+                                                        'invoice_id': invoiceId,
+                                                        'invoiceId': invoiceId
+                                                      },
+                                                      where: 'id = ?',
+                                                      whereArgs: [_repair.id],
+                                                    );
 
-                                                  // 3) ترحيل قيد GL
-                                                  final glId = await DBService
-                                                      .postInvoiceGLFromId(
-                                                    invoiceId,
-                                                  );
+                                                    // 3) ترحيل قيد GL
+                                                    final glId = await DBService
+                                                        .postInvoiceGLFromId(
+                                                            invoiceId);
 
-                                                  // 4) إعادة تحميل البيانات
-                                                  await _reloadRepair();
+                                                    // 4) إعادة تحميل البيانات
+                                                    await _reloadRepair();
 
-                                                  if (!context.mounted) return;
+                                                    if (!mounted) return;
 
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        'تم إنشاء الفاتورة وترحيل GL (#$glId)',
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                            'تم إنشاء الفاتورة وترحيل GL (#$glId)'),
                                                       ),
-                                                    ),
-                                                  );
-                                                } catch (e) {
-                                                  if (!context.mounted) return;
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        'فشل العملية: $e',
-                                                      ),
-                                                    ),
-                                                  );
-                                                }
-                                              },
+                                                    );
+                                                  } catch (e) {
+                                                    if (!mounted) return;
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                          content: Text(
+                                                              'فشل العملية: $e')),
+                                                    );
+                                                  }
+                                                },
+                                              ),
                                             ),
-                                          ),
                                         Wrap(
                                           spacing: 8,
                                           runSpacing: 8,
                                           children: [
                                             ElevatedButton.icon(
                                               icon: const Icon(
-                                                Icons.receipt_long,
-                                              ),
+                                                  Icons.receipt_long),
                                               label: const Text('عرض الفاتورة'),
                                               onPressed: () {
                                                 Navigator.of(context).pushNamed(
@@ -1695,50 +1475,42 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                             if (_invoiceGlEntryId == null)
                                               OutlinedButton.icon(
                                                 icon: const Icon(
-                                                  Icons.playlist_add,
-                                                ),
+                                                    Icons.playlist_add),
                                                 label: const Text(
-                                                  'ترحيل GL للفاتورة',
-                                                ),
+                                                    'ترحيل GL للفاتورة'),
                                                 onPressed:
                                                     _postInvoiceGLIfMissing,
                                               )
                                             else ...[
                                               ElevatedButton.icon(
                                                 icon: const Icon(
-                                                  Icons.account_balance,
-                                                ),
+                                                    Icons.account_balance),
                                                 label: Text(
-                                                  'عرض قيد GL #$_invoiceGlEntryId',
-                                                ),
+                                                    'عرض قيد GL #$_invoiceGlEntryId'),
                                                 onPressed: () {
-                                                  Navigator.of(
-                                                    context,
-                                                  ).pushNamed(
+                                                  Navigator.of(context)
+                                                      .pushNamed(
                                                     AppRoutes.financeGL,
                                                     arguments: {
                                                       'entryId':
-                                                          _invoiceGlEntryId,
+                                                          _invoiceGlEntryId
                                                     },
                                                   );
                                                 },
                                               ),
                                               OutlinedButton.icon(
                                                 icon: const Icon(
-                                                  Icons.travel_explore,
-                                                ),
+                                                    Icons.travel_explore),
                                                 label: const Text(
-                                                  'فتح GL Browser',
-                                                ),
+                                                    'ظپطھط­ GL Browser'),
                                                 onPressed: () {
-                                                  Navigator.of(
-                                                    context,
-                                                  ).pushNamed(
+                                                  Navigator.of(context)
+                                                      .pushNamed(
                                                     AppRoutes.financeGL,
                                                     arguments: {
                                                       'source': 'INVOICE',
                                                       'source_id':
-                                                          _repair.invoiceId,
+                                                          _repair.invoiceId
                                                     },
                                                   );
                                                 },

@@ -1,0 +1,243 @@
+import 'package:flutter/material.dart';
+
+import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/features/auth/services/device_unlock_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+
+class DeviceUnlockScaffold extends StatefulWidget {
+  const DeviceUnlockScaffold({
+    super.key,
+    required this.displayName,
+    required this.userId,
+    required this.service,
+    required this.onPinUnlocked,
+    required this.onBiometricUnlocked,
+    required this.onUsePassword,
+  });
+
+  final String displayName;
+  final String userId;
+  final DeviceUnlockService service;
+  final Future<void> Function(String pin) onPinUnlocked;
+  final Future<void> Function() onBiometricUnlocked;
+  final Future<void> Function() onUsePassword;
+
+  @override
+  State<DeviceUnlockScaffold> createState() => _DeviceUnlockScaffoldState();
+}
+
+class _DeviceUnlockScaffoldState extends State<DeviceUnlockScaffold> {
+  final _pin = TextEditingController();
+  bool _busy = false;
+  bool _biometric = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final enabled = await widget.service.biometricEnabledFor(widget.userId);
+    if (mounted) setState(() => _biometric = enabled);
+  }
+
+  Future<void> _submitPin() async {
+    if (_busy || !RegExp(r'^\d{4,6}$').hasMatch(_pin.text)) {
+      setState(() => _error = 'أدخل PIN من 4 إلى 6 أرقام.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    await widget.onPinUnlocked(_pin.text);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  @override
+  void dispose() {
+    _pin.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: AppColors.scaffoldBg,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset('assets/logo/logo.png', height: 72),
+                        const SizedBox(height: 18),
+                        Text('مرحبًا، ${widget.displayName}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 6),
+                        const Text('افتح الورشة بسرعة وأمان على هذا الجهاز.',
+                            textAlign: TextAlign.center),
+                        const SizedBox(height: 24),
+                        TextField(
+                          controller: _pin,
+                          autofocus: true,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          obscureText: true,
+                          maxLength: 6,
+                          onSubmitted: (_) => _submitPin(),
+                          decoration: InputDecoration(
+                            labelText: 'PIN',
+                            counterText: '',
+                            errorText: _error,
+                            prefixIcon: const Icon(Icons.pin_outlined),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: _busy ? null : _submitPin,
+                            child: _busy
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))
+                                : const Text('فتح التطبيق'),
+                          ),
+                        ),
+                        if (_biometric) ...[
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed:
+                                  _busy ? null : widget.onBiometricUnlocked,
+                              icon: const Icon(Icons.fingerprint),
+                              label: const Text('استخدام البصمة / Face ID'),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _busy ? null : widget.onUsePassword,
+                          child: const Text('الدخول بكلمة المرور بدلًا من ذلك'),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                            'يعمل فتح الجهاز محليًا عند انقطاع الإنترنت، مع بقاء صلاحية الترخيص المحلي هي المرجع.',
+                            textAlign: TextAlign.center,
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.black54)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<bool> showDeviceSecuritySetupDialog({
+  required BuildContext context,
+  required DeviceUnlockService service,
+  required String userId,
+}) async {
+  final pin = TextEditingController();
+  final confirm = TextEditingController();
+  var biometric = false;
+  final available = await service.biometricAvailable();
+  if (!context.mounted) return false;
+
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setLocalState) => AdaptiveAlertDialog(
+        title: const Text('حماية هذا الجهاز'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                  'أنشئ PIN سريعًا. سيبقى تسجيل الدخول محفوظًا داخل التخزين الآمن، وليس ككلمة مرور مكشوفة.'),
+              const SizedBox(height: 16),
+              TextField(
+                  controller: pin,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                      labelText: 'PIN من 4 إلى 6 أرقام', counterText: '')),
+              TextField(
+                  controller: confirm,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                      labelText: 'تأكيد PIN', counterText: '')),
+              if (available)
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: biometric,
+                  onChanged: (value) => setLocalState(() => biometric = value),
+                  title: const Text('تفعيل البصمة / Face ID'),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () async {
+              final value = pin.text.trim();
+              if (!RegExp(r'^\d{4,6}$').hasMatch(value) ||
+                  value != confirm.text.trim()) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('تحقق من PIN وتأكيده.')));
+                return;
+              }
+              try {
+                await service.configure(
+                    userId: userId, pin: value, enableBiometric: biometric);
+                if (dialogContext.mounted) Navigator.pop(dialogContext, true);
+              } catch (e) {
+                if (dialogContext.mounted)
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      SnackBar(content: Text('تعذر حفظ حماية الجهاز: $e')));
+              }
+            },
+            child: const Text('حفظ والمتابعة'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  pin.dispose();
+  confirm.dispose();
+  return result == true;
+}

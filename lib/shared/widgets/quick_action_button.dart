@@ -38,7 +38,6 @@ class _QuickActionButtonState extends State<QuickActionButton> {
     try {
       await Navigator.pushNamed(context, widget.route);
     } on FlutterError catch (_) {
-      if (!context.mounted) return;
       // حماية من مسار غير معرّف
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

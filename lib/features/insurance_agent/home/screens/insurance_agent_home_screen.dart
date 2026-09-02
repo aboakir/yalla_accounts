@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
-import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InsuranceAgentHomeScreen extends StatelessWidget {
@@ -12,22 +10,7 @@ class InsuranceAgentHomeScreen extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        drawer: Drawer(
-          width: MediaQuery.sizeOf(context).width,
-          shape: const RoundedRectangleBorder(),
-          child: const SafeArea(
-            child: YallaSidebar(currentRoute: AppRoutes.insuranceAgentHome),
-          ),
-        ),
         appBar: AppBar(
-          automaticallyImplyLeading: false,
-          leading: Builder(
-            builder: (menuContext) => IconButton(
-              tooltip: 'القائمة',
-              icon: const Icon(Icons.menu_rounded, color: Colors.white),
-              onPressed: () => Scaffold.of(menuContext).openDrawer(),
-            ),
-          ),
           backgroundColor: AppColors.primary,
           title: const Text(
             'وكيل التأمين',

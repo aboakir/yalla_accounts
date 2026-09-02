@@ -386,7 +386,6 @@ class ChequeDetailsScreen extends ConsumerWidget {
 
     final db = await DBService.database;
     final suppliers = await db.query("suppliers");
-    if (!context.mounted) return;
 
     await showDialog(
       context: context,
@@ -482,7 +481,6 @@ class ChequeDetailsScreen extends ConsumerWidget {
             endorsementDate: endorseDate,
           );
 
-      if (!context.mounted) return;
       ref.invalidate(chequeProvider);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -492,7 +490,6 @@ class ChequeDetailsScreen extends ConsumerWidget {
         ),
       );
     } catch (e) {
-      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("خطأ أثناء التظهير: $e"),

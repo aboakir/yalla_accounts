@@ -10,10 +10,12 @@ import 'package:yalla_accounts/features/auth/screens/register_user_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/yalla_admin_account_dialogs.dart';
 import 'package:yalla_accounts/features/auth/screens/yalla_control_center_screen.dart';
+import 'package:yalla_accounts/features/auth/screens/device_unlock_screen.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/services/commercial_access_gate_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
+import 'package:yalla_accounts/features/auth/services/device_unlock_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -34,6 +36,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _keepSignedIn = false;
   bool _loadingPreferences = true;
   bool _canCreateFirstOwner = false;
+  AppUser? _unlockUser;
 
   @override
   void initState() {
@@ -46,6 +49,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final session = ref.read(authSessionServiceProvider);
       final preferences = await session.loadLoginPreferences();
       final hasUsers = await ref.read(userServiceProvider).hasAnyUsers();
+      AppUser? unlockUser;
+      if (hasUsers) {
+        final restored = await session.restoreSession();
+        if (restored != null &&
+            await ref
+                .read(deviceUnlockServiceProvider)
+                .isConfiguredFor(restored.id)) {
+          unlockUser = restored;
+        }
+      }
 
       if (!mounted) return;
       setState(() {
@@ -53,12 +66,69 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _keepSignedIn = preferences.keepSignedIn;
         _usernameController.text = preferences.rememberedUsername ?? '';
         _canCreateFirstOwner = !hasUsers;
+        _unlockUser = unlockUser;
         _loadingPreferences = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingPreferences = false);
     }
+  }
+
+  Future<void> _completeCustomerAccess(AppUser user) async {
+    final commercialAccess =
+        await ref.read(commercialAccessGateServiceProvider).evaluate(user);
+    if (!commercialAccess.allowed) {
+      _error(commercialAccess.message);
+      return;
+    }
+    ref.read(currentUserProvider.notifier).state = user;
+    if (!mounted) return;
+    if (user.mustChangePassword) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => ResetPasswordScreen(authenticatedUserId: user.id),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.dashboard,
+      (_) => false,
+    );
+  }
+
+  Future<void> _unlockWithPin(String pin) async {
+    final user = _unlockUser;
+    if (user == null) return;
+    final ok = await ref.read(deviceUnlockServiceProvider).verifyPin(
+          userId: user.id,
+          pin: pin,
+        );
+    if (!ok) {
+      _error('PIN غير صحيح');
+      return;
+    }
+    await _completeCustomerAccess(user);
+  }
+
+  Future<void> _unlockWithBiometric() async {
+    final user = _unlockUser;
+    if (user == null) return;
+    final ok = await ref
+        .read(deviceUnlockServiceProvider)
+        .authenticateBiometric(userId: user.id);
+    if (!ok) {
+      _error('لم ينجح التحقق من هوية الجهاز');
+      return;
+    }
+    await _completeCustomerAccess(user);
+  }
+
+  Future<void> _usePasswordInstead() async {
+    await ref.read(authSessionServiceProvider).logout();
+    if (!mounted) return;
+    setState(() => _unlockUser = null);
   }
 
   Future<void> _login() async {
@@ -131,35 +201,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return;
       }
 
+      final unlock = ref.read(deviceUnlockServiceProvider);
+      var deviceProtected = await unlock.isConfiguredFor(user.id);
+      if (!deviceProtected && mounted) {
+        deviceProtected = await showDeviceSecuritySetupDialog(
+          context: context,
+          service: unlock,
+          userId: user.id,
+        );
+        if (!deviceProtected) return;
+      }
+
       final session = ref.read(authSessionServiceProvider);
+      final persistSecureSession = deviceProtected || _keepSignedIn;
       await session.saveLoginPreferences(
         username: identifier,
         rememberUsername: _rememberUsername,
-        keepSignedIn: _keepSignedIn,
+        keepSignedIn: persistSecureSession,
       );
       await session.createSession(
         user,
-        keepSignedIn: _keepSignedIn,
+        keepSignedIn: persistSecureSession,
       );
-      ref.read(currentUserProvider.notifier).state = user;
-
-      if (!mounted) return;
-
-      if (user.mustChangePassword) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => ResetPasswordScreen(
-              authenticatedUserId: user.id,
-            ),
-          ),
-        );
-        return;
-      }
-
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.dashboard,
-        (_) => false,
-      );
+      await _completeCustomerAccess(user);
     } catch (_) {
       if (mounted) {
         _error('تعذر تسجيل الدخول بأمان');
@@ -383,6 +447,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final unlockUser = _unlockUser;
+    if (unlockUser != null) {
+      return DeviceUnlockScaffold(
+        displayName: unlockUser.name,
+        userId: unlockUser.id,
+        service: ref.read(deviceUnlockServiceProvider),
+        onPinUnlocked: _unlockWithPin,
+        onBiometricUnlocked: _unlockWithBiometric,
+        onUsePassword: _usePasswordInstead,
+      );
+    }
+
     final w = MediaQuery.of(context).size.width;
 
     return Directionality(

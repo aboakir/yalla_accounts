@@ -754,7 +754,7 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
         final desktopTable = w >= 980;
 
         // عرض السايدبار
-        final sideW = w < 600 ? w : ((w >= 1200) ? 320.0 : 300.0);
+        final sideW = (w >= 1200) ? 320.0 : 300.0;
 
         final monthBusy = _monthLoading[_tabController.index] == true;
 
@@ -767,15 +767,24 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
                   TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
             ),
             iconTheme: const IconThemeData(color: Colors.white),
-            automaticallyImplyLeading: false,
+
+            // ✅ سهم الرجوع
             leading: IconButton(
-              tooltip: _sideOpen ? 'إغلاق القائمة' : 'القائمة',
-              icon: Icon(
-                _sideOpen ? Icons.close_rounded : Icons.menu_rounded,
-                color: Colors.white,
-              ),
-              onPressed: () => _toggleSide(!_sideOpen),
+              tooltip: 'رجوع',
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  // ما في صفحة قبلها — خليها آمنة بدون Route
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('ℹ️ لا يوجد صفحة سابقة للرجوع')),
+                  );
+                }
+              },
             ),
+
             actions: [
               IconButton(
                 tooltip: 'تحديث',
@@ -783,6 +792,14 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
                     ? null
                     : _reloadCurrentMonth,
                 icon: const Icon(Icons.refresh, color: Colors.white),
+              ),
+
+              // ✅ هامبرجر دائماً
+              IconButton(
+                tooltip: _sideOpen ? 'إغلاق القائمة' : 'القائمة',
+                onPressed: () => _toggleSide(!_sideOpen),
+                icon: Icon(_sideOpen ? Icons.close : Icons.menu,
+                    color: Colors.white),
               ),
               const SizedBox(width: 8),
             ],

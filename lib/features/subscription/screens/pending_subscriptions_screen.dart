@@ -59,7 +59,6 @@ class _PendingSubscriptionsScreenState
     );
 
     await UserService().updateUser(updatedUser);
-    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("✅ تم تفعيل اشتراك المستخدم")),

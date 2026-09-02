@@ -381,7 +381,6 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
 
       final toShow = rows.isNotEmpty ? rows : rows2;
 
-      if (!mounted) return;
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -680,7 +679,7 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 0),
+          constraints: const BoxConstraints(minWidth: 920),
           child: Scrollbar(
             thumbVisibility: true,
             child: SingleChildScrollView(

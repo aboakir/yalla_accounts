@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/colors.dart';
-import 'package:yalla_accounts/core/routes/app_routes.dart';
 import '../../../core/services/db_service.dart';
 import '../../../core/widgets/yalla_appbar.dart';
 import '../../../core/widgets/sidebar/yalla_sidebar.dart';
@@ -125,7 +124,6 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     }
 
     List<String> temp = selectedRepairs.map((e) => e.id).toList();
-    if (!mounted) return;
 
     await showDialog(
       context: context,
@@ -363,10 +361,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
       if (!mounted) return;
       _snack("تم حفظ سند القبض بنجاح");
       _resetForm();
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.receiptVouchersList,
-        (route) => route.settings.name == AppRoutes.dashboard || route.isFirst,
-      );
+      Navigator.pop(context, true);
     } catch (e) {
       if (mounted) _snack("خطأ أثناء الحفظ: $e");
     } finally {

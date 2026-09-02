@@ -574,7 +574,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 0),
+          constraints: const BoxConstraints(minWidth: 1160),
           child: Scrollbar(
             thumbVisibility: true,
             child: SingleChildScrollView(

@@ -54,13 +54,9 @@ class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: EdgeInsets.all(
-        MediaQuery.sizeOf(context).width < 600 ? 16 : 40,
-      ),
+      insetPadding: const EdgeInsets.all(40),
       child: Container(
-        width: MediaQuery.sizeOf(context).width < 600
-            ? MediaQuery.sizeOf(context).width - 32
-            : 650,
+        width: 650,
         padding: const EdgeInsets.all(26),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -69,7 +65,10 @@ class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
             const Text(
               "إدخال مصروف يدوي",
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
 
             const SizedBox(height: 22),
@@ -89,9 +88,8 @@ class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
             TextField(
               controller: _amountCtrl,
               textAlign: TextAlign.right,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
                 hintText: "المبلغ",
                 border: OutlineInputBorder(),
@@ -125,7 +123,9 @@ class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
                 if (d != null) setState(() => _selectedDate = d);
               },
               child: InputDecorator(
-                decoration: const InputDecoration(border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
                 child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
               ),
             ),

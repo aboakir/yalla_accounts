@@ -60,7 +60,6 @@ class _ChequesIncomingScreenState extends ConsumerState<ChequesIncomingScreen> {
   // ---------------------------------------------------------------------------
   Future<void> _showEndorseDialog(Map<String, dynamic> r, Cheque cheque) async {
     final suppliers = await _loadSuppliers();
-    if (!mounted) return;
 
     if (suppliers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,7 +190,6 @@ ORDER BY name ASC
         endorsementDate: endorsementDate,
       );
 
-      if (!mounted) return;
       setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,7 +199,6 @@ ORDER BY name ASC
         ),
       );
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("خطأ أثناء التظهير: $e"),

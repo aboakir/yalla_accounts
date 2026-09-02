@@ -1,8 +1,8 @@
 // ًں“پ lib/core/widgets/sidebar/yalla_sidebar.dart
 //
-// YallaSidebar — نسخة مطابقة للهيكل المطلوب + إصلاح تنقل يمنع تراكم الشاشات.
-// + إضافة قسم السندات المالية (سند قبض + سند صرف) فقط كما طلبت.
-// لا تغيير على أي شيء آخر.
+// YallaSidebar â€” ظ†ط³ط®ط© ظ…ط·ط§ط¨ظ‚ط© ظ„ظ„ظ‡ظٹظƒظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ + ط¥طµظ„ط§ط­ طھظ†ظ‚ظ„ ظٹظ…ظ†ط¹ طھط±ط§ظƒظ… ط§ظ„ط´ط§ط´ط§طھ.
+// + ط¥ط¶ط§ظپط© ظ‚ط³ظ… ط§ظ„ط³ظ†ط¯ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© (ط³ظ†ط¯ ظ‚ط¨ط¶ + ط³ظ†ط¯ طµط±ظپ) ظپظ‚ط· ظƒظ…ط§ ط·ظ„ط¨طھ.
+// ظ„ط§ طھط؛ظٹظٹط± ط¹ظ„ظ‰ ط£ظٹ ط´ظٹط، ط¢ط®ط±.
 //
 // â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
 
@@ -38,22 +38,23 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       await showDialog<void>(
         context: context,
         builder: (ctx) => AdaptiveAlertDialog(
-          title: const Text('🔒 انتهاء النسخة التجريبية'),
+          title:
+              const Text('ًں”’ ط§ظ†طھظ‡ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„طھط¬ط±ظٹط¨ظٹط©'),
           content: const Text(
-            'لقد وصلت إلى الحد الأقصى للنسخة التجريبية (10 ملفات إصلاح).\n\n'
-            'لتتمكن من إضافة مركبات جديدة، يرجى تفعيل الاشتراك.',
+            'ظ„ظ‚ط¯ ظˆطµظ„طھ ط¥ظ„ظ‰ ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„ظ†ط³ط®ط© ط§ظ„طھط¬ط±ظٹط¨ظٹط© (10 ظ…ظ„ظپط§طھ ط¥طµظ„ط§ط­).\n\n'
+            'ظ„طھطھظ…ظƒظ† ظ…ظ† ط¥ط¶ط§ظپط© ظ…ط±ظƒط¨ط§طھ ط¬ط¯ظٹط¯ط©طŒ ظٹط±ط¬ظ‰ طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('لاحقًا'),
+              child: const Text('ظ„ط§ط­ظ‚ظ‹ط§'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 Navigator.pushNamed(context, AppRoutes.technicalSupport);
               },
-              child: const Text('تواصل لتفعيل الاشتراك'),
+              child: const Text('طھظˆط§طµظ„ ظ„طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ'),
             ),
           ],
         ),
@@ -141,12 +142,12 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   static const rSubscription = '/subscription';
 
-  // ===== السندات المالية =====
+// ===== ط§ظ„ط³ظ†ط¯ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© =====
   static const rReceiptVoucher = AppRoutes.receiptVoucher;
   static const rReceiptVouchersList = AppRoutes.receiptVouchersList;
   static const rPaymentVoucher = AppRoutes.paymentVoucher;
   static const rPaymentVouchersList = AppRoutes.paymentVouchersList;
-  // ===== وكيل التأمين =====
+// ===== ظˆظƒظٹظ„ ط§ظ„طھط£ظ…ظٹظ† =====
   static const rInsuranceRoot = AppRoutes.insuranceAgentRoot;
   static const rInsuranceHome = AppRoutes.insuranceAgentHome;
   static const rInsuranceAddNew = AppRoutes.insuranceAgentAddNew;
@@ -168,10 +169,9 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
-    _widthAnim = Tween<double>(
-      begin: 300,
-      end: 80,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _widthAnim = Tween<double>(begin: 300, end: 80).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
     _restoreCollapse();
   }
 
@@ -250,10 +250,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     _isNavigating = true;
     try {
       if (!mounted) return;
-      await Navigator.of(
-        context,
-        rootNavigator: true,
-      ).pushReplacementNamed(route);
+      await Navigator.of(context, rootNavigator: true)
+          .pushReplacementNamed(route);
     } finally {
       _isNavigating = false;
     }
@@ -267,21 +265,18 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     final sel = await showDialog<String>(
       context: context,
       builder: (ctx) => AdaptiveAlertDialog(
-        title: const Text('إضافة جهة'),
-        content: const Text('اختر نوع الجهة:'),
+        title: const Text('ط¥ط¶ط§ظپط© ط¬ظ‡ط©'),
+        content: const Text('ط§ط®طھط± ظ†ظˆط¹ ط§ظ„ط¬ظ‡ط©:'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop('client'),
-            child: const Text('عميل'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop('client'),
+              child: const Text('ط¹ظ…ظٹظ„')),
           FilledButton(
-            onPressed: () => Navigator.of(ctx).pop('supplier'),
-            child: const Text('مورد'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop('supplier'),
+              child: const Text('ظ…ظˆط±ط¯')),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(null),
-            child: const Text('إلغاء'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('ط¥ظ„ط؛ط§ط،')),
         ],
       ),
     );
@@ -298,21 +293,18 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     final sel = await showDialog<String>(
       context: context,
       builder: (ctx) => AdaptiveAlertDialog(
-        title: const Text('الذمم'),
-        content: const Text('اختر نوع الذمم:'),
+        title: const Text('ط§ظ„ط°ظ…ظ…'),
+        content: const Text('ط§ط®طھط± ظ†ظˆط¹ ط§ظ„ط°ظ…ظ…:'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop('ar'),
-            child: const Text('ذمم العملاء'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop('ar'),
+              child: const Text('ط°ظ…ظ… ط§ظ„ط¹ظ…ظ„ط§ط،')),
           FilledButton(
-            onPressed: () => Navigator.of(ctx).pop('ap'),
-            child: const Text('ذمم الموردين'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop('ap'),
+              child: const Text('ط°ظ…ظ… ط§ظ„ظ…ظˆط±ط¯ظٹظ†')),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(null),
-            child: const Text('إلغاء'),
-          ),
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('ط¥ظ„ط؛ط§ط،')),
         ],
       ),
     );
@@ -399,102 +391,119 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   Widget build(BuildContext context) {
     final hasSearch = _searchQuery.trim().isNotEmpty;
 
-    // 1) إصلاح المركبات
+    // 1) ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط§طھ
     final repairsItems = [
-      (Icons.dashboard, 'شاشة الإصلاحات', rRepairsDashboard),
-      (Icons.add, 'إدخال مركبة جديدة', rRepairsAdd),
-      (Icons.list, 'قائمة المركبات', rVehiclesList),
-      (Icons.bar_chart, 'تقارير الإصلاح', rRepairReports),
+      (Icons.dashboard, 'ط´ط§ط´ط© ط§ظ„ط¥طµظ„ط§ط­ط§طھ', rRepairsDashboard),
+      (Icons.add, 'ط¥ط¯ط®ط§ظ„ ظ…ط±ظƒط¨ط© ط¬ط¯ظٹط¯ط©', rRepairsAdd),
+      (Icons.list, 'ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط±ظƒط¨ط§طھ', rVehiclesList),
+      (Icons.bar_chart, 'طھظ‚ط§ط±ظٹط± ط§ظ„ط¥طµظ„ط§ط­', rRepairReports),
     ].where((e) => _matches(e.$2)).toList();
 
-    // 2) شؤون الموظفين
+    // 2) ط´ط¤ظˆظ† ط§ظ„ظ…ظˆط¸ظپظٹظ†
     final employeesItems = [
-      (Icons.list_alt, 'قائمة الموظفين', rEmpList),
-      (Icons.person_add, 'إضافة موظف', rEmpAdd),
-      (Icons.receipt_long, 'الرواتب', rEmpSalaries),
-      (Icons.savings, 'السلف والمكافآت', rEmpAdvances),
-      (Icons.access_time, 'الحضور والانصراف', rEmpAttendance),
+      (Icons.list_alt, 'ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ظˆط¸ظپظٹظ†', rEmpList),
+      (Icons.person_add, 'ط¥ط¶ط§ظپط© ظ…ظˆط¸ظپ', rEmpAdd),
+      (Icons.receipt_long, 'ط§ظ„ط±ظˆط§طھط¨', rEmpSalaries),
+      (Icons.savings, 'ط§ظ„ط³ظ„ظپ ظˆط§ظ„ظ…ظƒط§ظپط¢طھ', rEmpAdvances),
+      (Icons.access_time, 'ط§ظ„ط­ط¶ظˆط± ظˆط§ظ„ط§ظ†طµط±ط§ظپ', rEmpAttendance),
     ].where((e) => _matches(e.$2)).toList();
 
-    // 3) المشتريات
+    // 3) ط§ظ„ظ…ط´طھط±ظٹط§طھ
     final purchasesItems = [
-      (Icons.add, 'إدخال مشتريات', rPurchCreate),
-      (Icons.list_alt, 'قائمة المشتريات', AppRoutes.purchasesList),
+      (Icons.add, 'ط¥ط¯ط®ط§ظ„ ظ…ط´طھط±ظٹط§طھ', rPurchCreate),
+      (
+        Icons.list_alt,
+        'ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط´طھط±ظٹط§طھ',
+        AppRoutes.purchasesList
+      ),
     ];
 
-    // 4) الشيكات
+    // 4) ط§ظ„ط´ظٹظƒط§طھ
     final chequesItems = [
-      (Icons.dashboard, 'شاشة الشيكات', rChequesDashboard),
-      (Icons.add, 'إضافة شيك', rChequesAdd),
-      (Icons.list, 'قائمة الشيكات', rChequesList),
-      (Icons.call_received, 'شيكات واردة', rChequesIncoming),
+      (Icons.dashboard, 'ط´ط§ط´ط© ط§ظ„ط´ظٹظƒط§طھ', rChequesDashboard),
+      (Icons.add, 'ط¥ط¶ط§ظپط© ط´ظٹظƒ', rChequesAdd),
+      (Icons.list, 'ظ‚ط§ط¦ظ…ط© ط§ظ„ط´ظٹظƒط§طھ', rChequesList),
+      (Icons.call_received, 'ط´ظٹظƒط§طھ ظˆط§ط±ط¯ط©', rChequesIncoming),
     ].where((e) => _matches(e.$2)).toList();
 
-    // 5) العملاء والموردون
+    // 5) ط§ظ„ط¹ظ…ظ„ط§ط، ظˆط§ظ„ظ…ظˆط±ط¯ظˆظ†
     final clientsSuppliersItems = <Widget>[];
-    if (_matches('قائمة العملاء')) {
-      clientsSuppliersItems.add(
-        _tile(icon: Icons.people, title: 'قائمة العملاء', route: rClients),
-      );
+    if (_matches('ظ‚ط§ط¦ظ…ط© ط§ظ„ط¹ظ…ظ„ط§ط،')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.people,
+          title: 'ظ‚ط§ط¦ظ…ط© ط§ظ„ط¹ظ…ظ„ط§ط،',
+          route: rClients));
     }
 
-    if (_matches('إضافة عميل/مورد')) {
-      clientsSuppliersItems.add(
-        _actionTile(
-          icon: Icons.person_add_alt_1,
-          title: 'إضافة عميل/مورد',
-          onTap: _navigateAddParty,
-        ),
-      );
+    if (_matches('ط¥ط¶ط§ظپط© ط¹ظ…ظٹظ„/ظ…ظˆط±ط¯')) {
+      clientsSuppliersItems.add(_actionTile(
+        icon: Icons.person_add_alt_1,
+        title: 'ط¥ط¶ط§ظپط© ط¹ظ…ظٹظ„/ظ…ظˆط±ط¯',
+        onTap: _navigateAddParty,
+      ));
     }
-    if (_matches('الذمم المدينة والدائنة')) {
-      clientsSuppliersItems.add(
-        _actionTile(
-          icon: Icons.account_balance_wallet,
-          title: 'الذمم المدينة والدائنة',
-          onTap: _navigateAgingBoth,
-        ),
-      );
+    if (_matches('ط§ظ„ط°ظ…ظ… ط§ظ„ظ…ط¯ظٹظ†ط© ظˆط§ظ„ط¯ط§ط¦ظ†ط©')) {
+      clientsSuppliersItems.add(_actionTile(
+        icon: Icons.account_balance_wallet,
+        title: 'ط§ظ„ط°ظ…ظ… ط§ظ„ظ…ط¯ظٹظ†ط© ظˆط§ظ„ط¯ط§ط¦ظ†ط©',
+        onTap: _navigateAgingBoth,
+      ));
     }
 
-    // 6) المالية
+    // 6) ط§ظ„ظ…ط§ظ„ظٹط©
     final financeItems = [
-      (Icons.dashboard, 'لوحة مالية', rFinanceDashboard),
-      (Icons.list_alt, 'قيود اليومية', rJournalEntries),
-      (Icons.menu_book, 'دفتر الأستاذ', rFinanceAccountLedger),
-      (Icons.stacked_bar_chart, 'قائمة الدخل', rIncomeStatement),
+      (Icons.dashboard, 'ظ„ظˆط­ط© ظ…ط§ظ„ظٹط©', rFinanceDashboard),
+      (Icons.list_alt, 'ظ‚ظٹظˆط¯ ط§ظ„ظٹظˆظ…ظٹط©', rJournalEntries),
+      (Icons.menu_book, 'ط¯ظپطھط± ط§ظ„ط£ط³طھط§ط°', rFinanceAccountLedger),
+      (Icons.stacked_bar_chart, 'ظ‚ط§ط¦ظ…ط© ط§ظ„ط¯ط®ظ„', rIncomeStatement),
       (
         Icons.account_balance_wallet,
-        'الميزانية العمومية',
-        rReportsBalanceSheet,
+        'ط§ظ„ظ…ظٹط²ط§ظ†ظٹط© ط§ظ„ط¹ظ…ظˆظ…ظٹط©',
+        rReportsBalanceSheet
       ),
     ].where((e) => _matches(e.$2)).toList();
 
-    // ===== NEW: سندات مالية =====
+    // ===== NEW: ط³ظ†ط¯ط§طھ ظ…ط§ظ„ظٹط© =====
     final vouchersItems = [
-      (Icons.arrow_downward, 'سند قبض', rReceiptVoucher),
-      (Icons.list_alt, 'قائمة سندات القبض', rReceiptVouchersList),
-      (Icons.arrow_upward, 'سند صرف', rPaymentVoucher),
-      (Icons.list, 'قائمة سندات الصرف', rPaymentVouchersList),
+      (Icons.arrow_downward, 'ط³ظ†ط¯ ظ‚ط¨ط¶', rReceiptVoucher),
+      (
+        Icons.list_alt,
+        'ظ‚ط§ط¦ظ…ط© ط³ظ†ط¯ط§طھ ط§ظ„ظ‚ط¨ط¶',
+        rReceiptVouchersList
+      ),
+      (Icons.arrow_upward, 'ط³ظ†ط¯ طµط±ظپ', rPaymentVoucher),
+      (Icons.list, 'ظ‚ط§ط¦ظ…ط© ط³ظ†ط¯ط§طھ ط§ظ„طµط±ظپ', rPaymentVouchersList),
     ].where((e) => _matches(e.$2)).toList();
-    // ===== NEW: وكيل التأمين =====
+// ===== NEW: ظˆظƒظٹظ„ ط§ظ„طھط£ظ…ظٹظ† =====
     final insuranceAgentItems = [
-      (Icons.home, 'الشاشة الرئيسية', rInsuranceHome),
-      (Icons.add_circle_outline, ' إضافة تأمين جديد', rInsuranceAddNew),
-      (Icons.calculate, 'حاسبة التأمين', rInsuranceCalculator),
-      (Icons.list_alt, 'قائمة التأمينات', rInsurancePoliciesList),
-      (Icons.contacts, 'جهات الاتصال', rInsuranceContacts),
-      (Icons.folder_shared, 'محافظ المنتجين', rInsuranceProducers),
-      (Icons.account_balance_wallet, 'المالية', rInsuranceFinance),
-      (Icons.notifications_active, 'التنبيهات والمتابعة', rInsuranceAlerts),
-      (Icons.print, 'التقارير والطباعة', rInsuranceReports),
+      (Icons.home, 'ط§ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط©', rInsuranceHome),
+      (
+        Icons.add_circle_outline,
+        ' ط¥ط¶ط§ظپط© طھط£ظ…ظٹظ† ط¬ط¯ظٹط¯',
+        rInsuranceAddNew
+      ),
+      (Icons.calculate, 'ط­ط§ط³ط¨ط© ط§ظ„طھط£ظ…ظٹظ†', rInsuranceCalculator),
+      (Icons.list_alt, 'ظ‚ط§ط¦ظ…ط© ط§ظ„طھط£ظ…ظٹظ†ط§طھ', rInsurancePoliciesList),
+      (Icons.contacts, 'ط¬ظ‡ط§طھ ط§ظ„ط§طھطµط§ظ„', rInsuranceContacts),
+      (Icons.folder_shared, 'ظ…ط­ط§ظپط¸ ط§ظ„ظ…ظ†طھط¬ظٹظ†', rInsuranceProducers),
+      (Icons.account_balance_wallet, 'ط§ظ„ظ…ط§ظ„ظٹط©', rInsuranceFinance),
+      (
+        Icons.notifications_active,
+        'ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ظˆط§ظ„ظ…طھط§ط¨ط¹ط©',
+        rInsuranceAlerts
+      ),
+      (Icons.print, 'ط§ظ„طھظ‚ط§ط±ظٹط± ظˆط§ظ„ط·ط¨ط§ط¹ط©', rInsuranceReports),
     ].where((e) => _matches(e.$2)).toList();
 
-    // 7) التقارير
+    // 7) ط§ظ„طھظ‚ط§ط±ظٹط±
     final reportsItems = [
-      (Icons.dashboard, 'لوحة التقارير', rReportsDashboard),
-      (Icons.check_circle, 'تقارير حضور وغياب', rReportsAttendance),
-      (Icons.balance, 'تقارير مالية', rReportsTrialBalance),
+      (Icons.dashboard, 'ظ„ظˆط­ط© ط§ظ„طھظ‚ط§ط±ظٹط±', rReportsDashboard),
+      (
+        Icons.check_circle,
+        'طھظ‚ط§ط±ظٹط± ط­ط¶ظˆط± ظˆط؛ظٹط§ط¨',
+        rReportsAttendance
+      ),
+      (Icons.balance, 'طھظ‚ط§ط±ظٹط± ظ…ط§ظ„ظٹط©', rReportsTrialBalance),
     ].where((e) => _matches(e.$2)).toList();
 
     return AnimatedBuilder(
@@ -502,7 +511,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       builder: (_, __) => Material(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: SizedBox(
-          width: context.isDesktopWidth ? _widthAnim.value : double.infinity,
+          width: _widthAnim.value,
           child: Column(
             children: [
               SidebarHeader(
@@ -510,7 +519,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                 onToggle: _toggleCollapse,
                 showToggle: context.isDesktopWidth,
               ),
-              // إخفاء مربع البحث بدون حذفه
+// ط¥ط®ظپط§ط، ظ…ط±ط¨ط¹ ط§ظ„ط¨ط­ط« ط¨ط¯ظˆظ† ط­ط°ظپظ‡
               Visibility(
                 visible: false,
                 maintainState: true,
@@ -522,7 +531,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         child: SidebarSearch(
                           initialQuery: _searchQuery,
                           onChanged: (q) => setState(() => _searchQuery = q),
-                          hintText: 'بحث...',
+                          hintText: 'ط¨ط­ط«...',
                         ),
                       )
                     : const SizedBox.shrink(),
@@ -532,93 +541,82 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                   padding: EdgeInsets.zero,
                   children: [
                     _tile(
-                      icon: Icons.dashboard,
-                      title: 'لوحة التحكم',
-                      route: rDashboard,
-                    ),
+                        icon: Icons.dashboard,
+                        title: 'ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…',
+                        route: rDashboard),
 
-                    // إصلاح المركبات
+                    // ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط§طھ
                     if (repairsItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.build,
-                        title: 'إصلاح المركبات',
+                        title: 'ط¥طµظ„ط§ط­ ط§ظ„ظ…ط±ظƒط¨ط§طھ',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rRepairsRoot) ??
                                 false,
                         children: repairsItems
-                            .map(
-                              (e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3),
-                            )
+                            .map((e) =>
+                                _tile(icon: e.$1, title: e.$2, route: e.$3))
                             .toList(),
                       ),
-                    // ===== NEW: وكيل التأمين =====
+                    // ===== NEW: ظˆظƒظٹظ„ ط§ظ„طھط£ظ…ظٹظ† =====
                     if (insuranceAgentItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.verified_user,
-                        title: 'وكيل التأمين',
+                        title: 'ظˆظƒظٹظ„ ط§ظ„طھط£ظ…ظٹظ†',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rInsuranceRoot) ??
                                 false,
                         children: insuranceAgentItems
-                            .map(
-                              (e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3),
-                            )
+                            .map((e) =>
+                                _tile(icon: e.$1, title: e.$2, route: e.$3))
                             .toList(),
                       ),
 
-                    // ===== NEW: السندات المالية =====
+                    // ===== NEW: ط§ظ„ط³ظ†ط¯ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© =====
                     if (vouchersItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.receipt_long,
-                        title: 'السندات المالية',
+                        title: 'ط§ظ„ط³ظ†ط¯ط§طھ ط§ظ„ظ…ط§ظ„ظٹط©',
                         isInitiallyExpanded:
                             widget.currentRoute?.contains('voucher') ?? false,
                         children: vouchersItems
-                            .map(
-                              (e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3),
-                            )
+                            .map((e) =>
+                                _tile(icon: e.$1, title: e.$2, route: e.$3))
                             .toList(),
                       ),
 
-                    // شؤون الموظفين
+                    // ط´ط¤ظˆظ† ط§ظ„ظ…ظˆط¸ظپظٹظ†
                     if (employeesItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.people_alt,
-                        title: 'شؤون الموظفين',
+                        title: 'ط´ط¤ظˆظ† ط§ظ„ظ…ظˆط¸ظپظٹظ†',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rEmpRoot) ?? false,
                         children: employeesItems
-                            .map(
-                              (e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3),
-                            )
+                            .map((e) =>
+                                _tile(icon: e.$1, title: e.$2, route: e.$3))
                             .toList(),
                       ),
 
-                    // مشتريات
+                    // ظ…ط´طھط±ظٹط§طھ
                     if (purchasesItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.shopping_cart,
-                        title: 'المشتريات',
+                        title: 'ط§ظ„ظ…ط´طھط±ظٹط§طھ',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rPurchRoot) ??
                                 false,
                         children: purchasesItems
-                            .map(
-                              (e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3),
-                            )
+                            .map((e) =>
+                                _tile(icon: e.$1, title: e.$2, route: e.$3))
                             .toList(),
                       ),
 
-                    // العملاء والموردون
+                    // ط§ظ„ط¹ظ…ظ„ط§ط، ظˆط§ظ„ظ…ظˆط±ط¯ظˆظ†
                     if (clientsSuppliersItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.group,
-                        title: 'العملاء والموردون',
+                        title: 'ط§ظ„ط¹ظ…ظ„ط§ط، ظˆط§ظ„ظ…ظˆط±ط¯ظˆظ†',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith('/clients') ==
                                     true ||
@@ -627,152 +625,129 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         children: clientsSuppliersItems,
                       ),
 
-                    // المالية
+                    // ط§ظ„ظ…ط§ظ„ظٹط©
                     if (financeItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.account_balance,
-                        title: 'المالية',
+                        title: 'ط§ظ„ظ…ط§ظ„ظٹط©',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rFinanceRoot) ??
                                 false,
                         children: financeItems
-                            .map(
-                              (e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3),
-                            )
+                            .map((e) =>
+                                _tile(icon: e.$1, title: e.$2, route: e.$3))
                             .toList(),
                       ),
 
-                    // شيكات
+                    // ط´ظٹظƒط§طھ
                     if (chequesItems.isNotEmpty || !hasSearch)
                       _group(
                         icon: Icons.receipt_long,
-                        title: 'الشيكات',
+                        title: 'ط§ظ„ط´ظٹظƒط§طھ',
                         isInitiallyExpanded:
                             widget.currentRoute?.startsWith(rChequesRoot) ??
                                 false,
                         children: chequesItems
-                            .map(
-                              (e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3),
-                            )
+                            .map((e) =>
+                                _tile(icon: e.$1, title: e.$2, route: e.$3))
                             .toList(),
                       ),
 
-                    // ===== إصدار لاحق (قسم غير فعّال) =====
+// ===== ط¥طµط¯ط§ط± ظ„ط§ط­ظ‚ (ظ‚ط³ظ… ط؛ظٹط± ظپط¹ظ‘ط§ظ„) =====
                     _group(
                       icon: Icons.lock_clock,
-                      title: 'إصدار لاحق',
+                      title: 'ط¥طµط¯ط§ط± ظ„ط§ط­ظ‚',
                       isInitiallyExpanded: false,
                       children: [
                         ListTile(
                           dense: true,
                           title: Text(
-                            'إدارة الشيكات',
+                            'ط¥ط¯ط§ط±ط© ط§ظ„ط´ظٹظƒط§طھ',
                             style: TextStyle(color: Colors.grey),
                           ),
-                          leading: const Icon(
-                            Icons.receipt_long,
-                            color: Colors.grey,
-                          ),
-                          onTap: null, // غير مفعّل
+                          leading: const Icon(Icons.receipt_long,
+                              color: Colors.grey),
+                          onTap: null, // ط؛ظٹط± ظ…ظپط¹ظ‘ظ„
                         ),
                         ListTile(
                           dense: true,
                           title: Text(
-                            'ذمم العملاء والموردين',
+                            'ط°ظ…ظ… ط§ظ„ط¹ظ…ظ„ط§ط، ظˆط§ظ„ظ…ظˆط±ط¯ظٹظ†',
                             style: TextStyle(color: Colors.grey),
                           ),
-                          leading: const Icon(
-                            Icons.account_balance_wallet,
-                            color: Colors.grey,
-                          ),
+                          leading: const Icon(Icons.account_balance_wallet,
+                              color: Colors.grey),
                           onTap: null,
                         ),
                         ListTile(
                           dense: true,
                           title: Text(
-                            'التقارير المالية المتقدمة',
+                            'ط§ظ„طھظ‚ط§ط±ظٹط± ط§ظ„ظ…ط§ظ„ظٹط© ط§ظ„ظ…طھظ‚ط¯ظ…ط©',
                             style: TextStyle(color: Colors.grey),
                           ),
-                          leading: const Icon(
-                            Icons.assessment,
-                            color: Colors.grey,
-                          ),
+                          leading:
+                              const Icon(Icons.assessment, color: Colors.grey),
                           onTap: null,
                         ),
                         ListTile(
                           dense: true,
                           title: Text(
-                            'إدارة الفواتير المتقدمة',
+                            'ط¥ط¯ط§ط±ط© ط§ظ„ظپظˆط§طھظٹط± ط§ظ„ظ…طھظ‚ط¯ظ…ط©',
                             style: TextStyle(color: Colors.grey),
                           ),
-                          leading: const Icon(
-                            Icons.request_page,
-                            color: Colors.grey,
-                          ),
+                          leading: const Icon(Icons.request_page,
+                              color: Colors.grey),
                           onTap: null,
                         ),
                         ListTile(
                           dense: true,
                           title: Text(
-                            'تقارير الرواتب',
+                            'طھظ‚ط§ط±ظٹط± ط§ظ„ط±ظˆط§طھط¨',
                             style: TextStyle(color: Colors.grey),
                           ),
-                          leading: const Icon(
-                            Icons.payments,
-                            color: Colors.grey,
-                          ),
+                          leading:
+                              const Icon(Icons.payments, color: Colors.grey),
                           onTap: null,
                         ),
                         ListTile(
                           dense: true,
                           title: Text(
-                            'إدارة المخزون',
+                            'ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط®ط²ظˆظ†',
                             style: TextStyle(color: Colors.grey),
                           ),
-                          leading: const Icon(
-                            Icons.inventory_2,
-                            color: Colors.grey,
-                          ),
+                          leading:
+                              const Icon(Icons.inventory_2, color: Colors.grey),
                           onTap: null,
                         ),
                       ],
                     ),
 
-                    // الإعدادات
+                    // ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ
                     _group(
                       icon: Icons.settings,
-                      title: 'الإعدادات',
+                      title: 'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ',
                       isInitiallyExpanded:
                           widget.currentRoute?.startsWith(rSettingsRoot) ??
                               false,
                       children: [
                         _tile(
-                          icon: Icons.store,
-                          title: 'إعدادات الورشة',
-                          route: rSettingsWorkshop,
-                        ),
+                            icon: Icons.store,
+                            title: 'ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظˆط±ط´ط©',
+                            route: rSettingsWorkshop),
                         _tile(
-                          icon: Icons.support_agent,
-                          title: 'الدعم الفني',
-                          route: rTechnicalSupport,
-                        ),
+                            icon: Icons.support_agent,
+                            title: 'ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ',
+                            route: rTechnicalSupport),
                         ListTile(
-                          leading: const Icon(
-                            Icons.logout,
-                            color: Colors.redAccent,
-                          ),
+                          leading:
+                              const Icon(Icons.logout, color: Colors.redAccent),
                           title: _isCollapsed
                               ? const SizedBox.shrink()
-                              : const Text(
-                                  'تسجيل خروج',
-                                  style: TextStyle(color: Colors.redAccent),
-                                ),
+                              : const Text('طھط³ط¬ظٹظ„ ط®ط±ظˆط¬',
+                                  style: TextStyle(color: Colors.redAccent)),
                           dense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                           onTap: () {
                             final scaffoldState = Scaffold.maybeOf(context);
                             if (scaffoldState?.isDrawerOpen == true) {
@@ -829,11 +804,13 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      hasSearch ? 'لا توجد نتائج مطابقة' : 'لا توجد عناصر',
+                      hasSearch
+                          ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ…ط·ط§ط¨ظ‚ط©'
+                          : 'ظ„ط§ طھظˆط¬ط¯ ط¹ظ†ط§طµط±',
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ),
-                ),
+                )
               ]
             : children,
       ),

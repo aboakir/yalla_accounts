@@ -1,5 +1,5 @@
 name: yalla_accounts
-description: تطبيق Yalla المحاسبي
+description: طھط·ط¨ظٹظ‚ Yalla ط§ظ„ظ…ط­ط§ط³ط¨ظٹ
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -8,42 +8,43 @@ environment:
   sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
+  local_auth: ^3.0.2
   flutter:
     sdk: flutter
   synchronized: ^3.1.0
 
-  # وسائط ومعالجة صور
+  # ظˆط³ط§ط¦ط· ظˆظ…ط¹ط§ظ„ط¬ط© طµظˆط±
   image: ^4.2.0
   image_picker: ^1.1.2
   share_plus: ^10.1.2
   file_picker: ^8.1.2
 
-  # واجهة وأساسيات
+  # ظˆط§ط¬ظ‡ط© ظˆط£ط³ط§ط³ظٹط§طھ
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
   iconsax: ^0.0.8
   responsive_builder: ^0.7.0
 
-  # إدارة الحالة
+  # ط¥ط¯ط§ط±ط© ط§ظ„ط­ط§ظ„ط©
   flutter_riverpod: ^2.4.9
 
-  # التوجيه
+  # ط§ظ„طھظˆط¬ظٹظ‡
   go_router: ^14.2.3
 
-  # اللغات والتوطين
+  # ط§ظ„ظ„ط؛ط§طھ ظˆط§ظ„طھظˆط·ظٹظ†
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
 
-  # التخزين ومعلومات الجهاز
+  # ط§ظ„طھط®ط²ظٹظ† ظˆظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط¬ظ‡ط§ط²
   shared_preferences: ^2.3.3
   path_provider: ^2.1.4
   package_info_plus: ^8.1.0
   permission_handler: ^11.3.1
-  device_info_plus: ^10.1.0       # ← تمت إضافتها هنا
+  device_info_plus: ^10.1.0       # â†گ طھظ…طھ ط¥ط¶ط§ظپطھظ‡ط§ ظ‡ظ†ط§
   win32: ^5.5.0
 
-  # قاعدة البيانات (موبايل + سطح المكتب)
+  # ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ (ظ…ظˆط¨ط§ظٹظ„ + ط³ط·ط­ ط§ظ„ظ…ظƒطھط¨)
   sqflite: ^2.4.1
   sqflite_common_ffi: ^2.3.3
   sqlite3_flutter_libs: ^0.5.24
@@ -51,12 +52,12 @@ dependencies:
   crypto: ^3.0.6
   cryptography: ^2.8.1
 
-  # PDF / طباعة / تصدير ملفات
+  # PDF / ط·ط¨ط§ط¹ط© / طھطµط¯ظٹط± ظ…ظ„ظپط§طھ
   pdf: ^3.11.1
   printing: ^5.13.0
   open_file: ^3.4.0
 
-  # الرسوم والبيانات
+  # ط§ظ„ط±ط³ظˆظ… ظˆط§ظ„ط¨ظٹط§ظ†ط§طھ
   fl_chart: ^0.68.0
   pie_chart: ^5.4.0
 
@@ -64,7 +65,7 @@ dependencies:
   excel: ^4.0.6
   archive: ^3.4.0
 
-  # متفرقات
+  # ظ…طھظپط±ظ‚ط§طھ
   uuid: ^4.4.0
   carousel_slider: ^5.0.0
   smooth_page_indicator: ^1.2.0+3

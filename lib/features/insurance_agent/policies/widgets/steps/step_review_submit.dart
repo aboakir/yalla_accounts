@@ -211,7 +211,6 @@ class StepReviewSubmit extends StatelessWidget {
                 : () async {
                     try {
                       await onSave();
-                      if (!context.mounted) return;
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -221,7 +220,6 @@ class StepReviewSubmit extends StatelessWidget {
 
                       onSaved();
                     } catch (e) {
-                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('❌ فشل حفظ البوليصة: $e'),

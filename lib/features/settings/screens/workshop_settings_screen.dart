@@ -184,7 +184,6 @@ class _WorkshopSettingsScreenState
 
     final userService = ref.read(userServiceProvider);
     final owner = await userService.getOwner();
-    if (!mounted) return;
 
     if (owner == null) {
       setState(() => _generatingCode = false);

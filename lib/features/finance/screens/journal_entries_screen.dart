@@ -438,7 +438,6 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
         ORDER BY ge.date ASC, ge.id ASC
       ''', [repairId, ...customerAccounts]);
 
-      if (!mounted) return;
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -877,7 +876,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
           controller: horizontal,
           scrollDirection: Axis.horizontal,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 0),
+            constraints: const BoxConstraints(minWidth: 1200),
             child: Scrollbar(
               controller: vertical,
               thumbVisibility: true,
@@ -1041,7 +1040,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
           controller: horizontal,
           scrollDirection: Axis.horizontal,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 0),
+            constraints: const BoxConstraints(minWidth: 1000),
             child: Scrollbar(
               controller: vertical,
               thumbVisibility: true,

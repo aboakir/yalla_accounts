@@ -98,16 +98,10 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: EdgeInsets.all(
-        MediaQuery.sizeOf(context).width < 600 ? 16 : 40,
-      ),
+      insetPadding: const EdgeInsets.all(40),
       child: Container(
-        width: MediaQuery.sizeOf(context).width < 600
-            ? MediaQuery.sizeOf(context).width - 32
-            : 780,
-        height: MediaQuery.sizeOf(context).width < 600
-            ? MediaQuery.sizeOf(context).height * 0.82
-            : 600,
+        width: 780,
+        height: 600,
         padding: const EdgeInsets.all(26),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -115,7 +109,10 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
             const Text(
               "اختيار موظف وسداد راتب أو دفعة",
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 18),
 
@@ -136,58 +133,58 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _filtered.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "لا يوجد موظفين مطابقين",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _filtered.length,
-                      itemBuilder: (_, i) {
-                        final row = _filtered[i];
-                        final selected =
-                            _selectedEmployee?['employeePid'] ==
-                            row['employeePid'];
+                      ? const Center(
+                          child: Text(
+                            "لا يوجد موظفين مطابقين",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filtered.length,
+                          itemBuilder: (_, i) {
+                            final row = _filtered[i];
+                            final selected =
+                                _selectedEmployee?['employeePid'] ==
+                                    row['employeePid'];
 
-                        return InkWell(
-                          onTap: () => _chooseEmployee(row),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            margin: const EdgeInsets.symmetric(vertical: 5),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? Colors.green.shade50
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: selected
-                                    ? Colors.green
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  row['fullName'] ?? '',
-                                  textAlign: TextAlign.right,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
+                            return InkWell(
+                              onTap: () => _chooseEmployee(row),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                margin: const EdgeInsets.symmetric(vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? Colors.green.shade50
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: selected
+                                        ? Colors.green
+                                        : Colors.grey.shade300,
                                   ),
                                 ),
-                                if (row['jobTitle'] != null)
-                                  Text(
-                                    row['jobTitle'],
-                                    textAlign: TextAlign.right,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      row['fullName'] ?? '',
+                                      textAlign: TextAlign.right,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    if (row['jobTitle'] != null)
+                                      Text(
+                                        row['jobTitle'],
+                                        textAlign: TextAlign.right,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
 
             const SizedBox(height: 10),
@@ -199,9 +196,8 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
               TextField(
                 controller: _amountCtrl,
                 textAlign: TextAlign.right,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
                   hintText: "المبلغ",
                   border: OutlineInputBorder(),
@@ -216,9 +212,7 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
                   DropdownMenuItem(value: "CASH", child: Text("نقدًا")),
                   DropdownMenuItem(value: "BANK", child: Text("بنك")),
                   DropdownMenuItem(
-                    value: "TRANSFER",
-                    child: Text("تحويل بنكي"),
-                  ),
+                      value: "TRANSFER", child: Text("تحويل بنكي")),
                 ],
                 onChanged: (v) => setState(() => _selectedMethod = v!),
               ),
@@ -236,9 +230,8 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
                   if (d != null) setState(() => _selectedDate = d);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration:
+                      const InputDecoration(border: OutlineInputBorder()),
                   child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
                 ),
               ),
@@ -265,9 +258,7 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 14,
-                    ),
+                        horizontal: 32, vertical: 14),
                   ),
                   child: const Text(
                     "تأكيد السداد",

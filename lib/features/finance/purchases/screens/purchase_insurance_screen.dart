@@ -96,9 +96,8 @@ class _PurchaseInsuranceScreenState
 
     try {
       final amount = double.parse(_normalizeDigits(_amountCtrl.text.trim()));
-      final note = _noteCtrl.text.trim().isEmpty
-          ? 'تأمين'
-          : _noteCtrl.text.trim();
+      final note =
+          _noteCtrl.text.trim().isEmpty ? 'تأمين' : _noteCtrl.text.trim();
 
       // ------------------------------------------------------------------
       // أهم نقطة: تجهيز Purchase Lines وفق نظام v51
@@ -111,36 +110,33 @@ class _PurchaseInsuranceScreenState
           "total": amount,
           "category": "OTHER",
           "note": note,
-        },
+        }
       ];
 
       // ------------------------------------------------------------------
       // استدعاء PurchaseProvider.notifier.add() بصيغته المتوافقة v51
       // ------------------------------------------------------------------
-      await ref
-          .read(purchaseProvider.notifier)
-          .add(
-            supplierId: supplierId,
-            date: _date,
-            method: _method,
-            note: note,
-            items: [
-              {
-                "item": "تأمين",
-                "qty": 1.0,
-                "price": amount,
-                "total": amount,
-                "category": "OTHER",
-                "note": note,
-              },
-            ],
-          );
+      await ref.read(purchaseProvider.notifier).add(
+        supplierId: supplierId,
+        date: _date,
+        method: _method,
+        note: note,
+        items: [
+          {
+            "item": "تأمين",
+            "qty": 1.0,
+            "price": amount,
+            "total": amount,
+            "category": "OTHER",
+            "note": note,
+          }
+        ],
+      );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('تم الحفظ')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('تم الحفظ')));
 
       _formKey.currentState!.reset();
       _supplierIdCtrl.clear();
@@ -155,9 +151,8 @@ class _PurchaseInsuranceScreenState
       await _reload();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('فشل: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('فشل: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -183,126 +178,118 @@ class _PurchaseInsuranceScreenState
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'مشتريات — تأمين',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('مشتريات — تأمين',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
 
-              // Supplier ID
-              TextFormField(
-                controller: _supplierIdCtrl,
+            // Supplier ID
+            TextFormField(
+              controller: _supplierIdCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Supplier ID (رقمي)',
+                prefixIcon: Icon(Icons.badge_outlined),
+                border: OutlineInputBorder(),
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Supplier ID مطلوب' : null,
+            ),
+            const SizedBox(height: 12),
+
+            InkWell(
+              onTap: _pickDate,
+              child: InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Supplier ID (رقمي)',
-                  prefixIcon: Icon(Icons.badge_outlined),
+                  labelText: 'التاريخ',
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.event_outlined),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Supplier ID مطلوب'
-                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(df.format(_date)),
+                ),
               ),
-              const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 12),
 
-              InkWell(
-                onTap: _pickDate,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'التاريخ',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.event_outlined),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(df.format(_date)),
-                  ),
-                ),
+            // Amount
+            TextFormField(
+              controller: _amountCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'المبلغ',
+                prefixIcon: Icon(Icons.attach_money_outlined),
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 12),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return 'المبلغ مطلوب';
+                final n = double.tryParse(_normalizeDigits(v.trim()));
+                if (n == null || n <= 0) return 'مبلغ غير صالح';
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
 
-              // Amount
-              TextFormField(
-                controller: _amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'المبلغ',
-                  prefixIcon: Icon(Icons.attach_money_outlined),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'المبلغ مطلوب';
-                  final n = double.tryParse(_normalizeDigits(v.trim()));
-                  if (n == null || n <= 0) return 'مبلغ غير صالح';
-                  return null;
-                },
+            // Method
+            InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'طريقة الدفع',
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 12),
+              child: Column(children: [
+                RadioListTile<String>(
+                  value: 'cash',
+                  groupValue: _method,
+                  onChanged: (v) => setState(() => _method = v!),
+                  title: const Text('نقدي'),
+                  dense: true,
+                ),
+                RadioListTile<String>(
+                  value: 'bank',
+                  groupValue: _method,
+                  onChanged: (v) => setState(() => _method = v!),
+                  title: const Text('بنكي'),
+                  dense: true,
+                ),
+                RadioListTile<String>(
+                  value: 'credit',
+                  groupValue: _method,
+                  onChanged: (v) => setState(() => _method = v!),
+                  title: const Text('على الحساب'),
+                  dense: true,
+                ),
+              ]),
+            ),
+            const SizedBox(height: 12),
 
-              // Method
-              InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'طريقة الدفع',
-                  border: OutlineInputBorder(),
-                ),
-                child: Column(
-                  children: [
-                    RadioListTile<String>(
-                      value: 'cash',
-                      groupValue: _method,
-                      onChanged: (v) => setState(() => _method = v!),
-                      title: const Text('نقدي'),
-                      dense: true,
-                    ),
-                    RadioListTile<String>(
-                      value: 'bank',
-                      groupValue: _method,
-                      onChanged: (v) => setState(() => _method = v!),
-                      title: const Text('بنكي'),
-                      dense: true,
-                    ),
-                    RadioListTile<String>(
-                      value: 'credit',
-                      groupValue: _method,
-                      onChanged: (v) => setState(() => _method = v!),
-                      title: const Text('على الحساب'),
-                      dense: true,
-                    ),
-                  ],
-                ),
+            TextFormField(
+              controller: _noteCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'ملاحظة',
+                prefixIcon: Icon(Icons.note_outlined),
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 12),
 
-              TextFormField(
-                controller: _noteCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'ملاحظة',
-                  prefixIcon: Icon(Icons.note_outlined),
-                  border: OutlineInputBorder(),
-                ),
+            SizedBox(
+              height: 44,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: Text(_saving ? 'جارٍ الحفظ…' : 'حفظ'),
               ),
-              const SizedBox(height: 12),
-
-              SizedBox(
-                height: 44,
-                child: FilledButton.icon(
-                  onPressed: _saving ? null : _save,
-                  icon: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.save_outlined),
-                  label: Text(_saving ? 'جارٍ الحفم' : 'حفظ'),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ]),
         ),
       ),
     );
@@ -312,31 +299,29 @@ class _PurchaseInsuranceScreenState
     // --------------------------------------------------------------------------
     final list = Card(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Column(
-        children: [
-          const ListTile(title: Text('آخر مشتريات التأمين')),
-          const Divider(height: 0),
-          if (items.isEmpty)
-            const Padding(padding: EdgeInsets.all(16), child: Text('لا يوجد')),
-          if (items.isNotEmpty)
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: math.min(items.length, 10),
-              separatorBuilder: (_, __) => const Divider(height: 0),
-              itemBuilder: (_, i) {
-                final p = items[i];
-                return ListTile(
-                  leading: const Icon(Icons.verified_user_outlined),
-                  title: Text(
-                    '${df.format(p.date)}  •  ${MoneyFormatter.format(p.total)}',
-                  ),
-                  subtitle: Text('Supplier ID: ${p.supplierId ?? '-'}'),
-                );
-              },
-            ),
-        ],
-      ),
+      child: Column(children: [
+        const ListTile(title: Text('آخر مشتريات التأمين')),
+        const Divider(height: 0),
+        if (items.isEmpty)
+          const Padding(padding: EdgeInsets.all(16), child: Text('لا يوجد')),
+        if (items.isNotEmpty)
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: math.min(items.length, 10),
+            separatorBuilder: (_, __) => const Divider(height: 0),
+            itemBuilder: (_, i) {
+              final p = items[i];
+              return ListTile(
+                leading: const Icon(Icons.verified_user_outlined),
+                title: Text(
+                  '${df.format(p.date)}  •  ${MoneyFormatter.format(p.total)}',
+                ),
+                subtitle: Text('Supplier ID: ${p.supplierId ?? '-'}'),
+              );
+            },
+          ),
+      ]),
     );
 
     final content = ListView(children: [form, list]);
@@ -365,7 +350,9 @@ class _PurchaseInsuranceScreenState
       drawer: isDesktop
           ? null
           : const Drawer(
-              child: YallaSidebar(currentRoute: '/purchases/insurance'),
+              child: YallaSidebar(
+                currentRoute: '/purchases/insurance',
+              ),
             ),
       body: isDesktop
           ? AdaptiveRow(

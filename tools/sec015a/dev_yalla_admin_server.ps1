@@ -61,6 +61,50 @@ function Test-Password([string]$Password, $Record) {
     return (Test-FixedString $hash ([string]$Record.hash))
 }
 
+function Normalize-CustomerPhone([string]$Phone) {
+    $value = ($Phone -replace '[\s\-\(\)]', '')
+    if ($value -notmatch '^\+?[0-9]{8,15}$') { return '' }
+    return $value
+}
+
+function New-CustomerOtpCode {
+    $bytes = New-RandomBytes 4
+    $value = [BitConverter]::ToUInt32($bytes, 0) % 1000000
+    return $value.ToString('D6')
+}
+
+function Send-CustomerOtpSms([string]$Phone, [string]$Code, [string]$ChallengeId) {
+    $webhook = ([string]$env:YALLA_SMS_WEBHOOK_URL).Trim()
+    if ([string]::IsNullOrWhiteSpace($webhook)) {
+        # LOCAL DEVELOPMENT ONLY diagnostic. The code is never placed in the
+        # HTTP response or persisted as plaintext in server_state.json.
+        Write-Host "[CUSTOMER_OTP_DEV] challenge=$ChallengeId phone=$Phone code=$Code" -ForegroundColor Cyan
+        return 'DEV_DIAGNOSTIC'
+    }
+
+    $uri = $null
+    if (-not [Uri]::TryCreate($webhook, [UriKind]::Absolute, [ref]$uri) -or $uri.Scheme -ne 'https') {
+        throw 'YALLA_SMS_WEBHOOK_URL must be an absolute HTTPS URL.'
+    }
+
+    $headers = @{ 'X-Yalla-Event' = 'customer_phone_otp' }
+    $token = ([string]$env:YALLA_SMS_WEBHOOK_TOKEN).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($token)) {
+        $headers['Authorization'] = "Bearer $token"
+    }
+
+    $payload = @{
+        to = $Phone
+        message = "Yalla Accounts verification code: $Code"
+        purpose = 'FIRST_OWNER_SETUP'
+        challenge_id = $ChallengeId
+    } | ConvertTo-Json -Compress
+
+    [void](Invoke-RestMethod -Uri $uri.AbsoluteUri -Method Post -Headers $headers `
+        -ContentType 'application/json; charset=utf-8' -Body $payload -TimeoutSec 15)
+    return 'SMS_WEBHOOK'
+}
+
 function Protect-LocalText([string]$Text) {
     Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
     $plain = [System.Text.Encoding]::UTF8.GetBytes($Text)
@@ -437,9 +481,9 @@ if (Test-Path -LiteralPath $script:StatePath) {
 
 
 foreach ($name in @(
-    'organizations','onboarding_requests','subscriptions','licenses','devices',
-    'plans','features','entitlements','activations','renewals','overrides',
-    'security_events','audit_logs'
+    'organizations','onboarding_requests','customer_phone_verifications',
+    'subscriptions','licenses','devices','plans','features','entitlements',
+    'activations','renewals','overrides','security_events','audit_logs'
 )) {
     Ensure-StateCollection $name
 }
@@ -549,6 +593,194 @@ try {
 
             if ($method -eq 'GET' -and $path -eq '/health') {
                 Send-Json $context 200 @{ status = 'ok'; environment = 'LOCAL_DEVELOPMENT_ONLY'; enrolled = [bool]$script:State.enrolled }
+                continue
+            }
+
+
+            if ($method -eq 'POST' -and $path -eq '/v1/customer-phone-verification/start') {
+                $body = Get-RequestJson $request
+                $phone = Normalize-CustomerPhone ([string]$body.phone)
+                if ([string]::IsNullOrWhiteSpace($phone)) {
+                    Send-Json $context 400 @{ message = 'A valid phone number is required.' }
+                    continue
+                }
+
+                Ensure-StateCollection 'customer_phone_verifications'
+                $now = [DateTimeOffset]::UtcNow
+                $recent = @($script:State.customer_phone_verifications) |
+                    Where-Object { [string]$_.phone -eq $phone } |
+                    Sort-Object { [DateTimeOffset]::Parse([string]$_.created_at) } -Descending |
+                    Select-Object -First 1
+                if ($null -ne $recent -and
+                    -not [string]::IsNullOrWhiteSpace([string]$recent.resend_after_at) -and
+                    $now -lt [DateTimeOffset]::Parse([string]$recent.resend_after_at)) {
+                    Send-Json $context 429 @{
+                        message = 'Please wait before requesting another verification code.'
+                        resend_after_seconds = [Math]::Max(
+                            1,
+                            [Math]::Ceiling(
+                                ([DateTimeOffset]::Parse([string]$recent.resend_after_at) - $now).TotalSeconds
+                            )
+                        )
+                    }
+                    continue
+                }
+
+                $challengeId = ConvertTo-Base64Url (New-RandomBytes 24)
+                $code = New-CustomerOtpCode
+                $row = [pscustomobject][ordered]@{
+                    challenge_id = $challengeId
+                    phone = $phone
+                    purpose = 'FIRST_OWNER_SETUP'
+                    status = 'PENDING'
+                    otp_record = (New-PasswordRecord $code)
+                    attempts = 0
+                    max_attempts = 5
+                    created_at = $now.ToString('o')
+                    expires_at = $now.AddMinutes(5).ToString('o')
+                    resend_after_at = $now.AddSeconds(60).ToString('o')
+                    verified_at = $null
+                    verification_token_record = $null
+                    token_expires_at = $null
+                    consumed_at = $null
+                    delivery = $null
+                }
+                $script:State.customer_phone_verifications =
+                    @($script:State.customer_phone_verifications) + @($row)
+                Save-State
+
+                try {
+                    $delivery = Send-CustomerOtpSms $phone $code $challengeId
+                    $row.delivery = $delivery
+                    Save-State
+                } catch {
+                    $row.status = 'DELIVERY_FAILED'
+                    Save-State
+                    Send-Json $context 503 @{ message = 'SMS delivery provider is unavailable.' }
+                    continue
+                } finally {
+                    $code = $null
+                }
+
+                Add-Audit 'CUSTOMER.PHONE_OTP_START' 'phone_verification' $challengeId "Phone verification started for $phone"
+                Save-State
+                Send-Json $context 201 @{
+                    status = 'OTP_SENT'
+                    challenge_id = $challengeId
+                    delivery = $row.delivery
+                    expires_in_seconds = 300
+                    resend_after_seconds = 60
+                }
+                continue
+            }
+
+            if ($method -eq 'POST' -and $path -eq '/v1/customer-phone-verification/verify') {
+                $body = Get-RequestJson $request
+                $challengeId = ([string]$body.challenge_id).Trim()
+                $code = ([string]$body.code).Trim()
+                Ensure-StateCollection 'customer_phone_verifications'
+                $row = @($script:State.customer_phone_verifications) |
+                    Where-Object { [string]$_.challenge_id -eq $challengeId } |
+                    Select-Object -First 1
+
+                if ($null -eq $row) {
+                    Send-Json $context 404 @{ message = 'Phone verification challenge not found.' }
+                    continue
+                }
+                if ([string]$row.status -ne 'PENDING') {
+                    Send-Json $context 409 @{ message = 'Phone verification challenge is not pending.' }
+                    continue
+                }
+                if ([DateTimeOffset]::UtcNow -gt [DateTimeOffset]::Parse([string]$row.expires_at)) {
+                    $row.status = 'EXPIRED'
+                    Save-State
+                    Send-Json $context 410 @{ message = 'Phone verification challenge expired.' }
+                    continue
+                }
+
+                $row.attempts = [int]$row.attempts + 1
+                if ([int]$row.attempts -gt [int]$row.max_attempts) {
+                    $row.status = 'LOCKED'
+                    Save-State
+                    Send-Json $context 429 @{ message = 'Phone verification attempt limit reached.' }
+                    continue
+                }
+                if (-not (Test-Password $code $row.otp_record)) {
+                    if ([int]$row.attempts -ge [int]$row.max_attempts) {
+                        $row.status = 'LOCKED'
+                    }
+                    Save-State
+                    Send-Json $context 401 @{ message = 'Verification code is invalid.' }
+                    continue
+                }
+
+                $token = ConvertTo-Base64Url (New-RandomBytes 32)
+                $now = [DateTimeOffset]::UtcNow
+                $row.status = 'VERIFIED'
+                $row.verified_at = $now.ToString('o')
+                $row.otp_record = $null
+                $row.verification_token_record = New-PasswordRecord $token
+                $row.token_expires_at = $now.AddMinutes(10).ToString('o')
+                Add-Audit 'CUSTOMER.PHONE_OTP_VERIFY' 'phone_verification' $challengeId "Phone verified for $($row.phone)"
+                Save-State
+
+                Send-Json $context 200 @{
+                    status = 'VERIFIED'
+                    challenge_id = $challengeId
+                    phone = [string]$row.phone
+                    verification_token = $token
+                    token_expires_in_seconds = 600
+                }
+                $token = $null
+                continue
+            }
+
+            if ($method -eq 'POST' -and $path -eq '/v1/customer-phone-verification/consume') {
+                $body = Get-RequestJson $request
+                $challengeId = ([string]$body.challenge_id).Trim()
+                $phone = Normalize-CustomerPhone ([string]$body.phone)
+                $token = ([string]$body.verification_token).Trim()
+                Ensure-StateCollection 'customer_phone_verifications'
+                $row = @($script:State.customer_phone_verifications) |
+                    Where-Object { [string]$_.challenge_id -eq $challengeId } |
+                    Select-Object -First 1
+
+                if ($null -eq $row) {
+                    Send-Json $context 404 @{ message = 'Phone verification challenge not found.' }
+                    continue
+                }
+                if ([string]$row.status -ne 'VERIFIED') {
+                    Send-Json $context 409 @{ message = 'Phone verification token is not consumable.' }
+                    continue
+                }
+                if ($phone -ne [string]$row.phone) {
+                    Send-Json $context 403 @{ message = 'Verified phone does not match.' }
+                    continue
+                }
+                if ([DateTimeOffset]::UtcNow -gt [DateTimeOffset]::Parse([string]$row.token_expires_at)) {
+                    $row.status = 'EXPIRED'
+                    $row.verification_token_record = $null
+                    Save-State
+                    Send-Json $context 410 @{ message = 'Phone verification token expired.' }
+                    continue
+                }
+                if ([string]::IsNullOrWhiteSpace($token) -or
+                    -not (Test-Password $token $row.verification_token_record)) {
+                    Send-Json $context 403 @{ message = 'Phone verification token is invalid.' }
+                    continue
+                }
+
+                $row.status = 'CONSUMED'
+                $row.consumed_at = [DateTimeOffset]::UtcNow.ToString('o')
+                $row.verification_token_record = $null
+                Add-Audit 'CUSTOMER.PHONE_OTP_CONSUME' 'phone_verification' $challengeId "Phone verification consumed for $phone"
+                Save-State
+                Send-Json $context 200 @{
+                    status = 'CONSUMED'
+                    challenge_id = $challengeId
+                    phone = $phone
+                }
+                $token = $null
                 continue
             }
 

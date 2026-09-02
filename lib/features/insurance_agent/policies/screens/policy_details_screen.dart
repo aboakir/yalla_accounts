@@ -28,10 +28,14 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PolicyDetailsScreen extends StatefulWidget {
-  final dynamic policyId; // int أو String
+  final dynamic policyId; // int ط£ظˆ String
   final Map<String, dynamic>? row;
 
-  const PolicyDetailsScreen({super.key, this.policyId, this.row});
+  const PolicyDetailsScreen({
+    super.key,
+    this.policyId,
+    this.row,
+  });
 
   @override
   State<PolicyDetailsScreen> createState() => _PolicyDetailsScreenState();
@@ -147,9 +151,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل تحميل التفاصيل: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ فشل تحميل التفاصيل: $e')),
+      );
     }
   }
 
@@ -174,9 +178,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loadingCheques = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل تحميل الشيكات: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ فشل تحميل الشيكات: $e')),
+      );
     }
   }
 
@@ -201,11 +205,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     return null;
   }
 
-  String _resolveFirstText(
-    Map<String, dynamic> r,
-    List<String> keys, {
-    String fallback = '—',
-  }) {
+  String _resolveFirstText(Map<String, dynamic> r, List<String> keys,
+      {String fallback = '—'}) {
     final v = _resolveFirstValue(r, keys);
     if (v == null) return fallback;
     final s = v.toString().trim();
@@ -221,18 +222,18 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   String _documentTypeLabel(Map<String, dynamic> r) {
     // حاول مفاتيح محتملة
     final raw = _resolveFirstText(
-            r,
-            [
-              'document_type',
-              'doc_type',
-              'policy_type',
-              'coverage_type',
-              'insurance_type',
-              'insurance_doc_type',
-              'policy_document_type',
-            ],
-            fallback: '')
-        .trim();
+      r,
+      [
+        'document_type',
+        'doc_type',
+        'policy_type',
+        'coverage_type',
+        'insurance_type',
+        'insurance_doc_type',
+        'policy_document_type',
+      ],
+      fallback: '',
+    ).trim();
 
     if (raw.isEmpty) return '—';
 
@@ -250,16 +251,19 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   // ✅ "سعر المركبة"
   double _vehiclePriceValue(Map<String, dynamic> r) {
     // أهم مفاتيح متوقعة لسعر المركبة
-    return _resolveFirstDouble(r, [
-      'car_price',
-      'vehicle_price',
-      'car_value',
-      'vehicle_value',
-      'market_value',
-      'sum_insured', // أحيانًا قيمة التأمين = قيمة المركبة
-      'insured_value',
-      'vehicle_sum_insured',
-    ]);
+    return _resolveFirstDouble(
+      r,
+      [
+        'car_price',
+        'vehicle_price',
+        'car_value',
+        'vehicle_value',
+        'market_value',
+        'sum_insured', // أحيانًا قيمة التأمين = قيمة المركبة
+        'insured_value',
+        'vehicle_sum_insured',
+      ],
+    );
   }
 
   String _vehiclePriceLabel(Map<String, dynamic> r) {
@@ -460,14 +464,12 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(successMsg)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(successMsg)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل التحديث: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ فشل التحديث: $e')));
     }
   }
 
@@ -502,9 +504,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             'ملف غير موجود\n$path',
             textAlign: TextAlign.right,
             style: TextStyle(
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w700,
-            ),
+                color: Colors.grey.shade700, fontWeight: FontWeight.w700),
           ),
         ),
       );
@@ -567,14 +567,13 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(c2, true),
-                            child: const Text('حذف'),
+                            child: const Text('ط­ط°ظپ'),
                           ),
                         ],
                       ),
                     );
                     if (ok == true) {
                       await _deletePolicyImage(images[current]);
-                      if (!dlgCtx.mounted) return null;
                       Navigator.pop(dlgCtx);
                     }
                     return null;
@@ -605,11 +604,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                           top: 10,
                           right: 10,
                           child: IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 30,
-                            ),
+                            icon: const Icon(Icons.close,
+                                color: Colors.white, size: 30),
                             onPressed: () => Navigator.pop(dlgCtx),
                           ),
                         ),
@@ -620,10 +616,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                             bottom: 0,
                             child: IconButton(
                               iconSize: 44,
-                              icon: const Icon(
-                                Icons.arrow_back_ios,
-                                color: Colors.white,
-                              ),
+                              icon: const Icon(Icons.arrow_back_ios,
+                                  color: Colors.white),
                               onPressed: () => setDlg(() {
                                 current = (current - 1 + images.length) %
                                     images.length;
@@ -637,10 +631,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                             bottom: 0,
                             child: IconButton(
                               iconSize: 44,
-                              icon: const Icon(
-                                Icons.arrow_forward_ios,
-                                color: Colors.white,
-                              ),
+                              icon: const Icon(Icons.arrow_forward_ios,
+                                  color: Colors.white),
                               onPressed: () => setDlg(() {
                                 current = (current + 1) % images.length;
                               }),
@@ -713,9 +705,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             'غير موجود',
             textAlign: TextAlign.right,
             style: TextStyle(
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w700,
-            ),
+                color: Colors.grey.shade700, fontWeight: FontWeight.w700),
           ),
         ),
       );
@@ -873,10 +863,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             if (remainingDays >= 0 && remainingDays <= 12) ...[
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: accent.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(10),
@@ -885,7 +873,10 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                 child: Text(
                   'تنبيه: متبقي أقل من 12 يوم — جهّز التجديد/التواصل مع العميل',
                   textAlign: TextAlign.right,
-                  style: TextStyle(color: accent, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: accent,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -956,42 +947,29 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
               children: [
                 _chip(status, statusColor.withOpacity(0.12), statusColor),
                 if (vip)
-                  _chip(
-                    'VIP',
-                    AppColors.primary.withOpacity(0.12),
-                    AppColors.primary,
-                  ),
+                  _chip('VIP', AppColors.primary.withOpacity(0.12),
+                      AppColors.primary),
                 if (docType != '—')
                   _chip(
-                    docType,
-                    Colors.black.withOpacity(0.06),
-                    Colors.black87,
-                  ),
+                      docType, Colors.black.withOpacity(0.06), Colors.black87),
                 if (carPriceStr != '—')
-                  _chip(
-                    'سعر المركبة: $carPriceStr',
-                    Colors.black.withOpacity(0.06),
-                    Colors.black87,
-                  ),
+                  _chip('سعر المركبة: $carPriceStr',
+                      Colors.black.withOpacity(0.06), Colors.black87),
                 if (plate.isNotEmpty)
                   _chip(plate, Colors.black.withOpacity(0.06), Colors.black87),
                 if (company.isNotEmpty)
                   _chip(
-                    company,
-                    Colors.black.withOpacity(0.06),
-                    Colors.black87,
-                  ),
+                      company, Colors.black.withOpacity(0.06), Colors.black87),
               ],
             ),
             const SizedBox(height: 10),
             _kv('شراء', buyPrice == 0 ? '—' : _currency.format(buyPrice)),
             _kv('بيع', sellPrice == 0 ? '—' : _currency.format(sellPrice)),
             _kv(
-              'الربح',
-              (sellPrice == 0 && buyPrice == 0)
-                  ? '—'
-                  : _currency.format(profit),
-            ),
+                'الربح',
+                (sellPrice == 0 && buyPrice == 0)
+                    ? '—'
+                    : _currency.format(profit)),
             if (sellPrice > 0) ...[
               _kv('المدفوع', _currency.format(paid)),
               _kv('المتبقي', _currency.format(remaining)),
@@ -1156,25 +1134,20 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         child: AdaptiveRow(
           children: [
             SizedBox(
-              width: wAmount,
-              child: _cellText('المبلغ', weight: FontWeight.w800),
-            ),
+                width: wAmount,
+                child: _cellText('المبلغ', weight: FontWeight.w800)),
             SizedBox(
-              width: wDue,
-              child: _cellText('الاستحقاق', weight: FontWeight.w800),
-            ),
+                width: wDue,
+                child: _cellText('الاستحقاق', weight: FontWeight.w800)),
             SizedBox(
-              width: wBank,
-              child: _cellText('البنك', weight: FontWeight.w800),
-            ),
+                width: wBank,
+                child: _cellText('البنك', weight: FontWeight.w800)),
             SizedBox(
-              width: wDrawer,
-              child: _cellText('الساحب', weight: FontWeight.w800),
-            ),
+                width: wDrawer,
+                child: _cellText('الساحب', weight: FontWeight.w800)),
             SizedBox(
-              width: wNo,
-              child: _cellText('رقم الشيك', weight: FontWeight.w800),
-            ),
+                width: wNo,
+                child: _cellText('رقم الشيك', weight: FontWeight.w800)),
           ],
         ),
       );
@@ -1197,16 +1170,12 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
         child: AdaptiveRow(
           children: [
             SizedBox(
-              width: wAmount,
-              child: _cellText(
-                _currency.format(amount),
-                weight: FontWeight.w800,
-              ),
-            ),
+                width: wAmount,
+                child: _cellText(_currency.format(amount),
+                    weight: FontWeight.w800)),
             SizedBox(
-              width: wDue,
-              child: _cellText(due == null ? '—' : _df.format(due)),
-            ),
+                width: wDue,
+                child: _cellText(due == null ? '—' : _df.format(due))),
             SizedBox(width: wBank, child: _cellText(bank)),
             SizedBox(width: wDrawer, child: _cellText(drawer)),
             SizedBox(width: wNo, child: _cellText(number)),
@@ -1272,13 +1241,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     final remainingDays = (end == null)
         ? null
         : end
-            .difference(
-              DateTime(
-                DateTime.now().year,
-                DateTime.now().month,
-                DateTime.now().day,
-              ),
-            )
+            .difference(DateTime(
+                DateTime.now().year, DateTime.now().month, DateTime.now().day))
             .inDays;
 
     String expiryHint() {
@@ -1427,10 +1391,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             backgroundColor: AppColors.primary,
             title: const Text(
               'تفاصيل البوليصة',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
             ),
             iconTheme: const IconThemeData(color: Colors.white),
             actions: [
@@ -1552,9 +1514,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       final end = _parseDate(r['end_date']) ?? DateTime.now();
 
       for (final raw in picked) {
-        final compressed = await ImageStorageService.compressImage(
-          XFile(raw.path),
-        );
+        final compressed =
+            await ImageStorageService.compressImage(XFile(raw.path));
 
         final savedPath = await ImageStorageService.saveImage(
           image: compressed,
@@ -1709,9 +1670,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                           label: 'تعديل',
                           icon: Icons.edit,
                           onTap: canPreview
-                              ? () => _toast(
-                                    'زر التعديل جاهز—اربطه لاحقًا بما بدك',
-                                  )
+                              ? () =>
+                                  _toast('زر التعديل جاهز—اربطه لاحقًا بما بدك')
                               : null,
                         ),
                       ],
@@ -1788,9 +1748,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                       context: context,
                                       builder: (c2) => AdaptiveAlertDialog(
                                         title: const Text('حذف الصورة'),
-                                        content: const Text(
-                                          'تأكيد حذف هذه الصورة؟',
-                                        ),
+                                        content:
+                                            const Text('تأكيد حذف هذه الصورة؟'),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
@@ -1800,7 +1759,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                           ElevatedButton(
                                             onPressed: () =>
                                                 Navigator.pop(c2, true),
-                                            child: const Text('حذف'),
+                                            child: const Text('ط­ط°ظپ'),
                                           ),
                                         ],
                                       ),
@@ -1812,11 +1771,8 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                   child: const CircleAvatar(
                                     radius: 12,
                                     backgroundColor: Colors.black54,
-                                    child: Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
+                                    child: Icon(Icons.close,
+                                        color: Colors.white, size: 16),
                                   ),
                                 ),
                               ),

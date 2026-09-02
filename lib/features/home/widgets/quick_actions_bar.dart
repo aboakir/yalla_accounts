@@ -110,7 +110,6 @@ class _ActionButtonState extends State<_ActionButton> {
     try {
       await widget.onTap!.call();
     } catch (e) {
-      if (!context.mounted) return;
       // حارس هادئ بدون Scaffold.of
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('حدث خطأ: $e')),

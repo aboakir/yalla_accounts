@@ -164,7 +164,7 @@ class _SuppliersDebtsScreenState extends State<SuppliersDebtsScreen> {
                                 ],
                               );
 
-                              if (action == null || !context.mounted) return;
+                              if (action == null) return;
 
                               switch (action) {
                                 case 'account':

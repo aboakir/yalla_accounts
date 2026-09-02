@@ -10,7 +10,6 @@ import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
-import 'package:yalla_accounts/core/services/db_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 // import 'package:yalla_accounts/features/finance/screens/add_purchase_screen.dart'; // معطّل مؤقتًا
@@ -22,8 +21,6 @@ import 'package:yalla_accounts/features/repairs/screens/edit_repair_screen.dart'
 import 'package:yalla_accounts/features/repairs/screens/repair_details_screen.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_finance_service.dart';
-import 'package:yalla_accounts/features/repairs/services/repair_pdf_generator.dart';
-import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_card.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_filter_bar.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_stats_cards.dart';
@@ -290,49 +287,6 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     }
   }
 
-  Future<void> _createInvoiceForRepair(Repair r) async {
-    try {
-      final db = await DBService.database;
-      final invoiceId = await DBService.createInvoiceForRepair(
-        repairId: r.id,
-        clientId: r.clientId,
-        total: r.totalFileValue,
-      );
-      await db.update(
-        'repairs',
-        {'invoice_id': invoiceId, 'invoiceId': invoiceId},
-        where: 'id = ?',
-        whereArgs: [r.id],
-      );
-      final glId = await DBService.postInvoiceGLFromId(invoiceId);
-      await ref.read(repairListProvider.notifier).loadRepairs();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء الفاتورة وترحيل GL (#$glId)')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل إنشاء الفاتورة: $e')),
-      );
-    }
-  }
-
-  Future<void> _exportRepairPdf(Repair r) async {
-    try {
-      final file = await RepairPdfGenerator.saveToFileAndOpen(r);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء PDF: ${file.path}')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل إنشاء PDF: $e')),
-      );
-    }
-  }
-
   void _openQuickActions(Repair r) {
     showModalBottomSheet(
       context: context,
@@ -355,24 +309,6 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 ).then(
                   (_) => ref.read(repairListProvider.notifier).loadRepairs(),
                 );
-              },
-            ),
-            if (r.invoiceId == null || r.invoiceId!.trim().isEmpty)
-              ListTile(
-                leading: const Icon(Icons.receipt_long_outlined),
-                title: const Text('إنشاء فاتورة'),
-                subtitle: const Text('تحويل عرض السعر إلى ملف مطالبة ومبيعات'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  await _createInvoiceForRepair(r);
-                },
-              ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('تصدير PDF'),
-              onTap: () async {
-                Navigator.pop(context);
-                await _exportRepairPdf(r);
               },
             ),
             ListTile(
@@ -753,12 +689,17 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    RepairThumb(
-                      repairId: r.id,
-                      fallbackFirstPath: r.thumbnailPath,
-                      fallbackPaths: r.imagePaths,
-                      size: 48,
-                      borderRadius: BorderRadius.circular(14),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.lightGreen,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.directions_car_filled_rounded,
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -766,7 +707,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${r.vehicleType} • ${r.vehicleNumber}',
+                            '${r.vehicleType} آ· ${r.vehicleNumber}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -776,7 +717,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${r.beneficiaryName} • ${DateFormat('dd/MM/yyyy').format(r.receivedDate)}',
+                            '${r.beneficiaryName} آ· ${DateFormat('dd/MM/yyyy').format(r.receivedDate)}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

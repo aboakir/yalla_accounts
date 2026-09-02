@@ -88,6 +88,32 @@ class YallaAdminAuthException implements Exception {
   String toString() => 'YallaAdminAuthException: $message';
 }
 
+class CustomerPhoneOtpChallenge {
+  const CustomerPhoneOtpChallenge({
+    required this.challengeId,
+    required this.expiresInSeconds,
+    required this.resendAfterSeconds,
+    required this.delivery,
+  });
+
+  final String challengeId;
+  final int expiresInSeconds;
+  final int resendAfterSeconds;
+  final String delivery;
+}
+
+class CustomerPhoneVerification {
+  const CustomerPhoneVerification({
+    required this.challengeId,
+    required this.phone,
+    required this.verificationToken,
+  });
+
+  final String challengeId;
+  final String phone;
+  final String verificationToken;
+}
+
 /// Native SEC.015 Control Center authentication transport.
 ///
 /// The desktop application and customer application share one executable and
@@ -361,6 +387,86 @@ class YallaAdminAuthService {
       csrf: false,
     );
     clearInMemorySession();
+  }
+
+  /// Starts the server-authoritative customer phone verification ceremony.
+  /// The OTP is generated and verified by the licensing server. The client
+  /// never receives the OTP in an API response and never persists it.
+  Future<CustomerPhoneOtpChallenge> startCustomerPhoneVerification({
+    required String phone,
+  }) async {
+    final payload = await _requestMap(
+      '/v1/customer-phone-verification/start',
+      method: 'POST',
+      body: <String, Object?>{'phone': phone.trim()},
+      csrf: false,
+    );
+    final challengeId = payload['challenge_id']?.toString().trim() ?? '';
+    if (challengeId.isEmpty) {
+      throw const YallaAdminAuthException(
+        'Phone verification server did not return a challenge.',
+      );
+    }
+    return CustomerPhoneOtpChallenge(
+      challengeId: challengeId,
+      expiresInSeconds:
+          int.tryParse('${payload['expires_in_seconds'] ?? ''}') ?? 300,
+      resendAfterSeconds:
+          int.tryParse('${payload['resend_after_seconds'] ?? ''}') ?? 60,
+      delivery: payload['delivery']?.toString() ?? 'SMS',
+    );
+  }
+
+  /// Verifies the SMS code and returns a short-lived, in-memory-only token.
+  /// The token is consumed before First Owner setup can continue.
+  Future<CustomerPhoneVerification> verifyCustomerPhoneOtp({
+    required String challengeId,
+    required String code,
+  }) async {
+    final payload = await _requestMap(
+      '/v1/customer-phone-verification/verify',
+      method: 'POST',
+      body: <String, Object?>{
+        'challenge_id': challengeId.trim(),
+        'code': code.trim(),
+      },
+      csrf: false,
+    );
+    final token = payload['verification_token']?.toString().trim() ?? '';
+    final phone = payload['phone']?.toString().trim() ?? '';
+    if (token.isEmpty || phone.isEmpty) {
+      throw const YallaAdminAuthException(
+        'Phone verification server returned an incomplete result.',
+      );
+    }
+    return CustomerPhoneVerification(
+      challengeId: challengeId.trim(),
+      phone: phone,
+      verificationToken: token,
+    );
+  }
+
+  /// Consumes the short-lived server verification token exactly once.
+  Future<void> consumeCustomerPhoneVerification({
+    required String challengeId,
+    required String phone,
+    required String verificationToken,
+  }) async {
+    final payload = await _requestMap(
+      '/v1/customer-phone-verification/consume',
+      method: 'POST',
+      body: <String, Object?>{
+        'challenge_id': challengeId.trim(),
+        'phone': phone.trim(),
+        'verification_token': verificationToken.trim(),
+      },
+      csrf: false,
+    );
+    if (payload['status']?.toString().toUpperCase() != 'CONSUMED') {
+      throw const YallaAdminAuthException(
+        'Phone verification token was not consumed by the server.',
+      );
+    }
   }
 
   /// Public commercial onboarding request. This does not authenticate a Yalla

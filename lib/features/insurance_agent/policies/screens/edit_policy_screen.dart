@@ -19,7 +19,11 @@ class EditPolicyScreen extends StatefulWidget {
   final dynamic policyId; // int أو String
   final Map<String, dynamic>? row;
 
-  const EditPolicyScreen({super.key, this.policyId, this.row});
+  const EditPolicyScreen({
+    super.key,
+    this.policyId,
+    this.row,
+  });
 
   @override
   State<EditPolicyScreen> createState() => _EditPolicyScreenState();
@@ -134,16 +138,15 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
       if (found == null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('⚠️ لم يتم العثور على البوليصة للتعديل'),
-          ),
+              content: Text('⚠️ لم يتم العثور على البوليصة للتعديل')),
         );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل تحميل البوليصة: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ فشل تحميل البوليصة: $e')),
+      );
     }
   }
 
@@ -164,11 +167,8 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
     }
   }
 
-  String _resolveFirst(
-    Map<String, dynamic> r,
-    List<String> keys, {
-    String fallback = '',
-  }) {
+  String _resolveFirst(Map<String, dynamic> r, List<String> keys,
+      {String fallback = ''}) {
     for (final k in keys) {
       final v = r[k];
       if (v == null) continue;
@@ -179,23 +179,20 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
   }
 
   void _fillFromRow(Map<String, dynamic> r) {
-    _plate.text = _resolveFirst(r, [
-      'vehicle_plate',
-      'vehicle_number',
-      'plate',
-    ]);
-    _insuredName.text = _resolveFirst(r, [
-      'insured_name',
-      'policy_holder_name',
-      'owner_name',
-    ]);
-    _insuredPhone.text = _resolveFirst(r, [
-      'insured_phone',
-      'policy_holder_phone',
-      'owner_phone',
-      'mobile',
-      'phone',
-    ]);
+    _plate.text =
+        _resolveFirst(r, ['vehicle_plate', 'vehicle_number', 'plate']);
+    _insuredName.text =
+        _resolveFirst(r, ['insured_name', 'policy_holder_name', 'owner_name']);
+    _insuredPhone.text = _resolveFirst(
+      r,
+      [
+        'insured_phone',
+        'policy_holder_phone',
+        'owner_phone',
+        'mobile',
+        'phone',
+      ],
+    );
     _company.text = _resolveFirst(r, ['company_name', 'insurance_company']);
 
     _engineSize.text = _resolveFirst(r, ['engine_size', 'engine_cc']);
@@ -204,21 +201,27 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
     _paymentMethod.text = _resolveFirst(r, ['payment_method', 'payment_type']);
 
     // ✅ NEW: سعر المركبة (من المصدر الحقيقي)
-    _vehiclePrice.text = _resolveFirst(r, [
-      'car_price',
-      'vehicle_price',
-      'vehicle_value',
-      'car_value',
-      'price',
-    ]);
+    _vehiclePrice.text = _resolveFirst(
+      r,
+      [
+        'car_price',
+        'vehicle_price',
+        'vehicle_value',
+        'car_value',
+        'price',
+      ],
+    );
 
     // ✅ NEW: نوع الوثيقة (من المصدر الحقيقي)
-    final dt = _resolveFirst(r, [
-      'document_type',
-      'policy_type',
-      'coverage_type',
-      'doc_type',
-    ]);
+    final dt = _resolveFirst(
+      r,
+      [
+        'document_type',
+        'policy_type',
+        'coverage_type',
+        'doc_type',
+      ],
+    );
     _documentType = _docTypes.contains(dt) ? dt : null;
 
     _notes.text = _resolveFirst(r, ['notes', 'policy_notes']);
@@ -307,8 +310,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
     if (id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ لا يمكن تحديد معرف البوليصة (id/uuid)'),
-        ),
+            content: Text('⚠️ لا يمكن تحديد معرف البوليصة (id/uuid)')),
       );
       return;
     }
@@ -398,16 +400,16 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('✅ تم حفظ التعديلات')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ تم حفظ التعديلات')),
+      );
 
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ فشل الحفظ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ فشل الحفظ: $e')),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -468,9 +470,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
               label,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w700,
-              ),
+                  color: Colors.grey.shade700, fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -572,9 +572,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                                   spacing: 12,
                                   children: [
                                     SizedBox(
-                                      width: w,
-                                      child: _documentTypeField(),
-                                    ),
+                                        width: w, child: _documentTypeField()),
                                     SizedBox(
                                       width: w,
                                       child: _field(
@@ -663,9 +661,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                                   ? null
                                   : (v) => setState(() => _vip = v),
                               title: const Text('VIP'),
-                              subtitle: const Text(
-                                'تفعيل حالة VIP للمؤمّن له',
-                              ),
+                              subtitle: const Text('تفعيل حالة VIP للمؤمّن له'),
                               contentPadding: EdgeInsets.zero,
                             ),
                             const SizedBox(height: 18),
@@ -740,12 +736,9 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
+                                          vertical: 14),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          16,
-                                        ),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
                                     icon: _saving
@@ -757,12 +750,10 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                                               color: Colors.white,
                                             ),
                                           )
-                                        : const Icon(
-                                            Icons.save,
-                                            color: Colors.white,
-                                          ),
+                                        : const Icon(Icons.save,
+                                            color: Colors.white),
                                     label: Text(
-                                      _saving ? 'جاري الحفظ' : 'حفظ التعديلات',
+                                      _saving ? 'جاري الحفظ…' : 'حفظ التعديلات',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.w900,
@@ -778,12 +769,9 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                                         : () => Navigator.pop(context, false),
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
+                                          vertical: 14),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          16,
-                                        ),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
                                     icon: const Icon(Icons.close),

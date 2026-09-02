@@ -111,8 +111,7 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
     if (!hasValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('أضف بندًا واحدًا على الأقل بكمية وسعر صالحين'),
-        ),
+            content: Text('أضف بندًا واحدًا على الأقل بكمية وسعر صالحين')),
       );
       return;
     }
@@ -144,7 +143,11 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
         items: _items.map((r) {
           final qty = double.tryParse(r.qtyCtrl.text.trim()) ?? 0;
           final price = double.tryParse(r.priceCtrl.text.trim()) ?? 0;
-          return {"name": r.nameCtrl.text.trim(), "qty": qty, "price": price};
+          return {
+            "name": r.nameCtrl.text.trim(),
+            "qty": qty,
+            "price": price,
+          };
         }).toList(),
         method: _method,
         purchaseType: "PARTS",
@@ -153,10 +156,8 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'تم حفظ فاتورة قطع #$id — ${MoneyFormatter.format(total)}',
-          ),
-        ),
+            content: Text(
+                'تم حفظ فاتورة قطع #$id — ${MoneyFormatter.format(total)}')),
       );
 
       // إعادة الضبط
@@ -176,9 +177,9 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('فشل الحفظ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل الحفظ: $e')),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -198,10 +199,8 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'إضافة شراء قطع سيارات',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('إضافة شراء قطع سيارات',
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
 
               // Supplier ID
@@ -248,10 +247,8 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
               // Items header
               AdaptiveRow(
                 children: [
-                  Text(
-                    'البنود',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  Text('البنود',
+                      style: Theme.of(context).textTheme.titleMedium),
                   const Spacer(),
                   OutlinedButton.icon(
                     onPressed: _addRow,
@@ -363,7 +360,7 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_outlined),
-                  label: Text(_saving ? 'جارٍ الحفم' : 'حفظ الفاتورة'),
+                  label: Text(_saving ? 'جارٍ الحفظ…' : 'حفظ الفاتورة'),
                 ),
               ),
             ],
@@ -375,10 +372,8 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text(
-          'إضافة شراء قطع سيارات',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('إضافة شراء قطع سيارات',
+            style: TextStyle(color: Colors.white)),
         leading: isDesktop
             ? null
             : Builder(

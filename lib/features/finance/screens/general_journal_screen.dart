@@ -520,7 +520,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
           controller: horizontal,
           scrollDirection: Axis.horizontal,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 0),
+            constraints: const BoxConstraints(minWidth: 1400),
             child: Scrollbar(
               controller: vertical,
               thumbVisibility: true,
