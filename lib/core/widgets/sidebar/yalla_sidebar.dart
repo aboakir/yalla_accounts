@@ -238,42 +238,46 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     final current =
         ModalRoute.of(context)?.settings.name ?? widget.currentRoute;
     final compactNavigation = !context.isDesktopWidth;
+
+    // Keep the established R11 drawer/endDrawer detection contract.
     final drawerWasOpen = scaffoldState?.isDrawerOpen == true;
     final endDrawerWasOpen = scaffoldState?.isEndDrawerOpen == true;
 
-    void closeCompactDrawer() {
-      if (compactNavigation) {
-        scaffoldState?.closeDrawer();
-        scaffoldState?.closeEndDrawer();
-        return;
-      }
-      if (drawerWasOpen) scaffoldState?.closeDrawer();
-      if (endDrawerWasOpen) scaffoldState?.closeEndDrawer();
-    }
-
+    // On phone/tablet, this callback runs from inside the Drawer subtree.
+    // Navigator.pop() is Flutter's canonical way to remove that Drawer's
+    // LocalHistoryEntry. Do not depend on Scaffold.maybeOf(context) to close it.
     if (current == route) {
-      closeCompactDrawer();
+      if (compactNavigation) {
+        navigator.pop();
+      } else {
+        if (drawerWasOpen) scaffoldState?.closeDrawer();
+        if (endDrawerWasOpen) scaffoldState?.closeEndDrawer();
+      }
       return;
     }
 
     _isNavigating = true;
-    closeCompactDrawer();
+    try {
+      if (compactNavigation) {
+        navigator.pop();
 
-    // The drawer subtree can be disposed while it closes. Keep using the
-    // captured NavigatorState instead of depending on this sidebar State.
-    if (compactNavigation || drawerWasOpen || endDrawerWasOpen) {
-      await Future<void>.delayed(const Duration(milliseconds: 280));
-    }
+        // The YallaSidebar State may be disposed while the Drawer closes.
+        // Continue with the captured NavigatorState, not this State.mounted.
+        await Future<void>.delayed(const Duration(milliseconds: 320));
+      } else {
+        if (drawerWasOpen) scaffoldState?.closeDrawer();
+        if (endDrawerWasOpen) scaffoldState?.closeEndDrawer();
+      }
 
-    if (!navigator.mounted) {
+      if (!navigator.mounted) return;
+
+      print(">>> SIDEBAR NAVIGATE TO: $route");
+
+      // Preserve the R11 stable route replacement contract.
+      navigator.pushReplacementNamed(route).catchError((Object _) => null);
+    } finally {
       if (mounted) _isNavigating = false;
-      return;
     }
-
-    print(">>> SIDEBAR NAVIGATE TO: $route");
-
-    navigator.pushReplacementNamed(route).catchError((Object _) => null);
-    if (mounted) _isNavigating = false;
   }
 
   Future<void> _navigateAddParty() async {
