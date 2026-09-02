@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_sync_status_strip.dart';
 
 /// P03 phone navigation: daily destinations stay visible while the complete
 /// product remains reachable from More/Drawer.
@@ -115,62 +116,69 @@ class YallaMobileBottomNav extends StatelessWidget {
             ),
           ],
         ),
-        child: NavigationBar(
-          height: 72,
-          elevation: 0,
-          backgroundColor: Colors.white,
-          indicatorColor: AppColors.lightGreen,
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) {
-            switch (index) {
-              case 0:
-                _go(context, AppRoutes.dashboard);
-                break;
-              case 1:
-                _go(context, AppRoutes.repairs);
-                break;
-              case 2:
-                _openAdd(context);
-                break;
-              case 3:
-                _go(context, AppRoutes.financeDashboard);
-                break;
-              case 4:
-                onMore();
-                break;
-            }
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-              label: 'الرئيسية',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.car_repair_outlined),
-              selectedIcon:
-                  Icon(Icons.car_repair_rounded, color: AppColors.primary),
-              label: 'الإصلاحات',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.add_circle_outline_rounded, size: 30),
-              selectedIcon:
-                  Icon(Icons.add_circle_rounded, color: AppColors.primary),
-              label: 'إضافة',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(
-                Icons.account_balance_wallet_rounded,
-                color: AppColors.primary,
-              ),
-              label: 'المالية',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.grid_view_rounded),
-              selectedIcon:
-                  Icon(Icons.grid_view_rounded, color: AppColors.primary),
-              label: 'المزيد',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const YallaSyncStatusStrip(),
+            NavigationBar(
+              height: 72,
+              elevation: 0,
+              backgroundColor: Colors.white,
+              indicatorColor: AppColors.lightGreen,
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (index) {
+                switch (index) {
+                  case 0:
+                    _go(context, AppRoutes.dashboard);
+                    break;
+                  case 1:
+                    _go(context, AppRoutes.repairs);
+                    break;
+                  case 2:
+                    _openAdd(context);
+                    break;
+                  case 3:
+                    _go(context, AppRoutes.financeDashboard);
+                    break;
+                  case 4:
+                    onMore();
+                    break;
+                }
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon:
+                      Icon(Icons.home_rounded, color: AppColors.primary),
+                  label: 'الرئيسية',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.car_repair_outlined),
+                  selectedIcon:
+                      Icon(Icons.car_repair_rounded, color: AppColors.primary),
+                  label: 'الإصلاحات',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.add_circle_outline_rounded, size: 30),
+                  selectedIcon:
+                      Icon(Icons.add_circle_rounded, color: AppColors.primary),
+                  label: 'إضافة',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.account_balance_wallet_outlined),
+                  selectedIcon: Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: AppColors.primary,
+                  ),
+                  label: 'المالية',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.grid_view_rounded),
+                  selectedIcon:
+                      Icon(Icons.grid_view_rounded, color: AppColors.primary),
+                  label: 'المزيد',
+                ),
+              ],
             ),
           ],
         ),

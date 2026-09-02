@@ -15,6 +15,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 // import 'package:yalla_accounts/features/finance/screens/add_purchase_screen.dart'; // معطّل مؤقتًا
 
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
+import 'package:yalla_accounts/features/repairs/models/repair_list_filter.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_provider.dart';
 import 'package:yalla_accounts/features/repairs/screens/add_repair_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/edit_repair_screen.dart';
@@ -48,6 +49,8 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
   String searchText = '';
   String selectedStatus = 'الكل';
   String selectedType = 'الكل';
+  String selectedVehicleStatus = 'الكل';
+  RepairArchiveScope selectedArchiveScope = RepairArchiveScope.all;
   DateTime? fromDate;
   DateTime? toDate;
   static const int initialLimit = 10;
@@ -350,6 +353,23 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 });
               },
             ),
+            ListTile(
+              leading: Icon(
+                r.isArchived
+                    ? Icons.unarchive_outlined
+                    : Icons.archive_outlined,
+                color: AppColors.primary,
+              ),
+              title: Text(
+                r.isArchived ? 'استعادة من الأرشيف' : 'أرشفة الملف',
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                await ref
+                    .read(repairListProvider.notifier)
+                    .setArchived(r.id, !r.isArchived);
+              },
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
@@ -483,6 +503,19 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _phoneArchiveChip(RepairArchiveScope.all),
+                  const SizedBox(width: 8),
+                  _phoneArchiveChip(RepairArchiveScope.active),
+                  const SizedBox(width: 8),
+                  _phoneArchiveChip(RepairArchiveScope.archived),
+                ],
+              ),
+            ),
             const SizedBox(height: 18),
             _phoneFinancialSummary(
               total,
@@ -535,7 +568,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                     ),
                     const Spacer(),
                     const Text(
-                      'الملفات المسددة',
+                      'الأرشيف',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -571,6 +604,28 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
         color: selected ? AppColors.primary : AppColors.lightGrey,
       ),
       onSelected: (_) => setState(() => selectedStatus = value),
+    );
+  }
+
+  Widget _phoneArchiveChip(RepairArchiveScope value) {
+    final selected = selectedArchiveScope == value;
+    return ChoiceChip(
+      avatar: Icon(
+        value == RepairArchiveScope.archived
+            ? Icons.archive_outlined
+            : value == RepairArchiveScope.active
+                ? Icons.inventory_2_outlined
+                : Icons.all_inbox_outlined,
+        size: 16,
+      ),
+      label: Text(value.label),
+      selected: selected,
+      selectedColor: AppColors.lightGreen,
+      checkmarkColor: AppColors.primary,
+      side: BorderSide(
+        color: selected ? AppColors.primary : AppColors.lightGrey,
+      ),
+      onSelected: (_) => setState(() => selectedArchiveScope = value),
     );
   }
 
@@ -756,6 +811,34 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(.08),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          normalizeValue(
+                                r.vehicleStatus,
+                                kVehicleStatuses,
+                                aliases: kVehicleStatusAliases,
+                              ) ??
+                              r.vehicleStatus,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
                     const Spacer(),
                     Text(
                       'المتبقي ${MoneyFormatter.format(remaining)}',
@@ -807,50 +890,28 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final isDesktop = Responsive.isDesktop(context);
     final allRepairs = ref.watch(repairListProvider);
 
-    // فلترة
-    final filtered = allRepairs.where((r) {
-      final q = searchText.trim().toLowerCase();
+    // P06 — canonical repair-list filtering.
+    final filter = RepairListFilter(
+      search: searchText,
+      paymentStatus: selectedStatus,
+      beneficiaryType: selectedType,
+      vehicleStatus: selectedVehicleStatus,
+      archiveScope: selectedArchiveScope,
+      from: fromDate,
+      to: toDate,
+    );
 
-      final matchesSearch = q.isEmpty
-          ? true
-          : (r.vehicleNumber.toLowerCase().contains(q) ||
-              r.vehicleType.toLowerCase().contains(q) ||
-              r.beneficiaryName.toLowerCase().contains(q));
+    final filtered = allRepairs.where(filter.matches).toList()
+      ..sort((a, b) => b.receivedDate.compareTo(a.receivedDate));
 
-      final normalizedStatus = normalizeOrNull(
-        r.paymentStatus,
-        kPaymentStatuses,
-      );
-      final matchesStatus =
-          selectedStatus == 'الكل' || normalizedStatus == selectedStatus;
-
-      final matchesType =
-          selectedType == 'الكل' || r.beneficiaryType.trim() == selectedType;
-
-      final matchesDate = (fromDate == null || toDate == null)
-          ? true
-          : (!r.receivedDate.isBefore(fromDate!) &&
-              !r.receivedDate.isAfter(toDate!));
-
-      return matchesSearch && matchesStatus && matchesType && matchesDate;
-    }).toList();
-    filtered.sort((a, b) => b.receivedDate.compareTo(a.receivedDate));
-
-    final activeAll = filtered
-        .where(
-          (r) => normalizeOrNull(r.paymentStatus, kPaymentStatuses) != 'مسدد',
-        )
-        .toList();
+    final activeAll = filtered.where((repair) => !repair.isArchived).toList();
 
     final active =
         widget.showAll ? activeAll : activeAll.take(initialLimit).toList();
 
     final hasMoreActive = !widget.showAll && activeAll.length > initialLimit;
-    final archived = filtered
-        .where(
-          (r) => normalizeOrNull(r.paymentStatus, kPaymentStatuses) == 'مسدد',
-        )
-        .toList();
+
+    final archived = filtered.where((repair) => repair.isArchived).toList();
 
     // ✅ إظهار FAB فقط إذا كانت الشاشة current ولها قيود حقيقية
     final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
@@ -906,14 +967,26 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
               child: Column(
                 children: [
                   RepairFilterBar(
+                    searchQuery: searchText,
+                    selectedPaymentStatus: selectedStatus,
+                    selectedType: selectedType,
+                    selectedVehicleStatus: selectedVehicleStatus,
+                    selectedArchiveScope: selectedArchiveScope,
                     onSearchChanged: (v) => setState(() => searchText = v),
-                    onStatusChanged: (v) => setState(() => selectedStatus = v),
+                    onPaymentStatusChanged: (v) =>
+                        setState(() => selectedStatus = v),
                     onTypeChanged: (v) => setState(() => selectedType = v),
+                    onVehicleStatusChanged: (v) =>
+                        setState(() => selectedVehicleStatus = v),
+                    onArchiveScopeChanged: (v) =>
+                        setState(() => selectedArchiveScope = v),
                     onReset: () {
                       setState(() {
                         searchText = '';
                         selectedStatus = 'الكل';
                         selectedType = 'الكل';
+                        selectedVehicleStatus = 'الكل';
+                        selectedArchiveScope = RepairArchiveScope.all;
                         fromDate = null;
                         toDate = null;
                       });

@@ -23,6 +23,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _emailController;
   late TextEditingController _addressController;
+  late TextEditingController _notesController;
 
   // القيم المعتمدة
   final List<String> _types = const ['أفراد', 'شركة تأمين'];
@@ -38,6 +39,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
     _phoneController = TextEditingController(text: c?.phone ?? '');
     _emailController = TextEditingController(text: c?.email ?? '');
     _addressController = TextEditingController(text: c?.address ?? '');
+    _notesController = TextEditingController(text: c?.notes ?? '');
     _type = (c?.type ?? 'أفراد').trim();
     if (!_types.contains(_type)) _type = 'أفراد';
   }
@@ -48,6 +50,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _addressController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -61,6 +64,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
       phone: _phoneController.text.trim(),
       email: _emailController.text.trim(),
       address: _addressController.text.trim(),
+      notes: _notesController.text.trim(),
     );
 
     final isEditing = widget.client != null;
@@ -71,8 +75,11 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
     try {
       // منع التكرار (اسم + نوع) إذا تغيّر أي منهما أو إضافة جديدة
       if (!isEditing || nameChanged || typeChanged) {
-        final exists = await ClientService.clientExists(newClient.name,
-            type: newClient.type);
+        final exists = await ClientService.clientExists(
+          newClient.name,
+          type: newClient.type,
+          excludeId: widget.client?.id,
+        );
         if (exists) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -187,6 +194,18 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
                         textAlign: TextAlign.right,
                         decoration: const InputDecoration(
                           labelText: 'العنوان (اختياري)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      TextFormField(
+                        controller: _notesController,
+                        textAlign: TextAlign.right,
+                        minLines: 2,
+                        maxLines: 5,
+                        decoration: const InputDecoration(
+                          labelText: 'ملاحظات (اختياري)',
                           border: OutlineInputBorder(),
                         ),
                       ),

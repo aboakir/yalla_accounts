@@ -21,7 +21,8 @@ class YallaMobileRouteFrame extends StatelessWidget {
   bool get _screenAlreadyOwnsPhoneNav =>
       routeName == AppRoutes.dashboard ||
       routeName == AppRoutes.homeDashboard ||
-      routeName == AppRoutes.repairsDashboard;
+      routeName == AppRoutes.repairsDashboard ||
+      routeName == AppRoutes.repairsList;
 
   @override
   Widget build(BuildContext context) {

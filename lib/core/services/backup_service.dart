@@ -19,6 +19,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/database_constants.dart';
+import 'package:yalla_accounts/core/services/db/database_encryption_service.dart';
 
 class BackupService {
   BackupService._();
@@ -150,11 +151,7 @@ class BackupService {
   }
 
   static Future<void> _validateCandidate(String path) async {
-    final db = await openDatabase(
-      path,
-      readOnly: true,
-      singleInstance: false,
-    );
+    final db = await DatabaseEncryptionService.openReadOnlyCandidate(path);
 
     try {
       final integrity = await db.rawQuery('PRAGMA integrity_check');

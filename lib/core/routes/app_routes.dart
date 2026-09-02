@@ -407,8 +407,11 @@ class AppRoutes {
       return _page(settings, const VehiclesListScreen());
     }
 
-    if (name == repairs || name == repairsList) {
+    if (name == repairs) {
       return _page(settings, const RepairsOverviewScreen());
+    }
+    if (name == repairsList) {
+      return _page(settings, const RepairsScreen(showAll: true));
     }
     if (name == repairsAdd) {
       return _page(settings, const AddRepairScreen());
@@ -640,7 +643,7 @@ class AppRoutes {
       return _page(settings, const ClientsScreen());
     }
     if (name == clientAdd) {
-      return _page(settings, const ClientsScreen());
+      return _page(settings, const ClientEditScreen());
     }
     if (name == clientEdit) {
       final args = settings.arguments;

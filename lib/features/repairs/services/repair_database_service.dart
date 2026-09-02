@@ -16,6 +16,7 @@ import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/finance/services/work_cost_calculator.dart';
 import 'package:yalla_accounts/features/finance/invoices/services/invoice_service.dart';
@@ -221,7 +222,7 @@ class RepairDatabaseService {
         fileValue: fileValue,
         paidAmount: paid,
         paymentStatus: paymentStatus,
-        isArchived: paymentStatus == 'مسدد',
+        isArchived: r.isArchived,
         workCost: wc,
         incomeAmount: fileValue,
       );
@@ -355,7 +356,7 @@ class RepairDatabaseService {
         fileValue: fileValue,
         paidAmount: paid,
         paymentStatus: paymentStatus,
-        isArchived: paymentStatus == 'مسدد',
+        isArchived: r.isArchived,
         workCost: wc,
         incomeAmount: fileValue,
       );
@@ -380,6 +381,73 @@ class RepairDatabaseService {
       );
     });
   }
+
+  // ======================================================================
+  // P06 ARCHIVE
+  // ======================================================================
+
+  static Future<void> setArchived(String id, bool archived) async {
+    await DBService.inTx((tx) async {
+      await setArchivedOn(tx, id, archived);
+    });
+  }
+
+  static Future<int> setArchivedOn(
+    DatabaseExecutor db,
+    String id,
+    bool archived,
+  ) async {
+    final rows = await db.query(
+      'repairs',
+      columns: const ['id', 'isArchived'],
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) {
+      throw StateError('Repair not found ($id)');
+    }
+
+    final current =
+        rows.first['isArchived'] == 1 || rows.first['isArchived'] == true;
+    if (current == archived) return 0;
+
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final changed = await db.update(
+      'repairs',
+      {
+        'isArchived': archived ? 1 : 0,
+        'updated_at': now,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (changed > 0) {
+      await OfflineOutboxService.enqueue(
+        db,
+        channel: OfflineOutboxService.channelSync,
+        operation: 'UPSERT',
+        entityType: 'repair',
+        entityId: id,
+        idempotencyKey: 'repair:$id:archive:${archived ? 1 : 0}:$now',
+        payload: {
+          'schema': 1,
+          'entity_type': 'repair',
+          'entity_id': id,
+          'is_archived': archived,
+        },
+      );
+    }
+
+    return changed;
+  }
+
+  static Future<void> archiveRepair(String id) => setArchived(id, true);
+
+  static Future<void> restoreRepair(String id) => setArchived(id, false);
 
   // ======================================================================
   // DELETE

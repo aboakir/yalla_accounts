@@ -16,8 +16,11 @@ import 'package:sqflite/sqflite.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_form_provider.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
+import 'package:yalla_accounts/features/clients/services/client_service.dart';
+import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
 class RepairSaveService {
   static Future<String> save({
@@ -59,7 +62,7 @@ class RepairSaveService {
       // ------------------------------------------------------------
       int? clientId;
       if (form.beneficiaryName.trim().isNotEmpty) {
-        clientId = await _upsertClient(
+        clientId = await ClientService.upsertFromRepairOn(
           txn,
           name: form.beneficiaryName.trim(),
           type: (form.beneficiaryType == 'أفراد') ? 'أفراد' : 'شركة تأمين',
@@ -69,6 +72,14 @@ class RepairSaveService {
       // ------------------------------------------------------------
       // بناء نموذج الإصلاح
       // ------------------------------------------------------------
+      await VehicleService.upsertFromRepairOn(
+        txn,
+        number: form.vehicleNumber.trim(),
+        type: form.vehicleType.trim(),
+        model: form.vehicleModel.trim(),
+        clientId: clientId,
+      );
+
       final repair = Repair(
         id: repairId,
         invoiceNumber: '',
@@ -103,7 +114,7 @@ class RepairSaveService {
         transferDate: form.transferDate,
         transferAmount: form.transferAmount,
         transferImagePath: form.transferImagePath,
-        isArchived: paid >= grandTotal,
+        isArchived: false,
         actualCost: actualCost,
         workCost: null,
         incomeAmount: null,
@@ -161,6 +172,27 @@ class RepairSaveService {
           whereArgs: [repairId],
         );
       }
+
+      // ------------------------------------------------------------
+      // P04.2 — Local-first atomic Outbox.
+      // The repair and its sync envelope commit (or roll back) together.
+      // No connectivity check is allowed on the save path.
+      // ------------------------------------------------------------
+      await OfflineOutboxService.enqueue(
+        txn,
+        channel: OfflineOutboxService.channelSync,
+        operation: 'UPSERT',
+        entityType: 'repair',
+        entityId: repairId,
+        idempotencyKey: 'repair:$repairId:create',
+        payload: {
+          'schema': 1,
+          'entity_type': 'repair',
+          'entity_id': repairId,
+          'operation': 'UPSERT',
+          'updated_at': repair.updatedAt?.toUtc().toIso8601String(),
+        },
+      );
 
       debugPrint('--- TX END OK ---');
     });
@@ -365,39 +397,5 @@ class RepairSaveService {
     }
 
     await batch.commit(noResult: true);
-  }
-
-  // ===========================
-  // Upsert client
-  // ===========================
-  static Future<int?> _upsertClient(
-    DatabaseExecutor db, {
-    required String name,
-    required String type,
-  }) async {
-    final lower = name.toLowerCase();
-    final hit = await db.query('clients',
-        where: 'LOWER(name)=?', whereArgs: [lower], limit: 1);
-
-    if (hit.isNotEmpty) {
-      final v = hit.first['id'];
-      return v is int ? v : int.tryParse(v.toString());
-    }
-
-    final id = await db.insert(
-      'clients',
-      {'name': name, 'type': type},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
-
-    if (id != 0) return id;
-
-    final again = await db.query('clients',
-        where: 'LOWER(name)=?', whereArgs: [lower], limit: 1);
-
-    if (again.isEmpty) return null;
-
-    final v = again.first['id'];
-    return v is int ? v : int.tryParse(v.toString());
   }
 }

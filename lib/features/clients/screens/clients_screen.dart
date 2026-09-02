@@ -163,8 +163,15 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
     );
 
     if (ok == true && c.id != null) {
-      await ClientService.deleteClient(c.id!);
-      _loadClients();
+      try {
+        await ClientService.deleteClient(c.id!);
+        await _loadClients();
+      } on StateError catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message)),
+        );
+      }
     }
   }
 

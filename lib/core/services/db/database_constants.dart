@@ -107,6 +107,7 @@ class DatabaseConstants {
         'users',
         'workshop_settings',
         'clients',
+        'vehicles',
         'repairs',
         'invoices',
         'accounts',

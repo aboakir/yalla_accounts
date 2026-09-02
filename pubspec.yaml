@@ -46,6 +46,7 @@ dependencies:
 
   # ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ (ظ…ظˆط¨ط§ظٹظ„ + ط³ط·ط­ ط§ظ„ظ…ظƒطھط¨)
   sqflite: ^2.4.1
+  sqflite_sqlcipher: ^3.4.1
   sqflite_common_ffi: ^2.3.3
   sqlite3_flutter_libs: ^0.5.24
   path: ^1.9.0

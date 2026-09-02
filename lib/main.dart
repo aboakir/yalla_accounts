@@ -15,6 +15,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart' as sq;
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/sync/outbox_sync_coordinator.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/device_identity/device_identity_service.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
@@ -126,6 +127,11 @@ Future<void> _bootstrap() async {
     // because the network/server is unavailable; the signed offline grace
     // window decides whether writes remain available.
     PeriodicLicenseValidationScheduler.start();
+
+    // P04.3 - keep the visible local/sync state current. No workshop-sync
+    // endpoint is invented here; the coordinator drains only after an
+    // authoritative OutboxSyncTransport is configured.
+    await OutboxSyncCoordinator.instance.start();
 
     debugPrint(
       '✅ DB + commercial presentation settings + device identity + '

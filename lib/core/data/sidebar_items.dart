@@ -32,6 +32,11 @@ final List<MenuItem> sidebarItems = [
         icon: Icons.add_circle_outline,
       ),
       MenuItem(
+        title: 'ملفات الإصلاح',
+        route: AppRoutes.repairsList,
+        icon: Icons.folder_copy_outlined,
+      ),
+      MenuItem(
         title: 'قائمة المركبات',
         route: AppRoutes.vehiclesList,
         icon: Icons.list_alt,

@@ -1,210 +1,186 @@
-// 📁 lib/features/repairs/widgets/repair_filter_bar.dart
-
 import 'package:flutter/material.dart';
+
 import 'package:yalla_accounts/core/constants/colors.dart';
-import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
+import 'package:yalla_accounts/features/repairs/models/repair_list_filter.dart';
 
-/// شريط فلترة وبحث متطوّر لملفات الإصلاح:
-/// - بحث نصّي مع أيقونة مسح.
-/// - اختيار حالة السداد مع شروحات وأيقونات.
-/// - اختيار نوع المستفيد مع شروحات وأيقونات.
-/// - زر إعادة ضبط الفلاتر.
-/// - تجاوب مع الوضع الليلي والفاتح.
 class RepairFilterBar extends StatelessWidget {
-  final void Function(String) onSearchChanged;
-  final void Function(String) onStatusChanged;
-  final void Function(String) onTypeChanged;
-  final VoidCallback onReset;
-
-  final String selectedStatus;
-  final String selectedType;
-  final String searchQuery;
-
   const RepairFilterBar({
     super.key,
     required this.onSearchChanged,
-    required this.onStatusChanged,
+    required this.onPaymentStatusChanged,
     required this.onTypeChanged,
+    required this.onVehicleStatusChanged,
+    required this.onArchiveScopeChanged,
     required this.onReset,
-    this.selectedStatus = 'الكل',
+    this.selectedPaymentStatus = 'الكل',
     this.selectedType = 'الكل',
+    this.selectedVehicleStatus = 'الكل',
+    this.selectedArchiveScope = RepairArchiveScope.all,
     this.searchQuery = '',
   });
 
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<String> onPaymentStatusChanged;
+  final ValueChanged<String> onTypeChanged;
+  final ValueChanged<String> onVehicleStatusChanged;
+  final ValueChanged<RepairArchiveScope> onArchiveScopeChanged;
+  final VoidCallback onReset;
+
+  final String selectedPaymentStatus;
+  final String selectedType;
+  final String selectedVehicleStatus;
+  final RepairArchiveScope selectedArchiveScope;
+  final String searchQuery;
+
   @override
   Widget build(BuildContext context) {
-    // خيارات حالة السداد مع أيقونات توضيحية
-    final statusOptions = [
-      const _FilterOption(
-          label: 'الكل', value: 'الكل', icon: Icons.filter_list),
-      const _FilterOption(
-          label: 'مسدد', value: 'مسدد', icon: Icons.check_circle),
-      const _FilterOption(
-          label: 'مسدد جزئي', value: 'مسدد جزئي', icon: Icons.remove_circle),
-      const _FilterOption(
-          label: 'غير مسدد', value: 'غير مسدد', icon: Icons.error_outline),
-    ];
-
-    // خيارات نوع المستفيد مع أيقونات
-    final typeOptions = [
-      const _FilterOption(label: 'الكل', value: 'الكل', icon: Icons.filter_alt),
-      const _FilterOption(label: 'أفراد', value: 'أفراد', icon: Icons.person),
-      const _FilterOption(
-          label: 'شركة تأمين',
-          value: 'شركة تأمين',
-          icon: Icons.account_balance),
-    ];
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? Colors.grey[850] : Colors.grey[100];
     final textColor = isDark ? Colors.white : Colors.black87;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       color: bgColor,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final isNarrow = constraints.maxWidth < 600;
+            final narrow = constraints.maxWidth < 760;
+            final fieldWidth =
+                narrow ? constraints.maxWidth : (constraints.maxWidth - 36) / 4;
 
             return Wrap(
               spacing: 12,
-              runSpacing: 10,
+              runSpacing: 12,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                // حقل البحث مع زر مسح
                 SizedBox(
-                  width: isNarrow ? constraints.maxWidth * 0.95 : 280,
-                  child: TextField(
-                    controller: TextEditingController(text: searchQuery),
+                  width: narrow ? constraints.maxWidth : fieldWidth * 2 + 12,
+                  child: TextFormField(
+                    key: ValueKey('repair-search-$searchQuery'),
+                    initialValue: searchQuery,
                     onChanged: onSearchChanged,
                     textAlign: TextAlign.right,
-                    decoration: InputDecoration(
-                      hintText: 'ابحث بالمركبة/المستفيد...',
-                      hintStyle: TextStyle(color: textColor.withOpacity(0.6)),
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear,
-                                size: 20,
-                              ),
-                              onPressed: () => onSearchChanged(''),
-                              splashRadius: 20,
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: isDark ? Colors.grey[800] : Colors.grey[200],
-                      contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 12),
+                    decoration: _decoration(
+                      context,
+                      label: 'بحث',
+                      hint: 'المركبة، الرقم، الموديل، المستفيد أو رقم الملف',
+                      icon: Icons.search,
                     ),
-                    style: TextStyle(color: textColor),
                   ),
                 ),
-
-                // اختيار حالة السداد
                 SizedBox(
-                  width: isNarrow ? constraints.maxWidth * 0.45 : 180,
+                  width: fieldWidth,
                   child: DropdownButtonFormField<String>(
-                    value: statusOptions
-                            .map((o) => o.value)
-                            .contains(selectedStatus)
-                        ? selectedStatus
-                        : 'الكل',
-                    decoration: _inputDecoration(
+                    value: _selectedOrAll(
+                      selectedPaymentStatus,
+                      const ['الكل', ...kPaymentStatuses],
+                    ),
+                    decoration: _decoration(
                       context,
                       label: 'حالة السداد',
-                      icon: Icons.payments,
+                      icon: Icons.payments_outlined,
                     ),
-                    items: statusOptions
+                    items: const ['الكل', ...kPaymentStatuses]
                         .map(
-                          (opt) => DropdownMenuItem<String>(
-                            value: opt.value,
-                            child: AdaptiveRow(
-                              children: [
-                                Icon(opt.icon,
-                                    size: 16,
-                                    color: opt.value == selectedStatus
-                                        ? AppColors.primary
-                                        : textColor.withOpacity(0.7)),
-                                const SizedBox(width: 6),
-                                Text(opt.label),
-                              ],
-                            ),
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value),
                           ),
                         )
                         .toList(),
-                    onChanged: (val) {
-                      if (val != null) onStatusChanged(val);
+                    onChanged: (value) {
+                      if (value != null) onPaymentStatusChanged(value);
                     },
-                    style: TextStyle(color: textColor),
-                    dropdownColor: bgColor,
-                    iconEnabledColor: AppColors.primary,
                   ),
                 ),
-
-                // اختيار نوع المستفيد
                 SizedBox(
-                  width: isNarrow ? constraints.maxWidth * 0.45 : 180,
+                  width: fieldWidth,
                   child: DropdownButtonFormField<String>(
-                    value:
-                        typeOptions.map((o) => o.value).contains(selectedType)
-                            ? selectedType
-                            : 'الكل',
-                    decoration: _inputDecoration(
+                    value: _selectedOrAll(
+                      selectedVehicleStatus,
+                      const ['الكل', ...kVehicleStatuses],
+                    ),
+                    decoration: _decoration(
+                      context,
+                      label: 'حالة المركبة',
+                      icon: Icons.car_repair_outlined,
+                    ),
+                    items: const ['الكل', ...kVehicleStatuses]
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) onVehicleStatusChanged(value);
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: fieldWidth,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedOrAll(
+                      selectedType,
+                      const ['الكل', 'أفراد', 'شركة تأمين'],
+                    ),
+                    decoration: _decoration(
                       context,
                       label: 'نوع المستفيد',
-                      icon: Icons.supervisor_account,
+                      icon: Icons.supervisor_account_outlined,
                     ),
-                    items: typeOptions
+                    items: const ['الكل', 'أفراد', 'شركة تأمين']
                         .map(
-                          (opt) => DropdownMenuItem<String>(
-                            value: opt.value,
-                            child: AdaptiveRow(
-                              children: [
-                                Icon(opt.icon,
-                                    size: 16,
-                                    color: opt.value == selectedType
-                                        ? AppColors.primary
-                                        : textColor.withOpacity(0.7)),
-                                const SizedBox(width: 6),
-                                Text(opt.label),
-                              ],
-                            ),
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value),
                           ),
                         )
                         .toList(),
-                    onChanged: (val) {
-                      if (val != null) onTypeChanged(val);
+                    onChanged: (value) {
+                      if (value != null) onTypeChanged(value);
                     },
-                    style: TextStyle(color: textColor),
-                    dropdownColor: bgColor,
-                    iconEnabledColor: AppColors.primary,
                   ),
                 ),
-
-                // زر إعادة الضبط
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: ElevatedButton.icon(
-                    onPressed: onReset,
-                    icon: const Icon(Icons.refresh, size: 20),
-                    label: const Text('إعادة ضبط الفلاتر'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.warning,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                SizedBox(
+                  width: fieldWidth,
+                  child: DropdownButtonFormField<RepairArchiveScope>(
+                    value: selectedArchiveScope,
+                    decoration: _decoration(
+                      context,
+                      label: 'الأرشيف',
+                      icon: Icons.archive_outlined,
+                    ),
+                    items: RepairArchiveScope.values
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) onArchiveScopeChanged(value);
+                    },
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onReset,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: const Text('إعادة ضبط'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
                   ),
                 ),
@@ -216,21 +192,21 @@ class RepairFilterBar extends StatelessWidget {
     );
   }
 
-  /// شكل موحد لحقل الإدخال (Dropdown أو TextField)
-  InputDecoration _inputDecoration(
+  String _selectedOrAll(String value, List<String> allowed) {
+    return allowed.contains(value) ? value : 'الكل';
+  }
+
+  InputDecoration _decoration(
     BuildContext context, {
     required String label,
-    IconData? icon,
+    String? hint,
+    required IconData icon,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(
-        color: isDark ? Colors.white70 : Colors.black87,
-        fontWeight: FontWeight.w600,
-      ),
-      prefixIcon:
-          icon != null ? Icon(icon, size: 18, color: AppColors.primary) : null,
+      hintText: hint,
+      prefixIcon: Icon(icon, size: 18, color: AppColors.primary),
       floatingLabelBehavior: FloatingLabelBehavior.always,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       filled: true,
@@ -245,17 +221,4 @@ class RepairFilterBar extends StatelessWidget {
       ),
     );
   }
-}
-
-/// كائن مساعد لتمثيل عناصر الفلترة مع عنوان وقيمة وأيقونة
-class _FilterOption {
-  final String label;
-  final String value;
-  final IconData icon;
-
-  const _FilterOption({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
 }

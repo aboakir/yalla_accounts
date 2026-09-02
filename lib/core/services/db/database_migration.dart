@@ -14,7 +14,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_constants.dart';
+import '../offline_outbox_service.dart';
 import 'database_platform_policy.dart';
+import 'database_encryption_service.dart';
 
 // Database migration compatibility note.
 import 'tables/user_tables.dart';
@@ -33,6 +35,7 @@ import 'tables/supplier_tables.dart';
 import 'tables/cheque_tables.dart';
 import 'tables/report_tables.dart';
 import 'tables/technical_tables.dart';
+import 'tables/vehicle_tables.dart';
 import 'views/accounting_views.dart';
 import 'tables/payments_tables.dart';
 import 'tables/voucher_tables.dart';
@@ -91,22 +94,44 @@ class DatabaseMigration {
   static Future<Database> initDatabase({String? pathOverride}) async {
     final path = pathOverride ?? await DatabaseConstants.dbFilePath();
     debugPrint(
-        'ظ‹ع؛ع‘â‚¬ [DB] opening v${DatabaseConstants.dbVersion} @ $path');
-
-    final db = await openDatabase(
-      path,
-      version: DatabaseConstants.dbVersion,
-      onConfigure: _onConfigure,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
-      singleInstance: pathOverride == null,
+      '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );
 
+    final encryption = pathOverride == null
+        ? await DatabaseEncryptionService.prepareCanonical(path)
+        : null;
+
+    Database? db;
     try {
+      db = encryption == null
+          ? await openDatabase(
+              path,
+              version: DatabaseConstants.dbVersion,
+              onConfigure: _onConfigure,
+              onCreate: _onCreate,
+              onUpgrade: _onUpgrade,
+              singleInstance: pathOverride == null,
+            )
+          : await encryption.open(
+              version: DatabaseConstants.dbVersion,
+              onConfigure: _onConfigure,
+              onCreate: _onCreate,
+              onUpgrade: _onUpgrade,
+              singleInstance: true,
+            );
+
       await _validateDatabase(db);
+      await encryption?.commit();
       return db;
     } catch (_) {
-      await db.close();
+      if (db != null && db.isOpen) {
+        try {
+          await db.close();
+        } catch (_) {
+          // Rollback below remains the authoritative recovery step.
+        }
+      }
+      await encryption?.rollback();
       rethrow;
     }
   }
@@ -323,6 +348,9 @@ class DatabaseMigration {
     await SupplierTables.ensureSuppliersSchema(db);
     await RepairTables.ensureRepairsSchema(db);
 
+    // P05 - canonical clients/vehicles master-data foundation.
+    await VehicleTables.ensure(db);
+
     // SEC.001 - stable local organization identity foundation.
     await OrganizationIdentityTables.ensure(db);
 
@@ -336,6 +364,12 @@ class DatabaseMigration {
     // window and DB-level write-guard triggers.
     await LicenseValidationTables.ensure(db);
     await LicenseRuntimeTables.ensure(db);
+
+    // P04.2C - current databases are already v69, so the Outbox compatibility
+    // upgrade must run in the normal idempotent post-init path, not only in an
+    // historical onUpgrade branch.
+    await TechnicalTables.ensureP04OutboxSchema(db);
+    await OfflineOutboxService.resetInterruptedSending(db);
 
     // SEC.007 - local one-time First Owner bootstrap state.
     await OwnerBootstrapTables.ensure(db);

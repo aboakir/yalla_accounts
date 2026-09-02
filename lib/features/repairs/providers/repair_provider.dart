@@ -38,6 +38,19 @@ class RepairListNotifier extends StateNotifier<List<Repair>> {
     await loadRepairs();
   }
 
+  Future<void> setArchived(String id, bool archived) async {
+    await RepairDatabaseService.setArchived(id, archived);
+    await loadRepairs();
+  }
+
+  Future<void> archiveRepair(String id) async {
+    await setArchived(id, true);
+  }
+
+  Future<void> restoreRepair(String id) async {
+    await setArchived(id, false);
+  }
+
   Future<void> approveLedgerEntry(String repairId) async {
     await loadRepairs();
   }
