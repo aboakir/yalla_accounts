@@ -126,6 +126,12 @@ class DatabaseMigration {
       // this derived P05 master-data table before fail-closed validation.
       await ensureP05VehicleCompatibilityBeforeValidation(db);
 
+      // C02 FIX8 / P04 current-v69 compatibility:
+      // Existing v69 installations can still carry the legacy Outbox layout.
+      // Upgrade/create the technical Outbox before any sync-state consumer can
+      // query the newer status/retry columns.
+      await ensureP04OutboxCompatibilityBeforeValidation(db);
+
       await _validateDatabase(db);
       await encryption?.commit();
       return db;
@@ -742,6 +748,25 @@ class DatabaseMigration {
     }
 
     await VehicleTables.ensure(db);
+  }
+
+  /// C02 FIX8 — current-v69 compatibility for the P04 technical Outbox.
+  ///
+  /// P04 kept dbVersion at 69. A pre-P04 installation may therefore already
+  /// report user_version=69 while `outbox_messages` still has the legacy
+  /// id/channel/payload_json/created_at/sent layout. The sync-state service
+  /// queries `status`, so this compatibility ensure must happen during every
+  /// same-version open before the database is handed to runtime consumers.
+  ///
+  /// TechnicalTables.createAllTables is idempotent and non-destructive:
+  /// it creates the technical tables if absent and upgrades the existing
+  /// Outbox in place while preserving all legacy rows and the `sent` column.
+  @visibleForTesting
+  static Future<void> ensureP04OutboxCompatibilityBeforeValidation(
+    DatabaseExecutor db,
+  ) async {
+    await TechnicalTables.createAllTables(db);
+    await OfflineOutboxService.resetInterruptedSending(db);
   }
 
   // ============================================================
