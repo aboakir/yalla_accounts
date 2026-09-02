@@ -77,6 +77,43 @@ void main() {
     expect(dashboard, isNot(contains('textDirection: TextDirection.ltr')));
   });
 
+  test('C01 iPhone fixes keep sidebar Arabic and Home dates presentation-safe',
+      () {
+    final sidebar = read(
+      'lib/core/widgets/sidebar/yalla_sidebar.dart',
+    );
+    final homeService = read(
+      'lib/features/home/services/p03_home_service.dart',
+    );
+    final repairs = read(
+      'lib/features/repairs/screens/repairs_screen.dart',
+    );
+
+    for (final label in <String>[
+      'لوحة التحكم',
+      'إصلاح المركبات',
+      'العملاء والموردون',
+      'المالية',
+      'الشيكات',
+      'الإعدادات',
+    ]) {
+      expect(sidebar, contains(label));
+    }
+
+    for (final bad in <String>['ط§', 'ظ„', 'ط¥', 'ًں', 'â€”']) {
+      expect(sidebar, isNot(contains(bad)));
+    }
+
+    expect(homeService, contains('static String _displayDate(Object? value)'));
+    expect(homeService,
+        contains("final received = _displayDate(row['receivedDate']);"));
+    expect(
+        homeService,
+        contains(
+            "final due = _displayDate(_firstText(row, const ['due_date', 'date']));"));
+    expect(repairs, isNot(contains('آ·')));
+  });
+
   test('P03 completion points to C01 rather than P04', () {
     final state = read('docs/execution/YALLA_PROJECT_STATE.json');
 
@@ -84,6 +121,6 @@ void main() {
     expect(state, contains('"current_phase": "C01"'));
     expect(state, contains('"next_phase": "C01"'));
     expect(state, contains('"P03": "PASS"'));
-    expect(state, contains('"C01": "PENDING"'));
+    expect(state, contains('"C01": "RETEST_PENDING"'));
   });
 }

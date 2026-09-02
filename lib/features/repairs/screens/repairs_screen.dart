@@ -707,7 +707,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${r.vehicleType} آ· ${r.vehicleNumber}',
+                            '${r.vehicleType} · ${r.vehicleNumber}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -717,7 +717,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${r.beneficiaryName} آ· ${DateFormat('dd/MM/yyyy').format(r.receivedDate)}',
+                            '${r.beneficiaryName} · ${DateFormat('dd/MM/yyyy').format(r.receivedDate)}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(

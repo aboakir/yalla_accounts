@@ -186,7 +186,7 @@ class P03HomeService {
     );
     for (final row in overdueCheques) {
       final number = _firstText(row, const ['cheque_no', 'number']);
-      final due = _firstText(row, const ['due_date', 'date']);
+      final due = _displayDate(_firstText(row, const ['due_date', 'date']));
       final bank = _firstText(row, const ['bank_name', 'bank']);
       attention.add(
         P03AttentionItem(
@@ -257,7 +257,7 @@ class P03HomeService {
     for (final row in staleRepairs) {
       final vehicle = _vehicleLabel(row);
       final beneficiary = _text(row['beneficiaryName']);
-      final received = _text(row['receivedDate']);
+      final received = _displayDate(row['receivedDate']);
       attention.add(
         P03AttentionItem(
           kind: P03AttentionKind.staleUnpaidRepair,
@@ -304,9 +304,11 @@ class P03HomeService {
             row,
             const ['vehicleStatus', 'paymentStatus'],
           );
-          final date = _firstText(
-            row,
-            const ['updated_at', 'created_at', 'receivedDate'],
+          final date = _displayDate(
+            _firstText(
+              row,
+              const ['updated_at', 'created_at', 'receivedDate'],
+            ),
           );
           return P03RecentRepair(
             id: _text(row['id']),
@@ -386,6 +388,25 @@ class P03HomeService {
   }
 
   static String _text(Object? value) => value?.toString().trim() ?? '';
+
+  static String _displayDate(Object? value) {
+    final raw = _text(value);
+    if (raw.isEmpty) return '';
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed != null) {
+      final day = parsed.day.toString().padLeft(2, '0');
+      final month = parsed.month.toString().padLeft(2, '0');
+      return '$day-$month-${parsed.year}';
+    }
+
+    final isoDate = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(raw);
+    if (isoDate != null) {
+      return '${isoDate.group(3)}-${isoDate.group(2)}-${isoDate.group(1)}';
+    }
+
+    return raw;
+  }
 
   static String _dateOnly(DateTime date) {
     final month = date.month.toString().padLeft(2, '0');
