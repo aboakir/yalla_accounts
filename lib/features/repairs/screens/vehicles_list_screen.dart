@@ -303,7 +303,8 @@ class _VehiclesListScreenState extends State<VehiclesListScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: AdaptiveRow(children: [
-        const YallaSidebar(currentRoute: '/vehicles_list'),
+        if (MediaQuery.sizeOf(context).width >= 600)
+          const YallaSidebar(currentRoute: '/vehicles_list'),
         Expanded(
           child: Column(children: [
             _buildStats(),
