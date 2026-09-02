@@ -1,5 +1,6 @@
 // 📁 lib/features/repairs/screens/repair_reports_screen.dart
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:excel/excel.dart' as ex;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -364,44 +365,10 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
-                        height: constraints.maxWidth < 600 ? 170 : 200,
-                        child: BarChart(
-                          BarChartData(
-                            barGroups: chartItems.asMap().entries.map((e) {
-                              return BarChartGroupData(x: e.key, barRods: [
-                                BarChartRodData(
-                                  toY: e.value.value,
-                                  color: AppColors.primary,
-                                )
-                              ]);
-                            }).toList(),
-                            titlesData: FlTitlesData(
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    final i = value.toInt();
-                                    if (i < 0 || i >= chartItems.length) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return SideTitleWidget(
-                                      axisSide: meta
-                                          .axisSide, // ✅ هذا السطر هو المطلوب
-
-                                      child:
-                                          Text(chartItems[i].key.substring(5)),
-                                    );
-                                  },
-                                ),
-                              ),
-                              leftTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: true),
-                              ),
-                            ),
-                            borderData: FlBorderData(show: false),
-                            gridData: const FlGridData(
-                                show: true, drawVerticalLine: false),
-                          ),
+                        height: constraints.maxWidth < 600 ? 190 : 220,
+                        child: _revenueBarChart(
+                          chartItems,
+                          phone: constraints.maxWidth < 600,
                         ),
                       ),
                     ],
@@ -413,6 +380,128 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
         },
       ),
     );
+  }
+
+  Widget _revenueBarChart(
+    List<MapEntry<String, double>> chartItems, {
+    required bool phone,
+  }) {
+    if (chartItems.isEmpty) {
+      return const Center(
+        child: Text('لا توجد بيانات شهرية ضمن الفلاتر الحالية'),
+      );
+    }
+
+    final maxRevenue = chartItems.fold<double>(
+      0,
+      (current, item) => item.value > current ? item.value : current,
+    );
+    final chartMaxY = maxRevenue <= 0 ? 1.0 : maxRevenue * 1.12;
+    final titleInterval = chartMaxY <= 2 ? 1.0 : chartMaxY / 2;
+
+    return Directionality(
+      textDirection: ui.TextDirection.ltr,
+      child: ClipRect(
+        child: BarChart(
+          BarChartData(
+            minY: 0,
+            maxY: chartMaxY,
+            alignment: BarChartAlignment.spaceAround,
+            barGroups: chartItems.asMap().entries.map((e) {
+              return BarChartGroupData(
+                x: e.key,
+                barRods: [
+                  BarChartRodData(
+                    toY: e.value.value,
+                    width: phone ? 14 : 18,
+                    color: AppColors.primary,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+            titlesData: FlTitlesData(
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: 1,
+                  reservedSize: 30,
+                  getTitlesWidget: (value, meta) {
+                    final i = value.toInt();
+                    if (i < 0 || i >= chartItems.length) {
+                      return const SizedBox.shrink();
+                    }
+                    return SideTitleWidget(
+                      axisSide: meta.axisSide,
+                      space: 6,
+                      child: Text(
+                        chartItems[i].key.substring(5),
+                        maxLines: 1,
+                        softWrap: false,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  interval: titleInterval,
+                  reservedSize: phone ? 58 : 68,
+                  getTitlesWidget: (value, meta) {
+                    return SideTitleWidget(
+                      axisSide: meta.axisSide,
+                      space: 6,
+                      child: SizedBox(
+                        width: phone ? 50 : 60,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            _compactAxisValue(value),
+                            maxLines: 1,
+                            softWrap: false,
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            borderData: FlBorderData(show: false),
+            gridData: const FlGridData(
+              show: true,
+              drawVerticalLine: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _compactAxisValue(double value) {
+    final absolute = value.abs();
+    if (absolute >= 1000000) {
+      final scaled = value / 1000000;
+      return '${scaled.toStringAsFixed(scaled.abs() >= 10 ? 0 : 1)}M';
+    }
+    if (absolute >= 1000) {
+      final scaled = value / 1000;
+      return '${scaled.toStringAsFixed(scaled.abs() >= 10 ? 0 : 1)}K';
+    }
+    return value.toStringAsFixed(absolute >= 10 ? 0 : 1);
   }
 
   Widget _phoneDropdown({
