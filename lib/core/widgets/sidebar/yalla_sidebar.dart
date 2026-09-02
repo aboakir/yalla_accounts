@@ -219,41 +219,61 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     });
   }
 
-  Future<void> _navigate(String route) async {
+  void _navigate(String route) async {
+    print("NAVIGATING TO: $route");
+
     if (_isNavigating || route.isEmpty) return;
 
+    // Special guard for adding a new repair.
     if (route == rRepairsAdd) {
       final allowed = await _canAddNewRepairFromSidebar();
+      print("Kosha:  $allowed");
       if (!allowed) return;
     }
 
     if (!mounted) return;
 
+    final navigator = Navigator.of(context);
+    final scaffoldState = Scaffold.maybeOf(context);
     final current =
         ModalRoute.of(context)?.settings.name ?? widget.currentRoute;
-    final scaffoldState = Scaffold.maybeOf(context);
-    final drawerIsOpen = scaffoldState?.isDrawerOpen == true ||
-        scaffoldState?.isEndDrawerOpen == true;
+    final compactNavigation = !context.isDesktopWidth;
+    final drawerWasOpen = scaffoldState?.isDrawerOpen == true;
+    final endDrawerWasOpen = scaffoldState?.isEndDrawerOpen == true;
 
-    // A sidebar destination tap on phone must finish closing the Drawer before
-    // replacing the route. Navigating during the drawer closing animation can
-    // leave the old drawer/shell painted over the new page on iOS.
-    if (drawerIsOpen) {
-      scaffoldState?.closeDrawer();
-      await Future<void>.delayed(const Duration(milliseconds: 260));
-      if (!mounted) return;
+    void closeCompactDrawer() {
+      if (compactNavigation) {
+        scaffoldState?.closeDrawer();
+        scaffoldState?.closeEndDrawer();
+        return;
+      }
+      if (drawerWasOpen) scaffoldState?.closeDrawer();
+      if (endDrawerWasOpen) scaffoldState?.closeEndDrawer();
     }
 
-    if (current == route) return;
+    if (current == route) {
+      closeCompactDrawer();
+      return;
+    }
 
     _isNavigating = true;
-    try {
-      if (!mounted) return;
-      await Navigator.of(context, rootNavigator: true)
-          .pushReplacementNamed(route);
-    } finally {
-      _isNavigating = false;
+    closeCompactDrawer();
+
+    // The drawer subtree can be disposed while it closes. Keep using the
+    // captured NavigatorState instead of depending on this sidebar State.
+    if (compactNavigation || drawerWasOpen || endDrawerWasOpen) {
+      await Future<void>.delayed(const Duration(milliseconds: 280));
     }
+
+    if (!navigator.mounted) {
+      if (mounted) _isNavigating = false;
+      return;
+    }
+
+    print(">>> SIDEBAR NAVIGATE TO: $route");
+
+    navigator.pushReplacementNamed(route).catchError((Object _) => null);
+    if (mounted) _isNavigating = false;
   }
 
   Future<void> _navigateAddParty() async {
