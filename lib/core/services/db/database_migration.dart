@@ -120,6 +120,12 @@ class DatabaseMigration {
               singleInstance: true,
             );
 
+      // C02 FIX7 / P05 current-v69 compatibility:
+      // P05 added the canonical vehicles table without increasing dbVersion.
+      // Existing v69 installations therefore do not run onUpgrade. Ensure only
+      // this derived P05 master-data table before fail-closed validation.
+      await ensureP05VehicleCompatibilityBeforeValidation(db);
+
       await _validateDatabase(db);
       await encryption?.commit();
       return db;
@@ -707,6 +713,37 @@ class DatabaseMigration {
 
   // ============================================================
   // P1.001 - lifecycle/database normalization.
+  /// C02 FIX7 — current-v69 compatibility for the P05 vehicles master table.
+  ///
+  /// P05 intentionally kept dbVersion at 69. Existing customer databases are
+  /// already v69, so sqflite does not invoke onUpgrade and the P05 table must
+  /// be ensured explicitly before the fail-closed core-table validation.
+  ///
+  /// This is deliberately narrow:
+  /// - it never resets/replaces the database;
+  /// - it never creates missing legacy prerequisites;
+  /// - it only runs VehicleTables.ensure when both clients and repairs exist;
+  /// - VehicleTables backfill is non-destructive and never overwrites an
+  ///   already-canonical vehicle record.
+  @visibleForTesting
+  static Future<void> ensureP05VehicleCompatibilityBeforeValidation(
+    DatabaseExecutor db,
+  ) async {
+    final existing = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table'",
+    );
+    final names = existing
+        .map((row) => row['name']?.toString())
+        .whereType<String>()
+        .toSet();
+
+    if (!names.contains('clients') || !names.contains('repairs')) {
+      return;
+    }
+
+    await VehicleTables.ensure(db);
+  }
+
   // ============================================================
   static Future<void> _validateDatabase(Database db) async {
     final version = Sqflite.firstIntValue(
