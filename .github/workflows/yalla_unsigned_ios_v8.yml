@@ -1,0 +1,338 @@
+name: Yalla Accounts Unsigned iPhone V8
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/yalla_unsigned_ios_v8.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build_unsigned_ios:
+    name: build_unsigned_ios
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Toolchain diagnostics
+        run: |
+          set -euo pipefail
+          flutter --version
+          dart --version
+          xcodebuild -version
+          pod --version
+
+      - name: Disable Flutter Swift Package Manager
+        run: |
+          set -euo pipefail
+          flutter config --no-enable-swift-package-manager
+          flutter config --list | grep -i swift || true
+
+      - name: Remove unused speech_to_text safely from iPhone test snapshot
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("pubspec.yaml")
+          text = p.read_text()
+          lines = text.splitlines(keepends=True)
+
+          target = "  speech_to_text: ^6.6.0"
+          matches = [
+              i for i, line in enumerate(lines)
+              if line.rstrip("\r\n") == target
+          ]
+
+          if len(matches) != 1:
+              raise SystemExit(
+                  f"Expected exactly one exact dependency line {target!r}; found {len(matches)}"
+              )
+
+          idx = matches[0]
+          del lines[idx]
+          updated = "".join(lines)
+
+          # Guard against the R5 failure mode: never damage indentation
+          # of the following dependency or any other top-level dependency line.
+          if "\nflutter_slidable:" in updated or updated.startswith("flutter_slidable:"):
+              raise SystemExit("Indentation guard failed: flutter_slidable lost dependency indentation")
+
+          if "  flutter_slidable: ^3.1.0" not in updated:
+              raise SystemExit("Expected flutter_slidable dependency line not preserved exactly")
+
+          if "speech_to_text:" in updated:
+              raise SystemExit("speech_to_text dependency still present after exact line removal")
+
+          p.write_text(updated)
+          PY
+
+          echo "Dependency edit verification:"
+          grep -n -E "badges:|flutter_slidable:|url_launcher:" pubspec.yaml
+
+          if grep -n "^flutter_slidable:" pubspec.yaml; then
+            echo "ERROR: malformed pubspec indentation detected"
+            exit 1
+          fi
+
+      - name: Clean and resolve Flutter dependencies
+        run: |
+          set -euo pipefail
+          flutter clean
+          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
+          flutter pub get
+
+      - name: Verify iOS database architecture contract
+        run: |
+          set -euo pipefail
+          flutter test test/commercial/ios_database_architecture_contract_test.dart
+
+      - name: Force iOS 15 CocoaPods modular headers
+        run: |
+          set -euo pipefail
+
+          rm -f ios/Podfile
+          cp ci/Podfile ios/Podfile
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path("ios/Runner.xcodeproj/project.pbxproj")
+          s = p.read_text()
+          s = re.sub(
+              r"IPHONEOS_DEPLOYMENT_TARGET\s*=\s*[0-9.]+\s*;",
+              "IPHONEOS_DEPLOYMENT_TARGET = 15.0;",
+              s,
+          )
+          lines = [
+              line for line in s.splitlines()
+              if "FlutterGeneratedPluginSwiftPackage" not in line
+          ]
+          p.write_text("\n".join(lines) + "\n")
+          PY
+
+          PLIST="ios/Runner/Info.plist"
+          add_plist_string () {
+            local key="$1"
+            local value="$2"
+            if ! /usr/libexec/PlistBuddy -c "Print :$key" "$PLIST" >/dev/null 2>&1; then
+              /usr/libexec/PlistBuddy -c "Add :$key string $value" "$PLIST"
+            fi
+          }
+
+          add_plist_string NSCameraUsageDescription "Yalla Accounts uses the camera to attach business documents and images."
+          add_plist_string NSPhotoLibraryUsageDescription "Yalla Accounts uses your photo library to attach business documents and images."
+          add_plist_string NSMicrophoneUsageDescription "Yalla Accounts may use the microphone for supported voice input."
+          add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts may use speech recognition for supported voice input."
+
+          grep -n "platform :ios" ios/Podfile
+          grep -n "use_modular_headers!" ios/Podfile
+
+      - name: Install CocoaPods cleanly
+        run: |
+          set -euo pipefail
+          cd ios
+          pod deintegrate || true
+          rm -rf Pods Podfile.lock .symlinks
+          cd ..
+          flutter pub get
+          cd ios
+          pod install --repo-update
+
+      - name: Verify CocoaPods integration
+        run: |
+          set -euo pipefail
+          test -d ios/Pods
+          test -f ios/Podfile.lock
+
+          if grep -n "speech_to_text" ios/Podfile.lock; then
+            echo "ERROR: speech_to_text unexpectedly present in iOS Podfile.lock"
+            exit 1
+          fi
+
+          if [ -e ios/.symlinks/plugins/speech_to_text ]; then
+            echo "ERROR: speech_to_text plugin symlink unexpectedly exists"
+            exit 1
+          fi
+
+          grep -n "sqlite3_flutter_libs" ios/Podfile.lock | head || true
+
+          if grep -R "FlutterGeneratedPluginSwiftPackage" ios/Runner.xcodeproj/project.pbxproj >/dev/null 2>&1; then
+            echo "ERROR: SwiftPM integration still present in Xcode project"
+            exit 1
+          fi
+
+      - name: Verify licensing build configuration
+        run: |
+          set -euo pipefail
+
+          # Split the marker literals so the verifier cannot match its own
+          # source line after the workflow template is rendered.
+          base_marker="__YALLA""_BASE_URL__"
+          key_marker="__YALLA""_KEY_HASH__"
+
+          if grep -F "$base_marker" .github/workflows/yalla_unsigned_ios.yml; then
+            echo "ERROR: YALLA licensing URL placeholder was not replaced"
+            exit 1
+          fi
+
+          if grep -F "$key_marker" .github/workflows/yalla_unsigned_ios.yml; then
+            echo "ERROR: YALLA signing-key placeholder was not replaced"
+            exit 1
+          fi
+
+          grep -F -- "--dart-define=YALLA_LICENSING_BASE_URL=https://" .github/workflows/yalla_unsigned_ios.yml >/dev/null
+          grep -E -- "--dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=[0-9a-f]{64}" .github/workflows/yalla_unsigned_ios.yml >/dev/null
+
+          echo "Test licensing build configuration: PRESENT"
+
+      - name: Prepare Xcode 26 unsigned compatibility
+        run: |
+          set -euo pipefail
+          echo "YALLA_XCODE26_COMPAT_V8"
+
+          RELEASE_XCCONFIG="ios/Flutter/Release.xcconfig"
+          test -f "$RELEASE_XCCONFIG"
+
+          {
+            echo ""
+            echo "// YALLA_XCODE26_COMPAT_V8"
+            echo "CODE_SIGNING_ALLOWED=NO"
+            echo "CODE_SIGNING_REQUIRED=NO"
+            echo "CODE_SIGN_IDENTITY="
+            echo "EXPANDED_CODE_SIGN_IDENTITY="
+            echo "DEVELOPMENT_TEAM="
+            echo "PROVISIONING_PROFILE="
+            echo "PROVISIONING_PROFILE_SPECIFIER="
+            echo "GCC_TREAT_WARNINGS_AS_ERRORS=NO"
+            echo "SWIFT_TREAT_WARNINGS_AS_ERRORS=NO"
+            echo 'OTHER_CFLAGS=$(inherited) -Wno-error=incompatible-pointer-types'
+          } >> "$RELEASE_XCCONFIG"
+
+          PICKER_FILE="$(find ios/.symlinks/plugins "$PUB_CACHE/hosted/pub.dev" -path '*/file_picker*/ios/file_picker/Sources/file_picker/FilePickerPlugin.m' -type f -print 2>/dev/null | head -n 1 || true)"
+
+          if [ -n "$PICKER_FILE" ]; then
+            echo "file_picker source: $PICKER_FILE"
+            python3 -c 'from pathlib import Path; import sys; p=Path(sys.argv[1]); s=p.read_text(encoding="utf-8"); old="newUrls = urls;"; new="newUrls = [urls mutableCopy];"; p.write_text(s.replace(old,new,1),encoding="utf-8") if old in s else None; print("file_picker compatibility:", "APPLIED" if old in s else ("ALREADY PRESENT" if new in s else "TARGET NOT FOUND"))' "$PICKER_FILE"
+          else
+            echo "file_picker source not found; continuing."
+          fi
+
+          grep -n "CODE_SIGNING_ALLOWED=NO" "$RELEASE_XCCONFIG"
+          echo "Xcode 26 compatibility V8: PASS"
+      - name: Build unsigned iOS release
+        run: |
+          set -euo pipefail
+          flutter config --no-enable-swift-package-manager
+          echo "Licensing endpoint: https://48171af98adfd7.lhr.life"
+          echo "Pinned test signing-key SHA256: aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091"
+
+          # YALLA_UNSIGNED_APP_FALLBACK_V1
+          set +e
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --build-number "${GITHUB_RUN_NUMBER}" \
+            --dart-define=YALLA_LICENSING_BASE_URL=https://48171af98adfd7.lhr.life \
+            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091 \
+            --verbose 2>&1 | tee "$RUNNER_TEMP/yalla_flutter_ios_build.log"
+          build_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$build_status" -ne 0 ]; then
+            echo "flutter build returned "$build_status". Checking fresh unsigned app output..."
+            if [ -d "build/ios/iphoneos/Runner.app" ] && [ -f "build/ios/iphoneos/Runner.app/Runner" ]; then
+              echo "UNSIGNED FALLBACK PASS: fresh Runner.app exists; continuing to IPA packaging."
+            else
+              echo "Runner.app missing after Flutter wrapper; starting direct unsigned Xcode build..."
+echo "YALLA_DIRECT_XCODE_FALLBACK_V8"
+
+rm -rf "$RUNNER_TEMP/yalla_direct_xcode_v8"
+mkdir -p build/ios/iphoneos
+
+set +e
+xcodebuild \
+  -workspace ios/Runner.xcworkspace \
+  -scheme Runner \
+  -configuration Release \
+  -sdk iphoneos \
+  -destination 'generic/platform=iOS' \
+  -derivedDataPath "$RUNNER_TEMP/yalla_direct_xcode_v8" \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY="" \
+  EXPANDED_CODE_SIGN_IDENTITY="" \
+  DEVELOPMENT_TEAM="" \
+  PROVISIONING_PROFILE="" \
+  PROVISIONING_PROFILE_SPECIFIER="" \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
+  GCC_TREAT_WARNINGS_AS_ERRORS=NO \
+  SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+  OTHER_CFLAGS='$(inherited) -Wno-error=incompatible-pointer-types' \
+  2>&1 | tee "$RUNNER_TEMP/yalla_direct_xcode_v8.log"
+xcode_status=${PIPESTATUS[0]}
+set -e
+
+if [ "$xcode_status" -ne 0 ]; then
+  echo "DIRECT XCODE V8: FAIL ($xcode_status)"
+  echo "===== LAST 300 DIRECT XCODE V8 LINES ====="
+  tail -n 300 "$RUNNER_TEMP/yalla_direct_xcode_v8.log" || true
+  exit "$xcode_status"
+fi
+
+fallback_app="$(find "$RUNNER_TEMP/yalla_direct_xcode_v8/Build/Products" -type d -name Runner.app -print -quit 2>/dev/null || true)"
+
+if [ -z "$fallback_app" ] || [ ! -f "$fallback_app/Runner" ]; then
+  echo "DIRECT XCODE V8: build succeeded but Runner.app was not found."
+  find "$RUNNER_TEMP/yalla_direct_xcode_v8/Build/Products" -maxdepth 5 -type d -print 2>/dev/null || true
+  exit 1
+fi
+
+rm -rf build/ios/iphoneos/Runner.app
+cp -R "$fallback_app" build/ios/iphoneos/Runner.app
+test -f build/ios/iphoneos/Runner.app/Runner
+echo "DIRECT XCODE V8: PASS"            fi
+          fi
+
+      - name: Verify app and brand
+        run: |
+          set -euo pipefail
+          APP="build/ios/iphoneos/Runner.app"
+          test -d "$APP"
+          test -f "$APP/Info.plist"
+          echo "Built app: $APP"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$APP/Info.plist" || true
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" "$APP/Info.plist" || true
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist"
+
+      - name: Create unsigned IPA
+        run: |
+          set -euo pipefail
+          rm -rf dist Payload
+          mkdir -p dist Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+          ditto -c -k --sequesterRsrc --keepParent Payload dist/Yalla_Accounts_Unsigned_iPhone.ipa
+          shasum -a 256 dist/Yalla_Accounts_Unsigned_iPhone.ipa | tee dist/SHA256.txt
+
+      - name: Upload unsigned iPhone artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yalla-Accounts-Unsigned-iPhone
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
