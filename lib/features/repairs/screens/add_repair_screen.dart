@@ -28,6 +28,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   static const _stepTitles = <String>[
     'العميل',
     'المركبة',
+    'نوع الملف',
     'الاستلام',
     'الأضرار',
     'التوثيق',
@@ -40,6 +41,10 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   final _odometerController = TextEditingController();
   final _intakeNotesController = TextEditingController();
   final _damageController = TextEditingController();
+  final _worksController = TextEditingController();
+  final _partsController = TextEditingController();
+  final _insuranceCompanyController = TextEditingController();
+  final _claimNumberController = TextEditingController();
   final _signatureKey = GlobalKey<_SignaturePadState>();
 
   int _step = 0;
@@ -56,6 +61,8 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   int _fuelLevel = 50;
   bool? _hasPreviousDamage;
   final List<String> _photoPaths = <String>[];
+  String _repairScope = 'إصلاح فقط';
+  String _payer = 'العميل';
   String _consentMethod = 'بدون توثيق';
   String? _savedSignaturePath;
 
@@ -72,6 +79,10 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     _odometerController.dispose();
     _intakeNotesController.dispose();
     _damageController.dispose();
+    _worksController.dispose();
+    _partsController.dispose();
+    _insuranceCompanyController.dispose();
+    _claimNumberController.dispose();
     super.dispose();
   }
 
@@ -438,12 +449,19 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
         if (_vehicle == null) error = 'اختر المركبة أو أضف مركبة جديدة.';
         break;
       case 2:
+        if (_repairScope.isEmpty) {
+          error = 'اختر نوع الملف.';
+        } else if (_payer.isEmpty) {
+          error = 'اختر جهة الدفع.';
+        }
+        break;
+      case 3:
         final odometer = int.tryParse(_odometerController.text.trim());
         if (odometer == null || odometer < 0) {
           error = 'أدخل قراءة عداد صحيحة.';
         }
         break;
-      case 3:
+      case 4:
         if (_hasPreviousDamage == null) {
           error = 'حدد هل توجد أضرار سابقة.';
         } else if (_hasPreviousDamage == true &&
@@ -451,7 +469,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           error = 'صف الأضرار السابقة باختصار.';
         }
         break;
-      case 4:
+      case 5:
         // التوثيق اختياري: لا تمنع المراجعة بسبب الصور أو توقيع العميل.
         break;
     }
@@ -463,7 +481,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     if (!_validateCurrentStep()) return;
     FocusScope.of(context).unfocus();
 
-    if (_step == 4 && _consentMethod == 'توقيع على الشاشة') {
+    if (_step == 5 && _consentMethod == 'توقيع على الشاشة') {
       final signatureState = _signatureKey.currentState;
       if (signatureState?.hasInk ?? false) {
         _savedSignaturePath = await signatureState!.exportPng();
@@ -504,7 +522,19 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           ? 'توثيق موافقة العميل: غير موثق (اختياري)'
           : 'توثيق موافقة العميل: $_consentMethod';
       final manualNotes = _intakeNotesController.text.trim();
+      final works = _worksController.text.trim();
+      final parts = _partsController.text.trim();
+      final insuranceCompany = _insuranceCompanyController.text.trim();
+      final claimNumber = _claimNumberController.text.trim();
       final persistedNotes = <String>[
+        '[YALLA_SCOPE] $_repairScope',
+        '[YALLA_PAYER] $_payer',
+        if (works.isNotEmpty) 'أعمال الإصلاح الأولية:\n$works',
+        if (parts.isNotEmpty) 'القطع المطلوبة الأولية:\n$parts',
+        if (_payer != 'العميل' && insuranceCompany.isNotEmpty)
+          'شركة التأمين: $insuranceCompany',
+        if (_payer != 'العميل' && claimNumber.isNotEmpty)
+          'رقم المطالبة: $claimNumber',
         if (manualNotes.isNotEmpty) manualNotes,
         consentNote,
       ].join('\n');
@@ -700,12 +730,14 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       case 1:
         return _vehicleStep(theme);
       case 2:
-        return _receptionStep(theme);
+        return _scopeStep(theme);
       case 3:
-        return _damageStep(theme);
+        return _receptionStep(theme);
       case 4:
-        return _documentationStep(theme, phone);
+        return _damageStep(theme);
       case 5:
+        return _documentationStep(theme, phone);
+      case 6:
         return _reviewStep(theme);
       default:
         return const SizedBox.shrink();
@@ -862,6 +894,132 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                 onTap: () => setState(() => _vehicle = item),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scopeStep(ThemeData theme) {
+    final showWorks =
+        _repairScope == 'إصلاح فقط' || _repairScope == 'إصلاح + قطع';
+    final showParts =
+        _repairScope == 'قطع فقط' || _repairScope == 'إصلاح + قطع';
+
+    return _stepContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _stepIntro(
+            icon: Icons.build_circle_outlined,
+            title: 'ما نوع هذا الملف؟',
+            subtitle:
+                'حدد نطاق العمل وجهة الدفع، ثم أضف الأعمال أو القطع المطلوبة مبدئيًا.',
+          ),
+          const SizedBox(height: 18),
+          Text('نوع الملف',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              )),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <String>[
+              'إصلاح فقط',
+              'قطع فقط',
+              'إصلاح + قطع',
+            ].map((option) {
+              return ChoiceChip(
+                label: Text(option),
+                selected: _repairScope == option,
+                onSelected: (_) => setState(() => _repairScope = option),
+              );
+            }).toList(growable: false),
+          ),
+          const SizedBox(height: 22),
+          Text('جهة الدفع',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              )),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <String>[
+              'العميل',
+              'شركة تأمين',
+              'مختلط',
+            ].map((option) {
+              return ChoiceChip(
+                label: Text(option),
+                selected: _payer == option,
+                onSelected: (_) => setState(() {
+                  _payer = option;
+                  if (option == 'العميل') {
+                    _insuranceCompanyController.clear();
+                    _claimNumberController.clear();
+                  }
+                }),
+              );
+            }).toList(growable: false),
+          ),
+          if (showWorks) ...<Widget>[
+            const SizedBox(height: 22),
+            TextField(
+              controller: _worksController,
+              minLines: 3,
+              maxLines: 7,
+              decoration: const InputDecoration(
+                labelText: 'أعمال الإصلاح المطلوبة (اختياري)',
+                hintText:
+                    'اكتب كل عمل في سطر، مثال:\\nسمكرة رفرف أمامي\\nدهان باب يمين',
+                prefixIcon: Icon(Icons.car_repair_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+          if (showParts) ...<Widget>[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _partsController,
+              minLines: 3,
+              maxLines: 7,
+              decoration: const InputDecoration(
+                labelText: 'القطع المطلوبة (اختياري)',
+                hintText:
+                    'اكتب كل قطعة في سطر، مثال:\\nصدام أمامي\\nضوء خلفي يمين',
+                prefixIcon: Icon(Icons.settings_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+          if (_payer != 'العميل') ...<Widget>[
+            const SizedBox(height: 22),
+            _optionalSection(
+              icon: Icons.shield_outlined,
+              title: 'بيانات التأمين',
+              subtitle: 'تظهر فقط لأن جهة الدفع تشمل شركة تأمين.',
+              child: Column(
+                children: <Widget>[
+                  TextField(
+                    controller: _insuranceCompanyController,
+                    decoration: const InputDecoration(
+                      labelText: 'شركة التأمين (اختياري الآن)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _claimNumberController,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم المطالبة (اختياري)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1189,6 +1347,27 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                     .where((value) => value.isNotEmpty)
                     .join(' • '),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _ReviewSection(
+            title: 'نطاق الملف والدفع',
+            rows: <_ReviewRow>[
+              _ReviewRow('نوع الملف', _repairScope),
+              _ReviewRow('جهة الدفع', _payer),
+              if (_worksController.text.trim().isNotEmpty)
+                _ReviewRow('أعمال الإصلاح', _worksController.text.trim()),
+              if (_partsController.text.trim().isNotEmpty)
+                _ReviewRow('القطع المطلوبة', _partsController.text.trim()),
+              if (_payer != 'العميل' &&
+                  _insuranceCompanyController.text.trim().isNotEmpty)
+                _ReviewRow(
+                  'شركة التأمين',
+                  _insuranceCompanyController.text.trim(),
+                ),
+              if (_payer != 'العميل' &&
+                  _claimNumberController.text.trim().isNotEmpty)
+                _ReviewRow('رقم المطالبة', _claimNumberController.text.trim()),
             ],
           ),
           const SizedBox(height: 12),

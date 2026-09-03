@@ -93,7 +93,11 @@ class RepairIntakeService {
         'parts': jsonEncode(const <Object>[]),
         'works': jsonEncode(const <Object>[]),
         'fileValue': 0.0,
-        'paymentType': 'cash',
+        'paymentType': draft.notes.contains('[YALLA_PAYER] شركة تأمين')
+            ? 'insurance'
+            : draft.notes.contains('[YALLA_PAYER] مختلط')
+                ? 'mixed'
+                : 'cash',
         'paidAmount': 0.0,
         'paymentStatus': 'غير مسدد',
         'notes': draft.notes.trim(),
