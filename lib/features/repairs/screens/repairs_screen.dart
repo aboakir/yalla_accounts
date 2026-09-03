@@ -54,9 +54,8 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
   DateTime? fromDate;
   DateTime? toDate;
   static const int initialLimit = 10;
-
-  double _fileValue(Repair r) => r.totalFileValue.toDouble();
-  double _paidValue(Repair r) => r.totalPaidAmount.toDouble();
+  double _fileValue(Repair r) => r.totalFileValue;
+  double _paidValue(Repair r) => r.totalPaidAmount;
 
   Future<void> _selectDateRange() async {
     final picked = await showDateRangePicker(

@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_more_screen.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
 import 'sidebar_header.dart';
@@ -225,7 +224,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     if (_isNavigating || route.isEmpty) return;
 
-    // Special guard for adding a new repair.
     if (route == rRepairsAdd) {
       final allowed = await _canAddNewRepairFromSidebar();
       print("Kosha:  $allowed");
@@ -234,51 +232,48 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     if (!mounted) return;
 
-    final navigator = Navigator.of(context);
+    final compactNavigation = !context.isDesktopWidth;
+    final drawerNavigator = Navigator.of(context);
+    final targetNavigator =
+        Navigator.of(context, rootNavigator: compactNavigation);
     final scaffoldState = Scaffold.maybeOf(context);
+    final drawerIsOpen = scaffoldState?.isDrawerOpen == true ||
+        scaffoldState?.isEndDrawerOpen == true;
     final current =
         ModalRoute.of(context)?.settings.name ?? widget.currentRoute;
-    final compactNavigation = !context.isDesktopWidth;
 
-    // Keep the established R11 drawer/endDrawer detection contract.
-    final drawerWasOpen = scaffoldState?.isDrawerOpen == true;
-    final endDrawerWasOpen = scaffoldState?.isEndDrawerOpen == true;
-
-    // On phone/tablet, this callback runs from inside the Drawer subtree.
-    // Navigator.pop() is Flutter's canonical way to remove that Drawer's
-    // LocalHistoryEntry. Do not depend on Scaffold.maybeOf(context) to close it.
     if (current == route) {
-      if (compactNavigation) {
-        navigator.pop();
-      } else {
-        if (drawerWasOpen) scaffoldState?.closeDrawer();
-        if (endDrawerWasOpen) scaffoldState?.closeEndDrawer();
+      if (drawerIsOpen && drawerNavigator.canPop()) {
+        drawerNavigator.pop();
       }
       return;
     }
 
     _isNavigating = true;
-    try {
-      if (compactNavigation) {
-        navigator.pop();
 
-        // The YallaSidebar State may be disposed while the Drawer closes.
-        // Continue with the captured NavigatorState, not this State.mounted.
-        await Future<void>.delayed(const Duration(milliseconds: 320));
-      } else {
-        if (drawerWasOpen) scaffoldState?.closeDrawer();
-        if (endDrawerWasOpen) scaffoldState?.closeEndDrawer();
+    if (drawerIsOpen && drawerNavigator.canPop()) {
+      drawerNavigator.pop();
+    }
+
+    print(">>> SIDEBAR NAVIGATE TO: $route");
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!targetNavigator.mounted) {
+        _isNavigating = false;
+        return;
       }
 
-      if (!navigator.mounted) return;
+      final Future<dynamic> navigation = compactNavigation
+          ? targetNavigator.pushNamedAndRemoveUntil(
+              route,
+              (Route<dynamic> r) => r.isFirst,
+            )
+          : targetNavigator.pushReplacementNamed(route);
 
-      print(">>> SIDEBAR NAVIGATE TO: $route");
-
-      // Preserve the R11 stable route replacement contract.
-      navigator.pushReplacementNamed(route).catchError((Object _) => null);
-    } finally {
-      if (mounted) _isNavigating = false;
-    }
+      navigation
+          .catchError((Object _) => null)
+          .whenComplete(() => _isNavigating = false);
+    });
   }
 
   Future<void> _navigateAddParty() async {
@@ -413,9 +408,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.sizeOf(context).width < 600) {
-      return YallaMobileMoreMenu(currentRoute: widget.currentRoute);
-    }
     final hasSearch = _searchQuery.trim().isNotEmpty;
 
     // 1) إصلاح المركبات
