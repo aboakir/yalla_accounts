@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_line_bridge.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
@@ -77,6 +78,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    // P07_LINE_READBACK_INIT
+    _loadPersistedRepairLines();
     _repair = widget.repair;
     _loadRepairDetails();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -697,6 +700,23 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         ? priceRaw.toDouble()
         : double.tryParse(priceRaw.toString()) ?? 0.0;
     return {'name': '$desc', 'price': price};
+  }
+
+  Future<void> _loadPersistedRepairLines() async {
+    try {
+      final snapshot = await RepairLineBridge.load(widget.repair.id);
+      if (!mounted || snapshot.count == 0) return;
+      setState(() {
+        _repairWorks
+          ..clear()
+          ..addAll(snapshot.works);
+        _repairParts
+          ..clear()
+          ..addAll(snapshot.parts);
+      });
+    } catch (_) {
+      // Backward compatibility: keep any lines already carried by older Repair objects.
+    }
   }
 
   Widget _buildDataTable(String title, List<Map<String, dynamic>> data) {

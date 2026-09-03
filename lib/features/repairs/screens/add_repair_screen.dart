@@ -12,6 +12,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_intake_draft.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_intake_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_line_bridge.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
 /// P07 — fast repair intake wizard.
@@ -564,6 +565,13 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
         ),
       );
       await _persistRepairLines(repairId);
+      // P07_LINE_PERSISTENCE_VERIFY
+      final persistedLines = await RepairLineBridge.load(repairId);
+      if (persistedLines.works.length != _works.length ||
+          persistedLines.parts.length != _parts.length) {
+        throw StateError(
+            'لم يتم حفظ جميع أعمال الإصلاح والقطع داخل ملف الإصلاح.');
+      }
       if (!mounted) return;
       setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
