@@ -16,6 +16,8 @@ import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class WorkshopSettingsScreen extends ConsumerStatefulWidget {
   const WorkshopSettingsScreen({super.key});
 
@@ -350,14 +352,17 @@ class _WorkshopSettingsScreenState
           const SizedBox(height: 12),
 
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _nameCtrl,
             decoration: const InputDecoration(labelText: 'اسم الورشة'),
           ),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _addressCtrl,
             decoration: const InputDecoration(labelText: 'العنوان'),
           ),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _cityCtrl,
             decoration: const InputDecoration(labelText: 'المدينة'),
           ),
@@ -366,6 +371,7 @@ class _WorkshopSettingsScreenState
 
           // ✅ الهواتف + الإيميل (كانت ناقصة)
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _phone1Ctrl,
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(
@@ -374,6 +380,7 @@ class _WorkshopSettingsScreenState
             ),
           ),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _phone2Ctrl,
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(
@@ -382,6 +389,7 @@ class _WorkshopSettingsScreenState
             ),
           ),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _emailCtrl,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
@@ -499,18 +507,21 @@ class _WorkshopSettingsScreenState
           ),
           const SizedBox(height: 8),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _qWorkshopNameCtrl,
             decoration: const InputDecoration(
               labelText: 'ما أول اسم لورشتك بالعربية؟',
             ),
           ),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _qOwnerIdCtrl,
             decoration: const InputDecoration(
               labelText: 'ما هو رقم هوية صاحب الورشة؟',
             ),
           ),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _qFirstCarCtrl,
             decoration: const InputDecoration(
               labelText: 'ما نوع أول سيارة قمت بإصلاحها؟ (اختياري)',

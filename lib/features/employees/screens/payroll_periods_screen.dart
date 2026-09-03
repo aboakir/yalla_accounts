@@ -19,6 +19,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_periods_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PayrollPeriodsScreen extends StatefulWidget {
   const PayrollPeriodsScreen({super.key});
 
@@ -90,6 +92,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
       builder: (_) => AdaptiveAlertDialog(
         title: Text('قفل $year-${month.toString().padLeft(2, '0')}'),
         content: TextField(
+          inputFormatters: const [YallaDigitNormalizer()],
           decoration: const InputDecoration(
             labelText: 'ملاحظة (اختياري)',
             border: OutlineInputBorder(),
@@ -124,6 +127,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
       builder: (_) => AdaptiveAlertDialog(
         title: const Text('تعديل الملاحظة'),
         content: TextField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: TextEditingController(text: current),
           decoration: const InputDecoration(
             labelText: 'ملاحظة',
@@ -220,6 +224,7 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
                       SizedBox(
                         width: 140,
                         child: TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _limitCtrl,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(

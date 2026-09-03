@@ -15,6 +15,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EditPolicyScreen extends StatefulWidget {
   final dynamic policyId; // int أو String
   final Map<String, dynamic>? row;
@@ -424,6 +426,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
     String? Function(String?)? validator,
   }) {
     return TextFormField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: c,
       keyboardType: type,
       textAlign: TextAlign.right,
@@ -712,6 +715,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                             _sectionTitle('ملاحظات'),
                             const SizedBox(height: 10),
                             TextFormField(
+                              inputFormatters: const [YallaDigitNormalizer()],
                               controller: _notes,
                               textAlign: TextAlign.right,
                               minLines: 3,

@@ -20,6 +20,8 @@ import 'package:yalla_accounts/features/employees/services/payroll_periods_servi
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PayrollScreen extends ConsumerStatefulWidget {
   final Employee employee;
   const PayrollScreen({super.key, required this.employee});
@@ -233,6 +235,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
             Text('المتبقي: ${MoneyFormatter.format(remain)}'),
             const SizedBox(height: 12),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: ctrl,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -252,6 +255,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
             ),
             const SizedBox(height: 12),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               decoration: InputDecoration(labelText: 'ملاحظة (اختياري)'),
               onChanged: (v) => note = v.trim().isEmpty ? null : v.trim(),
             ),
@@ -459,6 +463,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 180,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _grossCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -480,6 +485,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 140,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _allowCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -496,6 +502,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 140,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _deductCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -512,6 +519,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 160,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _advApplyCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -529,6 +537,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 160,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _overtimeCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -545,6 +554,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 160,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _latePenaltyCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -561,6 +571,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 180,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _unpaidAbsPenaltyCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -577,6 +588,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 180,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _paidHolidayCtrl,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
@@ -615,6 +627,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                         SizedBox(
                           width: 320,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _noteCtrl,
                             decoration: InputDecoration(
                               labelText: 'ملاحظة (اختياري)',

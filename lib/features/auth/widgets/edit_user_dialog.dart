@@ -6,6 +6,8 @@ import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EditUserDialog extends ConsumerStatefulWidget {
   const EditUserDialog({super.key, required this.user});
 
@@ -81,6 +83,7 @@ class _EditUserDialogState extends ConsumerState<EditUserDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'اسم المستخدم'),
                 validator: (value) => value == null || value.trim().isEmpty
@@ -89,6 +92,7 @@ class _EditUserDialogState extends ConsumerState<EditUserDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _emailController,
                 decoration:
                     const InputDecoration(labelText: 'البريد الإلكتروني'),

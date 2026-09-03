@@ -11,6 +11,8 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepPricingPayment extends StatefulWidget {
   final GlobalKey<FormState> formKey;
   final PolicyDraft draft;
@@ -370,6 +372,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _notesCtrl,
             textAlign: TextAlign.right,
             maxLines: 3,
@@ -384,6 +387,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
           Builder(
             builder: (_) {
               return TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 key: const ValueKey('step_pricing_payment_validator'),
                 enabled: false,
                 decoration: const InputDecoration(
@@ -477,6 +481,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
     required ValueChanged<String> onChanged,
   }) {
     return TextFormField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       textAlign: TextAlign.right,
@@ -547,6 +552,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     initialValue: item.amount?.toStringAsFixed(2) ?? '',
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -575,6 +581,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               children: [
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     initialValue: item.bankName ?? '',
                     textAlign: TextAlign.right,
                     decoration: const InputDecoration(
@@ -593,6 +600,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     initialValue: item.drawerName ?? '',
                     textAlign: TextAlign.right,
                     decoration: const InputDecoration(
@@ -615,6 +623,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               children: [
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     initialValue: item.chequeNumber ?? '',
                     textAlign: TextAlign.right,
                     decoration: const InputDecoration(
@@ -633,6 +642,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     initialValue: item.imagePath ?? '',
                     textAlign: TextAlign.right,
                     decoration: const InputDecoration(
@@ -701,6 +711,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     initialValue: item.amount?.toStringAsFixed(2) ?? '',
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -726,6 +737,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
             ),
             const SizedBox(height: 12),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               initialValue: item.note ?? '',
               textAlign: TextAlign.right,
               decoration: const InputDecoration(
@@ -791,6 +803,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     initialValue: item.amount?.toStringAsFixed(2) ?? '',
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -816,6 +829,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
             ),
             const SizedBox(height: 12),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               initialValue: item.imagePath ?? '',
               textAlign: TextAlign.right,
               decoration: const InputDecoration(

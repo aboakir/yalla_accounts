@@ -36,6 +36,8 @@ import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class RepairsScreen extends ConsumerStatefulWidget {
   final bool showAll;
 
@@ -315,7 +317,8 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.verified),
-              title: const Text('اعتماد القيد المحاسبي'),
+              title: const Text(
+                  'اعتماد الملف محاسبيًا — إظهار القيمة في الحسابات'),
               onTap: () {
                 Navigator.pop(context);
                 _approveRepairLedger(context, r);
@@ -475,6 +478,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               onChanged: (v) => setState(() => searchText = v),
               decoration: InputDecoration(
                 hintText: 'ابحث بالمركبة، الرقم أو المستفيد...',

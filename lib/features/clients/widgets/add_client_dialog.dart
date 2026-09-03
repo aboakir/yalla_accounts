@@ -6,6 +6,8 @@ import 'package:yalla_accounts/features/clients/models/client.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AddClientDialog extends StatefulWidget {
   const AddClientDialog({super.key});
 
@@ -122,6 +124,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
                   ),
                 ] else ...[
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _manualNameController,
                     decoration: _inputDecoration('اسم العميل'),
                     textAlign: TextAlign.right,
@@ -133,6 +136,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
 
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _phoneController,
                   decoration: _inputDecoration('رقم الهاتف (اختياري)'),
                   textAlign: TextAlign.right,
@@ -140,6 +144,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _emailController,
                   decoration: _inputDecoration('البريد الإلكتروني (اختياري)'),
                   textAlign: TextAlign.right,
@@ -147,6 +152,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _addressController,
                   decoration: _inputDecoration('العنوان (اختياري)'),
                   textAlign: TextAlign.right,
@@ -155,6 +161,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
 
                 // 🆕 حقل الملاحظات
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _notesController,
                   decoration: _inputDecoration('ملاحظات (اختياري)'),
                   textAlign: TextAlign.right,

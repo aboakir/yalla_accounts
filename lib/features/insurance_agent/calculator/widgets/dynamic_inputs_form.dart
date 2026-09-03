@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../providers/insurance_calculator_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class DynamicInputsForm extends StatelessWidget {
   const DynamicInputsForm({super.key});
 
@@ -29,6 +31,7 @@ class DynamicInputsForm extends StatelessWidget {
             // سعر المركبة (دائم)
             // ------------------------------------------------------------
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(

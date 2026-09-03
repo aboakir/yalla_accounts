@@ -14,6 +14,8 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_payment_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PurchasePaymentDialog extends StatefulWidget {
   final String purchaseId;
   final int supplierId;
@@ -125,6 +127,7 @@ class _PurchasePaymentDialogState extends State<PurchasePaymentDialog> {
             children: [
               // Amount
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountCtrl,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -178,6 +181,7 @@ class _PurchasePaymentDialogState extends State<PurchasePaymentDialog> {
 
               // Note
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _noteCtrl,
                 maxLines: 2,
                 decoration: const InputDecoration(

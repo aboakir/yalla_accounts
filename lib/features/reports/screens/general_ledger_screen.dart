@@ -16,6 +16,8 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class GeneralLedgerScreen extends StatefulWidget {
   const GeneralLedgerScreen({super.key});
 
@@ -313,6 +315,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
           SizedBox(
             width: 260,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               textAlign: TextAlign.right,
               onChanged: (v) {
                 setState(() => _query = v);

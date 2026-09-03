@@ -5,6 +5,8 @@ import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ForgotCredentialsDialog extends ConsumerStatefulWidget {
   const ForgotCredentialsDialog({super.key});
 
@@ -185,6 +187,7 @@ class _ForgotCredentialsDialogState
                   if (_mode == 0) ...[
                     _sectionTitle('التحقق بكلمة مرور المالك'),
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _ownerPasswordCtrl,
                       obscureText: true,
                       decoration: const InputDecoration(
@@ -194,6 +197,7 @@ class _ForgotCredentialsDialogState
                   ] else if (_mode == 1) ...[
                     _sectionTitle('التحقق بأسئلة الأمان'),
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _securityQ1Ctrl,
                       decoration: const InputDecoration(
                         labelText: 'ما أول اسم لورشتك بالعربية؟',
@@ -201,6 +205,7 @@ class _ForgotCredentialsDialogState
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _securityQ2Ctrl,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
@@ -210,6 +215,7 @@ class _ForgotCredentialsDialogState
                   ] else ...[
                     _sectionTitle('التحقق بكود الطوارئ'),
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _recoveryCodeCtrl,
                       textCapitalization: TextCapitalization.characters,
                       decoration: const InputDecoration(
@@ -234,6 +240,7 @@ class _ForgotCredentialsDialogState
                 ] else ...[
                   _sectionTitle('تحديث بيانات الدخول'),
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _newUsernameCtrl,
                     decoration: const InputDecoration(
                       labelText: 'اسم المستخدم الجديد (اختياري)',
@@ -241,6 +248,7 @@ class _ForgotCredentialsDialogState
                   ),
                   const SizedBox(height: 8),
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _newPasswordCtrl,
                     obscureText: true,
                     decoration: const InputDecoration(

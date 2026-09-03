@@ -23,6 +23,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 enum SortBy { dateAsc, dateDesc, amountAsc, amountDesc }
 
 enum ViewMode { transactions, byRepair }
@@ -740,6 +742,9 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                                   constraints:
                                       const BoxConstraints(maxWidth: 560),
                                   child: TextField(
+                                    inputFormatters: const [
+                                      YallaDigitNormalizer()
+                                    ],
                                     controller: _searchCtrl,
                                     decoration: const InputDecoration(
                                       prefixIcon: Icon(Icons.search),

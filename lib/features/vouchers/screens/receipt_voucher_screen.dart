@@ -27,6 +27,7 @@ import '../../finance/payments/services/payment_service.dart';
 import 'package:yalla_accounts/features/cheques/widgets/steps/cheque_step_entry.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 // ============================================================================
 
 class ReceiptVoucherScreen extends StatefulWidget {
@@ -502,6 +503,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
                 child: Column(
                   children: [
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: searchCtrl,
                       decoration: const InputDecoration(
                         hintText: "ابحث باسم العميل",
@@ -637,6 +639,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     return _card(
       title: "مبلغ عام",
       child: TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: amountCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: const InputDecoration(
@@ -723,6 +726,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     return _card(
       title: "ملاحظات",
       child: TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: notesCtrl,
         maxLines: 3,
         decoration: const InputDecoration(hintText: "اختياري"),
@@ -806,6 +810,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
           Text("المتبقي: ${_currency.format(item.remaining)}"),
           const SizedBox(height: 10),
           TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               hintText: "المدفوع الآن",

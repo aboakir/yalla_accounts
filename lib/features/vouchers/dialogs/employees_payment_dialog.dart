@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:intl/intl.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EmployeesPaymentDialog extends StatefulWidget {
   const EmployeesPaymentDialog({super.key});
 
@@ -118,6 +120,7 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
 
             // بحث الموظفين
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _searchCtrl,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(
@@ -194,6 +197,7 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
 
               // مبلغ
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountCtrl,
                 textAlign: TextAlign.right,
                 keyboardType:
@@ -239,6 +243,7 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
 
               // ملاحظات
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _notesCtrl,
                 textAlign: TextAlign.right,
                 maxLines: 2,

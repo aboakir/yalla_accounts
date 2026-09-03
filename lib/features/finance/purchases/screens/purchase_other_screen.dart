@@ -8,6 +8,8 @@ import 'package:yalla_accounts/features/finance/purchases/services/purchase_invo
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PurchaseOtherScreen extends StatefulWidget {
   const PurchaseOtherScreen({super.key});
 
@@ -140,6 +142,7 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
                 Expanded(
                   flex: 3,
                   child: TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _itemCtrl,
                     decoration: InputDecoration(labelText: "الصنف"),
                   ),
@@ -147,6 +150,7 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _qtyCtrl,
                     decoration: InputDecoration(labelText: "الكمية"),
                     keyboardType: TextInputType.number,
@@ -155,6 +159,7 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _priceCtrl,
                     decoration: InputDecoration(labelText: "السعر"),
                     keyboardType: TextInputType.number,

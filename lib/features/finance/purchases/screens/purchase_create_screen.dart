@@ -19,6 +19,8 @@ import 'package:yalla_accounts/features/finance/purchases/services/purchase_invo
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 // ============================================================================
 // SUPPLIER MODEL (عرضي)
 // ============================================================================
@@ -175,6 +177,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: ctrl,
                     textAlign: TextAlign.right,
                     decoration: InputDecoration(
@@ -402,6 +405,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                     children: [
                       Expanded(
                         child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _supplierPidCtrl,
                           textAlign: TextAlign.right,
                           decoration: InputDecoration(
@@ -423,6 +427,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _supplierNameCtrl,
                           textAlign: TextAlign.right,
                           decoration: InputDecoration(
@@ -524,6 +529,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
 
                   // NOTE FIELD
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _noteCtrl,
                     maxLines: 2,
                     textAlign: TextAlign.right,
@@ -651,6 +657,7 @@ class _LineRowState extends State<_LineRow> {
           Expanded(
             flex: 5,
             child: TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: widget.model.nameCtrl,
               textAlign: TextAlign.right,
               decoration: InputDecoration(
@@ -666,6 +673,7 @@ class _LineRowState extends State<_LineRow> {
           Expanded(
             flex: 2,
             child: TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: widget.model.qtyCtrl,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.right,
@@ -682,6 +690,7 @@ class _LineRowState extends State<_LineRow> {
           Expanded(
             flex: 3,
             child: TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: widget.model.priceCtrl,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.right,

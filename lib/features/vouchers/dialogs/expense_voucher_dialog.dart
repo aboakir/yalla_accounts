@@ -9,6 +9,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ExpenseVoucherDialog extends StatefulWidget {
   const ExpenseVoucherDialog({super.key});
 
@@ -86,6 +88,7 @@ class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
 
             // مبلغ
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _amountCtrl,
               textAlign: TextAlign.right,
               keyboardType:
@@ -134,6 +137,7 @@ class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
 
             // ملاحظات
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _notesCtrl,
               textAlign: TextAlign.right,
               maxLines: 2,

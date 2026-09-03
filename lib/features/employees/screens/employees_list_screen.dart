@@ -13,6 +13,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EmployeesListScreen extends ConsumerStatefulWidget {
   const EmployeesListScreen({super.key});
 
@@ -97,6 +99,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
                   child: Column(
                     children: [
                       TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.search),
                           hintText: 'ابحث باسم الموظف',

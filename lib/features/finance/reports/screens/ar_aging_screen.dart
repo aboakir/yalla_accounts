@@ -26,6 +26,8 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ARAgingScreen extends StatefulWidget {
   const ARAgingScreen({super.key});
   @override
@@ -403,6 +405,7 @@ class _ARAgingScreenState extends State<ARAgingScreen>
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 320),
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               textAlign: TextAlign.right,
               decoration: InputDecoration(
                 hintText: 'بحث باسم العميل…',

@@ -12,6 +12,8 @@ import 'package:yalla_accounts/features/auth/widgets/add_user_dialog.dart';
 import 'package:yalla_accounts/features/auth/widgets/edit_user_dialog.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -238,6 +240,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
         child: Column(
           children: [
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _searchController,
               decoration: const InputDecoration(
                 labelText: 'بحث بالاسم أو البريد',

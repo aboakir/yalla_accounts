@@ -7,6 +7,8 @@ import 'package:yalla_accounts/features/employees/models/attendance.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ManualAttendanceDialog extends StatefulWidget {
   final Employee employee;
   final DateTime date;
@@ -94,12 +96,14 @@ class _ManualAttendanceDialogState extends State<ManualAttendanceDialog> {
               ),
               if (status == 'حاضر' || status == 'تأخير') ...[
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   initialValue: checkIn,
                   decoration: const InputDecoration(
                       labelText: 'وقت الدخول (مثال: 08:30)'),
                   onSaved: (val) => checkIn = val,
                 ),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   initialValue: checkOut,
                   decoration: const InputDecoration(
                       labelText: 'وقت الخروج (مثال: 16:30)'),
@@ -107,6 +111,7 @@ class _ManualAttendanceDialogState extends State<ManualAttendanceDialog> {
                 ),
               ],
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 initialValue: notes,
                 decoration: const InputDecoration(labelText: 'ملاحظات'),
                 onSaved: (val) => notes = val,

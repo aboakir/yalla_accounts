@@ -7,6 +7,8 @@ import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/screens/user_details_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ManagerDashboardScreen extends ConsumerStatefulWidget {
   const ManagerDashboardScreen({super.key});
 
@@ -119,6 +121,7 @@ class _ManagerDashboardScreenState
         child: Column(
           children: [
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _searchController,
               onChanged: _filterUsers,
               decoration: InputDecoration(

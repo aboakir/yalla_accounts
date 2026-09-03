@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 /// حوار لإدخال دفعة جديدة (يرجع قيمة المبلغ إذا كان صالحًا)
 class AddPaymentDialog extends StatefulWidget {
   const AddPaymentDialog({super.key});
@@ -30,6 +32,7 @@ class _AddPaymentDialogState extends State<AddPaymentDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textAlign: TextAlign.right,

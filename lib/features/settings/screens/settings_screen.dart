@@ -16,6 +16,8 @@ import 'data_health_screen.dart';
 import 'commercial_settings_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class WorkshopSettingsScreen extends StatefulWidget {
   const WorkshopSettingsScreen({super.key});
 
@@ -243,12 +245,15 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
                 onPressed: _pickLogo, child: const Text("اختيار شعار")),
           ]),
           TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _nameCtrl,
               decoration: const InputDecoration(labelText: "اسم الورشة")),
           TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _addressCtrl,
               decoration: const InputDecoration(labelText: "العنوان")),
           TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _cityCtrl,
               decoration: const InputDecoration(labelText: "المدينة")),
         ]),
@@ -295,12 +300,14 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const Divider(),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _q1Ctrl,
             decoration:
                 const InputDecoration(labelText: "ما أول اسم لورشتك بالعربية؟"),
           ),
           const SizedBox(height: 12),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _q2Ctrl,
             decoration:
                 const InputDecoration(labelText: "ما هو رقم هوية صاحب الورشة؟"),

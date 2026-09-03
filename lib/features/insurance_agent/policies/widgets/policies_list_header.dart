@@ -7,6 +7,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import '../utils/policy_date_utils.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PoliciesListHeader extends StatelessWidget {
   final List<Map<String, dynamic>> items;
   final List<String> companies;
@@ -317,6 +319,7 @@ class PoliciesListHeader extends StatelessWidget {
     final isDisabled = loading || monthBusy;
 
     final searchField = TextField(
+      inputFormatters: const [YallaDigitNormalizer()],
       textAlign: TextAlign.right,
       decoration: InputDecoration(
         hintText: 'بحث: رقم مركبة / اسم / هاتف / شركة',

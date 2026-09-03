@@ -17,6 +17,8 @@ import 'package:yalla_accounts/features/finance/services/invoice_database_servic
 import 'package:yalla_accounts/features/finance/models/invoice.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class InvoiceAddPaymentButton extends StatefulWidget {
   final String invoiceId;
   final String? repairId; // ← صارت اختيارية لتفادي String? → String
@@ -81,6 +83,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: amountCtrl,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -131,6 +134,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
                   ),
                   const SizedBox(height: 10),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: notesCtrl,
                     maxLines: 2,
                     decoration: const InputDecoration(

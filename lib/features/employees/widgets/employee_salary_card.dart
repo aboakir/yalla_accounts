@@ -6,6 +6,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EmployeeSalaryCard extends ConsumerStatefulWidget {
   final Employee employee;
   const EmployeeSalaryCard({super.key, required this.employee});
@@ -94,6 +96,7 @@ class _EmployeeSalaryCardState extends ConsumerState<EmployeeSalaryCard> {
                   const Text('تعديل السلفة'),
                   const SizedBox(height: 4),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: advanceController,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),

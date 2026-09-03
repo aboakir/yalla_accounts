@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_form_provider.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepEmployeeBasicData extends ConsumerStatefulWidget {
   final void Function()? onNext;
   const StepEmployeeBasicData({super.key, this.onNext});
@@ -213,6 +215,7 @@ class _StepEmployeeBasicDataState extends ConsumerState<StepEmployeeBasicData> {
     ValueChanged<String>? onFieldSubmitted,
   }) {
     return TextFormField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: controller,
       focusNode: focusNode,
       textDirection: TextDirection.rtl,

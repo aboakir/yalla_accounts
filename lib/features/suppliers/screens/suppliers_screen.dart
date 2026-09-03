@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/suppliers/screens/supplier_account_screen.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SuppliersScreen extends StatefulWidget {
   const SuppliersScreen({super.key});
 
@@ -72,6 +74,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _searchCtrl,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(

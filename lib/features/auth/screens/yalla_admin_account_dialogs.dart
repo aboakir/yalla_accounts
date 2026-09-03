@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 Future<bool?> showYallaAdminEnrollmentDialog(
   BuildContext context, {
   String initialEmail = '',
@@ -145,6 +147,7 @@ class _YallaAdminEnrollmentDialogState
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _email,
                   enabled: !started,
                   keyboardType: TextInputType.emailAddress,
@@ -163,6 +166,7 @@ class _YallaAdminEnrollmentDialogState
                 if (!started) ...[
                   const SizedBox(height: 10),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _secret,
                     obscureText: _obscureSecret,
                     decoration: InputDecoration(
@@ -194,6 +198,7 @@ class _YallaAdminEnrollmentDialogState
                     ),
                   const SizedBox(height: 10),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _password,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
@@ -215,6 +220,7 @@ class _YallaAdminEnrollmentDialogState
                         : null,
                   ),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _confirm,
                     obscureText: _obscurePassword,
                     decoration: const InputDecoration(
@@ -226,6 +232,7 @@ class _YallaAdminEnrollmentDialogState
                         : null,
                   ),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _totp,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
@@ -369,6 +376,7 @@ class _YallaAdminRecoveryDialogState
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _email,
                 enabled: !_started,
                 keyboardType: TextInputType.emailAddress,
@@ -376,19 +384,23 @@ class _YallaAdminRecoveryDialogState
               ),
               if (_started) ...[
                 TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _challenge,
                     decoration:
                         const InputDecoration(labelText: 'Challenge ID')),
                 TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _secret,
                     obscureText: _obscure,
                     decoration:
                         const InputDecoration(labelText: 'Recovery Secret')),
                 TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _code,
                     decoration:
                         const InputDecoration(labelText: 'Recovery Code')),
                 TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _newPassword,
                   obscureText: _obscure,
                   decoration: InputDecoration(

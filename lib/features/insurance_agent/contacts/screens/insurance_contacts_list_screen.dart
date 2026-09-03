@@ -19,6 +19,8 @@ import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class InsuranceContactsListScreen extends StatefulWidget {
   const InsuranceContactsListScreen({super.key});
 
@@ -687,6 +689,7 @@ class _HeaderBar extends StatelessWidget {
         SizedBox(
           width: 380,
           child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             textAlign: TextAlign.right,
             decoration: InputDecoration(
               hintText: 'بحث بالاسم / الهاتف / نوع المركبة',
@@ -1231,12 +1234,14 @@ class _LeadDialogState extends State<_LeadDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _name,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(labelText: 'الاسم (اختياري)'),
             ),
             const SizedBox(height: 8),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _phone,
               textAlign: TextAlign.right,
               keyboardType: TextInputType.phone,
@@ -1245,6 +1250,7 @@ class _LeadDialogState extends State<_LeadDialog> {
             ),
             const SizedBox(height: 8),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _vehicleMake,
               textAlign: TextAlign.right,
               decoration:

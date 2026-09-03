@@ -26,6 +26,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PolicyPaymentsScreen extends StatefulWidget {
   final dynamic policyId; // id / uuid / policy_id
   final Map<String, dynamic>? row; // بيانات البوليصة (اختياري)
@@ -198,6 +200,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: amountCtrl,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.right,
@@ -273,6 +276,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
               ),
               const SizedBox(height: 10),
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: notesCtrl,
                 maxLines: 2,
                 textAlign: TextAlign.right,

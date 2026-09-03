@@ -6,6 +6,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class FinanceDashboardScreen extends StatefulWidget {
   const FinanceDashboardScreen({super.key});
 
@@ -305,6 +307,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                     ),
                     const SizedBox(height: 8),
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       textAlign: TextAlign.right,
                       decoration: const InputDecoration(
                         hintText: 'ابحث في القيود والحسابات...',
@@ -364,6 +367,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                       constraints:
                           const BoxConstraints(minWidth: 180, maxWidth: 360),
                       child: TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         textAlign: TextAlign.right,
                         decoration: const InputDecoration(
                           hintText: 'بحث...',

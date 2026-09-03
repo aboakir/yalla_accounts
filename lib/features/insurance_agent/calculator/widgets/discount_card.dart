@@ -6,6 +6,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import '../providers/insurance_calculator_provider.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class DiscountCard extends StatelessWidget {
   const DiscountCard({super.key});
 
@@ -25,6 +27,7 @@ class DiscountCard extends StatelessWidget {
           textAlign: TextAlign.right,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
+            const YallaDigitNormalizer(),
             FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}(\.\d{0,2})?$')),
           ],
           decoration: InputDecoration(

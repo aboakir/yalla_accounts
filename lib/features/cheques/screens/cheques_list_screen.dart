@@ -36,6 +36,8 @@ import 'cheque_add_screen.dart';
 import 'cheque_details_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ChequesListScreen extends ConsumerStatefulWidget {
   const ChequesListScreen({super.key});
 
@@ -440,6 +442,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 220,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: const InputDecoration(
           labelText: "بحث...",
           prefixIcon: Icon(Icons.search),
@@ -456,6 +459,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 180,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: const InputDecoration(labelText: "البنك"),
         textAlign: TextAlign.right,
         onChanged: (v) {
@@ -471,6 +475,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 180,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: const InputDecoration(labelText: "الفرع"),
         textAlign: TextAlign.right,
         onChanged: (v) {
@@ -486,6 +491,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 180,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: const InputDecoration(labelText: "العملة"),
         textAlign: TextAlign.right,
         onChanged: (v) {
@@ -501,6 +507,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 160,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: const InputDecoration(labelText: "أقل مبلغ"),
         keyboardType: TextInputType.number,
         textAlign: TextAlign.right,
@@ -517,6 +524,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 160,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: const InputDecoration(labelText: "أعلى مبلغ"),
         keyboardType: TextInputType.number,
         textAlign: TextAlign.right,

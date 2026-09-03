@@ -12,6 +12,8 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepCompanyDates extends StatefulWidget {
   final GlobalKey<FormState> formKey;
   final PolicyDraft draft;
@@ -101,6 +103,7 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
         children: [
           // ✅ الشركة تُعرض فقط (بدون تعديل)
           TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _companyCtrl,
             readOnly: true,
             enableInteractiveSelection: false,
@@ -136,6 +139,7 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
 
           // ✅ Validator للتواريخ (بدون حقل شركة)
           TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             enabled: false,
             decoration: const InputDecoration(
               border: InputBorder.none,

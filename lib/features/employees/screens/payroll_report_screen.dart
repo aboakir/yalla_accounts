@@ -23,6 +23,8 @@ import 'package:yalla_accounts/features/employees/models/salary.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PayrollReportScreen extends ConsumerStatefulWidget {
   const PayrollReportScreen({super.key});
 
@@ -230,6 +232,7 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
         SizedBox(
           width: 220,
           child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             onChanged: (v) => setState(() => _employeeId = v),
             decoration: InputDecoration(
               labelText: 'Employee ID (اختياري)',

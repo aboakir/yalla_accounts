@@ -27,6 +27,8 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class VehiclesArrearsScreen extends StatefulWidget {
   const VehiclesArrearsScreen({super.key});
 
@@ -295,6 +297,9 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                                   constraints:
                                       const BoxConstraints(maxWidth: 520),
                                   child: TextField(
+                                    inputFormatters: const [
+                                      YallaDigitNormalizer()
+                                    ],
                                     controller: _searchCtrl,
                                     decoration: const InputDecoration(
                                       prefixIcon: Icon(Icons.search),

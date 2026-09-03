@@ -9,6 +9,8 @@ import 'package:yalla_accounts/features/clients/widgets/edit_client_dialog.dart'
 import 'package:yalla_accounts/features/clients/widgets/client_details_dialog.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 /// سلوك Scroll خاص بالويندوز (سكرول ناعم + دعم الماوس)
 class DesktopScrollBehavior extends ScrollBehavior {
   const DesktopScrollBehavior();
@@ -222,6 +224,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                               Expanded(
                                 flex: 2,
                                 child: TextField(
+                                  inputFormatters: const [
+                                    YallaDigitNormalizer()
+                                  ],
                                   controller: _searchCtrl,
                                   decoration: InputDecoration(
                                     hintText:

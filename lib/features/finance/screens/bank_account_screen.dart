@@ -18,6 +18,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class BankAccountScreen extends StatefulWidget {
   const BankAccountScreen({super.key});
 
@@ -271,6 +273,7 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
           SizedBox(
             width: 260,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               textAlign: TextAlign.right,
               onChanged: (v) {
                 setState(() => _query = v);

@@ -19,6 +19,8 @@ import 'package:yalla_accounts/features/employees/services/attendance_database_s
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AttendanceReportScreen extends ConsumerStatefulWidget {
   const AttendanceReportScreen({super.key});
 
@@ -230,6 +232,7 @@ class _AttendanceReportScreenState
         SizedBox(
           width: 220,
           child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             onChanged: (v) => setState(() => _employeeId = v),
             decoration: const InputDecoration(
               labelText: 'Employee ID (اختياري)',

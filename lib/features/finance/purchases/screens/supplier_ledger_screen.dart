@@ -13,6 +13,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierLedgerScreen extends StatefulWidget {
   final String supplierId;
   final String supplierName;
@@ -253,6 +255,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
           SizedBox(
             width: 260,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _searchCtrl,
               decoration: const InputDecoration(
                 hintText: 'بحث في الوصف',

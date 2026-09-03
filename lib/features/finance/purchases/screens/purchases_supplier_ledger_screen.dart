@@ -17,6 +17,8 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierLedgerScreen extends StatefulWidget {
   final String supplierId;
   final String supplierName;
@@ -243,6 +245,7 @@ class _SupplierLedgerScreenState extends State<SupplierLedgerScreen> {
                     Expanded(
                       flex: 2,
                       child: TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _searchCtrl,
                         onSubmitted: (_) => _load(),
                         decoration: InputDecoration(

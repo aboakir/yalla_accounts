@@ -20,6 +20,8 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AccountLedgerScreen extends StatefulWidget {
   const AccountLedgerScreen({super.key});
 
@@ -590,6 +592,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 280),
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               textAlign: TextAlign.right,
               onChanged: (v) {
                 setState(() => _query = v);

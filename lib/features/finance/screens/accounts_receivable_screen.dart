@@ -33,6 +33,8 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AccountsReceivableScreen extends StatefulWidget {
   const AccountsReceivableScreen({super.key});
   @override
@@ -596,6 +598,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                         ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 560),
                           child: TextField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             onChanged: (v) => setState(() => _query = v),
                             decoration: const InputDecoration(
                               prefixIcon: Icon(Icons.search),

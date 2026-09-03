@@ -16,6 +16,8 @@ import 'package:yalla_accounts/features/employees/services/advance_database_serv
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EmployeeAdvancesScreen extends ConsumerStatefulWidget {
   final Employee employee;
   const EmployeeAdvancesScreen({super.key, required this.employee});
@@ -397,6 +399,7 @@ class _EmployeeAdvancesScreenState
                         SizedBox(
                           width: 220,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _amountController,
                             keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true),
@@ -415,6 +418,7 @@ class _EmployeeAdvancesScreenState
                         SizedBox(
                           width: 360,
                           child: TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _notesController,
                             decoration: InputDecoration(
                                 labelText: 'ملاحظات (اختياري)',
@@ -488,6 +492,7 @@ class _EmployeeAdvancesScreenState
                       SizedBox(
                         width: 280,
                         child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           onChanged: (v) => setState(() => _viewQuery = v),
                           decoration: InputDecoration(
                             labelText: 'بحث (ID/ملاحظة/طريقة)',

@@ -6,6 +6,8 @@ import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_form_provider.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepBeneficiaryData extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
   const StepBeneficiaryData({super.key, required this.formKey});
@@ -262,6 +264,7 @@ class _StepBeneficiaryDataState extends ConsumerState<StepBeneficiaryData> {
                         );
 
                         return TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: controller,
                           focusNode: _individualFocus,
                           textAlign: TextAlign.right,

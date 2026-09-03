@@ -9,6 +9,8 @@ import 'package:yalla_accounts/features/auth/widgets/add_user_dialog.dart';
 import 'package:yalla_accounts/features/auth/widgets/edit_user_dialog.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ManageUsersScreen extends ConsumerStatefulWidget {
   const ManageUsersScreen({super.key});
 
@@ -330,6 +332,7 @@ class _ResetUserPasswordDialogState
               ),
               const SizedBox(height: 16),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _password,
                 obscureText: _obscurePassword,
                 autocorrect: false,
@@ -348,6 +351,7 @@ class _ResetUserPasswordDialogState
               ),
               const SizedBox(height: 12),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _confirm,
                 obscureText: _obscureConfirm,
                 autocorrect: false,

@@ -24,6 +24,8 @@ import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 // ============================================================================
 //                                WIDGET
 // ============================================================================
@@ -439,9 +441,21 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: name, decoration: _dec('الاسم')),
-            TextField(controller: qty, decoration: _dec('الكمية')),
-            TextField(controller: price, decoration: _dec('السعر')),
+            TextField(
+              controller: name,
+              decoration: _dec('الاسم'),
+              inputFormatters: const [YallaDigitNormalizer()],
+            ),
+            TextField(
+              controller: qty,
+              decoration: _dec('الكمية'),
+              inputFormatters: const [YallaDigitNormalizer()],
+            ),
+            TextField(
+              controller: price,
+              decoration: _dec('السعر'),
+              inputFormatters: const [YallaDigitNormalizer()],
+            ),
           ],
         ),
         actions: [
@@ -585,12 +599,17 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                   Icons.directions_car_outlined,
                   Column(children: [
                     TextField(
-                        controller: _typeCtrl, decoration: _dec('نوع المركبة')),
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        controller: _typeCtrl,
+                        decoration: _dec('نوع المركبة')),
                     const SizedBox(height: 10),
                     TextField(
-                        controller: _modelCtrl, decoration: _dec('الموديل')),
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        controller: _modelCtrl,
+                        decoration: _dec('الموديل')),
                     const SizedBox(height: 10),
                     TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _numberCtrl,
                         decoration: _dec('رقم المركبة')),
                   ]),
@@ -639,6 +658,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                   Icons.shield_outlined,
                   Column(children: [
                     TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _beneficiaryCtrl,
                         decoration: _dec('اسم شركة التأمين / المستفيد')),
                     const SizedBox(height: 10),
@@ -673,12 +693,14 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                   Icons.account_balance_wallet_outlined,
                   Column(children: [
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _fileValueCtrl,
                       readOnly: true,
                       decoration: _dec('قيمة الملف المحسوبة'),
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _paidCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
@@ -776,6 +798,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                   'ملاحظات',
                   Icons.notes_outlined,
                   TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _notesCtrl,
                       minLines: 3,
                       maxLines: 6,
@@ -840,14 +863,17 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                     Column(
                       children: [
                         TextField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _typeCtrl,
                             decoration: _dec('نوع المركبة')),
                         const SizedBox(height: 12),
                         TextField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _modelCtrl,
                             decoration: _dec('موديل المركبة')),
                         const SizedBox(height: 12),
                         TextField(
+                            inputFormatters: const [YallaDigitNormalizer()],
                             controller: _numberCtrl,
                             decoration: _dec('رقم المركبة')),
                       ],
@@ -858,6 +884,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                     Column(
                       children: [
                         TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _beneficiaryCtrl,
                           decoration: _dec('اسم شركة التأمين'),
                         ),
@@ -933,6 +960,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                     Column(
                       children: [
                         TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _fileValueCtrl,
                           decoration: _dec('قيمة الملف'),
                         ),
@@ -957,6 +985,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                         ),
                         const SizedBox(height: 12),
                         TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _paidCtrl,
                           decoration: _dec('المبلغ المدفوع'),
                         ),
@@ -966,6 +995,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                   _card(
                     'ملاحظات',
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _notesCtrl,
                       maxLines: 3,
                       decoration: _dec('ملاحظات'),
@@ -1067,11 +1097,23 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: name, decoration: _dec('الاسم')),
+            TextField(
+              controller: name,
+              decoration: _dec('الاسم'),
+              inputFormatters: const [YallaDigitNormalizer()],
+            ),
             const SizedBox(height: 8),
-            TextField(controller: qty, decoration: _dec('الكمية')),
+            TextField(
+              controller: qty,
+              decoration: _dec('الكمية'),
+              inputFormatters: const [YallaDigitNormalizer()],
+            ),
             const SizedBox(height: 8),
-            TextField(controller: price, decoration: _dec('السعر')),
+            TextField(
+              controller: price,
+              decoration: _dec('السعر'),
+              inputFormatters: const [YallaDigitNormalizer()],
+            ),
           ],
         ),
         actions: [

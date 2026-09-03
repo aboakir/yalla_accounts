@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({
     super.key,
@@ -150,6 +152,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               children: [
                 if (!_isRecovery) ...[
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _currentPassword,
                     obscureText: !_showCurrentPassword,
                     autocorrect: false,
@@ -167,6 +170,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   const SizedBox(height: 12),
                 ],
                 TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _pass1,
                   obscureText: !_showNewPassword,
                   autocorrect: false,
@@ -184,6 +188,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _pass2,
                   obscureText: !_showConfirmPassword,
                   autocorrect: false,

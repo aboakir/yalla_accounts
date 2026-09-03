@@ -11,6 +11,8 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PurchasePartsScreen extends ConsumerStatefulWidget {
   final String repairId;
   const PurchasePartsScreen({super.key, required this.repairId});
@@ -79,12 +81,14 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
             const SizedBox(height: 14),
             TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _partController,
                 textAlign: TextAlign.right,
                 decoration: const InputDecoration(
                     labelText: 'اسم القطعة', border: OutlineInputBorder())),
             const SizedBox(height: 10),
             TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _costController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -245,6 +249,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
                     children: [
                       Expanded(
                         child: TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _partController,
                           decoration:
                               const InputDecoration(labelText: 'اسم القطعة'),
@@ -254,6 +259,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _costController,
                           keyboardType: TextInputType.number,
                           decoration:

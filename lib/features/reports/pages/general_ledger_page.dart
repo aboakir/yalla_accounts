@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/reports/providers/general_ledger_provider.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class GeneralLedgerPage extends StatefulWidget {
   const GeneralLedgerPage({super.key});
 
@@ -63,6 +65,7 @@ class _GeneralLedgerPageState extends State<GeneralLedgerPage> {
       builder: (_) => AdaptiveAlertDialog(
         title: const Text('رمز الحساب'),
         content: TextField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: controller,
           decoration: const InputDecoration(hintText: 'مثال: 1200'),
           keyboardType: TextInputType.number,

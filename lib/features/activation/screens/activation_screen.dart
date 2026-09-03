@@ -4,6 +4,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ActivationScreen extends StatefulWidget {
   const ActivationScreen({super.key});
 
@@ -124,6 +126,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     ),
                     const SizedBox(height: 24),
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _codeController,
                       enabled: !_busy,
                       textCapitalization: TextCapitalization.characters,

@@ -9,6 +9,8 @@ import 'package:yalla_accounts/features/vehicles/widgets/vehicle_edit_dialog.dar
 import 'package:yalla_accounts/features/vehicles/widgets/vehicle_history_dialog.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class VehiclesListScreen extends StatefulWidget {
   const VehiclesListScreen({super.key});
 
@@ -166,6 +168,7 @@ class _VehiclesListScreenState extends State<VehiclesListScreen> {
                             ),
                             const SizedBox(height: 12),
                             TextField(
+                              inputFormatters: const [YallaDigitNormalizer()],
                               controller: _searchController,
                               decoration: InputDecoration(
                                 hintText:

@@ -27,6 +27,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class CashFlowScreen extends StatefulWidget {
   const CashFlowScreen({super.key});
 
@@ -295,6 +297,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
           SizedBox(
             width: 260,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               textAlign: TextAlign.right,
               onChanged: (v) {
                 setState(() => _query = v);

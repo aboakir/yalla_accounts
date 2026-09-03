@@ -6,6 +6,8 @@ import '../models/cheque.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ChequeDialog extends StatefulWidget {
   final ChequeType initialType; // وارد أو صادر
   final String? sourceId; // رقم الإصلاح أو الفاتورة أو المورد
@@ -165,6 +167,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
           children: [
             Expanded(
               child: TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _chequeNoCtrl,
                 decoration: InputDecoration(
                   labelText: 'رقم الشيك',
@@ -177,6 +180,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
             const SizedBox(width: 12),
             Expanded(
               child: TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountCtrl,
                 decoration: InputDecoration(
                   labelText: 'المبلغ',
@@ -194,6 +198,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
 
         // اسم محرر الشيك
         TextFormField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: _drawerNameCtrl,
           decoration: InputDecoration(
             labelText: 'اسم محرر الشيك',
@@ -209,6 +214,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
           children: [
             Expanded(
               child: TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _bankNameCtrl,
                 decoration: InputDecoration(
                   labelText: 'اسم البنك',
@@ -221,6 +227,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
             const SizedBox(width: 12),
             Expanded(
               child: TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _branchCtrl,
                 decoration: InputDecoration(
                   labelText: 'الفرع',
@@ -235,6 +242,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
 
         // ملاحظات
         TextFormField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: _notesCtrl,
           decoration: InputDecoration(
             labelText: 'ملاحظات (اختياري)',

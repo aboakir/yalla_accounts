@@ -14,6 +14,8 @@ import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class RegisterUserScreen extends ConsumerStatefulWidget {
   const RegisterUserScreen({super.key});
 
@@ -557,6 +559,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: controller,
         keyboardType: keyboard,
         obscureText: obscure,

@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_form_provider.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepEmployeeNotesPhoto extends ConsumerStatefulWidget {
   final VoidCallback? onSave;
   const StepEmployeeNotesPhoto({super.key, this.onSave});
@@ -68,6 +70,7 @@ class _StepEmployeeNotesPhotoState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: notesController,
                   maxLines: 5,
                   decoration: InputDecoration(

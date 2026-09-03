@@ -13,6 +13,8 @@ import 'package:yalla_accounts/features/employees/screens/employees_list_screen.
 import 'package:yalla_accounts/features/employees/services/salary_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EmployeeDashboardScreen extends ConsumerWidget {
   const EmployeeDashboardScreen({super.key});
 
@@ -434,6 +436,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
   static Widget _tf(TextEditingController c, String label,
       {TextInputType keyboard = TextInputType.text}) {
     return TextField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: c,
       keyboardType: keyboard,
       textAlign: TextAlign.right,

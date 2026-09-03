@@ -17,6 +17,8 @@ import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart'
 import 'package:yalla_accounts/features/finance/purchases/services/supplier_payment_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierPaymentsScreen extends StatefulWidget {
   const SupplierPaymentsScreen({super.key});
 
@@ -184,6 +186,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
 
               // Supplier ID
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _supplierCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Supplier ID (رقمي)',
@@ -214,6 +217,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
 
               // Amount
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountCtrl,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -260,6 +264,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
 
               // Note
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _noteCtrl,
                 maxLines: 2,
                 decoration: const InputDecoration(
@@ -302,6 +307,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
           children: [
             Expanded(
               child: TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _filterCtrl,
                 decoration: const InputDecoration(
                   labelText: 'فلترة حسب Supplier ID',

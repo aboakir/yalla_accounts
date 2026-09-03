@@ -33,6 +33,8 @@ import 'package:yalla_accounts/features/cheques/screens/cheque_add_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheque_details_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierChequesScreen extends ConsumerStatefulWidget {
   final String supplierPid;
   final String supplierName;
@@ -259,6 +261,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
     return SizedBox(
       width: 180,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: InputDecoration(labelText: label),
         textAlign: TextAlign.right,
         onChanged: onChange,
@@ -270,6 +273,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
     return SizedBox(
       width: 150,
       child: TextField(
+        inputFormatters: const [YallaDigitNormalizer()],
         decoration: InputDecoration(labelText: label),
         keyboardType: TextInputType.number,
         textAlign: TextAlign.right,

@@ -14,6 +14,8 @@ import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 // ============================================================================
 // FIXED BEHAVIOR — Scroll works with mouse & keyboard
 // ============================================================================
@@ -163,6 +165,7 @@ ORDER BY pi.date DESC;
   // SEARCH
   Widget _buildSearch() {
     return TextField(
+      inputFormatters: const [YallaDigitNormalizer()],
       decoration: InputDecoration(
         hintText: 'بحث باسم المورد أو رقم الفاتورة',
         filled: true,

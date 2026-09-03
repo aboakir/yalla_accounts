@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class CustomTextField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
@@ -19,6 +21,7 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,

@@ -23,6 +23,8 @@ import 'package:yalla_accounts/features/employees/providers/employee_provider.da
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EditEmployeeScreen extends ConsumerStatefulWidget {
   final Employee employee;
   const EditEmployeeScreen({super.key, required this.employee});
@@ -194,6 +196,7 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
     bool isPhone = false,
   }) {
     return TextFormField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
@@ -224,6 +227,7 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
     bool requiredField = true,
   }) {
     return TextFormField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: controller,
       keyboardType:
           const TextInputType.numberWithOptions(decimal: true, signed: false),

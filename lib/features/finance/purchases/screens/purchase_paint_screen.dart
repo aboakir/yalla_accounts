@@ -19,6 +19,8 @@ import 'package:yalla_accounts/features/finance/purchases/providers/purchase_pro
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PurchasePaintScreen extends ConsumerStatefulWidget {
   const PurchasePaintScreen({super.key});
 
@@ -154,6 +156,7 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
 
             // Supplier ID (اختياري)
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _supplierIdCtrl,
               decoration: const InputDecoration(
                 labelText: "Supplier ID (اختياري)",
@@ -182,6 +185,7 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
 
             // المبلغ
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _amountCtrl,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -233,6 +237,7 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
 
             // ملاحظة
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _noteCtrl,
               maxLines: 2,
               decoration: const InputDecoration(

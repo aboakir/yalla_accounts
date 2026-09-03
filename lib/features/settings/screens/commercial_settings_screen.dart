@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/commercial_settings_service.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class CommercialSettingsScreen extends StatefulWidget {
   const CommercialSettingsScreen({super.key});
 
@@ -130,21 +132,25 @@ class _CommercialSettingsScreenState extends State<CommercialSettingsScreen> {
             ),
             const SizedBox(height: 12),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _currencyCode,
               decoration: const InputDecoration(
                   labelText: 'عملة الأساس ISO (مثال JOD)'),
             ),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _symbol,
               decoration: const InputDecoration(labelText: 'رمز العملة'),
             ),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _decimals,
               decoration:
                   const InputDecoration(labelText: 'عدد الكسور العشرية'),
               keyboardType: TextInputType.number,
             ),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _vat,
               decoration: const InputDecoration(
                 labelText: 'VAT الافتراضي %',
@@ -160,6 +166,7 @@ class _CommercialSettingsScreenState extends State<CommercialSettingsScreen> {
               title: const Text('الأسعار تشمل VAT'),
             ),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _taxNumber,
               decoration:
                   const InputDecoration(labelText: 'رقم التسجيل الضريبي / VAT'),

@@ -7,6 +7,8 @@ import 'package:yalla_accounts/features/clients/providers/client_list_provider.d
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ClientEditScreen extends ConsumerStatefulWidget {
   final Client? client;
 
@@ -142,6 +144,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
 
                       // الاسم
                       TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _nameController,
                         textAlign: TextAlign.right,
                         decoration: const InputDecoration(
@@ -159,6 +162,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
 
                       // الهاتف (اختياري)
                       TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _phoneController,
                         textAlign: TextAlign.right,
                         decoration: const InputDecoration(
@@ -171,6 +175,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
 
                       // البريد (اختياري)
                       TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _emailController,
                         textAlign: TextAlign.right,
                         decoration: const InputDecoration(
@@ -190,6 +195,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
 
                       // العنوان (اختياري)
                       TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _addressController,
                         textAlign: TextAlign.right,
                         decoration: const InputDecoration(
@@ -200,6 +206,7 @@ class _ClientEditScreenState extends ConsumerState<ClientEditScreen> {
                       const SizedBox(height: 12),
 
                       TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: _notesController,
                         textAlign: TextAlign.right,
                         minLines: 2,

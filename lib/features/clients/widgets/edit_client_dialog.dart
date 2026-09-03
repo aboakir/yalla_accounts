@@ -5,6 +5,8 @@ import 'package:yalla_accounts/features/clients/models/client.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EditClientDialog extends StatefulWidget {
   final Client client;
 
@@ -180,6 +182,7 @@ class _EditClientDialogState extends State<EditClientDialog> {
                 // إذا أفراد → حقل اسم العميل
                 if (_clientTypeUi == 'أفراد') ...[
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _nameController,
                     textAlign: TextAlign.right,
                     decoration: _inputDecoration('اسم العميل'),
@@ -191,6 +194,7 @@ class _EditClientDialogState extends State<EditClientDialog> {
 
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _phoneController,
                   textAlign: TextAlign.right,
                   decoration: _inputDecoration('رقم الهاتف (اختياري)'),
@@ -198,6 +202,7 @@ class _EditClientDialogState extends State<EditClientDialog> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _emailController,
                   textAlign: TextAlign.right,
                   decoration: _inputDecoration('البريد الإلكتروني (اختياري)'),
@@ -212,6 +217,7 @@ class _EditClientDialogState extends State<EditClientDialog> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _addressController,
                   textAlign: TextAlign.right,
                   decoration: _inputDecoration('العنوان (اختياري)'),
@@ -220,6 +226,7 @@ class _EditClientDialogState extends State<EditClientDialog> {
 
                 // 🆕 الملاحظات
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _notesController,
                   textAlign: TextAlign.right,
                   minLines: 2,

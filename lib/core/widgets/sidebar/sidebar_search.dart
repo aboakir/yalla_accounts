@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SidebarSearch extends StatefulWidget {
   final String initialQuery;
   final String hintText; // ← صار فعّال
@@ -73,6 +75,7 @@ class _SidebarSearchState extends State<SidebarSearch> {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _ctrl,
             focusNode: _focusNode,
             autofocus: widget.autofocus,

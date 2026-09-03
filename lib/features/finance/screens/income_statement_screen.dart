@@ -40,6 +40,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class IncomeStatementScreen extends StatefulWidget {
   const IncomeStatementScreen({super.key});
 
@@ -600,6 +602,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           SizedBox(
             width: 260,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               textAlign: TextAlign.right,
               onChanged: (v) {
                 setState(() => _query = v);

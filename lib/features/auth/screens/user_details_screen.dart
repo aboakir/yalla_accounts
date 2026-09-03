@@ -11,6 +11,8 @@ import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class UserDetailsScreen extends ConsumerStatefulWidget {
   final AppUser user;
   final AppUser currentUser;
@@ -140,6 +142,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
       children: [
         Expanded(
           child: TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             initialValue: phoneNumbers[index],
             enabled: isAdmin,
             decoration: const InputDecoration(
@@ -297,6 +300,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: nameController,
                       enabled: isAdmin,
                       decoration: const InputDecoration(
@@ -305,6 +309,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: emailController,
                       enabled: isAdmin,
                       decoration: const InputDecoration(
@@ -350,6 +355,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                     ),
                     const Divider(),
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: subscriptionAmountController,
                       enabled: isAdmin,
                       decoration: const InputDecoration(
@@ -360,6 +366,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: paymentStatusController,
                       enabled: isAdmin,
                       decoration: const InputDecoration(
@@ -368,6 +375,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: paymentMethodController,
                       enabled: isAdmin,
                       decoration: const InputDecoration(
@@ -384,6 +392,7 @@ class _UserDetailsScreenState extends ConsumerState<UserDetailsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: workshopAddressController,
                       enabled: false,
                       decoration: const InputDecoration(

@@ -20,6 +20,8 @@ import 'package:yalla_accounts/features/employees/services/advance_database_serv
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AdvancesReportScreen extends StatefulWidget {
   const AdvancesReportScreen({super.key});
 
@@ -229,6 +231,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
                       SizedBox(
                         width: 220,
                         child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           decoration: InputDecoration(
                             labelText: 'موظف (ID يحتوي)',
                             border: OutlineInputBorder(),

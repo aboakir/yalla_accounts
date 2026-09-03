@@ -37,6 +37,8 @@ import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/screens/repair_details_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key});
   @override
@@ -411,6 +413,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           SizedBox(
             width: 360,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _searchCtrl,
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
@@ -948,6 +951,7 @@ class _AddEditPaymentDialogState extends State<AddEditPaymentDialog> {
               ]),
               const SizedBox(height: 8),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountCtrl,
                 decoration: const InputDecoration(labelText: 'المبلغ'),
                 keyboardType:
@@ -1015,16 +1019,19 @@ class _AddEditPaymentDialogState extends State<AddEditPaymentDialog> {
               ),
               const SizedBox(height: 6),
               TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _methodCtrl,
                   decoration: const InputDecoration(
                       labelText: 'طريقة الدفع (نقداً / بنك / شيك …)')),
               const SizedBox(height: 6),
               TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _accountCtrl,
                   decoration: const InputDecoration(
                       labelText: 'اسم الحساب (صندوق / بنك …)')),
               const SizedBox(height: 6),
               TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _notesCtrl,
                   decoration: const InputDecoration(labelText: 'ملاحظات')),
               const SizedBox(height: 12),

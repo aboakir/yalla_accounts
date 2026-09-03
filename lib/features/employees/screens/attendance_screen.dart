@@ -19,6 +19,8 @@ import 'package:yalla_accounts/features/employees/providers/salary_provider.dart
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AttendanceScreen extends ConsumerStatefulWidget {
   const AttendanceScreen({super.key});
   @override
@@ -595,6 +597,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               children: [
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: ctrlIn,
                     readOnly: true,
                     decoration: InputDecoration(
@@ -622,6 +625,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: ctrlOut,
                     readOnly: true,
                     decoration: InputDecoration(
@@ -648,6 +652,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             ),
             const SizedBox(height: 12),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: ctrlNotes,
               decoration: InputDecoration(labelText: 'ملاحظات'),
             ),

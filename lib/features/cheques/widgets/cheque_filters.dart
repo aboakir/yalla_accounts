@@ -15,6 +15,8 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ChequeFilters extends StatelessWidget {
   final TextEditingController searchCtrl;
 
@@ -61,6 +63,7 @@ class ChequeFilters extends StatelessWidget {
           // 🔍 حقل البحث
           // --------------------------------------------------------
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: searchCtrl,
             textAlign: TextAlign.right,
             decoration: InputDecoration(

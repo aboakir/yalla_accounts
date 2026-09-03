@@ -18,6 +18,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/pdf/supplier_ledger_pdf.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SuppliersAgingScreen extends StatefulWidget {
   const SuppliersAgingScreen({super.key});
 
@@ -201,6 +203,7 @@ class _SuppliersAgingScreenState extends State<SuppliersAgingScreen> {
               children: [
                 Expanded(
                   child: TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _searchCtrl,
                     decoration: InputDecoration(
                       hintText: 'ابحث باسم المورّد أو رقمه',

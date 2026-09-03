@@ -14,6 +14,8 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ChequeAddScreen extends ConsumerStatefulWidget {
   final Cheque? editCheque;
   final bool embedded;
@@ -396,6 +398,7 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: c,
         enabled: !locked,
         keyboardType: type,

@@ -6,6 +6,8 @@ import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart'
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 enum RecoverMethod { securityQuestions, recoveryCode }
 
 enum RecoverPurpose { username, password }
@@ -215,6 +217,7 @@ class _RecoverAccessDialogState extends ConsumerState<RecoverAccessDialog> {
                 const SizedBox(height: 16),
                 if (_method == RecoverMethod.securityQuestions) ...[
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _answer1Ctrl,
                     decoration: const InputDecoration(
                       labelText: 'ما أول اسم لورشتك بالعربية؟',
@@ -222,6 +225,7 @@ class _RecoverAccessDialogState extends ConsumerState<RecoverAccessDialog> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _answer2Ctrl,
                     decoration: const InputDecoration(
                       labelText: 'ما هو رقم هوية صاحب الورشة؟',
@@ -229,6 +233,7 @@ class _RecoverAccessDialogState extends ConsumerState<RecoverAccessDialog> {
                   ),
                 ] else ...[
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _recoveryCodeCtrl,
                     textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(

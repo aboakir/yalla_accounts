@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/insurance/models/insurance_invoice.dart';
 import 'package:yalla_accounts/features/insurance/providers/insurance_invoice_provider.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class InsuranceInvoiceEditScreen extends ConsumerStatefulWidget {
   final InsuranceInvoice? invoice;
 
@@ -113,6 +115,7 @@ class _InsuranceInvoiceEditScreenState
           child: ListView(
             children: [
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _invoiceNumberController,
                 decoration: const InputDecoration(labelText: 'رقم الفاتورة'),
                 validator: (value) {
@@ -123,6 +126,7 @@ class _InsuranceInvoiceEditScreenState
                 },
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _clientNameController,
                 decoration: const InputDecoration(labelText: 'اسم العميل'),
                 validator: (value) {
@@ -133,6 +137,7 @@ class _InsuranceInvoiceEditScreenState
                 },
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _insuranceCompanyController,
                 decoration: const InputDecoration(labelText: 'شركة التأمين'),
                 validator: (value) {
@@ -143,6 +148,7 @@ class _InsuranceInvoiceEditScreenState
                 },
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountController,
                 decoration: const InputDecoration(labelText: 'المبلغ'),
                 keyboardType:
@@ -155,6 +161,7 @@ class _InsuranceInvoiceEditScreenState
                 },
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _dateController,
                 decoration: const InputDecoration(
                   labelText: 'التاريخ',
@@ -164,6 +171,7 @@ class _InsuranceInvoiceEditScreenState
                 onTap: _selectDate,
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _statusController,
                 decoration: const InputDecoration(labelText: 'الحالة'),
                 validator: (value) {

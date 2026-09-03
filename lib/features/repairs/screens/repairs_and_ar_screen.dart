@@ -28,6 +28,8 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class RepairsAndARScreen extends ConsumerStatefulWidget {
   const RepairsAndARScreen({super.key});
 
@@ -82,6 +84,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
       builder: (_) => AdaptiveAlertDialog(
         title: const Text('سداد دفعة'),
         content: TextField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(
@@ -304,6 +307,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
           children: [
             Expanded(
               child: TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.search),
                     hintText: 'بحث…',

@@ -6,6 +6,8 @@ import 'package:yalla_accounts/core/services/global_search_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class GlobalSearchScreen extends StatefulWidget {
   const GlobalSearchScreen({super.key});
 
@@ -165,6 +167,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               focusNode: _focus,
               controller: _controller,
               onChanged: _onChanged,

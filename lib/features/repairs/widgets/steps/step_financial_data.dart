@@ -17,6 +17,8 @@ import 'package:yalla_accounts/features/repairs/providers/repair_form_provider.d
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepFinancialData extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
 
@@ -232,6 +234,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
 
             // قيمة الملف (قراءة فقط)
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               readOnly: true,
               initialValue: _numFmt.format(form.fileValue),
               decoration: _dec('قيمة الملف (تحسب تلقائيًا)'),
@@ -297,6 +300,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
             // المبلغ المدفوع عند مسدد جزئي
             if (form.paymentStatus == 'مسدد جزئي') ...[
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _paidCtrl,
                 decoration: _dec('المبلغ المدفوع'),
                 keyboardType:
@@ -376,6 +380,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
             // حوالة تأمين داخلية (حقول إضافية)
             if (form.paymentMethod == 'حوالة تأمين داخلية') ...[
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 initialValue: form.transferFromAccount,
                 decoration: _dec('من حساب'),
                 textAlign: TextAlign.right,
@@ -387,6 +392,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
               const SizedBox(height: 12),
 
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 initialValue: form.transferToAccount,
                 decoration: _dec('إلى حساب'),
                 textAlign: TextAlign.right,
@@ -439,6 +445,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
 
               // تاريخ التحويل
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _transferDateCtrl,
                 readOnly: true,
                 decoration: _dec('تاريخ التحويل'),
@@ -451,6 +458,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
 
               // قيمة الحوالة
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _transferAmountCtrl,
                 decoration: _dec('قيمة الحوالة'),
                 keyboardType:
@@ -495,6 +503,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
             const SizedBox(height: 8),
 
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               initialValue: form.notes,
               maxLines: 3,
               textAlign: TextAlign.right,

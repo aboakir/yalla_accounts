@@ -4,6 +4,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_list_filter.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class RepairFilterBar extends StatelessWidget {
   const RepairFilterBar({
     super.key,
@@ -62,6 +64,7 @@ class RepairFilterBar extends StatelessWidget {
                 SizedBox(
                   width: narrow ? constraints.maxWidth : fieldWidth * 2 + 12,
                   child: TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     key: ValueKey('repair-search-$searchQuery'),
                     initialValue: searchQuery,
                     onChanged: onSearchChanged,

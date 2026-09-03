@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepInsuredInfo extends StatefulWidget {
   final PolicyDraft draft;
   final GlobalKey<FormState> formKey;
@@ -204,6 +206,7 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
 
           // اسم المؤمن له
           TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _insuredNameCtrl,
             textAlign: TextAlign.right,
             decoration: const InputDecoration(
@@ -218,6 +221,7 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
 
           // رقم الهاتف
           TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _insuredPhoneCtrl,
             textAlign: TextAlign.right,
             keyboardType: TextInputType.phone,

@@ -32,6 +32,8 @@ import 'package:yalla_accounts/features/settings/providers/workshop_settings_pro
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SalaryScreen extends ConsumerStatefulWidget {
   const SalaryScreen({super.key});
 
@@ -257,6 +259,7 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: controller,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -497,6 +500,7 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
               SizedBox(
                 width: 260,
                 child: TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
                     hintText: '...ابحث باسم الموظف',

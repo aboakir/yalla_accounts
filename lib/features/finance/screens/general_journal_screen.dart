@@ -36,6 +36,8 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class GeneralJournalScreen extends StatefulWidget {
   const GeneralJournalScreen({super.key});
 
@@ -357,6 +359,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
           SizedBox(
             width: 220,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _accCtrl,
               textAlign: TextAlign.right,
               onSubmitted: (_) => _load(),
@@ -378,6 +381,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
           SizedBox(
             width: 240,
             child: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _qCtrl,
               textAlign: TextAlign.right,
               onSubmitted: (_) => _load(),

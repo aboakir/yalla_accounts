@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -13,8 +12,9 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_intake_draft.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_intake_service.dart';
-import 'package:yalla_accounts/features/repairs/services/repair_line_bridge.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
+
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 /// P07 — fast repair intake wizard.
 ///
@@ -46,6 +46,8 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   final _damageController = TextEditingController();
   final _insuranceCompanyController = TextEditingController();
   final _claimNumberController = TextEditingController();
+  final _worksTotalController = TextEditingController();
+  final _partsTotalController = TextEditingController();
   final _signatureKey = GlobalKey<_SignaturePadState>();
   final List<_RepairLineDraft> _works = <_RepairLineDraft>[];
   final List<_RepairLineDraft> _parts = <_RepairLineDraft>[];
@@ -65,6 +67,9 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   bool? _hasPreviousDamage;
   final List<String> _photoPaths = <String>[];
   String _repairScope = 'إصلاح فقط';
+  String _worksPricingMode = 'detailed';
+  String _partsPricingMode = 'detailed';
+  String _partsSupplySource = 'الورشة';
   String _payer = 'العميل';
   String _consentMethod = 'بدون توثيق';
   String? _savedSignaturePath;
@@ -84,6 +89,8 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     _damageController.dispose();
     _insuranceCompanyController.dispose();
     _claimNumberController.dispose();
+    _worksTotalController.dispose();
+    _partsTotalController.dispose();
     super.dispose();
   }
 
@@ -197,6 +204,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: nameController,
                   autofocus: true,
                   textInputAction: TextInputAction.done,
@@ -281,6 +289,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: numberController,
                 autofocus: true,
                 textInputAction: TextInputAction.next,
@@ -291,6 +300,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               ),
               const SizedBox(height: 12),
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: typeController,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
@@ -301,6 +311,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               ),
               const SizedBox(height: 12),
               TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: modelController,
                 textInputAction: TextInputAction.done,
                 decoration: const InputDecoration(
@@ -456,12 +467,30 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           error = 'اختر جهة الدفع.';
         } else if ((_repairScope == 'إصلاح فقط' ||
                 _repairScope == 'إصلاح + قطع') &&
+            _worksPricingMode == 'detailed' &&
             _works.isEmpty) {
-          error = 'أضف عمل إصلاح واحدًا على الأقل مع سعره.';
+          error = 'أضف عمل إصلاح واحدًا على الأقل، أو اختر إدخال إجمالي القسم.';
+        } else if ((_repairScope == 'إصلاح فقط' ||
+                _repairScope == 'إصلاح + قطع') &&
+            _worksPricingMode == 'total' &&
+            _parseMoney(_worksTotalController.text) <= 0) {
+          error = 'أدخل إجمالي أعمال الإصلاح.';
         } else if ((_repairScope == 'قطع فقط' ||
                 _repairScope == 'إصلاح + قطع') &&
+            _partsPricingMode == 'detailed' &&
             _parts.isEmpty) {
-          error = 'أضف قطعة واحدة على الأقل مع سعرها.';
+          error =
+              'أضف قطعة واحدة على الأقل، أو اختر إجمالي القسم / كشف بدون أسعار.';
+        } else if ((_repairScope == 'قطع فقط' ||
+                _repairScope == 'إصلاح + قطع') &&
+            _partsPricingMode == 'total' &&
+            _parseMoney(_partsTotalController.text) <= 0) {
+          error = 'أدخل إجمالي قيمة القطع.';
+        } else if ((_repairScope == 'قطع فقط' ||
+                _repairScope == 'إصلاح + قطع') &&
+            _partsPricingMode == 'list' &&
+            _parts.isEmpty) {
+          error = 'أضف قطعة واحدة على الأقل إلى الكشف.';
         }
         break;
       case 3:
@@ -536,8 +565,17 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       final persistedNotes = <String>[
         '[YALLA_SCOPE] $_repairScope',
         '[YALLA_PAYER] $_payer',
-        if (_works.isNotEmpty) 'أعمال الإصلاح: ${_linesNote(_works)}',
-        if (_parts.isNotEmpty) 'القطع المطلوبة: ${_linesNote(_parts)}',
+        '[YALLA_WORKS_PRICING] $_worksPricingMode',
+        '[YALLA_PARTS_PRICING] $_partsPricingMode',
+        '[YALLA_PARTS_SUPPLY] $_partsSupplySource',
+        if (_worksPricingMode == 'total')
+          '[YALLA_WORKS_TOTAL] ${_sectionTotal(isPart: false)}',
+        if (_partsPricingMode == 'total')
+          '[YALLA_PARTS_TOTAL] ${_sectionTotal(isPart: true)}',
+        if (_works.isNotEmpty)
+          'أعمال الإصلاح: ${_linesNote(_works, isPart: false)}',
+        if (_parts.isNotEmpty)
+          'القطع المطلوبة: ${_linesNote(_parts, isPart: true)}',
         if (_payer != 'العميل' && insuranceCompany.isNotEmpty)
           'شركة التأمين: $insuranceCompany',
         if (_payer != 'العميل' && claimNumber.isNotEmpty)
@@ -565,49 +603,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           notes: persistedNotes,
         ),
       );
-      // P07_CANONICAL_LINES_WRITE
-      final canonicalWorks = _works
-          .map((line) => <String, dynamic>{
-                'name': line.name,
-                'qty': line.qty,
-                'price': line.price,
-                'total': line.total,
-              })
-          .toList(growable: false);
-      final canonicalParts = _parts
-          .map((line) => <String, dynamic>{
-                'name': line.name,
-                'qty': line.qty,
-                'price': line.price,
-                'total': line.total,
-              })
-          .toList(growable: false);
-      final canonicalFileTotal = _linesTotal(_works) + _linesTotal(_parts);
-      final canonicalDb = await DBService.database;
-      final canonicalUpdated = await canonicalDb.update(
-        'repairs',
-        <String, Object?>{
-          'works': jsonEncode(canonicalWorks),
-          'parts': jsonEncode(canonicalParts),
-          'fileValue': canonicalFileTotal,
-        },
-        where: 'id = ?',
-        whereArgs: <Object?>[repairId],
-      );
-      if (canonicalUpdated != 1) {
-        throw StateError(
-          'طھط¹ط°ط± ط­ظپط¸ ط£ط¹ظ…ط§ظ„ ط§ظ„ط¥طµظ„ط§ط­ ظˆط§ظ„ظ‚ط·ط¹ ظپظٹ ط§ظ„ظ…طµط¯ط± ط§ظ„طھط´ط؛ظٹظ„ظٹ ظ„ظ…ظ„ظپ ط§ظ„ط¥طµظ„ط§ط­.',
-        );
-      }
-
       await _persistRepairLines(repairId);
-      // P07_LINE_PERSISTENCE_VERIFY
-      final persistedLines = await RepairLineBridge.load(repairId);
-      if (persistedLines.works.length != _works.length ||
-          persistedLines.parts.length != _parts.length) {
-        throw StateError(
-            'لم يتم حفظ جميع أعمال الإصلاح والقطع داخل ملف الإصلاح.');
-      }
       if (!mounted) return;
       setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -840,6 +836,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
             children: <Widget>[
               Expanded(
                 child: TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _clientSearchController,
                   onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
@@ -910,6 +907,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
             children: <Widget>[
               Expanded(
                 child: TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _vehicleSearchController,
                   onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
@@ -949,8 +947,39 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     );
   }
 
+  double _parseMoney(String value) {
+    final normalized = value
+        .replaceAll(',', '')
+        .replaceAll('٫', '.')
+        .replaceAll('٬', '')
+        .trim();
+    return double.tryParse(normalized) ?? 0;
+  }
+
   double _linesTotal(List<_RepairLineDraft> lines) =>
       lines.fold<double>(0, (sum, line) => sum + line.total);
+
+  double _sectionTotal({required bool isPart}) {
+    final mode = isPart ? _partsPricingMode : _worksPricingMode;
+    if (mode == 'total') {
+      return _parseMoney(
+        isPart ? _partsTotalController.text : _worksTotalController.text,
+      );
+    }
+    if (mode == 'list') return 0;
+    return _linesTotal(isPart ? _parts : _works);
+  }
+
+  String _pricingModeLabel(String mode) {
+    switch (mode) {
+      case 'total':
+        return 'إجمالي للقسم';
+      case 'list':
+        return 'كشف بدون أسعار';
+      default:
+        return 'تسعير تفصيلي';
+    }
+  }
 
   String _money(double value) {
     final fixed = value.toStringAsFixed(2);
@@ -965,26 +994,46 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     return '${buffer.toString()}.${parts.last}';
   }
 
-  String _linesNote(List<_RepairLineDraft> lines) => lines
-      .map((line) =>
-          '${line.name} | ${line.qty} × ${line.price.toStringAsFixed(2)} = ${line.total.toStringAsFixed(2)}')
-      .join(' ؛ ');
+  String _linesNote(List<_RepairLineDraft> lines, {required bool isPart}) {
+    final mode = isPart ? _partsPricingMode : _worksPricingMode;
+    if (lines.isEmpty) return '';
+    if (mode == 'detailed') {
+      return lines
+          .map((line) =>
+              '${line.name} | ${line.qty} × ${line.price.toStringAsFixed(2)} = ${line.total.toStringAsFixed(2)}')
+          .join(' ؛ ');
+    }
+    return lines.map((line) => '${line.name} | الكمية ${line.qty}').join(' ؛ ');
+  }
 
-  String _linesReview(List<_RepairLineDraft> lines) => lines
-      .map((line) =>
-          '• ${line.name}: ${line.qty} × ${_money(line.price)} = ${_money(line.total)} ₪')
-      .join('\n');
+  String _linesReview(List<_RepairLineDraft> lines, {required bool isPart}) {
+    final mode = isPart ? _partsPricingMode : _worksPricingMode;
+    if (lines.isEmpty) return 'لا توجد بنود تفصيلية.';
+    if (mode == 'detailed') {
+      return lines
+          .map((line) =>
+              '• ${line.name}: ${line.qty} × ${_money(line.price)} = ${_money(line.total)} ₪')
+          .join('\n');
+    }
+    return lines
+        .map((line) => '• ${line.name} — الكمية ${line.qty}')
+        .join('\n');
+  }
 
   Future<void> _openLineEditor({
     required bool isPart,
     int? index,
   }) async {
     final list = isPart ? _parts : _works;
+    final mode = isPart ? _partsPricingMode : _worksPricingMode;
+    final requirePrice = mode == 'detailed';
     final existing = index == null ? null : list[index];
     final name = TextEditingController(text: existing?.name ?? '');
     final qty = TextEditingController(text: existing?.qty.toString() ?? '1');
     final price = TextEditingController(
-      text: existing == null ? '' : existing.price.toStringAsFixed(2),
+      text: existing == null || !requirePrice
+          ? ''
+          : existing.price.toStringAsFixed(2),
     );
     final formKey = GlobalKey<FormState>();
 
@@ -1002,16 +1051,8 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           return StatefulBuilder(
             builder: (context, setSheetState) {
               double previewTotal() {
-                final q = double.tryParse(qty.text.replaceAll(
-                      ',',
-                      '',
-                    )) ??
-                    0;
-                final p = double.tryParse(price.text.replaceAll(
-                      ',',
-                      '',
-                    )) ??
-                    0;
+                final q = _parseMoney(qty.text);
+                final p = requirePrice ? _parseMoney(price.text) : 0.0;
                 return q * p;
               }
 
@@ -1047,24 +1088,35 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                index == null
-                                    ? (isPart
-                                        ? 'إضافة قطعة'
-                                        : 'إضافة عمل إصلاح')
-                                    : (isPart
-                                        ? 'تعديل قطعة'
-                                        : 'تعديل عمل إصلاح'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.w900),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    index == null
+                                        ? (isPart
+                                            ? 'إضافة قطعة'
+                                            : 'إضافة عمل إصلاح')
+                                        : (isPart
+                                            ? 'تعديل قطعة'
+                                            : 'تعديل عمل إصلاح'),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(fontWeight: FontWeight.w900),
+                                  ),
+                                  Text(
+                                    _pricingModeLabel(mode),
+                                    style:
+                                        const TextStyle(color: Colors.black54),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
                         TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: name,
                           autofocus: true,
                           textInputAction: TextInputAction.next,
@@ -1078,90 +1130,112 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                               : null,
                         ),
                         const SizedBox(height: 12),
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: TextFormField(
-                                controller: qty,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
-                                textInputAction: TextInputAction.next,
-                                decoration: const InputDecoration(
-                                  labelText: 'الكمية *',
-                                ),
-                                onChanged: (_) => setSheetState(() {}),
-                                validator: (value) {
-                                  final parsed = double.tryParse(
-                                    (value ?? '').replaceAll(',', '').trim(),
-                                  );
-                                  return parsed == null || parsed <= 0
-                                      ? 'كمية غير صحيحة.'
-                                      : null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: TextFormField(
-                                controller: price,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
-                                textInputAction: TextInputAction.done,
-                                decoration: const InputDecoration(
-                                  labelText: 'سعر الوحدة *',
-                                  suffixText: '₪',
-                                ),
-                                onChanged: (_) => setSheetState(() {}),
-                                validator: (value) {
-                                  final parsed = double.tryParse(
-                                    (value ?? '').replaceAll(',', '').trim(),
-                                  );
-                                  return parsed == null || parsed < 0
-                                      ? 'سعر غير صحيح.'
-                                      : null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.lightGreen.withOpacity(.38),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
+                        if (requirePrice)
+                          Row(
                             children: <Widget>[
-                              const Expanded(
-                                child: Text(
-                                  'الإجمالي',
-                                  style: TextStyle(fontWeight: FontWeight.w800),
+                              Expanded(
+                                child: TextFormField(
+                                  inputFormatters: const [
+                                    YallaDigitNormalizer()
+                                  ],
+                                  controller: qty,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  textInputAction: TextInputAction.next,
+                                  decoration: const InputDecoration(
+                                    labelText: 'الكمية *',
+                                  ),
+                                  onChanged: (_) => setSheetState(() {}),
+                                  validator: (value) {
+                                    final parsed = _parseMoney(value ?? '');
+                                    return parsed <= 0
+                                        ? 'كمية غير صحيحة.'
+                                        : null;
+                                  },
                                 ),
                               ),
-                              Text(
-                                '${_money(previewTotal())} ₪',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextFormField(
+                                  inputFormatters: const [
+                                    YallaDigitNormalizer()
+                                  ],
+                                  controller: price,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                                  textInputAction: TextInputAction.done,
+                                  decoration: const InputDecoration(
+                                    labelText: 'سعر الوحدة *',
+                                    suffixText: '₪',
+                                  ),
+                                  onChanged: (_) => setSheetState(() {}),
+                                  validator: (value) {
+                                    final parsed = _parseMoney(value ?? '');
+                                    return parsed < 0 ||
+                                            (value ?? '').trim().isEmpty
+                                        ? 'سعر غير صحيح.'
+                                        : null;
+                                  },
                                 ),
                               ),
                             ],
+                          )
+                        else
+                          TextFormField(
+                            inputFormatters: const [YallaDigitNormalizer()],
+                            controller: qty,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'الكمية *',
+                              helperText:
+                                  'لا يلزم سعر لهذا البند في هذا النمط.',
+                            ),
+                            validator: (value) => _parseMoney(value ?? '') <= 0
+                                ? 'كمية غير صحيحة.'
+                                : null,
                           ),
-                        ),
+                        if (requirePrice) ...<Widget>[
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppColors.lightGreen.withOpacity(.38),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: <Widget>[
+                                const Expanded(
+                                  child: Text(
+                                    'الإجمالي',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                Text(
+                                  '${_money(previewTotal())} ₪',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 18),
                         FilledButton.icon(
                           onPressed: () {
                             if (!(formKey.currentState?.validate() ?? false))
                               return;
-                            final q = double.parse(
-                                qty.text.replaceAll(',', '').trim());
-                            final p = double.parse(
-                                price.text.replaceAll(',', '').trim());
+                            final q = _parseMoney(qty.text);
+                            final p =
+                                requirePrice ? _parseMoney(price.text) : 0.0;
                             Navigator.pop(
                               sheetContext,
                               _RepairLineDraft(
@@ -1213,7 +1287,10 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     required List<_RepairLineDraft> lines,
     required bool isPart,
   }) {
-    final total = _linesTotal(lines);
+    final mode = isPart ? _partsPricingMode : _worksPricingMode;
+    final total = _sectionTotal(isPart: isPart);
+    final totalController =
+        isPart ? _partsTotalController : _worksTotalController;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1237,22 +1314,11 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      '${lines.length} بند • ${_money(total)} ₪',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               FilledButton.tonalIcon(
@@ -1262,6 +1328,84 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            'طريقة التسعير',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: <Widget>[
+              ChoiceChip(
+                label: const Text('تفصيلي'),
+                selected: mode == 'detailed',
+                onSelected: (_) => setState(() {
+                  if (isPart) {
+                    _partsPricingMode = 'detailed';
+                  } else {
+                    _worksPricingMode = 'detailed';
+                  }
+                }),
+              ),
+              ChoiceChip(
+                label: const Text('إجمالي فقط'),
+                selected: mode == 'total',
+                onSelected: (_) => setState(() {
+                  if (isPart) {
+                    _partsPricingMode = 'total';
+                  } else {
+                    _worksPricingMode = 'total';
+                  }
+                }),
+              ),
+              if (isPart)
+                ChoiceChip(
+                  label: const Text('كشف بدون أسعار'),
+                  selected: mode == 'list',
+                  onSelected: (_) => setState(() => _partsPricingMode = 'list'),
+                ),
+            ],
+          ),
+          if (mode == 'total') ...<Widget>[
+            const SizedBox(height: 12),
+            TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
+              controller: totalController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText:
+                    isPart ? 'إجمالي قيمة القطع *' : 'إجمالي أعمال الإصلاح *',
+                suffixText: '₪',
+                helperText: 'يمكن إضافة البنود كوصف فقط دون تسعير كل بند.',
+              ),
+            ),
+          ],
+          if (isPart) ...<Widget>[
+            const SizedBox(height: 12),
+            Text('جهة توريد القطع',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                )),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 7,
+              children:
+                  <String>['الورشة', 'العميل', 'شركة التأمين'].map((source) {
+                return ChoiceChip(
+                  label: Text(source),
+                  selected: _partsSupplySource == source,
+                  onSelected: (_) =>
+                      setState(() => _partsSupplySource = source),
+                );
+              }).toList(growable: false),
+            ),
+          ],
           const SizedBox(height: 12),
           if (lines.isEmpty)
             Container(
@@ -1278,6 +1422,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
             ...lines.asMap().entries.map((entry) {
               final index = entry.key;
               final line = entry.value;
+              final priced = mode == 'detailed';
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Container(
@@ -1293,26 +1438,26 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text(
-                              line.name,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w800),
-                            ),
+                            Text(line.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800)),
                             const SizedBox(height: 4),
                             Text(
-                              '${line.qty} × ${_money(line.price)} ₪',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.black54,
-                              ),
+                              priced
+                                  ? '${line.qty} × ${_money(line.price)} ₪'
+                                  : 'الكمية ${line.qty}${mode == 'list' ? ' • بدون سعر' : ''}',
+                              style: theme.textTheme.bodySmall
+                                  ?.copyWith(color: Colors.black54),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_money(line.total)} ₪',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
+                      if (priced) ...<Widget>[
+                        const SizedBox(width: 8),
+                        Text('${_money(line.total)} ₪',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w900)),
+                      ],
                       PopupMenuButton<String>(
                         tooltip: 'خيارات',
                         onSelected: (value) {
@@ -1332,6 +1477,23 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                 ),
               );
             }),
+          const SizedBox(height: 6),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  mode == 'list'
+                      ? 'كشف قطع مطلوب توريدها — لا يدخل في قيمة الملف'
+                      : '${lines.length} بند • ${_pricingModeLabel(mode)}',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: Colors.black54),
+                ),
+              ),
+              if (mode != 'list')
+                Text('${_money(total)} ₪',
+                    style: const TextStyle(fontWeight: FontWeight.w900)),
+            ],
+          ),
         ],
       ),
     );
@@ -1388,7 +1550,10 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   }
 
   Future<void> _persistRepairLines(Object repairId) async {
-    if (_works.isEmpty && _parts.isEmpty) return;
+    final hasWorksValue = _sectionTotal(isPart: false) > 0;
+    final hasPartsValue = _sectionTotal(isPart: true) > 0;
+    if (_works.isEmpty && _parts.isEmpty && !hasWorksValue && !hasPartsValue)
+      return;
     final db = await DBService.database;
     await db.transaction((txn) async {
       final info = await txn.rawQuery('PRAGMA table_info(repair_lines)');
@@ -1416,8 +1581,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           priceColumn == null ||
           totalColumn == null) {
         throw StateError(
-          'تعذر مطابقة جدول أعمال الإصلاح والقطع مع بنية سطح المكتب.',
-        );
+            'تعذر مطابقة جدول أعمال الإصلاح والقطع مع بنية سطح المكتب.');
       }
 
       final types = await _resolveRepairLineTypes(txn, typeColumn);
@@ -1432,7 +1596,6 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           priceColumn: line.price,
           totalColumn: line.total,
         };
-
         final idInfo =
             info.where((column) => column['name']?.toString() == 'id');
         if (idInfo.isNotEmpty) {
@@ -1450,37 +1613,54 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
         await txn.insert('repair_lines', row);
       }
 
+      final worksMode = _worksPricingMode;
+      final partsMode = _partsPricingMode;
+
       for (final line in _works) {
-        await insertLine(line, false);
+        await insertLine(
+          _RepairLineDraft(
+            name: line.name,
+            qty: line.qty,
+            price: worksMode == 'detailed' ? line.price : 0,
+          ),
+          false,
+        );
       }
-      for (final line in _parts) {
-        await insertLine(line, true);
+      if (worksMode == 'total' && hasWorksValue) {
+        await insertLine(
+          _RepairLineDraft(
+            name: 'إجمالي أعمال الإصلاح',
+            qty: 1,
+            price: _sectionTotal(isPart: false),
+          ),
+          false,
+        );
       }
 
-      final fileTotal = _linesTotal(_works) + _linesTotal(_parts);
-      final repairInfo = await txn.rawQuery('PRAGMA table_info(repairs)');
-      final repairColumns = repairInfo
-          .map((row) => (row['name'] ?? '').toString())
-          .where((name) => name.isNotEmpty)
-          .toSet();
-      final update = <String, Object?>{};
-      if (repairColumns.contains('fileValue')) update['fileValue'] = fileTotal;
-      if (repairColumns.contains('totalFileValue'))
-        update['totalFileValue'] = fileTotal;
-      if (repairColumns.contains('updated_at')) {
-        update['updated_at'] = DateTime.now().toIso8601String();
+      for (final line in _parts) {
+        await insertLine(
+          _RepairLineDraft(
+            name: line.name,
+            qty: line.qty,
+            price: partsMode == 'detailed' ? line.price : 0,
+          ),
+          true,
+        );
       }
-      if (update.isNotEmpty) {
-        final repairPk = repairColumns.contains('id') ? 'id' : null;
-        if (repairPk != null) {
-          await txn.update(
-            'repairs',
-            update,
-            where: 'id = ?',
-            whereArgs: <Object?>[repairId],
-          );
-        }
+      if (partsMode == 'total' && hasPartsValue) {
+        await insertLine(
+          _RepairLineDraft(
+            name: 'إجمالي قيمة القطع',
+            qty: 1,
+            price: _sectionTotal(isPart: true),
+          ),
+          true,
+        );
       }
+
+      // P07 remains a quote/intake stage. We intentionally do NOT write fileValue
+      // or totalFileValue here. The existing accounting approval flow remains the
+      // gate that promotes the estimate into the accounting/list totals.
     });
   }
 
@@ -1593,7 +1773,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                     ),
                   ),
                   Text(
-                    '${_money(_linesTotal(_works) + _linesTotal(_parts))} ₪',
+                    '${_money(_sectionTotal(isPart: false) + _sectionTotal(isPart: true))} ₪',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -1611,6 +1791,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               child: Column(
                 children: <Widget>[
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _insuranceCompanyController,
                     decoration: const InputDecoration(
                       labelText: 'شركة التأمين (اختياري الآن)',
@@ -1619,6 +1800,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _claimNumberController,
                     decoration: const InputDecoration(
                       labelText: 'رقم المطالبة (اختياري)',
@@ -1659,6 +1841,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           ),
           const SizedBox(height: 14),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _odometerController,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.next,
@@ -1689,6 +1872,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           ),
           const SizedBox(height: 18),
           TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: _intakeNotesController,
             minLines: 2,
             maxLines: 4,
@@ -1736,6 +1920,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           if (_hasPreviousDamage == true) ...<Widget>[
             const SizedBox(height: 14),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _damageController,
               minLines: 3,
               maxLines: 6,
@@ -1964,19 +2149,23 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
             rows: <_ReviewRow>[
               _ReviewRow('نوع الملف', _repairScope),
               _ReviewRow('جهة الدفع', _payer),
+              _ReviewRow('تسعير الأعمال', _pricingModeLabel(_worksPricingMode)),
+              _ReviewRow('تسعير القطع', _pricingModeLabel(_partsPricingMode)),
+              if (_repairScope != 'إصلاح فقط')
+                _ReviewRow('توريد القطع', _partsSupplySource),
               if (_works.isNotEmpty)
                 _ReviewRow(
                   'أعمال الإصلاح',
-                  '${_works.length} بند • ${_money(_linesTotal(_works))} ₪\n${_linesReview(_works)}',
+                  '${_works.length} بند • ${_pricingModeLabel(_worksPricingMode)} • ${_money(_sectionTotal(isPart: false))} ₪\n${_linesReview(_works, isPart: false)}',
                 ),
               if (_parts.isNotEmpty)
                 _ReviewRow(
                   'القطع المطلوبة',
-                  '${_parts.length} بند • ${_money(_linesTotal(_parts))} ₪\n${_linesReview(_parts)}',
+                  '${_parts.length} بند • ${_pricingModeLabel(_partsPricingMode)} • ${_partsPricingMode == 'list' ? 'بدون سعر' : '${_money(_sectionTotal(isPart: true))} ₪'}\n${_linesReview(_parts, isPart: true)}',
                 ),
               _ReviewRow(
                 'إجمالي الملف',
-                '${_money(_linesTotal(_works) + _linesTotal(_parts))} ₪',
+                '${_money(_sectionTotal(isPart: false) + _sectionTotal(isPart: true))} ₪',
               ),
               if (_payer != 'العميل' &&
                   _insuranceCompanyController.text.trim().isNotEmpty)
@@ -2019,7 +2208,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
-                      'سيُحفظ الملف بحالة QUOTE / بانتظار الإصلاح، دون فاتورة أو اعتماد أو ترحيل GL. التقدير والموافقة يأتيان لاحقًا في P09.',
+                      'سيُحفظ الملف ككشف / عرض أولي دون قيد محاسبي. قيمة العرض لا تدخل القوائم والحسابات حتى تفتح قائمة الملف وتختار «اعتماد الملف محاسبيًا». يمكن أن تكون القطع كشفًا بلا أسعار إذا كانت ستورد من العميل أو شركة التأمين.',
                     ),
                   ),
                 ],

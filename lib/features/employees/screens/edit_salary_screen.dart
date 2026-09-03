@@ -14,6 +14,8 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EditSalaryScreen extends ConsumerStatefulWidget {
   final Employee employee;
   const EditSalaryScreen({super.key, required this.employee});
@@ -153,6 +155,7 @@ class _EditSalaryScreenState extends ConsumerState<EditSalaryScreen> {
       child: ListTile(
         leading: Icon(icon, color: AppColors.primary),
         title: TextFormField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           textAlign: TextAlign.right,
@@ -260,6 +263,7 @@ class _EditSalaryScreenState extends ConsumerState<EditSalaryScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
                         controller: notesController,
                         maxLines: 3,
                         textAlign: TextAlign.right,

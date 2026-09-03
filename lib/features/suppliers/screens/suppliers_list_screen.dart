@@ -13,6 +13,8 @@ import 'supplier_form_screen.dart';
 import '../../../core/constants/colors.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierListScreen extends ConsumerStatefulWidget {
   const SupplierListScreen({super.key});
 
@@ -68,6 +70,7 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           decoration: InputDecoration(
                             labelText: "بحث عن مورد",
                             prefixIcon: const Icon(Icons.search),

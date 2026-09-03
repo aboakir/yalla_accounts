@@ -4,6 +4,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/auth/services/device_unlock_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class DeviceUnlockScaffold extends StatefulWidget {
   const DeviceUnlockScaffold({
     super.key,
@@ -95,6 +97,7 @@ class _DeviceUnlockScaffoldState extends State<DeviceUnlockScaffold> {
                             textAlign: TextAlign.center),
                         const SizedBox(height: 24),
                         TextField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _pin,
                           autofocus: true,
                           keyboardType: TextInputType.number,
@@ -187,6 +190,7 @@ Future<bool> showDeviceSecuritySetupDialog({
                   'أنشئ PIN سريعًا. سيبقى تسجيل الدخول محفوظًا داخل التخزين الآمن، وليس ككلمة مرور مكشوفة.'),
               const SizedBox(height: 16),
               TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: pin,
                   obscureText: true,
                   keyboardType: TextInputType.number,
@@ -194,6 +198,7 @@ Future<bool> showDeviceSecuritySetupDialog({
                   decoration: const InputDecoration(
                       labelText: 'PIN من 4 إلى 6 أرقام', counterText: '')),
               TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: confirm,
                   obscureText: true,
                   keyboardType: TextInputType.number,

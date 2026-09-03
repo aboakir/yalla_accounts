@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_form_provider.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepVehicleData extends ConsumerStatefulWidget {
   /// مفتاح الـForm القادم من الشاشة الأب
   final GlobalKey<FormState> formKey;
@@ -85,6 +87,7 @@ class _StepVehicleDataState extends ConsumerState<StepVehicleData> {
 
             // نوع المركبة
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _typeCtrl,
               textAlign: TextAlign.right,
               decoration:
@@ -106,6 +109,7 @@ class _StepVehicleDataState extends ConsumerState<StepVehicleData> {
               decoration: _dec(label: 'موديل المركبة', hint: 'مثال: 2020'),
               keyboardType: TextInputType.number,
               inputFormatters: [
+                const YallaDigitNormalizer(),
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(4),
               ],
@@ -130,6 +134,7 @@ class _StepVehicleDataState extends ConsumerState<StepVehicleData> {
               textAlign: TextAlign.right,
               decoration: _dec(label: 'رقم المركبة', hint: 'مثال: 1234-XYZ'),
               inputFormatters: [
+                const YallaDigitNormalizer(),
                 FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\- ]')),
                 LengthLimitingTextInputFormatter(20),
               ],

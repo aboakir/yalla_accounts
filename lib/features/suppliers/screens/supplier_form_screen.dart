@@ -12,6 +12,8 @@ import '../providers/supplier_provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierFormScreen extends ConsumerStatefulWidget {
   final Supplier? supplier;
 
@@ -113,6 +115,7 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
                   children: [
                     // الاسم
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _nameCtrl,
                       textDirection: TextDirection.rtl,
                       textInputAction: TextInputAction.next,
@@ -128,6 +131,7 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
 
                     // الهاتف
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _phoneCtrl,
                       textDirection: TextDirection.rtl,
                       keyboardType: TextInputType.phone,
@@ -142,6 +146,7 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
 
                     // العنوان
                     TextFormField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: _addressCtrl,
                       textDirection: TextDirection.rtl,
                       textInputAction: TextInputAction.done,

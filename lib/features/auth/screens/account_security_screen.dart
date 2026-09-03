@@ -8,6 +8,8 @@ import 'package:yalla_accounts/features/auth/services/auth_session_service.dart'
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AccountSecurityScreen extends ConsumerStatefulWidget {
   const AccountSecurityScreen({super.key});
 
@@ -43,6 +45,7 @@ class _AccountSecurityScreenState extends ConsumerState<AccountSecurityScreen> {
           builder: (context, setDialogState) => AdaptiveAlertDialog(
             title: const Text('إعادة التحقق من هوية المالك'),
             content: TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: controller,
               obscureText: !visible,
               autofocus: true,

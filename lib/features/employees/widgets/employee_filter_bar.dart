@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class EmployeeFilterBar extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onStatusChanged;
@@ -20,6 +22,7 @@ class EmployeeFilterBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextFormField(
+            inputFormatters: const [YallaDigitNormalizer()],
             decoration: InputDecoration(
               labelText: 'بحث بالاسم أو المسمى',
               prefixIcon: const Icon(Icons.search),

@@ -14,6 +14,8 @@ import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AddPaymentScreen extends StatefulWidget {
   final String? repairId;
   final String? customerName;
@@ -152,6 +154,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
           child: ListView(
             children: [
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _repairIdCtrl,
                 decoration: const InputDecoration(
                   labelText: 'رقم/معرّف ملف الإصلاح (اختياري)',
@@ -161,6 +164,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               const SizedBox(height: 12),
 
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _customerCtrl,
                 decoration: const InputDecoration(
                   labelText: 'اسم العميل (للعرض فقط)',
@@ -170,6 +174,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               const SizedBox(height: 12),
 
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _clientIdCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
@@ -180,6 +185,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               const SizedBox(height: 12),
 
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountCtrl,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -196,6 +202,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
               const SizedBox(height: 12),
 
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _descCtrl,
                 decoration: const InputDecoration(
                   labelText: 'ملاحظات (اختياري)',

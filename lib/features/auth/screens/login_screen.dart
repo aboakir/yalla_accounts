@@ -18,6 +18,8 @@ import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.d
 import 'package:yalla_accounts/features/auth/services/device_unlock_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -252,6 +254,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         builder: (dialogContext) => AdaptiveAlertDialog(
           title: const Text('التحقق بخطوتين — حساب Yalla'),
           content: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: controller,
             autofocus: true,
             keyboardType: TextInputType.number,
@@ -648,6 +651,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     VoidCallback? toggle,
   }) {
     return TextFormField(
+      inputFormatters: const [YallaDigitNormalizer()],
       controller: controller,
       obscureText: obscure,
       autocorrect: false,
@@ -748,12 +752,14 @@ class _CustomerSignupDialogState extends State<_CustomerSignupDialog> {
             child: Column(
               children: [
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _organization,
                   decoration: const InputDecoration(labelText: 'اسم المنشأة'),
                   validator: (v) =>
                       (v?.trim().length ?? 0) < 2 ? 'اسم المنشأة مطلوب' : null,
                 ),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _ownerName,
                   decoration:
                       const InputDecoration(labelText: 'اسم مالك المنشأة'),
@@ -761,6 +767,7 @@ class _CustomerSignupDialogState extends State<_CustomerSignupDialog> {
                       (v?.trim().length ?? 0) < 2 ? 'اسم المالك مطلوب' : null,
                 ),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _email,
                   decoration:
                       const InputDecoration(labelText: 'البريد الإلكتروني'),
@@ -768,9 +775,11 @@ class _CustomerSignupDialogState extends State<_CustomerSignupDialog> {
                       (v?.contains('@') ?? false) ? null : 'أدخل بريدًا صحيحًا',
                 ),
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _phone,
                     decoration: const InputDecoration(labelText: 'الهاتف')),
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _country,
                     decoration: const InputDecoration(
                         labelText: 'رمز الدولة مثل PS / JO / SA')),

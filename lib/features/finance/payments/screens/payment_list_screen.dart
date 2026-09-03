@@ -11,6 +11,8 @@ import 'package:yalla_accounts/features/finance/payments/services/payment_servic
 import 'package:yalla_accounts/features/finance/payments/screens/add_payment_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PaymentListScreen extends StatefulWidget {
   const PaymentListScreen({super.key});
 
@@ -178,6 +180,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
               children: [
                 Expanded(
                   child: TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _searchCtrl,
                     decoration: InputDecoration(
                       hintText: 'بحث في الملاحظات/الطريقة/الحساب/المعرفات…',

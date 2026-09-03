@@ -7,6 +7,8 @@ import 'package:yalla_accounts/features/vehicles/models/vehicle.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class VehicleEditDialog extends StatefulWidget {
   const VehicleEditDialog({
     super.key,
@@ -127,6 +129,7 @@ class _VehicleEditDialogState extends State<VehicleEditDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _numberController,
                     enabled: !_numberLocked,
                     textAlign: TextAlign.right,
@@ -144,6 +147,7 @@ class _VehicleEditDialogState extends State<VehicleEditDialog> {
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _typeController,
                     textAlign: TextAlign.right,
                     decoration: _dec('نوع المركبة'),
@@ -156,6 +160,7 @@ class _VehicleEditDialogState extends State<VehicleEditDialog> {
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _modelController,
                     textAlign: TextAlign.right,
                     decoration: _dec('الموديل / السنة'),
@@ -186,6 +191,7 @@ class _VehicleEditDialogState extends State<VehicleEditDialog> {
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _notesController,
                     minLines: 2,
                     maxLines: 5,

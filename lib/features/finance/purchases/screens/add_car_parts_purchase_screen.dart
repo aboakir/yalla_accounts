@@ -18,6 +18,8 @@ import 'package:yalla_accounts/features/finance/purchases/services/purchase_invo
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AddCarPartsPurchaseScreen extends StatefulWidget {
   const AddCarPartsPurchaseScreen({super.key});
 
@@ -205,6 +207,7 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
 
               // Supplier ID
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _supplierIdCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
@@ -327,6 +330,7 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
 
               // Note
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _noteCtrl,
                 maxLines: 2,
                 decoration: const InputDecoration(
@@ -453,6 +457,7 @@ class _ItemRowWidget extends StatelessWidget {
         Expanded(
           flex: 4,
           child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: row.nameCtrl,
             decoration: const InputDecoration(
               hintText: 'مثال: بوية لؤلؤية',
@@ -466,6 +471,7 @@ class _ItemRowWidget extends StatelessWidget {
         Expanded(
           flex: 2,
           child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: row.qtyCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
@@ -480,6 +486,7 @@ class _ItemRowWidget extends StatelessWidget {
         Expanded(
           flex: 3,
           child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
             controller: row.priceCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(

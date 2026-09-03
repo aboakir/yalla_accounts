@@ -12,6 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:intl/intl.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PurchasesDialog extends StatefulWidget {
   const PurchasesDialog({super.key});
 
@@ -98,6 +100,7 @@ class _PurchasesDialogState extends State<PurchasesDialog> {
             ),
             const SizedBox(height: 18),
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _searchCtrl,
               textAlign: TextAlign.right,
               decoration: const InputDecoration(

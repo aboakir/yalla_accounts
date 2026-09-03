@@ -6,6 +6,8 @@ import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AddUserDialog extends ConsumerStatefulWidget {
   const AddUserDialog({super.key});
 
@@ -83,6 +85,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'اسم المستخدم'),
                 validator: (value) => value == null || value.trim().isEmpty
@@ -91,6 +94,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _emailController,
                 decoration:
                     const InputDecoration(labelText: 'البريد الإلكتروني'),
@@ -98,6 +102,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 autocorrect: false,

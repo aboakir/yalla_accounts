@@ -9,6 +9,8 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PurchaseToolsScreen extends StatefulWidget {
   const PurchaseToolsScreen({super.key});
 
@@ -123,6 +125,7 @@ class _PurchaseToolsScreenState extends State<PurchaseToolsScreen> {
 
               // Supplier ID
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _supplierCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Supplier ID (رقمي)',
@@ -161,6 +164,7 @@ class _PurchaseToolsScreenState extends State<PurchaseToolsScreen> {
 
               // Amount
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountCtrl,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -214,6 +218,7 @@ class _PurchaseToolsScreenState extends State<PurchaseToolsScreen> {
 
               // Note
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _noteCtrl,
                 maxLines: 3,
                 decoration: const InputDecoration(

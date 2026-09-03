@@ -22,6 +22,8 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AccountReceivableScreen extends StatefulWidget {
   const AccountReceivableScreen({super.key});
 
@@ -574,6 +576,9 @@ class _AccountReceivableScreenState extends State<AccountReceivableScreen> {
                                   constraints:
                                       const BoxConstraints(maxWidth: 560),
                                   child: TextField(
+                                    inputFormatters: const [
+                                      YallaDigitNormalizer()
+                                    ],
                                     controller: _searchCtrl,
                                     textAlign: TextAlign.right,
                                     decoration: const InputDecoration(

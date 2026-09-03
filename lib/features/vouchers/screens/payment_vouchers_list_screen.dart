@@ -22,6 +22,8 @@ import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 /// ============================================================================
 /// DESKTOP SCROLL BEHAVIOR — MUST BE OUTSIDE THE CLASS
 /// ============================================================================
@@ -410,6 +412,7 @@ WHERE v.voucher_type = 'PAYMENT'
           children: [
             Expanded(
               child: TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 onChanged: (v) {
                   search = v;
                   setState(_applyFilters);

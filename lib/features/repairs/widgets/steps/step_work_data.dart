@@ -18,6 +18,8 @@ import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class StepWorkData extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
   const StepWorkData({super.key, required this.formKey});
@@ -127,6 +129,7 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: nameCtrl,
                 textAlign: TextAlign.right,
                 decoration: _dec('الاسم'),
@@ -141,6 +144,7 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [
+                  const YallaDigitNormalizer(),
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                   LengthLimitingTextInputFormatter(12),
                 ],

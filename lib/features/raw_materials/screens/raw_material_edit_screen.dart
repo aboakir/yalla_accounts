@@ -9,6 +9,8 @@ import 'package:yalla_accounts/features/raw_materials/providers/raw_material_pro
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class RawMaterialEditScreen extends ConsumerStatefulWidget {
   final RawMaterial? material;
 
@@ -89,6 +91,7 @@ class _RawMaterialEditScreenState extends ConsumerState<RawMaterialEditScreen> {
         child: ListView(
           children: [
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'اسم المادة'),
               validator: (value) {
@@ -99,6 +102,7 @@ class _RawMaterialEditScreenState extends ConsumerState<RawMaterialEditScreen> {
               },
             ),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _supplierController,
               decoration: const InputDecoration(labelText: 'المورد'),
               validator: (value) {
@@ -109,6 +113,7 @@ class _RawMaterialEditScreenState extends ConsumerState<RawMaterialEditScreen> {
               },
             ),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _quantityController,
               decoration: const InputDecoration(labelText: 'الكمية'),
               keyboardType: TextInputType.number,
@@ -120,6 +125,7 @@ class _RawMaterialEditScreenState extends ConsumerState<RawMaterialEditScreen> {
               },
             ),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _unitPriceController,
               decoration: const InputDecoration(labelText: 'سعر الوحدة'),
               keyboardType:
@@ -132,6 +138,7 @@ class _RawMaterialEditScreenState extends ConsumerState<RawMaterialEditScreen> {
               },
             ),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'الوصف (اختياري)'),
               maxLines: 3,

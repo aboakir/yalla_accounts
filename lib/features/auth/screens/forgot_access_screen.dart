@@ -8,6 +8,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 enum ForgotMode {
   username,
   password,
@@ -244,6 +246,7 @@ class _ForgotAccessScreenState extends ConsumerState<ForgotAccessScreen> {
             children: [
               if (_mode == ForgotMode.password)
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _usernameCtrl,
                   enabled: !_verified,
                   decoration: const InputDecoration(labelText: 'اسم المستخدم'),
@@ -252,6 +255,7 @@ class _ForgotAccessScreenState extends ConsumerState<ForgotAccessScreen> {
               if (_mode == ForgotMode.recovery && !_verified) ...[
                 const SizedBox(height: 16),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _recoveryCodeCtrl,
                   decoration: const InputDecoration(
                     labelText: 'كود الطوارئ',
@@ -281,6 +285,7 @@ class _ForgotAccessScreenState extends ConsumerState<ForgotAccessScreen> {
               if (_verified) ...[
                 const SizedBox(height: 16),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _newPassCtrl,
                   decoration:
                       const InputDecoration(labelText: 'كلمة المرور الجديدة'),
@@ -290,6 +295,7 @@ class _ForgotAccessScreenState extends ConsumerState<ForgotAccessScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _confirmPassCtrl,
                   decoration:
                       const InputDecoration(labelText: 'تأكيد كلمة المرور'),
@@ -333,6 +339,7 @@ class _ForgotAccessScreenState extends ConsumerState<ForgotAccessScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: controller,
         keyboardType: keyboard,
         decoration: InputDecoration(labelText: label),

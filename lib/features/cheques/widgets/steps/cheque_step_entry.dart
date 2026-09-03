@@ -9,6 +9,8 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ChequeStepEntry extends StatefulWidget {
   final double amount; // القيمة الإجمالية المحسوبة تلقائيًا
   final Function(Map<String, dynamic>) onSubmit;
@@ -237,6 +239,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       child: TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: controller,
         maxLines: maxLines,
         validator: required

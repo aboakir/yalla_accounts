@@ -25,6 +25,8 @@ import 'package:yalla_accounts/features/finance/services/accounts_receivable_ser
 
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class ReceivePaymentScreen extends StatefulWidget {
   final Repair repair;
   const ReceivePaymentScreen({super.key, required this.repair});
@@ -239,6 +241,7 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
 
               // مبلغ الدفعة
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _amountController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
@@ -255,6 +258,7 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
 
               // تاريخ الدفعة
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _dateController,
                 readOnly: true,
                 decoration: _inputDecoration('تاريخ الدفعة')
@@ -320,6 +324,7 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
             _field(_chequeBranchController, 'فرع البنك'),
             const SizedBox(height: 12),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _chequeIssueController,
               readOnly: true,
               decoration: _inputDecoration('تاريخ الإصدار')
@@ -329,6 +334,7 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
             ),
             const SizedBox(height: 12),
             TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
               controller: _chequeDueController,
               readOnly: true,
               decoration: _inputDecoration('تاريخ الاستحقاق')
@@ -343,6 +349,7 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
   }
 
   Widget _field(TextEditingController c, String label) => TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: c,
         decoration: _inputDecoration(label),
         textAlign: TextAlign.right,

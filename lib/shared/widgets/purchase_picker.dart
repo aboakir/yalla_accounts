@@ -10,6 +10,8 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PurchasePickerResult {
   final String id;
   final String display;
@@ -72,6 +74,7 @@ class _PurchasePickerSheetState extends State<_PurchasePickerSheet> {
         child: Column(
           children: [
             TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
               decoration: InputDecoration(
                 hintText: "ابحث عن فاتورة مشتريات...",
                 prefixIcon: Icon(Icons.search),

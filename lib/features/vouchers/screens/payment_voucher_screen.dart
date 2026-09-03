@@ -26,6 +26,8 @@ import '../services/voucher_payment_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class PaymentVoucherScreen extends ConsumerStatefulWidget {
   final String? purchaseId;
   final String? supplierPid;
@@ -146,6 +148,7 @@ ORDER BY pi.date DESC
                 child: Column(
                   children: [
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: searchCtrl,
                       decoration: InputDecoration(
                         hintText: "ابحث باسم المورد أو رقم الفاتورة",
@@ -447,6 +450,7 @@ ORDER BY pi.date DESC
                 child: Column(
                   children: [
                     TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
                       controller: searchCtrl,
                       decoration: InputDecoration(
                         hintText: "ابحث باسم المورد",
@@ -524,6 +528,7 @@ ORDER BY pi.date DESC
     return _card(
       title: "المبلغ",
       child: TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: amountCtrl,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         validator: (v) => (v == null || v.isEmpty) ? "أدخل المبلغ" : null,
@@ -580,6 +585,7 @@ ORDER BY pi.date DESC
     return _card(
       title: "ملاحظات",
       child: TextFormField(
+        inputFormatters: const [YallaDigitNormalizer()],
         controller: notesCtrl,
         maxLines: 3,
         decoration: InputDecoration(hintText: "ملاحظات (اختياري)"),

@@ -12,6 +12,8 @@ import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierPayablesListScreen extends StatefulWidget {
   const SupplierPayablesListScreen({super.key});
 
@@ -193,6 +195,7 @@ class _SupplierPayablesListScreenState
           border: Border.all(color: Colors.grey.shade300),
         ),
         child: TextField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: _searchCtrl,
           decoration: const InputDecoration(
             hintText: "بحث باسم المورد...",

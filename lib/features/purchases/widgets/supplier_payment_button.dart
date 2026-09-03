@@ -4,6 +4,8 @@ import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/supplier_payment_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class SupplierPaymentButton extends StatefulWidget {
   final String supplierPid;
   final String supplierName;
@@ -62,6 +64,7 @@ class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: amountCtrl,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -114,6 +117,7 @@ class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
 
                   // ملاحظات
                   TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     decoration: const InputDecoration(labelText: 'ملاحظات'),
                     onChanged: (v) => note = v.trim(),
                   ),

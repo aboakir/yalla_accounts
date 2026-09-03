@@ -33,6 +33,8 @@ import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class RepairDetailsScreen extends StatefulWidget {
   final Repair repair;
   const RepairDetailsScreen({super.key, required this.repair});
@@ -302,6 +304,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: amountCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
@@ -339,6 +342,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: notesCtrl,
                   maxLines: 2,
                   decoration:

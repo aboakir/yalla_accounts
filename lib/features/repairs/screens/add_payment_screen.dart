@@ -15,6 +15,8 @@ import 'package:yalla_accounts/features/cheques/widgets/cheque_dialog.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class AddPaymentScreen extends StatefulWidget {
   final Repair repair;
   const AddPaymentScreen({super.key, required this.repair});
@@ -156,6 +158,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _amountController,
                   textAlign: TextAlign.right,
                   keyboardType:

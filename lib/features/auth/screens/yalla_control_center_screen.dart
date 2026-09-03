@@ -13,6 +13,8 @@ import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.d
 import 'package:yalla_accounts/features/home/screens/dashboard_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+
 class _ControlSection {
   const _ControlSection(this.id, this.label, this.endpoint, this.icon);
 
@@ -257,6 +259,7 @@ class _YallaControlCenterScreenState
       builder: (ctx) => AdaptiveAlertDialog(
         title: const Text('رفض طلب التسجيل'),
         content: TextField(
+          inputFormatters: const [YallaDigitNormalizer()],
           controller: controller,
           minLines: 2,
           maxLines: 4,
@@ -1610,12 +1613,14 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
             child: Column(
               children: [
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _name,
                     decoration: const InputDecoration(labelText: 'اسم المنشأة'),
                     validator: (v) => (v?.trim().length ?? 0) < 2
                         ? 'اسم المنشأة مطلوب'
                         : null),
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _email,
                     decoration:
                         const InputDecoration(labelText: 'بريد مالك المنشأة'),
@@ -1624,12 +1629,14 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
                 AdaptiveRow(children: [
                   Expanded(
                       child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _country,
                           decoration:
                               const InputDecoration(labelText: 'رمز الدولة'))),
                   const SizedBox(width: 10),
                   Expanded(
                       child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _plan,
                           decoration:
                               const InputDecoration(labelText: 'Plan code')))
@@ -1637,6 +1644,7 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
                 AdaptiveRow(children: [
                   Expanded(
                       child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _users,
                           keyboardType: TextInputType.number,
                           decoration:
@@ -1644,6 +1652,7 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
                   const SizedBox(width: 10),
                   Expanded(
                       child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _devices,
                           keyboardType: TextInputType.number,
                           decoration:
@@ -1651,6 +1660,7 @@ class _CreateCustomerDialogState extends State<_CreateCustomerDialog> {
                   const SizedBox(width: 10),
                   Expanded(
                       child: TextFormField(
+                          inputFormatters: const [YallaDigitNormalizer()],
                           controller: _trial,
                           keyboardType: TextInputType.number,
                           decoration:
@@ -1735,6 +1745,7 @@ class _ManagedActionDialogState extends State<_ManagedActionDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _reason,
                 autofocus: true,
                 decoration: const InputDecoration(
@@ -1748,6 +1759,7 @@ class _ManagedActionDialogState extends State<_ManagedActionDialog> {
               if (asksDays) ...[
                 const SizedBox(height: 10),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _days,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
@@ -1889,18 +1901,22 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
                   decoration: const InputDecoration(labelText: 'Action code'),
                 ),
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _organization,
                     decoration: const InputDecoration(
                         labelText: 'Organization ID (عند الحاجة)')),
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _targetType,
                     decoration:
                         const InputDecoration(labelText: 'Target entity type')),
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _targetId,
                     decoration:
                         const InputDecoration(labelText: 'Target entity ID')),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _reason,
                   decoration: const InputDecoration(labelText: 'السبب'),
                   validator: (value) => (value?.trim().length ?? 0) < 8
@@ -1908,6 +1924,7 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
                       : null,
                 ),
                 TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
                   controller: _state,
                   minLines: 3,
                   maxLines: 7,
@@ -1918,6 +1935,7 @@ class _PrivilegedActionDialogState extends State<_PrivilegedActionDialog> {
                   ),
                 ),
                 TextFormField(
+                    inputFormatters: const [YallaDigitNormalizer()],
                     controller: _breakGlass,
                     decoration: const InputDecoration(
                         labelText: 'Break Glass Grant ID (للعمليات القسرية)')),
@@ -1989,12 +2007,14 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _organization,
                 decoration: const InputDecoration(labelText: 'Organization ID'),
                 validator: (value) =>
                     value == null || value.trim().isEmpty ? 'مطلوب' : null,
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _reason,
                 decoration: const InputDecoration(labelText: 'السبب'),
                 validator: (value) => (value?.trim().length ?? 0) < 15
@@ -2011,6 +2031,7 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
                 onChanged: (value) => setState(() => _duration = value ?? 15),
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _password,
                 obscureText: _obscure,
                 decoration: InputDecoration(
@@ -2025,6 +2046,7 @@ class _BreakGlassDialogState extends State<_BreakGlassDialog> {
                     value == null || value.isEmpty ? 'مطلوب' : null,
               ),
               TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
                 controller: _totp,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'رمز MFA (TOTP)'),
