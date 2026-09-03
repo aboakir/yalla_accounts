@@ -753,7 +753,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           repair.subtitle,
           if (repair.status.isNotEmpty) repair.status,
           if (displayDate.isNotEmpty) displayDate,
-        ].join(' â€¢ '),
+        ].join(' • '),
         textAlign: TextAlign.right,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
