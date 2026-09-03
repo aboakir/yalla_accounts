@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -564,6 +565,41 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           notes: persistedNotes,
         ),
       );
+      // P07_CANONICAL_LINES_WRITE
+      final canonicalWorks = _works
+          .map((line) => <String, dynamic>{
+                'name': line.name,
+                'qty': line.qty,
+                'price': line.price,
+                'total': line.total,
+              })
+          .toList(growable: false);
+      final canonicalParts = _parts
+          .map((line) => <String, dynamic>{
+                'name': line.name,
+                'qty': line.qty,
+                'price': line.price,
+                'total': line.total,
+              })
+          .toList(growable: false);
+      final canonicalFileTotal = _linesTotal(_works) + _linesTotal(_parts);
+      final canonicalDb = await DBService.database;
+      final canonicalUpdated = await canonicalDb.update(
+        'repairs',
+        <String, Object?>{
+          'works': jsonEncode(canonicalWorks),
+          'parts': jsonEncode(canonicalParts),
+          'fileValue': canonicalFileTotal,
+        },
+        where: 'id = ?',
+        whereArgs: <Object?>[repairId],
+      );
+      if (canonicalUpdated != 1) {
+        throw StateError(
+          'طھط¹ط°ط± ط­ظپط¸ ط£ط¹ظ…ط§ظ„ ط§ظ„ط¥طµظ„ط§ط­ ظˆط§ظ„ظ‚ط·ط¹ ظپظٹ ط§ظ„ظ…طµط¯ط± ط§ظ„طھط´ط؛ظٹظ„ظٹ ظ„ظ…ظ„ظپ ط§ظ„ط¥طµظ„ط§ط­.',
+        );
+      }
+
       await _persistRepairLines(repairId);
       // P07_LINE_PERSISTENCE_VERIFY
       final persistedLines = await RepairLineBridge.load(repairId);

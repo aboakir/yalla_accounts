@@ -84,7 +84,6 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     // P07_PAYER_DETAILS_INIT
     _loadP07PayerVisibility();
     // P07_LINE_READBACK_INIT
-    _loadPersistedRepairLines();
     _repair = widget.repair;
     _loadRepairDetails();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -109,6 +108,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       _repairParts = List<Map<String, dynamic>>.from(r.parts);
       _loading = false;
     });
+    // P07_LINE_READBACK_SERIALIZED
+    await _loadPersistedRepairLines();
     await _refreshInvoiceGl();
   }
 
