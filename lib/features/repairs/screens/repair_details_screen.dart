@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_payer_bridge.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_line_bridge.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -41,6 +42,8 @@ class RepairDetailsScreen extends StatefulWidget {
 }
 
 class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
+  // P07_PAYER_DETAILS_STATE
+  bool _hideP07InsuranceStatus = false;
   late Repair _repair;
   bool _loading = true;
   bool _approving = false;
@@ -78,6 +81,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    // P07_PAYER_DETAILS_INIT
+    _loadP07PayerVisibility();
     // P07_LINE_READBACK_INIT
     _loadPersistedRepairLines();
     _repair = widget.repair;
@@ -719,6 +724,18 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     }
   }
 
+  Future<void> _loadP07PayerVisibility() async {
+    try {
+      final payer = await RepairPayerBridge.load(widget.repair.id);
+      if (!mounted) return;
+      setState(() {
+        _hideP07InsuranceStatus = payer == RepairPayerKind.customer;
+      });
+    } catch (_) {
+      // Legacy-safe fallback: keep the existing insurance UI unchanged.
+    }
+  }
+
   Widget _buildDataTable(String title, List<Map<String, dynamic>> data) {
     final normalized = data.map(_normalizeRow).toList();
     return Card(
@@ -904,34 +921,36 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         child: AdaptiveRow(
           children: [
             // حالة التأمين
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('حالة التأمين',
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: _insuranceOptions.contains(currentInsurance)
-                        ? currentInsurance
-                        : null,
-                    items: _insuranceOptions
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            if (!_hideP07InsuranceStatus) /* P07_PAYER_STATUS_COLLECTION_GUARD */
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('حالة التأمين',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: _insuranceOptions.contains(currentInsurance)
+                          ? currentInsurance
+                          : null,
+                      items: _insuranceOptions
+                          .map(
+                              (v) => DropdownMenuItem(value: v, child: Text(v)))
+                          .toList(),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      onChanged: (v) {
+                        if (v != null) _updateInsuranceStatus(v);
+                      },
                     ),
-                    onChanged: (v) {
-                      if (v != null) _updateInsuranceStatus(v);
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(width: 16),
 
