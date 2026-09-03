@@ -58,7 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<bool> _canAddNewRepair() async {
-    const maxFreeRepairs = 10;
+    const maxFreeRepairs = 1000000000; // TEMP DEV BYPASS UNTIL P18
     final db = await DBService.database;
     final result = await db.rawQuery('SELECT COUNT(*) as cnt FROM repairs');
     final count = (result.first['cnt'] as int?) ?? 0;
@@ -1055,6 +1055,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildProfitAndShortcuts() {
     return AdaptiveRow(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Container(
@@ -1070,7 +1071,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(width: 24),
         Expanded(
           child: Container(
-            height: 220,
+            constraints: const BoxConstraints(minHeight: 220),
             padding: const EdgeInsets.all(20),
             decoration: _boxStyle(),
             child: Column(

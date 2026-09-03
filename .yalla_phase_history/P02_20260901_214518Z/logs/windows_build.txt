@@ -1,0 +1,5 @@
+﻿Building Windows application...                                 
+Building Windows application...                                    96.2s
+âˆڑ Built build\windows\x64\runner\Release\yalla_accounts.exe
+Nuget.exe not found, trying to download or use cached version.
+Nuget.exe not found, trying to download or use cached version.

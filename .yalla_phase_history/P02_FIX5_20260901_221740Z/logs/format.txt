@@ -1,0 +1,3 @@
+﻿Formatted lib/features/auth/screens/register_user_screen.dart
+Formatted test/phase02/yalla_phase02_auth_workshop_test.dart
+Formatted 3 files (2 changed) in 0.09 seconds.

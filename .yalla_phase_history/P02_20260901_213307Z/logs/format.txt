@@ -1,0 +1,6 @@
+﻿Formatted lib/features/auth/screens/login_screen.dart
+Formatted lib/features/auth/screens/register_user_screen.dart
+Formatted lib/features/auth/screens/device_unlock_screen.dart
+Formatted lib/features/auth/services/device_unlock_service.dart
+Formatted test/phase02/yalla_phase02_auth_workshop_test.dart
+Formatted 5 files (5 changed) in 0.12 seconds.

@@ -1,0 +1,10 @@
+﻿{
+    "docs/execution/YALLA_ACCEPTANCE_MATRIX.md":  true,
+    "docs/execution/YALLA_CHANGELOG.md":  true,
+    "docs/execution/YALLA_DECISIONS.md":  true,
+    "docs/execution/YALLA_PROJECT_STATE.json":  true,
+    "lib/core/widgets/mobile/yalla_mobile_bottom_nav.dart":  true,
+    "lib/features/home/screens/dashboard_screen.dart":  true,
+    "lib/features/home/services/p03_home_service.dart":  false,
+    "test/phase03/yalla_phase03_home_shell_test.dart":  false
+}

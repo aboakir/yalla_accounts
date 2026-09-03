@@ -1,0 +1,14 @@
+﻿00:00 +0: loading E:/flutter_projects/yalla_accounts/test/phase02/yalla_phase02_auth_workshop_test.dart
+00:00 +0 -1: loading E:/flutter_projects/yalla_accounts/test/phase02/yalla_phase02_auth_workshop_test.dart [E]
+  Failed to load "E:/flutter_projects/yalla_accounts/test/phase02/yalla_phase02_auth_workshop_test.dart":
+  Compilation failed for testPath=E:/flutter_projects/yalla_accounts/test/phase02/yalla_phase02_auth_workshop_test.dart: test/phase02/yalla_phase02_auth_workshop_test.dart:60:50: Error: Undefined name 'code'.
+      expect(server, contains('New-PasswordRecord $code'));
+                                                   ^^^^
+  .
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  E:/flutter_projects/yalla_accounts/test/phase02/yalla_phase02_auth_workshop_test.dart: loading E:/flutter_projects/yalla_accounts/test/phase02/yalla_phase02_auth_workshop_test.dart
+test/phase02/yalla_phase02_auth_workshop_test.dart:60:50: Error: Undefined name 'code'.
+    expect(server, contains('New-PasswordRecord $code'));
+                                                 ^^^^

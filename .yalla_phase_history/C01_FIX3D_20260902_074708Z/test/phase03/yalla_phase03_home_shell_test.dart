@@ -1,0 +1,89 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  String read(String path) => File(path).readAsStringSync();
+
+  test('P03 phone shell exposes the approved five daily destinations', () {
+    final nav = read(
+      'lib/core/widgets/mobile/yalla_mobile_bottom_nav.dart',
+    );
+
+    for (final label in <String>[
+      'الرئيسية',
+      'الإصلاحات',
+      'إضافة',
+      'المالية',
+      'المزيد',
+    ]) {
+      expect(nav, contains("label: '$label'"));
+    }
+
+    expect(nav, contains('AppRoutes.financeDashboard'));
+    expect(nav, contains('showModalBottomSheet<void>'));
+    expect(nav, contains('AppRoutes.receiptVoucher'));
+    expect(nav, contains('AppRoutes.clientAdd'));
+    expect(nav, contains('AppRoutes.chequesAdd'));
+  });
+
+  test('P03 home is a decision-first Today screen, not the old KPI wall', () {
+    final dashboard = read(
+      'lib/features/home/screens/dashboard_screen.dart',
+    );
+
+    expect(dashboard, contains("Key('yalla_mobile_menu_button')"));
+    expect(dashboard, contains('Scaffold.of(headerContext).openDrawer()'));
+    expect(dashboard, contains("Key('yalla_home_notifications_button')"));
+    expect(dashboard, contains("'ملخص اليوم'"));
+    expect(dashboard, contains("'يحتاج انتباهك'"));
+    expect(dashboard, contains("'إجراءات سريعة'"));
+    expect(dashboard, contains("'آخر الملفات'"));
+    expect(dashboard, contains('P03HomeService.load()'));
+    expect(dashboard, isNot(contains("'جاهزة للتسليم'")));
+    expect(dashboard, isNot(contains('_recentRepairPlaceholder')));
+  });
+
+  test('P03 home summary reads existing source-of-truth tables only', () {
+    final service = read(
+      'lib/features/home/services/p03_home_service.dart',
+    );
+
+    expect(service, contains('FROM repairs'));
+    expect(service, contains('FROM payments'));
+    expect(service, contains('FROM cheques'));
+    expect(service, contains('WorkshopSettingsService.instance.getSettings()'));
+    expect(service, contains('CommercialSettingsService.instance.get()'));
+    expect(service, contains("COALESCE(paymentStatus, '') <> 'مسدد'"));
+    expect(service, isNot(contains('INSERT INTO')));
+    expect(service, isNot(contains('UPDATE ')));
+    expect(service, isNot(contains('ALTER TABLE')));
+    expect(service, isNot(contains('CREATE TABLE')));
+  });
+
+  test('P03 does not reintroduce desktop-prone rows in the dashboard', () {
+    final dashboard = read(
+      'lib/features/home/screens/dashboard_screen.dart',
+    );
+    final rawRow = RegExp(
+      r'(^|[^A-Za-z0-9_.])Row\s*\(',
+      multiLine: true,
+    );
+
+    expect(rawRow.hasMatch(dashboard), isFalse);
+    expect(dashboard, contains('AdaptiveRow('));
+    expect(dashboard, contains("import 'dart:ui' as ui;"));
+    expect(dashboard, contains('ui.TextDirection.ltr'));
+    expect(dashboard, isNot(contains('textDirection: TextDirection.ltr')));
+  });
+
+  test('P03 completion points to C01 rather than P04', () {
+    final state = read('docs/execution/YALLA_PROJECT_STATE.json');
+
+    expect(state, contains('"last_completed_phase": "P03"'));
+    expect(state, contains('"current_phase": "C01"'));
+    expect(state, contains('"next_phase": "C01"'));
+    expect(state, contains('"P03": "PASS"'));
+    expect(state, contains('"C01": "PENDING"'));
+  });
+}

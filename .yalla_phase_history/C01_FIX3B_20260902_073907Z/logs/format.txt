@@ -1,0 +1,4 @@
+﻿Formatted lib/core/widgets/sidebar/yalla_sidebar.dart
+Formatted test/phase03/yalla_phase03_home_shell_test.dart
+Formatted test/phase03/yalla_c01_fix3b_iphone_visual_regression_test.dart
+Formatted 5 files (3 changed) in 0.11 seconds.

@@ -102,3 +102,133 @@
 - [x] Flutter `ClipRect` is used outside `BarChartData`, compatible with the current chart package API.
 - [x] The same PHONE axis-width, compact-label, hidden top/right axis, Arabic/date regression contracts remain enforced.
 - [ ] Local analyzer/tests/Windows build must PASS before a new IPA is built.
+
+## P04 acceptance — IN PROGRESS
+
+### P04.1 encrypted local database
+- [x] C01 human iPhone checkpoint PASS before P04.
+- [x] iOS/Android canonical DB open uses SQLCipher with non-hardcoded password.
+- [x] 256-bit random key stored through `FlutterSecureStorage`.
+- [x] Legacy plaintext conversion uses `sqlcipher_export()` into a separate file.
+- [x] Plaintext remains recoverable until encrypted-copy validation succeeds.
+- [x] Validation covers cipher runtime, integrity, foreign keys, table set, and row counts.
+- [x] Interrupted swap fails closed and never invokes Reset DB.
+- [x] Desktop SQLite/FFI lifecycle and DB path remain unchanged.
+- [x] DB schema version unchanged.
+- [x] Backup validation supports current-key encrypted and legacy plaintext DBs.
+- [ ] Local P04.1 analyzer/tests/Windows release build PASS.
+- [ ] Real iOS SQLCipher open/migration verified at C02.
+
+### Remaining P04 items
+- [ ] Offline save contract.
+- [ ] Outbox for pending operations.
+- [ ] Sync-state indicator.
+- [ ] Idempotency / duplicate-operation prevention.
+- [ ] Connection-failure handling.
+- [ ] P04 remains IN PROGRESS until all items pass.
+
+### P04.2 offline save + Outbox foundation
+- [x] Local save does not require a connectivity/network check.
+- [x] `outbox_messages` is upgraded without deleting legacy rows.
+- [x] Outbox payload uses real JSON.
+- [x] Outbox records operation, entity type/id, unique idempotency key, state, attempts, next retry, and last error.
+- [x] Duplicate enqueue with the same idempotency key is ignored.
+- [x] Retry metadata is durable and bounded exponential backoff is defined.
+- [x] Interrupted `sending` rows can be returned to a retryable state.
+- [x] Repair creation writes its Outbox intent inside the same SQLite transaction as the repair.
+- [x] No network transport is introduced in this substep.
+- [ ] P04.2 focused database/idempotency tests, analyzer differential, accounting differential, and Windows release build must PASS.
+
+### P04.2C completion acceptance
+- [x] Live-source diagnostic confirms the P04.2 Outbox implementation is present.
+- [x] Repair save and Outbox enqueue remain inside the same SQLite transaction.
+- [x] Retry exponent uses integer arithmetic.
+- [x] Existing v69 databases run `ensureP04OutboxSchema()` from `_postInit`.
+- [x] Interrupted `sending` state is recovered on startup.
+- [x] No network transport is started.
+- [x] DB version remains 69 and no destructive Outbox rebuild is introduced.
+- [ ] P04.2C focused tests + phase04 tests + lifecycle/iOS regressions + accounting/R11/analyzer differentials + Windows release must PASS locally.
+
+### P04.3 sync state + drain/failure handling
+- [x] Shared phone navigation contains a compact sync-state indicator.
+- [x] Indicator derives pending/failed/sending counts from the durable Outbox.
+- [x] No transport configured => indicator says locally saved, never falsely synced.
+- [x] Drain execution is serialized.
+- [x] Idempotency key is carried to the transport boundary and validated on acknowledgement.
+- [x] A row is marked sent only after an accepted matching acknowledgement.
+- [x] Socket/OS/timeout failure keeps the local mutation and writes retryable Outbox failure state.
+- [x] App-resume can trigger a coordinated retry.
+- [x] No workshop-sync endpoint/URL is invented when none exists in current source.
+- [x] DB version remains 69; no reset/destructive migration is introduced.
+- [ ] P04.3 focused tests + full phase04 tests + lifecycle/iOS DB regressions + accounting/R11/analyzer differentials + Windows release build must PASS locally.
+
+### P04 phase result
+- [x] Encrypted mobile DB architecture implemented; physical iOS runtime verification remains at C02.
+- [x] Offline local save foundation.
+- [x] Durable Outbox.
+- [x] Sync-state indicator.
+- [x] Duplicate-operation prevention through idempotency.
+- [x] Connection-failure/retry handling.
+- [x] P04 becomes PASS after the local gates above pass.
+
+### P04.3A regression alignment
+- [x] P04.1 encryption/security assertions remain intact.
+- [x] The legacy chronology assertion no longer blocks a legitimate P04 PASS transition.
+- [ ] Full P04 suite, lifecycle/iOS DB regressions, accounting/R11/analyzer differentials and Windows release build must PASS.
+
+## P05 acceptance — Clients + Vehicles
+- [x] Client list remains searchable/filterable.
+- [x] Client add/edit is available and edit preserves notes.
+- [x] Client profile exposes linked vehicles and recent repair history.
+- [x] Client duplicate checks use normalized identity while preserving existing data.
+- [x] Destructive client delete is blocked when history exists.
+- [x] Canonical vehicle table is created idempotently without DB version bump.
+- [x] Existing repair vehicle data is backfilled without rewriting repairs.
+- [x] Vehicle list/search is backed by canonical vehicle records.
+- [x] Vehicle add/edit is available.
+- [x] Vehicle history is derived from existing repair history.
+- [x] Normalized vehicle number has a unique DB index.
+- [x] Repair creation upserts canonical client + vehicle inside the repair transaction.
+- [x] C01 phone sidebar guard remains width >= 600.
+- [ ] P05 focused tests + P04 regression + DB lifecycle/iOS DB + accounting/R11/analyzer differentials + Windows release build must PASS locally.
+
+### P05B analyzer correction
+- [x] The only P05-introduced analyzer error identified by P05A is corrected.
+- [x] Flutter `TextDirection.rtl` remains the intended UI direction.
+- [x] `intl.DateFormat` remains the date formatter.
+- [ ] Full P05 gates must PASS locally.
+
+## P06 acceptance — Repair list / search / filters / statuses / archive
+- [x] Canonical repair list is reachable at `/repairs/list`.
+- [x] Repair list is reachable from the sidebar.
+- [x] Search covers repair/file identity, vehicle identity and beneficiary identity.
+- [x] Payment-status filter.
+- [x] Vehicle-status filter.
+- [x] Beneficiary-type filter.
+- [x] Existing date-range filter preserved.
+- [x] Active / archived / all filter.
+- [x] Phone card shows payment and vehicle status.
+- [x] Archive/restore is explicit and reversible.
+- [x] Fully paid does not imply automatic archive for new/updated repairs.
+- [x] Archive/restore changes no financial/accounting values.
+- [x] Archive/restore queues local-first Outbox state in the same transaction.
+- [x] DB version remains 69; no reset/destructive migration.
+- [ ] P06 focused tests + P05/P04 regressions + C01 shell + DB/iOS + accounting/R11/analyzer differential + Windows build must PASS locally.
+- [ ] C02 unsigned iPhone build + human device test must PASS before P07.
+
+
+## P07 — Repair intake wizard
+- [x] Existing `/repairs/add` entry points keep using `AddRepairScreen`, now owned by the P07 intake flow.
+- [x] Existing customer can be selected and a new customer can be added inline.
+- [x] Vehicle selection is scoped to the selected customer; a new vehicle can be added inline.
+- [x] Reception date, odometer and fuel level are captured.
+- [x] Previous damage must be explicitly declared and described when present.
+- [x] At least one vehicle photo is required and persisted into application support storage.
+- [x] Customer signature is required and exported as PNG into application support storage.
+- [x] Review step shows the complete intake before save.
+- [x] Save creates `QUOTE` / `بانتظار الإصلاح` only; no invoice, approval, payment or GL posting is created.
+- [x] P07 intake metadata uses an explicit idempotent additive current-v69 compatibility migration in `RepairTables.ensureP07IntakeSchema()`; no DB version bump, repair table rebuild/reset/delete.
+- [x] Repair creation and Outbox intent remain atomic/local-first.
+- [ ] `dart format`, `flutter analyze`, P07 tests, regression tests and Windows debug build PASS on Luay's canonical project.
+- [ ] Human visual inspection of PHONE/TABLET/DESKTOP layouts accepted by Luay.
+- [ ] P07 may be marked PASS only after both local gates and human visual acceptance.

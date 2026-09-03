@@ -1,0 +1,6 @@
+﻿P02 CUSTOMER PHONE OTP INTEGRATION: PASS
+OTP generated: SERVER ONLY
+OTP API leakage: NO
+OTP plaintext at rest: NO
+Verification token plaintext at rest: NO
+One-time consume: PASS

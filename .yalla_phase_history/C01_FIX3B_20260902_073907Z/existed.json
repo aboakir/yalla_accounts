@@ -1,0 +1,10 @@
+﻿{
+    "docs/execution/YALLA_ACCEPTANCE_MATRIX.md":  true,
+    "docs/execution/YALLA_CHANGELOG.md":  true,
+    "docs/execution/YALLA_PROJECT_STATE.json":  true,
+    "lib/core/widgets/sidebar/yalla_sidebar.dart":  true,
+    "lib/features/home/services/p03_home_service.dart":  true,
+    "lib/features/repairs/screens/repairs_screen.dart":  true,
+    "test/phase03/yalla_c01_fix3b_iphone_visual_regression_test.dart":  false,
+    "test/phase03/yalla_phase03_home_shell_test.dart":  true
+}

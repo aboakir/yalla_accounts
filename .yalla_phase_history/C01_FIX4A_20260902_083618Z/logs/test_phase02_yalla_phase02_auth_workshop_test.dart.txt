@@ -1,0 +1,7 @@
+﻿00:00 +0: loading E:/flutter_projects/yalla_accounts/test/phase02/yalla_phase02_auth_workshop_test.dart
+00:00 +0: P02 device unlock stores PIN only through secure storage and PBKDF2 hasher
+00:00 +1: P02 supports PIN and local biometrics without bypassing commercial gate
+00:00 +2: P02 first owner remains activation-authoritative and phone OTP is server-authoritative
+00:00 +3: P02 OTP client never generates or persists OTP material
+00:00 +4: P02 registration is a four-step mobile flow
+00:00 +5: All tests passed!

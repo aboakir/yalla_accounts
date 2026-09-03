@@ -1,0 +1,7 @@
+﻿00:00 +0: loading E:/flutter_projects/yalla_accounts/test/commercial/sec_015_customer_auth_ux_test.dart
+00:00 +0: SEC.015 customer login exposes safe remember/session controls
+00:00 +1: SEC.015 owner can manage users and temporary passwords
+00:00 +2: SEC.015 password change/recovery supports visibility and owner flow
+00:00 +3: SEC.015 workshop settings links account and user management
+00:00 +4: SEC.015 first-owner setup remains one-time and activation-gated
+00:00 +5: All tests passed!

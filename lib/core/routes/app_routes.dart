@@ -4,6 +4,7 @@
 // - يمرّر RouteSettings لكل MaterialPageRoute للحفاظ على اسم المسار.
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/dev/temporary_auth_bypass.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
@@ -353,15 +354,20 @@ class AppRoutes {
     final ownerOnly = _ownerRoutes.contains(routeName);
 
     return MaterialPageRoute<T>(
-      builder: (_) => isPublic
-          ? child
-          : AuthenticatedRouteGate(
-              ownerOnly: ownerOnly,
-              child: YallaMobileRouteFrame(
-                routeName: routeName,
-                child: child,
-              ),
-            ),
+      builder: (_) => kTemporaryAuthBypass && !isPublic
+          ? YallaMobileRouteFrame(
+              routeName: routeName,
+              child: child,
+            )
+          : isPublic
+              ? child
+              : AuthenticatedRouteGate(
+                  ownerOnly: ownerOnly,
+                  child: YallaMobileRouteFrame(
+                    routeName: routeName,
+                    child: child,
+                  ),
+                ),
       settings: settings,
     );
   }
@@ -372,6 +378,20 @@ class AppRoutes {
   // ===== Router =====
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
+
+    // YALLA_TEMP_AUTH_BYPASS
+    // Temporary development freeze until completion of P18.
+    // Login / recovery / register / logout routes are redirected to dashboard.
+    if (kTemporaryAuthBypass &&
+        (name == login ||
+            name == forgotAccess ||
+            name == register ||
+            name == logout)) {
+      return _page(
+        const RouteSettings(name: dashboard),
+        const DashboardScreen(),
+      );
+    }
     if (name == login || name == forgotAccess) {
       return _page(settings, const LoginScreen());
     }

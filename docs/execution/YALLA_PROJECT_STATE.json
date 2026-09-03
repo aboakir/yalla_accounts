@@ -5,12 +5,19 @@
   "official_windows_path": "E:\\flutter_projects\\yalla_accounts",
   "pre_plan_reference": "R11.12 PASS",
   "plan_version": "1.0.0",
-  "current_phase": "C01",
-  "last_completed_phase": "P03",
-  "next_phase": "C01",
-  "last_ipa_checkpoint": null,
-  "result": "PASS_LOCAL_RETEST_PENDING",
-  "captured_at_utc": "2026-09-01T22:16:36.191653+00:00",
+  "current_phase": "P07",
+  "last_completed_phase": "P06",
+  "next_phase": "P07",
+  "last_ipa_checkpoint": {
+    "checkpoint": "C01",
+    "result": "PASS",
+    "human_device": "iPhone",
+    "build_source_sha": "87283d769d6fce03a12fed18582fe6e360960e90",
+    "github_actions_run": 33629042501,
+    "ipa_sha256": "AA2D04220775FD3496A1929B0DFFA37D20FB4C3E7ACB2603FC47C8AE1498CC39"
+  },
+  "result": "IN_PROGRESS",
+  "captured_at_utc": "2026-09-02T18:35:00Z",
   "baseline": {
     "git_commit": null,
     "git_branch": null,
@@ -22,10 +29,10 @@
     "P01": "PASS",
     "P02": "PASS",
     "P03": "PASS",
-    "P04": "PENDING",
-    "P05": "PENDING",
-    "P06": "PENDING",
-    "P07": "PENDING",
+    "P04": "PASS",
+    "P05": "PASS",
+    "P06": "PASS",
+    "P07": "IN_PROGRESS",
     "P08": "PENDING",
     "P09": "PENDING",
     "P10": "PENDING",
@@ -39,7 +46,7 @@
     "P18": "PENDING"
   },
   "checkpoints": {
-    "C01": "RETEST_PENDING",
+    "C01": "PASS",
     "C02": "PENDING",
     "C03": "PENDING",
     "C04": "PENDING",
@@ -47,8 +54,8 @@
     "C06": "PENDING"
   },
   "known_blockers": [],
-  "last_package": "YA_MV2_C01_FIX4B_REPORT_RESPONSIVE_API_FIX.zip",
-  "next_user_action": "After local C01 FIX4B PASS, build a fresh unsigned C01 IPA and repeat the iPhone human test. Verify Repair Reports chart axes on PHONE and re-check Needs Attention date presentation. P04 remains blocked until C01 human PASS.",
+  "last_package": "YA_MV2_P07_REPAIR_INTAKE_WIZARD_FIX7.zip",
+  "next_user_action": "Run the P07 package local gates, then visually inspect the intake wizard. P07 is not PASS until human visual acceptance; C02 human checkpoint remains PENDING under the explicit owner override.",
   "p02_completion": {
     "phone_otp": "SERVER_AUTHORITATIVE",
     "otp_lifetime_seconds": 300,
@@ -61,11 +68,7 @@
     "development_delivery": "loopback server diagnostic only; never returned by API"
   },
   "known_issues": [
-    "PREEXISTING_R11_CONTRACT_DRIFT: R11 may already fail before P02; P02 is permitted only when it introduces zero new R11 failing tests.",
-    "C01_IPHONE_RETEST_REQUIRED: FIX3D repairs sidebar Arabic mojibake, Home ISO-date leakage, and the repair-card mojibake separator; fresh iPhone validation is still required before C01 PASS.",
-    "C01_FIX4_IPHONE_RETEST_REQUIRED: FIX4 contains only the PHONE Repair Reports chart-axis responsiveness repair; C01 still requires a fresh IPA human retest before PASS.",
-    "C01_FIX4A_GUARD_CORRECTION: prior FIX4 stopped before mutation on a post-dart-format sidebar hash; FIX4A removes that non-payload byte guard and preserves the same functional repair.",
-    "C01_FIX4B_FL_CHART_API_COMPAT: FIX4A safely rolled back after analyzer rejected unsupported BarChartData.clipData on fl_chart 0.68.0; FIX4B uses Flutter ClipRect outside BarChartData instead."
+    "PREEXISTING_R11_CONTRACT_DRIFT: R11 may already fail before P02; P02 is permitted only when it introduces zero new R11 failing tests."
   ],
   "p03_completion": {
     "phone_home": "TODAY_DECISION_FIRST",
@@ -115,5 +118,92 @@
     "guard_strategy": "BYTE_GUARDS_ONLY_FOR_OVERWRITTEN_SOURCE_AND_EXECUTION_DOCS; REGRESSION_TESTS_FOR_FIX3D_FILES",
     "clipping_strategy": "FLUTTER_CLIPRECT_WRAPPER_OUTSIDE_BARCHARTDATA",
     "fix4a_result": "ROLLED_BACK_SAFE_AFTER_ANALYZER_API_ERROR"
+  },
+  "p04_progress": {
+    "status": "PASS",
+    "p04_1_encrypted_local_db": "LOCAL_PASS_C02_RUNTIME_PENDING",
+    "mobile_runtime": "SQLCIPHER_IOS_ANDROID",
+    "desktop_runtime": "EXISTING_SQLITE_PRESERVED",
+    "schema_version_change": false,
+    "legacy_plaintext_strategy": "SQLCIPHER_EXPORT_WITH_VALIDATION_AND_ROLLBACK",
+    "key_storage": "FLUTTER_SECURE_STORAGE_256_BIT_RANDOM",
+    "live_customer_db_touched_by_installer": false,
+    "mobile_runtime_verification": "C02_IPHONE_PENDING",
+    "p04_2_offline_save_outbox": "PASS",
+    "offline_write_policy": "LOCAL_DB_FIRST_NO_CONNECTIVITY_GATE",
+    "outbox_delivery": "TRANSPORT_NOT_STARTED",
+    "outbox_schema_strategy": "IDEMPOTENT_POST_INIT_ENSURE_NO_DESTRUCTIVE_REBUILD",
+    "outbox_schema_upgrade": "POST_INIT_IDEMPOTENT_CURRENT_V69_COMPAT",
+    "outbox_interrupted_sending_recovery": true,
+    "network_transport_started": false,
+    "p04_3_sync_state_indicator": "PASS",
+    "p04_3_coordinated_drain_engine": "PASS",
+    "p04_3_connection_failure_handling": "PASS",
+    "idempotency_prevention": "PASS",
+    "network_transport_contract": "READY",
+    "production_workshop_sync_endpoint": "NOT_DEFINED_IN_CURRENT_SOURCE_NO_ENDPOINT_INVENTED",
+    "indicator_truthfulness": "LOCAL_ONLY_UNTIL_REAL_TRANSPORT_CONFIGURED"
+  },
+  "p05_progress": {
+    "status": "PASS",
+    "client_list": "PASS",
+    "client_add_edit": "PASS",
+    "client_profile": "PASS",
+    "vehicle_list": "PASS",
+    "vehicle_add_edit": "PASS",
+    "vehicle_history": "PASS",
+    "client_duplicate_prevention": "PASS",
+    "vehicle_number_duplicate_prevention": "PASS",
+    "legacy_repairs_vehicle_backfill": "NON_DESTRUCTIVE",
+    "db_version_change": false,
+    "database_reset": false,
+    "p06_started": false
+  },
+  "p06_progress": {
+    "status": "PASS",
+    "repair_list": "PASS",
+    "search": "PASS",
+    "filters": {
+      "payment_status": "PASS",
+      "vehicle_status": "PASS",
+      "beneficiary_type": "PASS",
+      "date_range": "PASS",
+      "archive_scope": "PASS"
+    },
+    "statuses": "PASS",
+    "archive": "EXPLICIT_USER_CONTROLLED_PASS",
+    "archive_payment_coupling_removed": true,
+    "archive_outbox_local_first": "PASS",
+    "canonical_route": "/repairs/list",
+    "mobile_shell_double_nav_prevented": true,
+    "db_version_change": false,
+    "database_reset": false,
+    "accounting_logic_changed": false,
+    "next_checkpoint": "C02",
+    "p07_blocked_until_c02_pass": true
+  },
+  "p07_progress": {
+    "status": "IMPLEMENTED_LOCAL_GATES_PENDING",
+    "owner_override_to_start_before_c02_human_pass": true,
+    "c02_human_result": "PENDING",
+    "client_select_or_quick_add": "IMPLEMENTED",
+    "vehicle_select_or_quick_add": "IMPLEMENTED",
+    "reception_date": "IMPLEMENTED",
+    "odometer": "IMPLEMENTED",
+    "fuel_level": "IMPLEMENTED",
+    "previous_damage": "IMPLEMENTED",
+    "photo_capture_and_gallery": "IMPLEMENTED",
+    "customer_signature": "IMPLEMENTED",
+    "review_and_save": "IMPLEMENTED",
+    "save_semantics": "QUOTE_INTAKE_ONLY_NO_INVOICE_NO_GL",
+    "db_version_change": "UNCHANGED_69",
+    "database_reset": false,
+    "accounting_logic_changed": false,
+    "git_push_by_package": false,
+    "human_visual_acceptance": "PENDING"
+  },
+  "p07": {
+    "db_version_change": "NONE_REMAINS_69",
+    "schema_migration": "IDEMPOTENT_ADDITIVE_CURRENT_V69_COMPATIBILITY_ENSURE"
   }
 }

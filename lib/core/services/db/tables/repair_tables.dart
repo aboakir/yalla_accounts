@@ -94,6 +94,13 @@ class RepairTables {
         thumbnail_path TEXT,
         thumbnail_updated_at TEXT,
 
+        -- P07 intake documentation (non-financial, additive migration)
+        odometer INTEGER,
+        fuel_level INTEGER,
+        previous_damage TEXT,
+        customer_signature_path TEXT,
+        intake_completed_at TEXT,
+
         -- 🔥 الأعمدة الناقصة (مضافة بدون حذف أي شيء)
 
         created_at TEXT,
@@ -380,6 +387,7 @@ class RepairTables {
     await _ensureColumn(db, 'repairs', 'approved_at', 'TEXT');
     await _ensureColumn(db, 'repairs', 'approved_by', 'TEXT');
     await _ensureColumn(db, 'repairs', 'client_id', 'INTEGER'); // ← أضف هذا فقط
+    await ensureP07IntakeSchema(db);
     await _ensureRepairsExtraCols(db);
     await _ensureRepairsInvoiceIdCol(db);
     await _migrateRepairsInvoiceId(db);
@@ -391,6 +399,15 @@ class RepairTables {
   SET total_paid_amount = paidAmount
   WHERE total_paid_amount IS NULL;
 """);
+  }
+
+  /// P07 additive intake migration. Never drops/rebuilds customer tables.
+  static Future<void> ensureP07IntakeSchema(DatabaseExecutor db) async {
+    await _ensureColumn(db, 'repairs', 'odometer', 'INTEGER');
+    await _ensureColumn(db, 'repairs', 'fuel_level', 'INTEGER');
+    await _ensureColumn(db, 'repairs', 'previous_damage', 'TEXT');
+    await _ensureColumn(db, 'repairs', 'customer_signature_path', 'TEXT');
+    await _ensureColumn(db, 'repairs', 'intake_completed_at', 'TEXT');
   }
 
   static Future<void> _ensureColumn(

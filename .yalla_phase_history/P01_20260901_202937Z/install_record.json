@@ -1,0 +1,66 @@
+﻿{
+    "phase_id":  "P01",
+    "package":  "YA_MV2_P01_FOUNDATION",
+    "installed_at_utc":  "2026-09-01T20:29:46.5032644Z",
+    "project_root":  "E:\\flutter_projects\\yalla_accounts",
+    "git_commit_before":  null,
+    "git_branch_before":  null,
+    "git_status_before":  null,
+    "files":  [
+                  {
+                      "path":  "docs/execution/YALLA_ACCEPTANCE_MATRIX.md",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "docs/execution/YALLA_CHANGELOG.md",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "docs/execution/YALLA_DECISIONS.md",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "docs/execution/YALLA_DESIGN_FOUNDATION.md",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "docs/execution/YALLA_MASTER_PLAN.md",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "docs/execution/YALLA_PROJECT_STATE.json",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "lib/core/design/yalla_breakpoints.dart",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "lib/core/design/yalla_components.dart",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "lib/core/design/yalla_design_tokens.dart",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "test/phase01/yalla_phase01_design_foundation_test.dart",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  },
+                  {
+                      "path":  "tooling/yalla_execution/verify_p01.ps1",
+                      "existed_before":  false,
+                      "previous_sha256":  null
+                  }
+              ]
+}
