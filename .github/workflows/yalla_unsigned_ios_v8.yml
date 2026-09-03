@@ -258,53 +258,54 @@ jobs:
               echo "UNSIGNED FALLBACK PASS: fresh Runner.app exists; continuing to IPA packaging."
             else
               echo "Runner.app missing after Flutter wrapper; starting direct unsigned Xcode build..."
-echo "YALLA_DIRECT_XCODE_FALLBACK_V8"
+              echo "YALLA_DIRECT_XCODE_FALLBACK_V8"
 
-rm -rf "$RUNNER_TEMP/yalla_direct_xcode_v8"
-mkdir -p build/ios/iphoneos
+              rm -rf "$RUNNER_TEMP/yalla_direct_xcode_v8"
+              mkdir -p build/ios/iphoneos
 
-set +e
-xcodebuild \
-  -workspace ios/Runner.xcworkspace \
-  -scheme Runner \
-  -configuration Release \
-  -sdk iphoneos \
-  -destination 'generic/platform=iOS' \
-  -derivedDataPath "$RUNNER_TEMP/yalla_direct_xcode_v8" \
-  CODE_SIGNING_ALLOWED=NO \
-  CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGN_IDENTITY="" \
-  EXPANDED_CODE_SIGN_IDENTITY="" \
-  DEVELOPMENT_TEAM="" \
-  PROVISIONING_PROFILE="" \
-  PROVISIONING_PROFILE_SPECIFIER="" \
-  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
-  GCC_TREAT_WARNINGS_AS_ERRORS=NO \
-  SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-  OTHER_CFLAGS='$(inherited) -Wno-error=incompatible-pointer-types' \
-  2>&1 | tee "$RUNNER_TEMP/yalla_direct_xcode_v8.log"
-xcode_status=${PIPESTATUS[0]}
-set -e
+              set +e
+              xcodebuild \
+                -workspace ios/Runner.xcworkspace \
+                -scheme Runner \
+                -configuration Release \
+                -sdk iphoneos \
+                -destination 'generic/platform=iOS' \
+                -derivedDataPath "$RUNNER_TEMP/yalla_direct_xcode_v8" \
+                CODE_SIGNING_ALLOWED=NO \
+                CODE_SIGNING_REQUIRED=NO \
+                CODE_SIGN_IDENTITY="" \
+                EXPANDED_CODE_SIGN_IDENTITY="" \
+                DEVELOPMENT_TEAM="" \
+                PROVISIONING_PROFILE="" \
+                PROVISIONING_PROFILE_SPECIFIER="" \
+                CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
+                GCC_TREAT_WARNINGS_AS_ERRORS=NO \
+                SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+                OTHER_CFLAGS='$(inherited) -Wno-error=incompatible-pointer-types' \
+                2>&1 | tee "$RUNNER_TEMP/yalla_direct_xcode_v8.log"
+              xcode_status=${PIPESTATUS[0]}
+              set -e
 
-if [ "$xcode_status" -ne 0 ]; then
-  echo "DIRECT XCODE V8: FAIL ($xcode_status)"
-  echo "===== LAST 300 DIRECT XCODE V8 LINES ====="
-  tail -n 300 "$RUNNER_TEMP/yalla_direct_xcode_v8.log" || true
-  exit "$xcode_status"
-fi
+              if [ "$xcode_status" -ne 0 ]; then
+                echo "DIRECT XCODE V8: FAIL ($xcode_status)"
+                echo "===== LAST 300 DIRECT XCODE V8 LINES ====="
+                tail -n 300 "$RUNNER_TEMP/yalla_direct_xcode_v8.log" || true
+                exit "$xcode_status"
+              fi
 
-fallback_app="$(find "$RUNNER_TEMP/yalla_direct_xcode_v8/Build/Products" -type d -name Runner.app -print -quit 2>/dev/null || true)"
+              fallback_app="$(find "$RUNNER_TEMP/yalla_direct_xcode_v8/Build/Products" -type d -name Runner.app -print -quit 2>/dev/null || true)"
 
-if [ -z "$fallback_app" ] || [ ! -f "$fallback_app/Runner" ]; then
-  echo "DIRECT XCODE V8: build succeeded but Runner.app was not found."
-  find "$RUNNER_TEMP/yalla_direct_xcode_v8/Build/Products" -maxdepth 5 -type d -print 2>/dev/null || true
-  exit 1
-fi
+              if [ -z "$fallback_app" ] || [ ! -f "$fallback_app/Runner" ]; then
+                echo "DIRECT XCODE V8: build succeeded but Runner.app was not found."
+                find "$RUNNER_TEMP/yalla_direct_xcode_v8/Build/Products" -maxdepth 5 -type d -print 2>/dev/null || true
+                exit 1
+              fi
 
-rm -rf build/ios/iphoneos/Runner.app
-cp -R "$fallback_app" build/ios/iphoneos/Runner.app
-test -f build/ios/iphoneos/Runner.app/Runner
-echo "DIRECT XCODE V8: PASS"            fi
+              rm -rf build/ios/iphoneos/Runner.app
+              cp -R "$fallback_app" build/ios/iphoneos/Runner.app
+              test -f build/ios/iphoneos/Runner.app/Runner
+              echo "DIRECT XCODE V8: PASS"
+            fi
           fi
 
       - name: Verify app and brand
