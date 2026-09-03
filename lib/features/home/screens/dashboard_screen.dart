@@ -67,22 +67,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AdaptiveAlertDialog(
-          title: const Text('🔒 انتهاء النسخة التجريبية'),
+          title:
+              const Text('ًں”’ ط§ظ†طھظ‡ط§ط، ط§ظ„ظ†ط³ط®ط© ط§ظ„طھط¬ط±ظٹط¨ظٹط©'),
           content: const Text(
-            'لقد وصلت إلى الحد الأقصى للنسخة التجريبية (10 ملفات إصلاح).\n\n'
-            'لتتمكن من إضافة مركبات جديدة، يرجى تفعيل الاشتراك.',
+            'ظ„ظ‚ط¯ ظˆطµظ„طھ ط¥ظ„ظ‰ ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„ظ†ط³ط®ط© ط§ظ„طھط¬ط±ظٹط¨ظٹط© (10 ظ…ظ„ظپط§طھ ط¥طµظ„ط§ط­).\n\n'
+            'ظ„طھطھظ…ظƒظ† ظ…ظ† ط¥ط¶ط§ظپط© ظ…ط±ظƒط¨ط§طھ ط¬ط¯ظٹط¯ط©طŒ ظٹط±ط¬ظ‰ طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('لاحقًا'),
+              child: const Text('ظ„ط§ط­ظ‚ظ‹ط§'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 Navigator.pushNamed(context, AppRoutes.technicalSupport);
               },
-              child: const Text('تواصل لتفعيل الاشتراك'),
+              child: const Text('طھظˆط§طµظ„ ظ„طھظپط¹ظٹظ„ ط§ظ„ط§ط´طھط±ط§ظƒ'),
             ),
           ],
         ),
@@ -184,8 +185,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildPhoneDashboard() {
     final snapshot = _phoneSnapshot ??
         const P03HomeSnapshot(
-          workshopName: 'ورشتي',
-          currencySymbol: '₪',
+          workshopName: 'ظˆط±ط´طھظٹ',
+          currencySymbol: 'â‚ھ',
           repairsReceivedToday: 0,
           receiptsToday: 0,
           paymentsToday: 0,
@@ -222,18 +223,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       _attentionSection(snapshot),
                       const SizedBox(height: 24),
                       _sectionHeader(
-                        'إجراءات سريعة',
-                        trailing: 'الأكثر استخدامًا',
+                        'ط¥ط¬ط±ط§ط،ط§طھ ط³ط±ظٹط¹ط©',
+                        trailing: 'ط§ظ„ط£ظƒط«ط± ط§ط³طھط®ط¯ط§ظ…ظ‹ط§',
                       ),
                       const SizedBox(height: 12),
                       _quickActionsGrid(),
                       const SizedBox(height: 26),
                       _sectionHeader(
-                        'آخر الملفات',
+                        'ط¢ط®ط± ط§ظ„ظ…ظ„ظپط§طھ',
                         action: TextButton(
                           onPressed: () =>
                               Navigator.pushNamed(context, AppRoutes.repairs),
-                          child: const Text('عرض الكل'),
+                          child: const Text('ط¹ط±ط¶ ط§ظ„ظƒظ„'),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -249,7 +250,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bottomNavigationBar: Builder(
         builder: (navContext) => YallaMobileBottomNav(
           currentRoute: AppRoutes.dashboard,
-          onAdd: _showAddSheet,
           onMore: () => Scaffold.of(navContext).openDrawer(),
         ),
       ),
@@ -261,10 +261,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     P03HomeSnapshot snapshot,
   ) {
     final greeting = DateTime.now().hour < 12
-        ? 'صباح الخير'
+        ? 'طµط¨ط§ط­ ط§ظ„ط®ظٹط±'
         : DateTime.now().hour < 18
-            ? 'مساء الخير'
-            : 'أهلًا بك';
+            ? 'ظ…ط³ط§ط، ط§ظ„ط®ظٹط±'
+            : 'ط£ظ‡ظ„ظ‹ط§ ط¨ظƒ';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 14, 16),
@@ -276,7 +276,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           IconButton(
             key: const Key('yalla_mobile_menu_button'),
-            tooltip: 'القائمة',
+            tooltip: 'ط§ظ„ظ‚ط§ط¦ظ…ط©',
             onPressed: () => Scaffold.of(headerContext).openDrawer(),
             icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
           ),
@@ -312,7 +312,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               IconButton(
                 key: const Key('yalla_home_notifications_button'),
-                tooltip: 'التنبيهات',
+                tooltip: 'ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ',
                 onPressed: () => _showNotificationCenter(snapshot),
                 icon: const Icon(
                   Icons.notifications_none_rounded,
@@ -381,7 +381,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'ملخص اليوم',
+                    'ظ…ظ„ط®طµ ط§ظ„ظٹظˆظ…',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
@@ -389,7 +389,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'ما يحتاج أن تعرفه الآن',
+                    'ظ…ط§ ظٹط­طھط§ط¬ ط£ظ† طھط¹ط±ظپظ‡ ط§ظ„ط¢ظ†',
                     style: TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                 ],
@@ -398,7 +398,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 18),
           Text(
-            net >= 0 ? 'صافي حركة النقد اليوم' : 'صافي الصرف أعلى اليوم',
+            net >= 0
+                ? 'طµط§ظپظٹ ط­ط±ظƒط© ط§ظ„ظ†ظ‚ط¯ ط§ظ„ظٹظˆظ…'
+                : 'طµط§ظپظٹ ط§ظ„طµط±ظپ ط£ط¹ظ„ظ‰ ط§ظ„ظٹظˆظ…',
             textAlign: TextAlign.right,
             style: const TextStyle(
               color: Colors.black54,
@@ -424,7 +426,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Expanded(
                 child: _todayMetric(
-                  'ملفات دخلت اليوم',
+                  'ظ…ظ„ظپط§طھ ط¯ط®ظ„طھ ط§ظ„ظٹظˆظ…',
                   '${snapshot.repairsReceivedToday}',
                   Icons.car_repair_rounded,
                 ),
@@ -432,7 +434,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: _todayMetric(
-                  'قبض اليوم',
+                  'ظ‚ط¨ط¶ ط§ظ„ظٹظˆظ…',
                   '${snapshot.currencySymbol} ${money.format(snapshot.receiptsToday)}',
                   Icons.south_west_rounded,
                 ),
@@ -444,7 +446,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Expanded(
                 child: _todayMetric(
-                  'صرف اليوم',
+                  'طµط±ظپ ط§ظ„ظٹظˆظ…',
                   '${snapshot.currencySymbol} ${money.format(snapshot.paymentsToday)}',
                   Icons.north_east_rounded,
                 ),
@@ -452,7 +454,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: _todayMetric(
-                  'شيكات اليوم',
+                  'ط´ظٹظƒط§طھ ط§ظ„ظٹظˆظ…',
                   '${snapshot.chequesDueToday}',
                   Icons.event_available_rounded,
                 ),
@@ -508,10 +510,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _sectionHeader(
-          'يحتاج انتباهك',
+          'ظٹط­طھط§ط¬ ط§ظ†طھط¨ط§ظ‡ظƒ',
           trailing: snapshot.attentionCount == 0
-              ? 'لا يوجد عاجل'
-              : '${snapshot.attentionCount} عنصر',
+              ? 'ظ„ط§ ظٹظˆط¬ط¯ ط¹ط§ط¬ظ„'
+              : '${snapshot.attentionCount} ط¹ظ†طµط±',
         ),
         const SizedBox(height: 10),
         if (visible.isEmpty)
@@ -523,7 +525,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               border: Border.all(color: AppColors.primary.withOpacity(.18)),
             ),
             child: const Text(
-              'لا توجد عناصر عاجلة الآن.',
+              'ظ„ط§ طھظˆط¬ط¯ ط¹ظ†ط§طµط± ط¹ط§ط¬ظ„ط© ط§ظ„ط¢ظ†.',
               textAlign: TextAlign.right,
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
@@ -637,22 +639,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         _quickAction(
           icon: Icons.add_road_rounded,
-          label: 'إصلاح جديد',
+          label: 'ط¥طµظ„ط§ط­ ط¬ط¯ظٹط¯',
           onTap: _openNewRepair,
         ),
         _quickAction(
           icon: Icons.payments_outlined,
-          label: 'سند قبض',
+          label: 'ط³ظ†ط¯ ظ‚ط¨ط¶',
           onTap: () => Navigator.pushNamed(context, AppRoutes.receiptVoucher),
         ),
         _quickAction(
           icon: Icons.person_add_alt_1_rounded,
-          label: 'إضافة عميل',
+          label: 'ط¥ط¶ط§ظپط© ط¹ظ…ظٹظ„',
           onTap: () => Navigator.pushNamed(context, AppRoutes.clientAdd),
         ),
         _quickAction(
           icon: Icons.edit_calendar_rounded,
-          label: 'إضافة شيك',
+          label: 'ط¥ط¶ط§ظپط© ط´ظٹظƒ',
           onTap: () => Navigator.pushNamed(context, AppRoutes.chequesAdd),
         ),
       ],
@@ -701,7 +703,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         padding: const EdgeInsets.all(16),
         decoration: _phoneCardStyle(),
         child: const Text(
-          'لا توجد ملفات إصلاح بعد.',
+          'ظ„ط§ طھظˆط¬ط¯ ظ…ظ„ظپط§طھ ط¥طµظ„ط§ط­ ط¨ط¹ط¯.',
           textAlign: TextAlign.right,
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
@@ -754,7 +756,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           repair.subtitle,
           if (repair.status.isNotEmpty) repair.status,
           if (displayDate.isNotEmpty) displayDate,
-        ].join(' • '),
+        ].join(' â€¢ '),
         textAlign: TextAlign.right,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
@@ -795,7 +797,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const Align(
               alignment: Alignment.centerRight,
               child: Text(
-                'إضافة جديدة',
+                'ط¥ط¶ط§ظپط© ط¬ط¯ظٹط¯ط©',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
               ),
             ),
@@ -803,25 +805,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             _addSheetTile(
               sheetContext,
               icon: Icons.add_road_rounded,
-              title: 'إصلاح جديد',
+              title: 'ط¥طµظ„ط§ط­ ط¬ط¯ظٹط¯',
               onOpen: _openNewRepair,
             ),
             _addSheetTile(
               sheetContext,
               icon: Icons.payments_outlined,
-              title: 'سند قبض',
+              title: 'ط³ظ†ط¯ ظ‚ط¨ط¶',
               route: AppRoutes.receiptVoucher,
             ),
             _addSheetTile(
               sheetContext,
               icon: Icons.person_add_alt_1_rounded,
-              title: 'إضافة عميل',
+              title: 'ط¥ط¶ط§ظپط© ط¹ظ…ظٹظ„',
               route: AppRoutes.clientAdd,
             ),
             _addSheetTile(
               sheetContext,
               icon: Icons.edit_calendar_rounded,
-              title: 'إضافة شيك',
+              title: 'ط¥ط¶ط§ظپط© ط´ظٹظƒ',
               route: AppRoutes.chequesAdd,
             ),
           ],
@@ -874,13 +876,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Text(
                     snapshot.attentionCount == 0
-                        ? 'لا يوجد جديد'
-                        : '${snapshot.attentionCount} يحتاج متابعة',
+                        ? 'ظ„ط§ ظٹظˆط¬ط¯ ط¬ط¯ظٹط¯'
+                        : '${snapshot.attentionCount} ظٹط­طھط§ط¬ ظ…طھط§ط¨ط¹ط©',
                     style: const TextStyle(color: Colors.black54),
                   ),
                   const Spacer(),
                   const Text(
-                    'التنبيهات',
+                    'ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ',
                     style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
                   ),
                 ],
@@ -890,7 +892,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: snapshot.attention.isEmpty
                     ? const Center(
                         child: Text(
-                          'لا توجد عناصر عاجلة الآن.',
+                          'ظ„ط§ طھظˆط¬ط¯ ط¹ظ†ط§طµط± ط¹ط§ط¬ظ„ط© ط§ظ„ط¢ظ†.',
                           style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       )
@@ -1030,13 +1032,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Builder(
                     builder: (headerContext) => IconButton(
                       key: const Key('yalla_mobile_menu_button'),
-                      tooltip: 'القائمة',
+                      tooltip: 'ط§ظ„ظ‚ط§ط¦ظ…ط©',
                       onPressed: () => Scaffold.of(headerContext).openDrawer(),
                       icon: const Icon(Icons.menu, color: Colors.white),
                     ),
                   ),
                 const Text(
-                  "لوحة التحكم",
+                  "ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: Colors.white, fontSize: 20),
@@ -1077,13 +1079,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionTitle("اختصارات سريعة"),
+                const SectionTitle("ط§ط®طھطµط§ط±ط§طھ ط³ط±ظٹط¹ط©"),
                 const SizedBox(height: 14),
                 AdaptiveRow(
                   children: [
                     Expanded(
                       child: ActionShortcutButton(
-                        label: "إضافة مركبة",
+                        label: "ط¥ط¶ط§ظپط© ظ…ط±ظƒط¨ط©",
                         onTap: () async {
                           final allowed = await _canAddNewRepair();
                           if (!allowed || !mounted) return;
@@ -1094,7 +1096,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ActionShortcutButton(
-                        label: "فاتورة شراء",
+                        label: "ظپط§طھظˆط±ط© ط´ط±ط§ط،",
                         onTap: () => Navigator.pushNamed(
                           context,
                           AppRoutes.purchaseCreate,
@@ -1104,7 +1106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ActionShortcutButton(
-                        label: "سند قبض",
+                        label: "ط³ظ†ط¯ ظ‚ط¨ط¶",
                         onTap: () => Navigator.pushNamed(
                           context,
                           AppRoutes.receiptVoucher,
@@ -1125,7 +1127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle("تحليل مالي شهري"),
+        const SectionTitle("طھط­ظ„ظٹظ„ ظ…ط§ظ„ظٹ ط´ظ‡ط±ظٹ"),
         const SizedBox(height: 14),
         Container(
           height: 420,
@@ -1151,7 +1153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      "الملخص المالي الشهري",
+                      "ط§ظ„ظ…ظ„ط®طµ ط§ظ„ظ…ط§ظ„ظٹ ط§ظ„ط´ظ‡ط±ظٹ",
                       style: TextStyle(
                         color: AppColors.secondary,
                         fontSize: 18,
@@ -1160,22 +1162,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 22),
                     _summaryLine(
-                        "الدخل", monthlyIncomeTotal, AppColors.primary),
+                        "ط§ظ„ط¯ط®ظ„", monthlyIncomeTotal, AppColors.primary),
                     const SizedBox(height: 14),
                     _summaryLine(
-                      "المصاريف",
+                      "ط§ظ„ظ…طµط§ط±ظٹظپ",
                       monthlyExpensesTotal,
                       const Color(0xFFFF9800),
                     ),
                     const SizedBox(height: 14),
                     _summaryLine(
-                      monthlyProfit >= 0 ? "الربح" : "الخسارة",
+                      monthlyProfit >= 0 ? "ط§ظ„ط±ط¨ط­" : "ط§ظ„ط®ط³ط§ط±ط©",
                       monthlyProfit.abs(),
                       monthlyProfit >= 0 ? AppColors.success : AppColors.danger,
                     ),
                     const SizedBox(height: 14),
                     _summaryLine(
-                      "هامش الربحية",
+                      "ظ‡ط§ظ…ط´ ط§ظ„ط±ط¨ط­ظٹط©",
                       monthlyMargin,
                       AppColors.secondary,
                       percent: true,
