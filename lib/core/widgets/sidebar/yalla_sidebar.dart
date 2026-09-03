@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_more_screen.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
 import 'sidebar_header.dart';
@@ -412,6 +413,9 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width < 600) {
+      return YallaMobileMoreMenu(currentRoute: widget.currentRoute);
+    }
     final hasSearch = _searchQuery.trim().isNotEmpty;
 
     // 1) إصلاح المركبات

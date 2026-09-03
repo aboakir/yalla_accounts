@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_more_screen.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_sync_status_strip.dart';
 
 /// P03 phone navigation: daily destinations stay visible while the complete
@@ -141,7 +142,12 @@ class YallaMobileBottomNav extends StatelessWidget {
                     _go(context, AppRoutes.financeDashboard);
                     break;
                   case 4:
-                    onMore();
+                    if (MediaQuery.sizeOf(context).width < 600) {
+                      YallaMobileMoreScreen.open(context,
+                          currentRoute: currentRoute);
+                    } else {
+                      onMore();
+                    }
                     break;
                 }
               },

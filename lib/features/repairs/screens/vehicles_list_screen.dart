@@ -111,7 +111,8 @@ class _VehiclesListScreenState extends State<VehiclesListScreen> {
       body: AdaptiveRow(
         children: [
           if (MediaQuery.sizeOf(context).width >= 600)
-            const YallaSidebar(currentRoute: '/vehicles_list'),
+            if (context.isDesktopWidth)
+              const YallaSidebar(currentRoute: '/vehicles_list'),
           Expanded(
             child: SafeArea(
               child: RefreshIndicator(
