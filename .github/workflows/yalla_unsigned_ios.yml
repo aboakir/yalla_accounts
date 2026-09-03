@@ -195,38 +195,6 @@ jobs:
 
           echo "Test licensing build configuration: PRESENT"
 
-      - name: Prepare Xcode 26 unsigned compatibility
-        run: |
-          set -euo pipefail
-          echo "YALLA_XCODE26_MINIMAL_COMPAT_V6"
-
-          RELEASE_XCCONFIG="ios/Flutter/Release.xcconfig"
-          test -f "$RELEASE_XCCONFIG"
-
-          {
-            echo ""
-            echo "// YALLA_XCODE26_MINIMAL_COMPAT_V6"
-            echo "CODE_SIGNING_ALLOWED=NO"
-            echo "CODE_SIGNING_REQUIRED=NO"
-            echo "CODE_SIGN_IDENTITY="
-            echo "EXPANDED_CODE_SIGN_IDENTITY="
-            echo "DEVELOPMENT_TEAM="
-            echo "GCC_TREAT_WARNINGS_AS_ERRORS=NO"
-            echo "SWIFT_TREAT_WARNINGS_AS_ERRORS=NO"
-            echo 'OTHER_CFLAGS=$(inherited) -Wno-error=incompatible-pointer-types'
-          } >> "$RELEASE_XCCONFIG"
-
-          PICKER_FILE="$(find ios/.symlinks/plugins "$PUB_CACHE/hosted/pub.dev" -path '*/file_picker*/ios/file_picker/Sources/file_picker/FilePickerPlugin.m' -type f -print 2>/dev/null | head -n 1 || true)"
-
-          if [ -n "$PICKER_FILE" ]; then
-            echo "file_picker source: $PICKER_FILE"
-            python3 -c 'from pathlib import Path; import sys; p=Path(sys.argv[1]); s=p.read_text(encoding="utf-8"); old="newUrls = urls;"; new="newUrls = [urls mutableCopy];"; p.write_text(s.replace(old,new,1),encoding="utf-8") if old in s else None; print("file_picker compatibility:", "APPLIED" if old in s else ("ALREADY PRESENT" if new in s else "TARGET NOT FOUND"))' "$PICKER_FILE"
-          else
-            echo "file_picker source not found; continuing."
-          fi
-
-          grep -n "CODE_SIGNING_ALLOWED=NO" "$RELEASE_XCCONFIG"
-          echo "Xcode 26 minimal unsigned compatibility: PASS"
       - name: Build unsigned iOS release
         run: |
           set -euo pipefail
@@ -234,72 +202,12 @@ jobs:
           echo "Licensing endpoint: https://48171af98adfd7.lhr.life"
           echo "Pinned test signing-key SHA256: aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091"
 
-          # YALLA_UNSIGNED_APP_FALLBACK_V1
-          set +e
           flutter build ios \
             --release \
             --no-codesign \
             --build-number "${GITHUB_RUN_NUMBER}" \
             --dart-define=YALLA_LICENSING_BASE_URL=https://48171af98adfd7.lhr.life \
-            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091 \
-            --verbose 2>&1 | tee "$RUNNER_TEMP/yalla_flutter_ios_build.log"
-          build_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$build_status" -ne 0 ]; then
-            echo "flutter build returned "$build_status". Checking fresh unsigned app output..."
-            if [ -d "build/ios/iphoneos/Runner.app" ] && [ -f "build/ios/iphoneos/Runner.app/Runner" ]; then
-              echo "UNSIGNED FALLBACK PASS: fresh Runner.app exists; continuing to IPA packaging."
-            else
-              echo "Runner.app missing after Flutter wrapper; starting direct unsigned Xcode fallback..."
-echo "YALLA_DIRECT_XCODE_UNSIGNED_FALLBACK_V7"
-
-rm -rf "$RUNNER_TEMP/yalla_direct_xcode_v7"
-mkdir -p build/ios/iphoneos
-
-set +e
-xcodebuild \
-  -workspace ios/Runner.xcworkspace \
-  -scheme Runner \
-  -configuration Release \
-  -sdk iphoneos \
-  -destination 'generic/platform=iOS' \
-  -derivedDataPath "$RUNNER_TEMP/yalla_direct_xcode_v7" \
-  CODE_SIGNING_ALLOWED=NO \
-  CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGN_IDENTITY="" \
-  EXPANDED_CODE_SIGN_IDENTITY="" \
-  DEVELOPMENT_TEAM="" \
-  PROVISIONING_PROFILE="" \
-  PROVISIONING_PROFILE_SPECIFIER="" \
-  CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
-  GCC_TREAT_WARNINGS_AS_ERRORS=NO \
-  SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-  OTHER_CFLAGS='$(inherited) -Wno-error=incompatible-pointer-types' \
-  2>&1 | tee "$RUNNER_TEMP/yalla_direct_xcode_v7.log"
-xcode_status=${PIPESTATUS[0]}
-set -e
-
-if [ "$xcode_status" -ne 0 ]; then
-  echo "DIRECT XCODE V7: FAIL ($xcode_status)"
-  echo "===== LAST 260 DIRECT XCODE V7 LINES ====="
-  tail -n 260 "$RUNNER_TEMP/yalla_direct_xcode_v7.log" || true
-  exit "$xcode_status"
-fi
-
-fallback_app="$(find "$RUNNER_TEMP/yalla_direct_xcode_v7/Build/Products" -type d -name Runner.app -print -quit 2>/dev/null || true)"
-
-if [ -z "$fallback_app" ] || [ ! -f "$fallback_app/Runner" ]; then
-  echo "DIRECT XCODE V7: Xcode succeeded but Runner.app was not found."
-  find "$RUNNER_TEMP/yalla_direct_xcode_v7/Build/Products" -maxdepth 4 -type d -print 2>/dev/null || true
-  exit 1
-fi
-
-rm -rf build/ios/iphoneos/Runner.app
-cp -R "$fallback_app" build/ios/iphoneos/Runner.app
-
-test -f build/ios/iphoneos/Runner.app/Runner
-echo "DIRECT XCODE V7: PASS"            fi
-          fi
+            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091
 
       - name: Verify app and brand
         run: |
