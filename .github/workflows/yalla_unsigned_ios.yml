@@ -198,56 +198,35 @@ jobs:
       - name: Prepare Xcode 26 unsigned compatibility
         run: |
           set -euo pipefail
-          echo "YALLA_XCODE26_UNSIGNED_COMPAT_V3"
+          echo "YALLA_XCODE26_MINIMAL_COMPAT_V6"
 
-          # Runner-only build settings. Nothing is committed into app source.
           RELEASE_XCCONFIG="ios/Flutter/Release.xcconfig"
           test -f "$RELEASE_XCCONFIG"
 
-          cat >> "$RELEASE_XCCONFIG" <<'YALLA_UNSIGNED_XCCONFIG'
-          // YALLA_XCODE26_UNSIGNED_COMPAT_V3
-          CODE_SIGNING_ALLOWED=NO
-          CODE_SIGNING_REQUIRED=NO
-          CODE_SIGN_IDENTITY=
-          EXPANDED_CODE_SIGN_IDENTITY=
-          DEVELOPMENT_TEAM=
-          GCC_TREAT_WARNINGS_AS_ERRORS=NO
-          SWIFT_TREAT_WARNINGS_AS_ERRORS=NO
-          OTHER_CFLAGS=$(inherited) -Wno-error=incompatible-pointer-types
-          YALLA_UNSIGNED_XCCONFIG
+          {
+            echo ""
+            echo "// YALLA_XCODE26_MINIMAL_COMPAT_V6"
+            echo "CODE_SIGNING_ALLOWED=NO"
+            echo "CODE_SIGNING_REQUIRED=NO"
+            echo "CODE_SIGN_IDENTITY="
+            echo "EXPANDED_CODE_SIGN_IDENTITY="
+            echo "DEVELOPMENT_TEAM="
+            echo "GCC_TREAT_WARNINGS_AS_ERRORS=NO"
+            echo "SWIFT_TREAT_WARNINGS_AS_ERRORS=NO"
+            echo 'OTHER_CFLAGS=$(inherited) -Wno-error=incompatible-pointer-types'
+          } >> "$RELEASE_XCCONFIG"
 
-          # file_picker 8.x Objective-C code is old. Xcode 26 reports the
-          # NSMutableArray <- NSArray assignment as a semantic issue.
-          # Patch only the ephemeral runner copy.
-          PICKER_FILE="$(find ios/.symlinks/plugins "$PUB_CACHE/hosted/pub.dev" \
-            -path '*/file_picker*/ios/file_picker/Sources/file_picker/FilePickerPlugin.m' \
-            -type f -print 2>/dev/null | head -n 1 || true)"
+          PICKER_FILE="$(find ios/.symlinks/plugins "$PUB_CACHE/hosted/pub.dev" -path '*/file_picker*/ios/file_picker/Sources/file_picker/FilePickerPlugin.m' -type f -print 2>/dev/null | head -n 1 || true)"
 
           if [ -n "$PICKER_FILE" ]; then
             echo "file_picker source: $PICKER_FILE"
-            python3 - "$PICKER_FILE" <<'PY'
-          from pathlib import Path
-          import sys
-
-          p = Path(sys.argv[1])
-          s = p.read_text(encoding="utf-8")
-          old = "newUrls = urls;"
-          new = "newUrls = [urls mutableCopy];"
-
-          if old in s:
-              p.write_text(s.replace(old, new, 1), encoding="utf-8")
-              print("file_picker pointer compatibility patch: APPLIED")
-          elif new in s:
-              print("file_picker pointer compatibility patch: ALREADY PRESENT")
-          else:
-              print("file_picker pointer compatibility patch: TARGET NOT PRESENT; continuing")
-          PY
+            python3 -c 'from pathlib import Path; import sys; p=Path(sys.argv[1]); s=p.read_text(encoding="utf-8"); old="newUrls = urls;"; new="newUrls = [urls mutableCopy];"; p.write_text(s.replace(old,new,1),encoding="utf-8") if old in s else None; print("file_picker compatibility:", "APPLIED" if old in s else ("ALREADY PRESENT" if new in s else "TARGET NOT FOUND"))' "$PICKER_FILE"
           else
             echo "file_picker source not found; continuing."
           fi
 
           grep -n "CODE_SIGNING_ALLOWED=NO" "$RELEASE_XCCONFIG"
-          echo "Xcode 26 unsigned compatibility preparation: PASS"
+          echo "Xcode 26 minimal unsigned compatibility: PASS"
       - name: Build unsigned iOS release
         run: |
           set -euo pipefail
@@ -271,51 +250,11 @@ jobs:
             if [ -d "build/ios/iphoneos/Runner.app" ] && [ -f "build/ios/iphoneos/Runner.app/Runner" ]; then
               echo "UNSIGNED FALLBACK PASS: fresh Runner.app exists; continuing to IPA packaging."
             else
-              echo "Runner.app missing after Flutter wrapper. Trying direct Xcode unsigned build..."
-echo "YALLA_DIRECT_XCODE_UNSIGNED_FALLBACK_V3"
-
-rm -rf "$RUNNER_TEMP/yalla_unsigned_derived"
-mkdir -p build/ios/iphoneos
-
-set +e
-xcodebuild \
-  -workspace ios/Runner.xcworkspace \
-  -scheme Runner \
-  -configuration Release \
-  -sdk iphoneos \
-  -destination 'generic/platform=iOS' \
-  -derivedDataPath "$RUNNER_TEMP/yalla_unsigned_derived" \
-  CODE_SIGNING_ALLOWED=NO \
-  CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGN_IDENTITY="" \
-  EXPANDED_CODE_SIGN_IDENTITY="" \
-  DEVELOPMENT_TEAM="" \
-  GCC_TREAT_WARNINGS_AS_ERRORS=NO \
-  SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
-  OTHER_CFLAGS='$(inherited) -Wno-error=incompatible-pointer-types' \
-  2>&1 | tee "$RUNNER_TEMP/yalla_direct_xcode_unsigned.log"
-xcode_status=${PIPESTATUS[0]}
-set -e
-
-if [ "$xcode_status" -ne 0 ]; then
-  echo "DIRECT XCODE UNSIGNED FALLBACK: FAIL ($xcode_status)"
-  echo "===== LAST 220 DIRECT XCODE LINES ====="
-  tail -n 220 "$RUNNER_TEMP/yalla_direct_xcode_unsigned.log" || true
-  exit "$xcode_status"
-fi
-
-fallback_app="$(find "$RUNNER_TEMP/yalla_unsigned_derived/Build/Products" \
-  -maxdepth 3 -type d -name Runner.app -print -quit 2>/dev/null || true)"
-
-if [ -z "$fallback_app" ] || [ ! -f "$fallback_app/Runner" ]; then
-  echo "DIRECT XCODE UNSIGNED FALLBACK: build passed but Runner.app not found."
-  exit 1
-fi
-
-rm -rf build/ios/iphoneos/Runner.app
-cp -R "$fallback_app" build/ios/iphoneos/Runner.app
-test -f build/ios/iphoneos/Runner.app/Runner
-echo "DIRECT XCODE UNSIGNED FALLBACK: PASS"            fi
+              echo "UNSIGNED FALLBACK FAIL: Runner.app was not produced."
+              echo "===== LAST 160 VERBOSE BUILD LINES ====="
+              tail -n 160 "$RUNNER_TEMP/yalla_flutter_ios_build.log" || true
+              exit "$build_status"
+            fi
           fi
 
       - name: Verify app and brand
