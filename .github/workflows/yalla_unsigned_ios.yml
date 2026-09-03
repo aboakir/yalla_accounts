@@ -202,12 +202,28 @@ jobs:
           echo "Licensing endpoint: https://48171af98adfd7.lhr.life"
           echo "Pinned test signing-key SHA256: aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091"
 
+          # YALLA_UNSIGNED_APP_FALLBACK_V1
+          set +e
           flutter build ios \
             --release \
             --no-codesign \
             --build-number "${GITHUB_RUN_NUMBER}" \
             --dart-define=YALLA_LICENSING_BASE_URL=https://48171af98adfd7.lhr.life \
-            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091
+            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091 \
+            --verbose 2>&1 | tee "$RUNNER_TEMP/yalla_flutter_ios_build.log"
+          build_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$build_status" -ne 0 ]; then
+            echo "flutter build returned "$build_status". Checking fresh unsigned app output..."
+            if [ -d "build/ios/iphoneos/Runner.app" ] && [ -f "build/ios/iphoneos/Runner.app/Runner" ]; then
+              echo "UNSIGNED FALLBACK PASS: fresh Runner.app exists; continuing to IPA packaging."
+            else
+              echo "UNSIGNED FALLBACK FAIL: Runner.app was not produced."
+              echo "===== LAST 160 VERBOSE BUILD LINES ====="
+              tail -n 160 "$RUNNER_TEMP/yalla_flutter_ios_build.log" || true
+              exit "$build_status"
+            fi
+          fi
 
       - name: Verify app and brand
         run: |
