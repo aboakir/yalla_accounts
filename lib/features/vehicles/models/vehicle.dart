@@ -11,6 +11,7 @@ class Vehicle {
     this.updatedAt,
     this.repairCount = 0,
     this.lastReceivedDate,
+    this.profileImagePath,
   });
 
   final int? id;
@@ -24,6 +25,7 @@ class Vehicle {
   final DateTime? updatedAt;
   final int repairCount;
   final DateTime? lastReceivedDate;
+  final String? profileImagePath;
 
   factory Vehicle.fromMap(Map<String, dynamic> map) {
     DateTime? parseDate(Object? value) {
@@ -50,6 +52,7 @@ class Vehicle {
       updatedAt: parseDate(map['updated_at']),
       repairCount: parseInt(map['repair_count']) ?? 0,
       lastReceivedDate: parseDate(map['last_received_date']),
+      profileImagePath: map['profile_image_path']?.toString(),
     );
   }
 
@@ -65,6 +68,7 @@ class Vehicle {
     DateTime? updatedAt,
     int? repairCount,
     DateTime? lastReceivedDate,
+    String? profileImagePath,
   }) {
     return Vehicle(
       id: id ?? this.id,
@@ -78,6 +82,7 @@ class Vehicle {
       updatedAt: updatedAt ?? this.updatedAt,
       repairCount: repairCount ?? this.repairCount,
       lastReceivedDate: lastReceivedDate ?? this.lastReceivedDate,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
     );
   }
 }

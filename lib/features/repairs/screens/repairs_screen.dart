@@ -715,6 +715,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     final statusColor = status == 'مسدد'
         ? AppColors.success
         : (status == 'مسدد جزئي' ? Colors.orange : AppColors.danger);
+    final profilePath = r.thumbnailPath?.trim();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -735,17 +736,36 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightGreen,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.directions_car_filled_rounded,
-                        color: AppColors.primary,
-                      ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: profilePath != null &&
+                              profilePath.isNotEmpty &&
+                              File(profilePath).existsSync()
+                          ? Image.file(
+                              File(profilePath),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              cacheWidth: 180,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 48,
+                                height: 48,
+                                color: AppColors.lightGreen,
+                                child: const Icon(
+                                  Icons.directions_car_filled_rounded,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 48,
+                              height: 48,
+                              color: AppColors.lightGreen,
+                              child: const Icon(
+                                Icons.directions_car_filled_rounded,
+                                color: AppColors.primary,
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

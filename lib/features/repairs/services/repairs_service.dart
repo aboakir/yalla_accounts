@@ -320,11 +320,15 @@ class RepairsService {
 
     final ranked = <_ImgScore>[];
     double maxSharp = 0;
+    double maxCenterSharp = 0;
+    double maxContrast = 0;
 
     for (final pth in paths) {
       final s = _scoreImage(pth);
       if (s == null) continue;
       maxSharp = math.max(maxSharp, s.sharpness);
+      maxCenterSharp = math.max(maxCenterSharp, s.centerSharpness);
+      maxContrast = math.max(maxContrast, s.contrastScore);
       ranked.add(s);
     }
 
@@ -336,8 +340,15 @@ class RepairsService {
     for (var i = 0; i < ranked.length; i++) {
       final s = ranked[i];
       final normSharp = maxSharp <= 0 ? 0.0 : s.sharpness / maxSharp;
-      final total =
-          0.6 * normSharp + 0.3 * s.brightnessScore + 0.1 * s.orientationScore;
+      final normCenter =
+          maxCenterSharp <= 0 ? 0.0 : s.centerSharpness / maxCenterSharp;
+      final normContrast =
+          maxContrast <= 0 ? 0.0 : s.contrastScore / maxContrast;
+      final total = 0.45 * normSharp +
+          0.25 * normCenter +
+          0.15 * s.brightnessScore +
+          0.10 * normContrast +
+          0.05 * s.orientationScore;
       ranked[i] = s.copyWith(total: total);
     }
 
@@ -443,9 +454,18 @@ class RepairsService {
 
       final g = im.grayscale(scaled);
 
-      // sharpness
-      double sum = 0;
-      int count = 0;
+      // Sharpness: global + central region. Vehicle photos usually keep the
+      // car close to the centre, so centre detail helps avoid selecting a
+      // sharp background with a blurry vehicle.
+      double sharpSum = 0;
+      int sharpCount = 0;
+      double centerSharpSum = 0;
+      int centerSharpCount = 0;
+
+      final centerLeft = (g.width * 0.15).round();
+      final centerRight = (g.width * 0.85).round();
+      final centerTop = (g.height * 0.12).round();
+      final centerBottom = (g.height * 0.88).round();
 
       for (int y = 1; y < g.height - 1; y++) {
         for (int x = 1; x < g.width - 1; x++) {
@@ -454,37 +474,56 @@ class RepairsService {
           final u = g.getPixel(x, y - 1).r;
           final d = g.getPixel(x, y + 1).r;
 
-          final dx = (r - l).abs();
-          final dy = (d - u).abs();
+          final detail = (r - l).abs() + (d - u).abs();
+          sharpSum += detail;
+          sharpCount++;
 
-          sum += dx + dy;
-          count++;
+          if (x >= centerLeft &&
+              x <= centerRight &&
+              y >= centerTop &&
+              y <= centerBottom) {
+            centerSharpSum += detail;
+            centerSharpCount++;
+          }
         }
       }
 
-      final sharpness = (count == 0) ? 0.0 : sum / (count * 255.0);
+      final sharpness = sharpCount == 0 ? 0.0 : sharpSum / (sharpCount * 255.0);
+      final centerSharpness = centerSharpCount == 0
+          ? 0.0
+          : centerSharpSum / (centerSharpCount * 255.0);
 
-      // brightness
+      // Brightness + contrast. Flat or badly exposed images are less useful
+      // as small profile thumbnails even when one edge is technically sharp.
       double mean = 0.0;
+      double meanSq = 0.0;
       int samples = 0;
 
       for (int y = 0; y < g.height; y += 4) {
         for (int x = 0; x < g.width; x += 4) {
-          mean += g.getPixel(x, y).r / 255.0;
+          final value = g.getPixel(x, y).r / 255.0;
+          mean += value;
+          meanSq += value * value;
           samples++;
         }
       }
 
-      if (samples > 0) mean /= samples;
+      if (samples > 0) {
+        mean /= samples;
+        meanSq /= samples;
+      }
 
-      final brightnessScore = math.max(0.0, 1.0 - (mean - 0.6).abs() * 2.0);
-
-      final orientationScore = (w >= h) ? 1.0 : 0.0;
+      final brightnessScore = math.max(0.0, 1.0 - (mean - 0.58).abs() * 2.2);
+      final variance = math.max(0.0, meanSq - (mean * mean));
+      final contrastScore = math.sqrt(variance);
+      final orientationScore = (w >= h) ? 1.0 : 0.45;
 
       return _ImgScore(
         path: path,
         sharpness: sharpness,
+        centerSharpness: centerSharpness,
         brightnessScore: brightnessScore,
+        contrastScore: contrastScore,
         orientationScore: orientationScore,
         total: 0.0,
       );
@@ -519,14 +558,18 @@ class RepairCreated extends AppEvent {
 class _ImgScore {
   final String path;
   final double sharpness;
+  final double centerSharpness;
   final double brightnessScore;
+  final double contrastScore;
   final double orientationScore;
   final double total;
 
   _ImgScore({
     required this.path,
     required this.sharpness,
+    required this.centerSharpness,
     required this.brightnessScore,
+    required this.contrastScore,
     required this.orientationScore,
     required this.total,
   });
@@ -534,7 +577,9 @@ class _ImgScore {
   _ImgScore copyWith({double? total}) => _ImgScore(
         path: path,
         sharpness: sharpness,
+        centerSharpness: centerSharpness,
         brightnessScore: brightnessScore,
+        contrastScore: contrastScore,
         orientationScore: orientationScore,
         total: total ?? this.total,
       );

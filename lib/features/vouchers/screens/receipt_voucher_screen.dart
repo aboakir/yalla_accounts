@@ -287,23 +287,28 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
 // ============================================================================
 
   Widget _buildRepairImage(String? path) {
-    if (path == null || path.isEmpty) {
-      return Container(
-        width: 70,
-        height: 70,
-        alignment: Alignment.center,
-        color: Colors.grey.shade200,
-        child: const Icon(Icons.car_crash),
-      );
+    Widget fallback() => Container(
+          width: 70,
+          height: 70,
+          alignment: Alignment.center,
+          color: Colors.grey.shade200,
+          child: const Icon(Icons.directions_car_outlined),
+        );
+
+    final value = path?.trim();
+    if (value == null || value.isEmpty || !File(value).existsSync()) {
+      return fallback();
     }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: Image.file(
-        File(path),
+        File(value),
         width: 70,
         height: 70,
         fit: BoxFit.cover,
+        cacheWidth: 220,
+        errorBuilder: (_, __, ___) => fallback(),
       ),
     );
   }

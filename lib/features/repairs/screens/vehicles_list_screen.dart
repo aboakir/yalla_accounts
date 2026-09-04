@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -228,13 +230,8 @@ class _VehiclesListScreenState extends State<VehiclesListScreen> {
                                 margin: const EdgeInsets.symmetric(vertical: 6),
                                 child: ListTile(
                                   onTap: () => _showHistory(vehicle),
-                                  leading: CircleAvatar(
-                                    backgroundColor:
-                                        AppColors.primary.withOpacity(.12),
-                                    child: const Icon(
-                                      Icons.directions_car,
-                                      color: AppColors.primary,
-                                    ),
+                                  leading: _VehicleProfileThumb(
+                                    path: vehicle.profileImagePath,
                                   ),
                                   title: Text(
                                     '${vehicle.type} • ${vehicle.number}',
@@ -283,6 +280,45 @@ class _VehiclesListScreenState extends State<VehiclesListScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VehicleProfileThumb extends StatelessWidget {
+  const _VehicleProfileThumb({required this.path});
+
+  final String? path;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = path?.trim();
+    if (value != null && value.isNotEmpty) {
+      final file = File(value);
+      if (file.existsSync()) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.file(
+            file,
+            width: 48,
+            height: 48,
+            fit: BoxFit.cover,
+            cacheWidth: 180,
+            errorBuilder: (_, __, ___) => _fallback(),
+          ),
+        );
+      }
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() {
+    return CircleAvatar(
+      radius: 24,
+      backgroundColor: AppColors.primary.withOpacity(.12),
+      child: const Icon(
+        Icons.directions_car,
+        color: AppColors.primary,
       ),
     );
   }

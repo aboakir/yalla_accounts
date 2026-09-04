@@ -88,6 +88,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     _loadRepairDetails();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _reloadRepair();
+      final svc = await RepairsService.instance();
+      await svc.autoSelectCoverAndSave(repairId: _repair.id);
+      await _reloadRepair();
     });
   }
 
@@ -395,20 +398,14 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           receivedDate: _repair.receivedDate,
         );
 
-        // 3) إضافة المسار إلى DB
+        // 3) إضافة المسار إلى DB. RepairsService scores the available
+        // vehicle photos and maintains one canonical profile thumbnail.
         await svc.addImagePath(repairId: _repair.id, path: savedPath);
-
-        // 4) إنشاء Thumbnail إذا ليس موجودًا
-        if ((_repair.thumbnailPath ?? '').isEmpty) {
-          final thumbPath =
-              await ImageStorageService.generateThumbnail(savedPath);
-          await svc.updateThumbnail(
-            repairId: _repair.id,
-            thumbPath: thumbPath,
-          );
-        }
       }
 
+      // Final pass after the whole batch: insertion order never decides which
+      // photo becomes the vehicle profile.
+      await svc.autoSelectCoverAndSave(repairId: _repair.id);
       await _reloadRepair();
 
       if (!mounted) return;
@@ -431,14 +428,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       // 2) حذف من DB
       await svc.removeImagePath(path: path);
 
-      // 3) إزالة الغلاف إن كان هو نفسه
-      if (_repair.thumbnailPath == path) {
-        await svc.updateThumbnail(
-          repairId: _repair.id,
-          thumbPath: null,
-        );
-      }
-
+      // removeImagePath re-scores the remaining photos automatically.
       await _reloadRepair();
 
       if (!mounted) return;

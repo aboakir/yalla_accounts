@@ -35,10 +35,20 @@ class VehicleService {
         base.number,
         database: db,
       );
+      String? profileImagePath;
+      for (final repair in history) {
+        final candidate = repair.thumbnailPath?.trim();
+        if (candidate != null && candidate.isNotEmpty) {
+          profileImagePath = candidate;
+          break;
+        }
+      }
+
       vehicles.add(
         base.copyWith(
           repairCount: history.length,
           lastReceivedDate: history.isEmpty ? null : history.first.receivedDate,
+          profileImagePath: profileImagePath,
         ),
       );
     }

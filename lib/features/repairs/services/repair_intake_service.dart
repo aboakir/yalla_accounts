@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/services/db/tables/repair_tables.dart';
 import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_intake_draft.dart';
+import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
 /// P07 canonical intake save path.
@@ -16,8 +17,20 @@ import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 class RepairIntakeService {
   RepairIntakeService._();
 
-  static Future<String> save(RepairIntakeDraft draft) {
-    return DBService.inTx<String>((db) => saveOn(db, draft));
+  static Future<String> save(RepairIntakeDraft draft) async {
+    final repairId = await DBService.inTx<String>((db) => saveOn(db, draft));
+
+    // Run image scoring only after the intake transaction commits.
+    if (draft.photoPaths.any((path) => path.trim().isNotEmpty)) {
+      try {
+        final svc = await RepairsService.instance();
+        await svc.autoSelectCoverAndSave(repairId: repairId);
+      } catch (_) {
+        // Profile selection is non-critical; repair creation must stay valid.
+      }
+    }
+
+    return repairId;
   }
 
   static Future<String> saveOn(
