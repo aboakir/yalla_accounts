@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -689,23 +690,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _recentRepairImageFallback() {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.lightGreen,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: const Icon(
+        Icons.directions_car_filled_rounded,
+        color: AppColors.primary,
+      ),
+    );
+  }
+
   Widget _recentRepairTile(P03RecentRepair repair) {
     final displayDate =
         repair.date.length >= 10 ? repair.date.substring(0, 10) : repair.date;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       onTap: () => _openRepair(repair.id),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: AppColors.lightGreen,
-          borderRadius: BorderRadius.circular(13),
-        ),
-        child: const Icon(
-          Icons.directions_car_filled_rounded,
-          color: AppColors.primary,
-        ),
+      leading: FutureBuilder<String?>(
+        future: DBService.getRepairThumbnailPath(repair.id),
+        builder: (context, snapshot) {
+          final profilePath = snapshot.data?.trim();
+
+          if (profilePath != null &&
+              profilePath.isNotEmpty &&
+              File(profilePath).existsSync()) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(13),
+              child: Image.file(
+                File(profilePath),
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                cacheWidth: 180,
+                errorBuilder: (_, __, ___) => _recentRepairImageFallback(),
+              ),
+            );
+          }
+
+          return _recentRepairImageFallback();
+        },
       ),
       title: Text(
         repair.title,
