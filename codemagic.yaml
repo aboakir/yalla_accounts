@@ -26,6 +26,8 @@ workflows:
       - name: Install iOS pods
         script: |
           set -euo pipefail
+          test -f ci/Podfile
+          cp ci/Podfile ios/Podfile
           cd ios
           pod install
 
