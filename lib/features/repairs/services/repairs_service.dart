@@ -21,6 +21,7 @@ import 'package:image/image.dart' as im;
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/events/app_event_bus.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
 
 class RepairsService {
   final Database db;
@@ -52,7 +53,7 @@ class RepairsService {
 
     // تحديد حالة السداد
     String paymentStatus;
-    if (totalPaid >= fileValue && fileValue > 0) {
+    if (fileValue <= 0 || totalPaid >= fileValue) {
       paymentStatus = 'مسدد';
     } else if (totalPaid > 0) {
       paymentStatus = 'مسدد جزئي';
@@ -125,75 +126,8 @@ class RepairsService {
 
   // ============================== DELETE =====================================
   Future<int> deleteRepair(String id) async {
-    return db.transaction<int>((txn) async {
-      final invoices = Sqflite.firstIntValue(
-            await txn.rawQuery(
-              'SELECT COUNT(*) FROM invoices WHERE repair_id = ?',
-              [id],
-            ),
-          ) ??
-          0;
-
-      final payments = Sqflite.firstIntValue(
-            await txn.rawQuery(
-              'SELECT COUNT(*) FROM payments '
-              'WHERE repair_id = ? OR relatedRepairId = ?',
-              [id, id],
-            ),
-          ) ??
-          0;
-
-      final glLines = Sqflite.firstIntValue(
-            await txn.rawQuery(
-              'SELECT COUNT(*) FROM gl_lines WHERE repair_id = ?',
-              [id],
-            ),
-          ) ??
-          0;
-
-      if (invoices > 0 || payments > 0 || glLines > 0) {
-        throw StateError(
-          'Cannot delete an invoiced/accounted repair. '
-          'Use a formal void/reversal workflow.',
-        );
-      }
-
-      await _ensureImagesTable();
-
-      final imgRows = await txn.query(
-        'repairs_images',
-        columns: ['path'],
-        where: 'repair_id = ?',
-        whereArgs: [id],
-      );
-
-      final paths = imgRows
-          .map((e) => e['path'].toString())
-          .where((e) => e.isNotEmpty)
-          .toList();
-
-      for (final pth in paths) {
-        _deletePhysicalFile(pth);
-      }
-
-      await txn.delete(
-        'repairs_images',
-        where: 'repair_id = ?',
-        whereArgs: [id],
-      );
-
-      try {
-        final thumb = await DBService.getRepairThumbnailPath(id);
-        if (thumb != null && thumb.isNotEmpty) _deletePhysicalFile(thumb);
-        await DBService.setRepairThumbnailPath(repairId: id, path: null);
-      } catch (_) {}
-
-      return txn.delete(
-        'repairs',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-    });
+    await RepairAutoAccountingService.deleteRepair(id);
+    return 1;
   }
 
   // ============================= GET =========================================
@@ -223,8 +157,8 @@ class RepairsService {
     int? limit,
     int? offset,
   }) async {
-    final where = <String>[];
-    final args = <Object?>[];
+    final where = <String>["(status IS NULL OR status <> ?)"];
+    final args = <Object?>[RepairAutoAccountingService.cancelledStatus];
 
     if (from != null && from.isNotEmpty) {
       where.add('date(receivedDate) >= date(?)');

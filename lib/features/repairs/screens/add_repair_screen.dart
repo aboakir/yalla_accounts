@@ -12,6 +12,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_intake_draft.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_intake_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -586,28 +587,31 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       final previousDamage = _hasPreviousDamage == true
           ? _damageController.text.trim()
           : 'لا يوجد ضرر سابق حسب إفادة العميل';
-      final repairId = await RepairIntakeService.save(
-        RepairIntakeDraft(
-          clientId: client.id,
-          clientName: client.name,
-          clientType: client.type,
-          vehicleNumber: vehicle.number,
-          vehicleType: vehicle.type,
-          vehicleModel: vehicle.model,
-          receivedDate: _receivedDate,
-          odometer: odometer,
-          fuelLevel: _fuelLevel,
-          previousDamage: previousDamage,
-          photoPaths: List<String>.unmodifiable(_photoPaths),
-          customerSignaturePath: signaturePath,
-          notes: persistedNotes,
-        ),
+      final draft = RepairIntakeDraft(
+        clientId: client.id,
+        clientName: client.name,
+        clientType: client.type,
+        vehicleNumber: vehicle.number,
+        vehicleType: vehicle.type,
+        vehicleModel: vehicle.model,
+        receivedDate: _receivedDate,
+        odometer: odometer,
+        fuelLevel: _fuelLevel,
+        previousDamage: previousDamage,
+        photoPaths: List<String>.unmodifiable(_photoPaths),
+        customerSignaturePath: signaturePath,
+        notes: persistedNotes,
       );
-      await _persistRepairLines(repairId);
+      final repairId = await DBService.inTx<String>((txn) async {
+        final id = await RepairIntakeService.saveOn(txn, draft);
+        await _persistRepairLinesOn(txn, id);
+        await RepairAutoAccountingService.finalizeNewRepairOn(txn, id);
+        return id;
+      });
       if (!mounted) return;
       setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم فتح ملف الاستلام بنجاح.')),
+        const SnackBar(content: Text('تم حفظ واعتماد ملف الإصلاح تلقائيًا.')),
       );
       Navigator.of(context).pop(repairId);
     } catch (error) {
@@ -1549,119 +1553,115 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     );
   }
 
-  Future<void> _persistRepairLines(Object repairId) async {
+  Future<void> _persistRepairLinesOn(
+    DatabaseExecutor txn,
+    Object repairId,
+  ) async {
     final hasWorksValue = _sectionTotal(isPart: false) > 0;
     final hasPartsValue = _sectionTotal(isPart: true) > 0;
     if (_works.isEmpty && _parts.isEmpty && !hasWorksValue && !hasPartsValue)
       return;
-    final db = await DBService.database;
-    await db.transaction((txn) async {
-      final info = await txn.rawQuery('PRAGMA table_info(repair_lines)');
-      final columns = info
-          .map((row) => (row['name'] ?? '').toString())
-          .where((name) => name.isNotEmpty)
-          .toSet();
+    final info = await txn.rawQuery('PRAGMA table_info(repair_lines)');
+    final columns = info
+        .map((row) => (row['name'] ?? '').toString())
+        .where((name) => name.isNotEmpty)
+        .toSet();
 
-      final repairColumn =
-          _firstColumn(columns, const ['repair_id', 'repairId']);
-      final typeColumn =
-          _firstColumn(columns, const ['type', 'line_type', 'category']);
-      final nameColumn =
-          _firstColumn(columns, const ['name', 'description', 'item_name']);
-      final qtyColumn = _firstColumn(columns, const ['qty', 'quantity']);
-      final priceColumn =
-          _firstColumn(columns, const ['price', 'unit_price', 'unitPrice']);
-      final totalColumn =
-          _firstColumn(columns, const ['total', 'line_total', 'amount']);
+    final repairColumn = _firstColumn(columns, const ['repair_id', 'repairId']);
+    final typeColumn =
+        _firstColumn(columns, const ['type', 'line_type', 'category']);
+    final nameColumn =
+        _firstColumn(columns, const ['name', 'description', 'item_name']);
+    final qtyColumn = _firstColumn(columns, const ['qty', 'quantity']);
+    final priceColumn =
+        _firstColumn(columns, const ['price', 'unit_price', 'unitPrice']);
+    final totalColumn =
+        _firstColumn(columns, const ['total', 'line_total', 'amount']);
 
-      if (repairColumn == null ||
-          typeColumn == null ||
-          nameColumn == null ||
-          qtyColumn == null ||
-          priceColumn == null ||
-          totalColumn == null) {
-        throw StateError(
-            'تعذر مطابقة جدول أعمال الإصلاح والقطع مع بنية سطح المكتب.');
-      }
+    if (repairColumn == null ||
+        typeColumn == null ||
+        nameColumn == null ||
+        qtyColumn == null ||
+        priceColumn == null ||
+        totalColumn == null) {
+      throw StateError(
+          'تعذر مطابقة جدول أعمال الإصلاح والقطع مع بنية سطح المكتب.');
+    }
 
-      final types = await _resolveRepairLineTypes(txn, typeColumn);
-      var serial = 0;
-      Future<void> insertLine(_RepairLineDraft line, bool isPart) async {
-        serial++;
-        final row = <String, Object?>{
-          repairColumn: repairId,
-          typeColumn: isPart ? types.part : types.work,
-          nameColumn: line.name,
-          qtyColumn: line.qty,
-          priceColumn: line.price,
-          totalColumn: line.total,
-        };
-        final idInfo =
-            info.where((column) => column['name']?.toString() == 'id');
-        if (idInfo.isNotEmpty) {
-          final idType = (idInfo.first['type'] ?? '').toString().toUpperCase();
-          final pk = idInfo.first['pk'];
-          final isPk = pk == 1 || pk?.toString() == '1';
-          if (isPk && !idType.contains('INT')) {
-            row['id'] =
-                '${repairId}_${DateTime.now().microsecondsSinceEpoch}_$serial';
-          }
+    final types = await _resolveRepairLineTypes(txn, typeColumn);
+    var serial = 0;
+    Future<void> insertLine(_RepairLineDraft line, bool isPart) async {
+      serial++;
+      final row = <String, Object?>{
+        repairColumn: repairId,
+        typeColumn: isPart ? types.part : types.work,
+        nameColumn: line.name,
+        qtyColumn: line.qty,
+        priceColumn: line.price,
+        totalColumn: line.total,
+      };
+      final idInfo = info.where((column) => column['name']?.toString() == 'id');
+      if (idInfo.isNotEmpty) {
+        final idType = (idInfo.first['type'] ?? '').toString().toUpperCase();
+        final pk = idInfo.first['pk'];
+        final isPk = pk == 1 || pk?.toString() == '1';
+        if (isPk && !idType.contains('INT')) {
+          row['id'] =
+              '${repairId}_${DateTime.now().microsecondsSinceEpoch}_$serial';
         }
-        final now = DateTime.now().toIso8601String();
-        if (columns.contains('created_at')) row['created_at'] = now;
-        if (columns.contains('updated_at')) row['updated_at'] = now;
-        await txn.insert('repair_lines', row);
       }
+      final now = DateTime.now().toIso8601String();
+      if (columns.contains('created_at')) row['created_at'] = now;
+      if (columns.contains('updated_at')) row['updated_at'] = now;
+      await txn.insert('repair_lines', row);
+    }
 
-      final worksMode = _worksPricingMode;
-      final partsMode = _partsPricingMode;
+    final worksMode = _worksPricingMode;
+    final partsMode = _partsPricingMode;
 
-      for (final line in _works) {
-        await insertLine(
-          _RepairLineDraft(
-            name: line.name,
-            qty: line.qty,
-            price: worksMode == 'detailed' ? line.price : 0,
-          ),
-          false,
-        );
-      }
-      if (worksMode == 'total' && hasWorksValue) {
-        await insertLine(
-          _RepairLineDraft(
-            name: 'إجمالي أعمال الإصلاح',
-            qty: 1,
-            price: _sectionTotal(isPart: false),
-          ),
-          false,
-        );
-      }
+    for (final line in _works) {
+      await insertLine(
+        _RepairLineDraft(
+          name: line.name,
+          qty: line.qty,
+          price: worksMode == 'detailed' ? line.price : 0,
+        ),
+        false,
+      );
+    }
+    if (worksMode == 'total' && hasWorksValue) {
+      await insertLine(
+        _RepairLineDraft(
+          name: 'إجمالي أعمال الإصلاح',
+          qty: 1,
+          price: _sectionTotal(isPart: false),
+        ),
+        false,
+      );
+    }
 
-      for (final line in _parts) {
-        await insertLine(
-          _RepairLineDraft(
-            name: line.name,
-            qty: line.qty,
-            price: partsMode == 'detailed' ? line.price : 0,
-          ),
-          true,
-        );
-      }
-      if (partsMode == 'total' && hasPartsValue) {
-        await insertLine(
-          _RepairLineDraft(
-            name: 'إجمالي قيمة القطع',
-            qty: 1,
-            price: _sectionTotal(isPart: true),
-          ),
-          true,
-        );
-      }
+    for (final line in _parts) {
+      await insertLine(
+        _RepairLineDraft(
+          name: line.name,
+          qty: line.qty,
+          price: partsMode == 'detailed' ? line.price : 0,
+        ),
+        true,
+      );
+    }
+    if (partsMode == 'total' && hasPartsValue) {
+      await insertLine(
+        _RepairLineDraft(
+          name: 'إجمالي قيمة القطع',
+          qty: 1,
+          price: _sectionTotal(isPart: true),
+        ),
+        true,
+      );
+    }
 
-      // P07 remains a quote/intake stage. We intentionally do NOT write fileValue
-      // or totalFileValue here. The existing accounting approval flow remains the
-      // gate that promotes the estimate into the accounting/list totals.
-    });
+    // Value promotion and accounting happen in the same outer save transaction.
   }
 
   Widget _scopeStep(ThemeData theme) {
@@ -2208,7 +2208,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
-                      'سيُحفظ الملف ككشف / عرض أولي دون قيد محاسبي. قيمة العرض لا تدخل القوائم والحسابات حتى تفتح قائمة الملف وتختار «اعتماد الملف محاسبيًا». يمكن أن تكون القطع كشفًا بلا أسعار إذا كانت ستورد من العميل أو شركة التأمين.',
+                      'عند الحفظ يصبح الملف معتمدًا ماليًا تلقائيًا وتظهر قيمته مباشرة في القوائم والحسابات. يمكنك تعديل الأعمال والقطع والقيمة لاحقًا؛ أي فرق مالي يُسجل كتسوية محاسبية موثقة. القطع التي يوردها العميل أو شركة التأمين تبقى في الكشف ولا تدخل قيمة الملف.',
                     ),
                   ),
                 ],

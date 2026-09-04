@@ -21,7 +21,6 @@ import 'package:yalla_accounts/features/repairs/screens/add_repair_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/edit_repair_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/repair_details_screen.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
-import 'package:yalla_accounts/features/repairs/services/repair_finance_service.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_card.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_filter_bar.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_stats_cards.dart';
@@ -146,47 +145,43 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     });
   }
 
-  Future<void> _approveRepairLedger(BuildContext context, Repair repair) async {
+  Future<void> _deleteRepairSafely(Repair repair) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AdaptiveAlertDialog(
-        title: const Text('تأكيد الاعتماد'),
+      builder: (dialogContext) => AdaptiveAlertDialog(
+        title: const Text('حذف ملف الإصلاح'),
         content: const Text(
-          'هل تريد اعتماد هذا الملف وتوليد قيد محاسبي؟',
+          'سيختفي الملف من القوائم. إذا كان له أثر محاسبي فسيتم عكسه '
+          'وتبقى القيود محفوظة في سجل التدقيق. لا يمكن الحذف قبل معالجة '
+          'أي دفعات مسجلة على الملف.',
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('إلغاء'),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('اعتماد'),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('حذف'),
           ),
         ],
       ),
     );
+    if (confirm != true) return;
 
-    if (confirm == true) {
-      try {
-        await RepairFinanceService.approveFinalAmount(repair);
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '✅ تم اعتماد الملف وتوليد القيد المحاسبي',
-            ),
-          ),
-        );
-        ref.read(repairListProvider.notifier).loadRepairs();
-      } catch (e) {
-        if (!mounted) {
-          return;
-        }
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          SnackBar(content: Text('❌ فشل الاعتماد: $e')),
-        );
-      }
+    try {
+      await RepairDatabaseService.deleteRepair(repair.id);
+      if (!mounted) return;
+      ref.read(repairListProvider.notifier).loadRepairs();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حذف الملف وعكس أثره المالي بأمان.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('Bad state: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     }
   }
 
@@ -316,15 +311,6 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.verified),
-              title: const Text(
-                  'اعتماد الملف محاسبيًا — إظهار القيمة في الحسابات'),
-              onTap: () {
-                Navigator.pop(context);
-                _approveRepairLedger(context, r);
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.receipt_long),
               title: const Text('قيود اليومية لهذا الملف'),
               onTap: () {
@@ -379,10 +365,9 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 'حذف الملف',
                 style: TextStyle(color: Colors.red),
               ),
-              onTap: () async {
+              onTap: () {
                 Navigator.pop(context);
-                await RepairDatabaseService.deleteRepair(r.id);
-                ref.read(repairListProvider.notifier).loadRepairs();
+                _deleteRepairSafely(r);
               },
             ),
           ],
@@ -1057,14 +1042,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                                   .read(repairListProvider.notifier)
                                   .loadRepairs(),
                             ),
-                            onDelete: () async {
-                              await RepairDatabaseService.deleteRepair(r.id);
-                              ref
-                                  .read(repairListProvider.notifier)
-                                  .loadRepairs();
-                            },
-                            onApproveFinalAmount: () =>
-                                _approveRepairLedger(context, r),
+                            onDelete: () => _deleteRepairSafely(r),
                           ),
                         ),
                         if (hasMoreActive)
@@ -1115,12 +1093,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                                     .read(repairListProvider.notifier)
                                     .loadRepairs(),
                               ),
-                              onDelete: () async {
-                                await RepairDatabaseService.deleteRepair(r.id);
-                                ref
-                                    .read(repairListProvider.notifier)
-                                    .loadRepairs();
-                              },
+                              onDelete: () => _deleteRepairSafely(r),
                             ),
                           ),
                         ],

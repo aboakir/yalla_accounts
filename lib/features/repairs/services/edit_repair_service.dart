@@ -1,15 +1,18 @@
 // ============================================================================
-// 📁 lib/features/repairs/services/edit_repair_service.dart
-// P0.002 — Repair edits are operational changes, not accounting documents.
-// Posted invoice/GL values stay immutable; financial changes require a formal document.
-// Repair edits update the repair + history only.
+// lib/features/repairs/services/edit_repair_service.dart
+// P07 Auto Accounting V10B
+// Repair details stay editable. Posted accounting entries remain immutable;
+// value changes are represented by additive, audited adjustment entries.
 // ============================================================================
+
+import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
 class EditRepairResult {
@@ -29,9 +32,90 @@ class EditRepairResult {
 class EditRepairService {
   static const _uuid = Uuid();
 
-  // ===========================================================================
-  // P0.002 — Safe repair edit entry point
-  // ===========================================================================
+  static double _toDouble(Object? value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0.0;
+  }
+
+  static double _round2(double value) => double.parse(value.toStringAsFixed(2));
+
+  static Map<String, dynamic> _normalizeLine(Map<String, dynamic> raw) {
+    final name = (raw['name'] ?? raw['description'] ?? '').toString().trim();
+    if (name.isEmpty) throw StateError('اسم بند الإصلاح أو القطعة مطلوب.');
+    var qty = _toDouble(raw['qty'] ?? raw['quantity']);
+    if (qty <= 0) qty = 1.0;
+    final price = _toDouble(
+      raw['price'] ?? raw['unit_price'] ?? raw['unitPrice'] ?? raw['amount'],
+    );
+    if (price < 0) throw StateError('سعر البند لا يمكن أن يكون سالبًا.');
+    return <String, dynamic>{
+      ...raw,
+      'name': name,
+      'qty': qty,
+      'price': price,
+      'total': _round2(qty * price),
+    };
+  }
+
+  static List<Map<String, dynamic>> _normalizeLines(
+    List<Map<String, dynamic>> lines,
+  ) =>
+      lines.map(_normalizeLine).toList(growable: false);
+
+  static Future<double> _paidOn(DatabaseExecutor tx, String repairId) async {
+    final rows = await tx.rawQuery(
+      'SELECT IFNULL(SUM(amount),0) AS s FROM payments '
+      'WHERE repair_id = ? OR relatedRepairId = ?',
+      <Object?>[repairId, repairId],
+    );
+    return rows.isEmpty ? 0.0 : _toDouble(rows.first['s']);
+  }
+
+  static Future<void> _replaceRepairLinesOn(
+    DatabaseExecutor tx, {
+    required String repairId,
+    required List<Map<String, dynamic>> parts,
+    required List<Map<String, dynamic>> works,
+  }) async {
+    await tx
+        .delete('repair_lines', where: 'repair_id = ?', whereArgs: [repairId]);
+    final now = DateTime.now().toIso8601String();
+
+    Future<void> insert(String type, Map<String, dynamic> line) async {
+      await tx.insert(
+        'repair_lines',
+        <String, Object?>{
+          'id': _uuid.v4(),
+          'repair_id': repairId,
+          'line_type': type,
+          'name': line['name'],
+          'qty': line['qty'],
+          'price': line['price'],
+          'total': line['total'],
+          'notes': line['notes'],
+          'created_at': now,
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+    }
+
+    for (final line in parts) {
+      await insert('part', line);
+    }
+    for (final line in works) {
+      await insert('work', line);
+    }
+  }
+
+  static String _ensureAutoMarker(String notes) {
+    final value = notes.trim();
+    if (value.contains(RepairAutoAccountingService.autoMarker)) return value;
+    return value.isEmpty
+        ? RepairAutoAccountingService.autoMarker
+        : '$value\n${RepairAutoAccountingService.autoMarker}';
+  }
+
   static Future<EditRepairResult> editRepairWithAccounting({
     required String repairId,
     required Repair updatedRepair,
@@ -40,101 +124,106 @@ class EditRepairService {
     required String notes,
     required String editedBy,
   }) async {
-    return await DBService.inTx((txn) async {
-      // ----------------------------------------------------------------------
-      // 1) Fetch original repair
-      // ----------------------------------------------------------------------
+    return DBService.inTx<EditRepairResult>((txn) async {
       final original =
           await RepairDatabaseService.getRepairByIdTx(txn, repairId);
       if (original == null) {
-        throw StateError("Repair not found ($repairId)");
+        throw StateError('ملف الإصلاح غير موجود ($repairId).');
       }
-
-      // ----------------------------------------------------------------------
-      // 2) Compute new total from parts + works
-      // ----------------------------------------------------------------------
-      double partsTotal = _sumList(newParts);
-      double worksTotal = _sumList(newWorks);
-      double newValue = partsTotal + worksTotal;
-
-      final double oldValue = original.fileValue;
-      final double diff = (newValue - oldValue);
-
-      // P0.002: changing the debtor/client is a separate accounting operation.
-      // The current edit screen does not change clientId, but fail closed if
-      // another caller tries to do so through this service.
+      if (original.status == RepairAutoAccountingService.cancelledStatus) {
+        throw StateError('لا يمكن تعديل ملف محذوف/ملغى.');
+      }
       if (updatedRepair.clientId != original.clientId) {
         throw StateError(
-          'Cannot change repair client through editRepairWithAccounting. '
-          'Client reassignment requires a dedicated audited workflow.',
+          'تغيير العميل لملف قائم يحتاج إجراء مستقل حتى لا تتغير الذمة المالية بصمت.',
         );
       }
 
-      // ----------------------------------------------------------------------
-      // 3) إذا لم تتغير القيمة → تحديث عادي بدون محاسبة
-      // ----------------------------------------------------------------------
-      if (diff.abs() < 0.01) {
-        await _directUpdateRepair(
-          txn: txn,
-          repairId: repairId,
-          updated: updatedRepair.copyWith(
+      final parts = _normalizeLines(newParts);
+      final works = _normalizeLines(newWorks);
+      final effectiveNotes = _ensureAutoMarker(notes);
+      final newValue = RepairAutoAccountingService.computeAccountingTotal(
+        works: works,
+        parts: parts,
+        notes: effectiveNotes,
+      );
+      final oldValue = _round2(original.fileValue);
+      final paid = _round2(await _paidOn(txn, repairId));
+      if (newValue + 0.01 < paid) {
+        throw StateError(
+          'لا يمكن تخفيض قيمة الملف إلى ${newValue.toStringAsFixed(2)} ₪ '
+          'لأن عليه دفعات مسجلة بقيمة ${paid.toStringAsFixed(2)} ₪. '
+          'عالج الدفعات أولًا ثم أعد التعديل.',
+        );
+      }
+
+      final rawRows = await txn.query(
+        'repairs',
+        columns: const <String>['paymentType'],
+        where: 'id = ?',
+        whereArgs: <Object?>[repairId],
+        limit: 1,
+      );
+      final rawPaymentType = rawRows.isEmpty
+          ? updatedRepair.paymentType.name
+          : (rawRows.first['paymentType'] ?? updatedRepair.paymentType.name)
+              .toString();
+
+      final now = DateTime.now();
+      final map = updatedRepair
+          .copyWith(
+            parts: parts,
+            works: works,
             fileValue: newValue,
             finalApprovedAmount: newValue,
             incomeAmount: newValue,
-            parts: newParts,
-            works: newWorks,
-          ),
-        );
+            paidAmount: paid,
+            paymentStatus:
+                RepairAutoAccountingService.paymentStatusFor(newValue, paid),
+            notes: effectiveNotes,
+            status: RepairStatusText.approved,
+            approvedAt: original.approvedAt ?? now,
+            approvedBy: 'AUTO_EDIT',
+            isLedgerEnabled: true,
+            isLedgerSynced: true,
+            updatedAt: now,
+          )
+          .toMap()
+        ..remove('invoice_id')
+        ..remove('id');
 
-        await _insertHistory(
-          txn: txn,
-          repairId: repairId,
-          oldValue: oldValue,
-          newValue: newValue,
-          editedBy: editedBy,
-          notes: notes,
-        );
+      // Preserve the raw paymentType marker used by the current intake workflow.
+      map['paymentType'] = rawPaymentType;
+      map['total_paid_amount'] = paid;
+      map['updated_at'] = now.toUtc().toIso8601String();
 
-        return EditRepairResult(
-          success: true,
-          oldValue: oldValue,
-          newValue: newValue,
-          difference: 0,
+      await txn.update('repairs', map, where: 'id = ?', whereArgs: [repairId]);
+      await _replaceRepairLinesOn(
+        txn,
+        repairId: repairId,
+        parts: parts,
+        works: works,
+      );
+
+      final clientId = original.clientId;
+      if (clientId == null || clientId <= 0) {
+        throw StateError(
+          'لا يمكن تعديل القيمة محاسبيًا لأن الملف غير مرتبط بعميل صالح.',
         );
       }
-
-      // ----------------------------------------------------------------------
-      // 4) Accounting safety policy (P0.002)
-      // ----------------------------------------------------------------------
-      // A repair edit is NOT an accounting document.
-      //
-      // Do not reverse a posted invoice/GL entry and do not create automatic
-      // REPAIR_REV / REPAIR_ADJ entries. The posted invoice remains immutable.
-      //
-      // If the commercial amount changes after invoicing, a future formal
-      // debit/credit note workflow must represent that accounting change.
-      //
-      // ----------------------------------------------------------------------
-      // 5) Update repair (operational data only)
-      // ----------------------------------------------------------------------
-      final updatedMain = updatedRepair.copyWith(
-        fileValue: newValue,
-        finalApprovedAmount: newValue,
-        incomeAmount: newValue,
-        parts: newParts,
-        works: newWorks,
-        isLedgerSynced: false,
-      );
-
-      await _directUpdateRepair(
-        txn: txn,
+      final wasAutoManaged = (original.notes ?? '')
+          .contains(RepairAutoAccountingService.autoMarker);
+      await RepairAutoAccountingService.reconcileEditedValueOn(
+        tx: txn,
         repairId: repairId,
-        updated: updatedMain,
+        clientId: clientId,
+        oldValue: oldValue,
+        newValue: newValue,
+        wasAutoManaged: wasAutoManaged,
+        paymentType: rawPaymentType,
+        reason: 'تعديل ملف الإصلاح بواسطة $editedBy',
       );
 
-      // ----------------------------------------------------------------------
-      // 6) Insert history
-      // ----------------------------------------------------------------------
       await _insertHistory(
         txn: txn,
         repairId: repairId,
@@ -148,43 +237,11 @@ class EditRepairService {
         success: true,
         oldValue: oldValue,
         newValue: newValue,
-        difference: diff,
+        difference: _round2(newValue - oldValue),
       );
     });
   }
 
-  // ===========================================================================
-  // ✔ Calculate parts/works total
-  // ===========================================================================
-  static double _sumList(List<Map<String, dynamic>> list) {
-    double total = 0.0;
-    for (final e in list) {
-      final qty = (e['qty'] as num? ?? 1).toDouble();
-      final price = (e['price'] as num? ?? 0).toDouble();
-      total += qty * price;
-    }
-    return total;
-  }
-
-  // ===========================================================================
-  // ✔ Update repair record directly (WITHOUT calling original updateRepair!)
-  // ===========================================================================
-  static Future<void> _directUpdateRepair({
-    required DatabaseExecutor txn,
-    required String repairId,
-    required Repair updated,
-  }) async {
-    await txn.update(
-      'repairs',
-      updated.toMap(),
-      where: 'id=?',
-      whereArgs: [repairId],
-    );
-  }
-
-  // ===========================================================================
-  // ✔ Save history of modification
-  // ===========================================================================
   static Future<void> _insertHistory({
     required DatabaseExecutor txn,
     required String repairId,
@@ -206,15 +263,15 @@ class EditRepairService {
       )
     ''');
 
-    await txn.insert('repair_edit_history', {
+    await txn.insert('repair_edit_history', <String, Object?>{
       'id': _uuid.v4(),
       'repair_id': repairId,
-      'old_value': oldValue,
-      'new_value': newValue,
-      'difference': newValue - oldValue,
+      'old_value': _round2(oldValue),
+      'new_value': _round2(newValue),
+      'difference': _round2(newValue - oldValue),
       'edited_by': editedBy,
       'notes': notes,
-      'created_at': DateTime.now().toIso8601String(),
+      'created_at': DateTime.now().toUtc().toIso8601String(),
     });
   }
 }

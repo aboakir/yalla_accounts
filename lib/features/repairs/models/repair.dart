@@ -604,13 +604,27 @@ class Repair {
   }
 
   // ================= Computed ===================
-  double get totalPartsPrice => parts.fold<double>(
-      0.0, (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0));
+  static double _lineValue(Map<String, dynamic> item) {
+    final explicit = tryDouble(item['total']);
+    if (explicit != null && explicit != 0) return explicit;
+    final qty = tryDouble(item['qty'] ?? item['quantity']) ?? 1.0;
+    final price = tryDouble(
+          item['price'] ?? item['unit_price'] ?? item['unitPrice'],
+        ) ??
+        0.0;
+    return (qty <= 0 ? 1.0 : qty) * price;
+  }
 
-  double get totalWorksPrice => works.fold<double>(
-      0.0, (sum, item) => sum + ((item['price'] as num?)?.toDouble() ?? 0));
+  double get totalPartsPrice =>
+      parts.fold<double>(0.0, (sum, item) => sum + _lineValue(item));
 
-  double get totalFileValue => totalPartsPrice + totalWorksPrice;
+  double get totalWorksPrice =>
+      works.fold<double>(0.0, (sum, item) => sum + _lineValue(item));
+
+  /// Canonical commercial value is the persisted repair fileValue.
+  /// The line totals are descriptive/detail data and may intentionally exclude
+  /// customer/insurer supplied parts.
+  double get totalFileValue => fileValue;
 
   double get totalPaidAmount {
     double total = paidAmount;
@@ -628,11 +642,16 @@ class Repair {
     return total;
   }
 
-  double get remainingAmount => totalFileValue - totalPaidAmount;
+  double get remainingAmount {
+    final value = totalFileValue - totalPaidAmount;
+    return value < 0 ? 0.0 : value;
+  }
+
   bool get isClosed => remainingAmount <= 0;
 
   String get computedPaymentStatus {
-    if (totalPaidAmount == 0) return 'غير مسدد';
+    if (totalFileValue <= 0) return 'مسدد';
+    if (totalPaidAmount <= 0) return 'غير مسدد';
     if (totalPaidAmount >= totalFileValue) return 'مسدد';
     return 'مسدد جزئي';
   }

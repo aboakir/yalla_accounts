@@ -18,6 +18,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
 import 'package:yalla_accounts/features/finance/services/work_cost_calculator.dart';
 import 'package:yalla_accounts/features/finance/invoices/services/invoice_service.dart';
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
@@ -454,53 +455,7 @@ class RepairDatabaseService {
   // ======================================================================
 
   static Future<void> deleteRepair(String id) async {
-    await database;
-
-    await DBService.inTx((tx) async {
-      final invoiceCount = Sqflite.firstIntValue(
-            await tx.rawQuery(
-              'SELECT COUNT(*) FROM invoices WHERE repair_id = ?',
-              [id],
-            ),
-          ) ??
-          0;
-
-      final paymentCount = Sqflite.firstIntValue(
-            await tx.rawQuery(
-              'SELECT COUNT(*) FROM payments '
-              'WHERE repair_id = ? OR relatedRepairId = ?',
-              [id, id],
-            ),
-          ) ??
-          0;
-
-      final glCount = Sqflite.firstIntValue(
-            await tx.rawQuery(
-              'SELECT COUNT(*) FROM gl_lines WHERE repair_id = ?',
-              [id],
-            ),
-          ) ??
-          0;
-
-      if (invoiceCount > 0 || paymentCount > 0 || glCount > 0) {
-        throw StateError(
-          'Cannot delete an invoiced/accounted repair. '
-          'Use a formal void/reversal workflow.',
-        );
-      }
-
-      await tx.delete(
-        'repair_lines',
-        where: 'repair_id = ?',
-        whereArgs: [id],
-      );
-      await tx.delete(
-        'repairs_images',
-        where: 'repair_id = ?',
-        whereArgs: [id],
-      );
-      await tx.delete('repairs', where: 'id = ?', whereArgs: [id]);
-    });
+    await RepairAutoAccountingService.deleteRepair(id);
   }
 
   // ======================================================================
@@ -509,8 +464,12 @@ class RepairDatabaseService {
 
   static Future<List<Repair>> getAllRepairs() async {
     final db = await database;
-    final rows =
-        await db.query('repairs', orderBy: 'datetime(receivedDate) DESC');
+    final rows = await db.query(
+      'repairs',
+      where: "status IS NULL OR status <> ?",
+      whereArgs: const <Object?>[RepairAutoAccountingService.cancelledStatus],
+      orderBy: 'datetime(receivedDate) DESC',
+    );
     return rows.map((m) => Repair.fromMap(_normalize(m))).toList();
   }
 

@@ -57,7 +57,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
   String _vehicleStatus = 'بانتظار الإصلاح';
   String _paymentStatus = 'غير مسدد';
   String _insuranceFollowUp = '';
-  String _accountingStatus = 'غير معتمد';
+  String _partsSupplySource = 'الورشة';
 
   List<Map<String, dynamic>> _parts = [];
   List<Map<String, dynamic>> _works = [];
@@ -189,7 +189,14 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
         ? r.paymentStatus!
         : r.computedPaymentStatus;
 
-    _accountingStatus = r.isLedgerSynced ? 'معتمد محاسبياً' : 'غير معتمد';
+    final noteText = r.notes ?? '';
+    if (noteText.contains('[YALLA_PARTS_SUPPLY] العميل')) {
+      _partsSupplySource = 'العميل';
+    } else if (noteText.contains('[YALLA_PARTS_SUPPLY] شركة التأمين')) {
+      _partsSupplySource = 'شركة التأمين';
+    } else {
+      _partsSupplySource = 'الورشة';
+    }
 
     _parts = r.parts.map((p) {
       return {
@@ -219,11 +226,17 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
     return qty * price;
   }
 
-  double get _partsCost =>
-      _parts.fold(0, (s, e) => s + ((e['total'] as num?)?.toDouble() ?? 0));
+  double get _partsCost => _partsSupplySource == 'الورشة'
+      ? _parts.fold<double>(
+          0.0,
+          (sum, item) => sum + ((item['total'] as num?)?.toDouble() ?? 0.0),
+        )
+      : 0.0;
 
-  double get _worksCost =>
-      _works.fold(0, (s, e) => s + ((e['total'] as num?)?.toDouble() ?? 0));
+  double get _worksCost => _works.fold<double>(
+        0.0,
+        (sum, item) => sum + ((item['total'] as num?)?.toDouble() ?? 0.0),
+      );
 
   double get _paidAmount => double.tryParse(_paidCtrl.text.trim()) ?? 0.0;
 
@@ -279,13 +292,22 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
 
   void _recalculateFileValue() {
     setState(() {
-      _fileValueCtrl.text = MoneyFormatter.number(_partsCost + _worksCost);
+      _fileValueCtrl.text = MoneyFormatter.number(_fileValue);
     });
   }
 
   // ============================================================================
   //                               SAVE
   // ============================================================================
+  String _notesWithPartsSupplyMarker() {
+    final lines = _notesCtrl.text
+        .split('\n')
+        .where((line) => !line.trim().startsWith('[YALLA_PARTS_SUPPLY]'))
+        .toList(growable: true);
+    lines.insert(0, '[YALLA_PARTS_SUPPLY] $_partsSupplySource');
+    return lines.join('\n').trim();
+  }
+
   Repair _buildUpdatedRepair() {
     final b = widget.repair;
 
@@ -303,7 +325,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
       paymentStatus: _paymentStatus,
       insuranceFollowUpStatus:
           _insuranceFollowUp.isEmpty ? null : _insuranceFollowUp,
-      notes: _notesCtrl.text.trim(),
+      notes: _notesWithPartsSupplyMarker(),
       updatedAt: DateTime.now(),
       imagePaths: _imagePaths,
       finalApprovedAmount: _fileValue,
@@ -384,6 +406,40 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
       title,
       Column(
         children: [
+          if (isPart) ...<Widget>[
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'جهة توريد القطع',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children: <String>['الورشة', 'العميل', 'شركة التأمين']
+                  .map(
+                    (source) => ChoiceChip(
+                      label: Text(source),
+                      selected: _partsSupplySource == source,
+                      onSelected: (_) {
+                        setState(() => _partsSupplySource = source);
+                        _recalculateFileValue();
+                      },
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _partsSupplySource == 'الورشة'
+                  ? 'قيمة القطع تدخل في قيمة الملف.'
+                  : 'القطع تبقى في الكشف ولا تدخل في قيمة الملف المحاسبية.',
+              style: const TextStyle(color: Colors.black54, fontSize: 12),
+            ),
+            const Divider(height: 24),
+          ],
           ...list.asMap().entries.map(
                 (e) => ListTile(
                   title: Text(e.value['name']),
@@ -465,7 +521,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
               final q = double.tryParse(qty.text) ?? 1;
               final p = double.tryParse(price.text) ?? 0;
 
-              if (name.text.isNotEmpty && p > 0) {
+              if (name.text.trim().isNotEmpty && q > 0 && p >= 0) {
                 setState(() {
                   (isPart ? _parts : _works).add({
                     'name': name.text.trim(),
@@ -702,6 +758,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                     TextField(
                       inputFormatters: const [YallaDigitNormalizer()],
                       controller: _paidCtrl,
+                      readOnly: true,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       decoration: _dec('المبلغ المدفوع'),
@@ -715,13 +772,8 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                           .map(
                               (e) => DropdownMenuItem(value: e, child: Text(e)))
                           .toList(),
-                      onChanged: (v) async {
-                        if (v == null) return;
-                        setState(() => _paymentStatus = v);
-                        await _updateSmart(
-                            candidates: ['payment_status', 'paymentStatus'],
-                            value: v);
-                      },
+                      // حالة الدفع مشتقة من الدفعات الفعلية وليست إدخالًا يدويًا.
+                      onChanged: null,
                     ),
                   ]),
                 ),
@@ -962,6 +1014,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                         TextField(
                           inputFormatters: const [YallaDigitNormalizer()],
                           controller: _fileValueCtrl,
+                          readOnly: true,
                           decoration: _dec('قيمة الملف'),
                         ),
                         const SizedBox(height: 12),
@@ -973,20 +1026,13 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                                   DropdownMenuItem(value: e, child: Text(e)))
                               .toList(),
                           decoration: _dec('حالة الدفع'),
-                          onChanged: (v) async {
-                            if (v != null) {
-                              setState(() => _paymentStatus = v);
-                              await _updateSmart(
-                                candidates: ['payment_status', 'paymentStatus'],
-                                value: v,
-                              );
-                            }
-                          },
+                          onChanged: null,
                         ),
                         const SizedBox(height: 12),
                         TextField(
                           inputFormatters: const [YallaDigitNormalizer()],
                           controller: _paidCtrl,
+                          readOnly: true,
                           decoration: _dec('المبلغ المدفوع'),
                         ),
                       ],
@@ -1123,6 +1169,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
               final q = double.tryParse(qty.text) ?? 1;
               final p = double.tryParse(price.text) ?? 0;
 
+              if (name.text.trim().isEmpty || q <= 0 || p < 0) return;
               setState(() {
                 list[index] = {
                   'name': name.text.trim(),

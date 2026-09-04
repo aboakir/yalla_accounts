@@ -3,7 +3,7 @@
 // RepairsListScreen — شاشة قائمة ملفات الإصلاح
 // - عرض صورة غلاف thumbnail لكل ملف عبر RepairThumb.
 // - التحويل إلى RepairsService.
-// - اعتماد السعر النهائي عبر RepairFinanceService.
+// - الحفظ والتعديل المحاسبي تلقائيان؛ لا توجد خطوة اعتماد يدوية.
 // - تصدير Excel وZIP-PDF عبر RepairExportService.
 // - تحديث الصور بعد الرجوع ودعم السحب للتحديث.
 import 'dart:io';
@@ -22,7 +22,6 @@ import 'package:yalla_accounts/features/repairs/screens/edit_repair_screen.dart'
 import 'package:yalla_accounts/features/repairs/screens/repair_details_screen.dart';
 
 import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
-import 'package:yalla_accounts/features/repairs/services/repair_finance_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_export_excel.dart';
 
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
@@ -58,16 +57,19 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
   Future<void> _deleteRepair(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AdaptiveAlertDialog(
+      builder: (dialogContext) => AdaptiveAlertDialog(
         title: const Text('تأكيد الحذف'),
-        content: const Text('هل تريد حذف هذا الملف؟'),
-        actions: [
+        content: const Text(
+          'سيختفي الملف من القوائم، ويُعكس أثره المحاسبي مع إبقاء سجل التدقيق. '
+          'إذا كانت عليه دفعات فيجب معالجتها أولًا.',
+        ),
+        actions: <Widget>[
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('حذف'),
           ),
@@ -75,49 +77,21 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
       ),
     );
 
-    if (confirm == true) {
+    if (confirm != true) return;
+    try {
       final svc = await RepairsService.instance();
       await svc.deleteRepair(id);
       if (!mounted) return;
-      setState(() {
-        repairs.removeWhere((r) => r.id == id);
-      });
-    }
-  }
-
-  Future<void> _approveRepairAmount(Repair repair) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AdaptiveAlertDialog(
-        title: const Text('اعتماد السعر النهائي'),
-        content: const Text('هل أنت متأكد من اعتماد السعر النهائي لهذا الملف؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('تأكيد'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await RepairFinanceService.approveFinalAmount(repair);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم اعتماد السعر النهائي')),
-        );
-        await _loadRepairs();
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل الاعتماد: $e')),
-        );
-      }
+      setState(() => repairs.removeWhere((repair) => repair.id == id));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حذف الملف وعكس أثره المالي بأمان.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('Bad state: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     }
   }
 
@@ -377,24 +351,6 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
                                       await _loadRepairs(); // تحديث بعد الرجوع
                                     },
                                   ),
-                                  if (!repair.isLedgerSynced)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          right: 12, left: 12, bottom: 12),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: ElevatedButton.icon(
-                                          icon: const Icon(Icons.verified),
-                                          label: const Text(
-                                              'اعتماد السعر النهائي'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                          ),
-                                          onPressed: () =>
-                                              _approveRepairAmount(repair),
-                                        ),
-                                      ),
-                                    ),
                                 ],
                               ),
                             );

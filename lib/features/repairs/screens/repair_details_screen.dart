@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 // 📁 lib/features/repairs/screens/repair_details_screen.dart
 // - حالة التأمين + حالة المركبة جنب بعض داخل البطاقة اليسرى.
 // - تحديث ذكي لأسماء الأعمدة (يكتشف العمود الصحيح قبل UPDATE).
-// - دفعات، اعتماد نهائي، صور، PDF، GL.
+// - دفعات، صور، PDF، GL؛ الحفظ المحاسبي تلقائي.
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -24,7 +24,6 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_pdf_generator.dart';
-import 'package:yalla_accounts/features/repairs/services/repair_finance_service.dart';
 
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
@@ -48,7 +47,6 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   bool _hideP07InsuranceStatus = false;
   late Repair _repair;
   bool _loading = true;
-  bool _approving = false;
 
   List<Map<String, dynamic>> _repairWorks = [];
   List<Map<String, dynamic>> _repairParts = [];
@@ -214,71 +212,6 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     }
   }
 
-  Future<void> _postInvoiceGLIfMissing() async {
-    final invId = _repair.invoiceId;
-    if (invId == null || invId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد فاتورة لهذا الملف.')),
-      );
-      return;
-    }
-    if (_invoiceGlEntryId != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('قيد GL موجود بالفعل (#$_invoiceGlEntryId).')),
-      );
-      return;
-    }
-    try {
-      final id = await DBService.postInvoiceGLFromId(invId);
-      await _refreshInvoiceGl();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ تم ترحيل قيد الفاتورة GL (#$id)')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل ترحيل GL: $e')),
-      );
-    }
-  }
-
-  // ===== اعتماد نهائي =====
-  Future<void> _confirmFinalApproval() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AdaptiveAlertDialog(
-        title: const Text('اعتماد السعر النهائي'),
-        content:
-            const Text('هل تريد اعتماد السعر النهائي وتسجيل القيد المحاسبي؟'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('تأكيد')),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    setState(() => _approving = true);
-    try {
-      await RepairFinanceService.approveFinalAmount(_repair);
-      await _reloadRepair();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ تم الاعتماد وإنشاء القيد والفاتورة')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل الاعتماد: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _approving = false);
-    }
-  }
-
   // ===== الدفعات =====
   Future<void> _addPayment() async {
     if (_repair.id.isEmpty) {
@@ -373,7 +306,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       return;
     }
 
-    final remaining = (_repair.totalFileValue) - (_repair.totalPaidAmount);
+    final remaining = _repair.remainingAmount;
     if (remaining <= 0) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('الملف مسدد بالكامل')));
@@ -996,7 +929,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
   // شريط الإجراءات
   Widget _buildActionsBar() {
-    final remaining = (_repair.totalFileValue) - (_repair.totalPaidAmount);
+    final remaining = _repair.remainingAmount;
     return Card(
       margin: const EdgeInsets.only(top: 16),
       child: Padding(
@@ -1013,7 +946,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             const SizedBox(width: 8),
             const Padding(
               padding: EdgeInsetsDirectional.only(start: 8),
-              child: Text('✅ تم الاعتماد المحاسبي',
+              child: Text('✅ محفوظ محاسبيًا تلقائيًا',
                   style: TextStyle(color: Colors.green)),
             ),
           ],
@@ -1434,134 +1367,59 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                               'متابعة التأمين: $insuranceStatus'),
                                         const SizedBox(height: 12),
                                         if (hasInvoice)
-                                          if (!hasInvoice)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                  top: 12),
-                                              child: OutlinedButton.icon(
-                                                icon: const Icon(
-                                                    Icons.playlist_add),
-                                                label: const Text(
-                                                    'إنشاء فاتورة وترحيل GL'),
-                                                onPressed: () async {
-                                                  try {
-                                                    final db = await DBService
-                                                        .database;
-
-                                                    // 1) إنشاء فاتورة جديدة
-                                                    final invoiceId =
-                                                        await DBService
-                                                            .createInvoiceForRepair(
-                                                      repairId: _repair.id,
-                                                      clientId:
-                                                          _repair.clientId,
-                                                      total: _repair
-                                                          .totalFileValue,
-                                                    );
-
-                                                    // 2) تحديث repair → invoiceId
-                                                    await db.update(
-                                                      'repairs',
-                                                      {
-                                                        'invoice_id': invoiceId,
-                                                        'invoiceId': invoiceId
-                                                      },
-                                                      where: 'id = ?',
-                                                      whereArgs: [_repair.id],
-                                                    );
-
-                                                    // 3) ترحيل قيد GL
-                                                    final glId = await DBService
-                                                        .postInvoiceGLFromId(
-                                                            invoiceId);
-
-                                                    // 4) إعادة تحميل البيانات
-                                                    await _reloadRepair();
-
-                                                    if (!mounted) return;
-
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                            'تم إنشاء الفاتورة وترحيل GL (#$glId)'),
-                                                      ),
-                                                    );
-                                                  } catch (e) {
-                                                    if (!mounted) return;
-                                                    ScaffoldMessenger.of(
-                                                            context)
-                                                        .showSnackBar(
-                                                      SnackBar(
-                                                          content: Text(
-                                                              'فشل العملية: $e')),
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: [
-                                            ElevatedButton.icon(
-                                              icon: const Icon(
-                                                  Icons.receipt_long),
-                                              label: const Text('عرض الفاتورة'),
-                                              onPressed: () {
-                                                Navigator.of(context).pushNamed(
-                                                  AppRoutes.invoiceView,
-                                                  arguments: _repair.invoiceId!,
-                                                );
-                                              },
-                                            ),
-                                            if (_invoiceGlEntryId == null)
-                                              OutlinedButton.icon(
-                                                icon: const Icon(
-                                                    Icons.playlist_add),
-                                                label: const Text(
-                                                    'ترحيل GL للفاتورة'),
-                                                onPressed:
-                                                    _postInvoiceGLIfMissing,
-                                              )
-                                            else ...[
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: <Widget>[
                                               ElevatedButton.icon(
                                                 icon: const Icon(
-                                                    Icons.account_balance),
-                                                label: Text(
-                                                    'عرض قيد GL #$_invoiceGlEntryId'),
+                                                    Icons.receipt_long),
+                                                label:
+                                                    const Text('عرض الفاتورة'),
                                                 onPressed: () {
                                                   Navigator.of(context)
                                                       .pushNamed(
-                                                    AppRoutes.financeGL,
-                                                    arguments: {
-                                                      'entryId':
-                                                          _invoiceGlEntryId
-                                                    },
+                                                    AppRoutes.invoiceView,
+                                                    arguments:
+                                                        _repair.invoiceId!,
                                                   );
                                                 },
                                               ),
-                                              OutlinedButton.icon(
-                                                icon: const Icon(
-                                                    Icons.travel_explore),
-                                                label: const Text(
-                                                    'ظپطھط­ GL Browser'),
-                                                onPressed: () {
-                                                  Navigator.of(context)
-                                                      .pushNamed(
-                                                    AppRoutes.financeGL,
-                                                    arguments: {
-                                                      'source': 'INVOICE',
-                                                      'source_id':
-                                                          _repair.invoiceId
-                                                    },
-                                                  );
-                                                },
-                                              ),
+                                              if (_invoiceGlEntryId != null)
+                                                ElevatedButton.icon(
+                                                  icon: const Icon(
+                                                      Icons.account_balance),
+                                                  label: Text(
+                                                    'عرض قيد GL #$_invoiceGlEntryId',
+                                                  ),
+                                                  onPressed: () {
+                                                    Navigator.of(context)
+                                                        .pushNamed(
+                                                      AppRoutes.financeGL,
+                                                      arguments: <String,
+                                                          Object?>{
+                                                        'entryId':
+                                                            _invoiceGlEntryId,
+                                                      },
+                                                    );
+                                                  },
+                                                )
+                                              else
+                                                const Text(
+                                                  'الفاتورة موجودة وتحتاج مراجعة ربط القيد المحاسبي.',
+                                                  style: TextStyle(
+                                                      color: Colors.orange),
+                                                ),
                                             ],
-                                          ],
-                                        ),
+                                          )
+                                        else
+                                          Text(
+                                            _repair.totalFileValue <= 0
+                                                ? 'لا توجد فاتورة لأن قيمة الملف الحالية صفر.'
+                                                : 'سيتم إنشاء المستند المحاسبي تلقائيًا عند حفظ/تعديل الملف.',
+                                            style: const TextStyle(
+                                                color: Colors.black54),
+                                          ),
                                       ],
                                     ),
                                   ),
