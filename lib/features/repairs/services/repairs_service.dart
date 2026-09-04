@@ -19,6 +19,7 @@ import 'package:path/path.dart' as p;
 import 'package:image/image.dart' as im;
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:yalla_accounts/core/services/events/app_event_bus.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
@@ -280,7 +281,7 @@ class RepairsService {
       repairId = r.isNotEmpty ? r.first['repair_id']?.toString() : null;
     } catch (_) {}
 
-    _deletePhysicalFile(path);
+    await YallaStorageService.deleteStoredFile(path);
 
     await db.delete('repairs_images', where: 'path = ?', whereArgs: [path]);
 
@@ -324,12 +325,15 @@ class RepairsService {
     double maxContrast = 0;
 
     for (final pth in paths) {
-      final s = _scoreImage(pth);
+      final resolved = await YallaStorageService.resolveExistingPath(pth);
+      if (resolved == null) continue;
+      final s = _scoreImage(resolved);
       if (s == null) continue;
-      maxSharp = math.max(maxSharp, s.sharpness);
-      maxCenterSharp = math.max(maxCenterSharp, s.centerSharpness);
-      maxContrast = math.max(maxContrast, s.contrastScore);
-      ranked.add(s);
+      final portable = s.copyWith(path: pth);
+      maxSharp = math.max(maxSharp, portable.sharpness);
+      maxCenterSharp = math.max(maxCenterSharp, portable.centerSharpness);
+      maxContrast = math.max(maxContrast, portable.contrastScore);
+      ranked.add(portable);
     }
 
     if (ranked.isEmpty) {
@@ -355,11 +359,9 @@ class RepairsService {
     ranked.sort((a, b) => b.total.compareTo(a.total));
     final bestPath = ranked.first.path;
 
-    final thumbPath = await _makeThumbnail(bestPath, repairId: repairId);
+    await DBService.setRepairThumbnailPath(repairId: repairId, path: bestPath);
 
-    await DBService.setRepairThumbnailPath(repairId: repairId, path: thumbPath);
-
-    return thumbPath;
+    return bestPath;
   }
 
   Future<String> _makeThumbnail(String srcPath,
@@ -574,8 +576,8 @@ class _ImgScore {
     required this.total,
   });
 
-  _ImgScore copyWith({double? total}) => _ImgScore(
-        path: path,
+  _ImgScore copyWith({String? path, double? total}) => _ImgScore(
+        path: path ?? this.path,
         sharpness: sharpness,
         centerSharpness: centerSharpness,
         brightnessScore: brightnessScore,

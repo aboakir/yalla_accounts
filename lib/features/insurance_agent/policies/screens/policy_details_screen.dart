@@ -20,6 +20,7 @@ import 'package:intl/intl.dart';
 
 import 'package:image_picker/image_picker.dart';
 import 'package:yalla_accounts/core/services/image_storage_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
@@ -495,21 +496,28 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             const Center(child: Text('صورة غير صالحة')),
       );
     }
-    final f = File(path);
-    if (!f.existsSync()) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            'ملف غير موجود\n$path',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-                color: Colors.grey.shade700, fontWeight: FontWeight.w700),
-          ),
-        ),
-      );
-    }
-    return Image.file(f, fit: BoxFit.contain);
+    return FutureBuilder<String?>(
+      future: YallaStorageService.resolveExistingPath(path),
+      builder: (context, snapshot) {
+        final resolved = snapshot.data;
+        if (resolved == null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                'ملف غير موجود',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          );
+        }
+        return Image.file(File(resolved), fit: BoxFit.contain);
+      },
+    );
   }
 
   void _openPreview(List<String> images, int start) {
@@ -696,21 +704,28 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   }
 
   Widget _fileThumb(String path) {
-    final f = File(path);
-    if (!f.existsSync()) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text(
-            'غير موجود',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-                color: Colors.grey.shade700, fontWeight: FontWeight.w700),
-          ),
-        ),
-      );
-    }
-    return Image.file(f, fit: BoxFit.cover);
+    return FutureBuilder<String?>(
+      future: YallaStorageService.resolveExistingPath(path),
+      builder: (context, snapshot) {
+        final resolved = snapshot.data;
+        if (resolved == null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                'غير موجود',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          );
+        }
+        return Image.file(File(resolved), fit: BoxFit.cover);
+      },
+    );
   }
 
   Widget _expiryCountdownPanel(Map<String, dynamic> r) {

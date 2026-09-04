@@ -15,6 +15,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:yalla_accounts/core/services/image_storage_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -533,9 +535,26 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           child: InteractiveViewer(
                             minScale: 0.5,
                             maxScale: 5,
-                            child: Image.file(
-                              File(images[current]),
-                              fit: BoxFit.contain,
+                            child: FutureBuilder<String?>(
+                              future: YallaStorageService.resolveExistingPath(
+                                images[current],
+                              ),
+                              builder: (context, snapshot) {
+                                final resolved = snapshot.data;
+                                if (resolved == null) {
+                                  return const Center(
+                                    child: Icon(
+                                      Icons.broken_image_outlined,
+                                      color: Colors.white70,
+                                      size: 42,
+                                    ),
+                                  );
+                                }
+                                return Image.file(
+                                  File(resolved),
+                                  fit: BoxFit.contain,
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -776,9 +795,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(6),
-                              child: Image.file(
-                                File(
-                                    path), // ← الصورة الصحيحة وليس الـ thumbnail
+                              child: YallaStoredImage(
+                                storedPath: path,
                                 key: ValueKey(path),
                                 width: 120,
                                 height: 120,
@@ -1072,15 +1090,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
           children: [
-            if (thumb != null && File(thumb).existsSync())
-              ClipRRect(
+            if (thumb != null)
+              YallaStoredImage(
+                storedPath: thumb,
+                height: 185,
+                width: double.infinity,
+                fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(20),
-                child: Image.file(
-                  File(thumb),
-                  height: 185,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
               ),
             if (thumb != null) const SizedBox(height: 12),
             Row(

@@ -17,6 +17,7 @@ import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -188,10 +189,13 @@ class RepairPdfGenerator {
 // IMAGES — SAFE PAGED GRID (NO MultiPage / NO Wrap / NO Freeze)
 // =====================================================================
 
-    final imageBytes = repair.imagePaths
-        .where((p) => p.isNotEmpty && File(p).existsSync())
-        .map((p) => File(p).readAsBytesSync())
-        .toList();
+    final imageBytes = <Uint8List>[];
+    for (final storedPath in repair.imagePaths) {
+      final resolved =
+          await YallaStorageService.resolveExistingPath(storedPath);
+      if (resolved == null) continue;
+      imageBytes.add(await File(resolved).readAsBytes());
+    }
 
     const imagesPerPage = 6; // شبكة ثابتة 2 × 3
 
@@ -253,15 +257,6 @@ class RepairPdfGenerator {
   static Future<File> saveToFile(Repair repair) async {
     final bytes = await generate(repair);
 
-    Directory? dir;
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      try {
-        dir = await getDownloadsDirectory();
-      } catch (_) {}
-    }
-    dir ??= await getApplicationDocumentsDirectory();
-    if (!await dir.exists()) await dir.create(recursive: true);
-
     final cleanType = _cleanFs(repair.vehicleType);
     final cleanName = _cleanFs(repair.beneficiaryName);
     final cleanNumber = _cleanFs(repair.vehicleNumber);
@@ -273,11 +268,12 @@ class RepairPdfGenerator {
 
     final fileName = "$prefix-$cleanType-$cleanName-$cleanNumber-$date.pdf";
 
-    final path = p.join(dir.path, fileName);
-    final file = File(path);
-
-    await file.writeAsBytes(bytes, flush: true);
-    return file;
+    return YallaStorageService.savePdf(
+      bytes: bytes,
+      module: 'repairs',
+      fileName: fileName,
+      date: repair.receivedDate,
+    );
   }
 
   static Future<File> saveToFileAndOpen(Repair repair) async {

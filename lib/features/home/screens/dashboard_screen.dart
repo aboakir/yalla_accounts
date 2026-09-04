@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -713,27 +713,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: () => _openRepair(repair.id),
       leading: FutureBuilder<String?>(
         future: DBService.getRepairThumbnailPath(repair.id),
-        builder: (context, snapshot) {
-          final profilePath = snapshot.data?.trim();
-
-          if (profilePath != null &&
-              profilePath.isNotEmpty &&
-              File(profilePath).existsSync()) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(13),
-              child: Image.file(
-                File(profilePath),
-                width: 44,
-                height: 44,
-                fit: BoxFit.cover,
-                cacheWidth: 180,
-                errorBuilder: (_, __, ___) => _recentRepairImageFallback(),
-              ),
-            );
-          }
-
-          return _recentRepairImageFallback();
-        },
+        builder: (context, snapshot) => YallaStoredImage(
+          storedPath: snapshot.data,
+          width: 44,
+          height: 44,
+          cacheWidth: 180,
+          borderRadius: BorderRadius.circular(13),
+          fallback: _recentRepairImageFallback(),
+        ),
       ),
       title: Text(
         repair.title,

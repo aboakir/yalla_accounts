@@ -4,11 +4,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/tables/vehicle_tables.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_intake_draft.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_intake_service.dart';
@@ -413,20 +414,16 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   }
 
   Future<String> _persistPickedImage(String sourcePath) async {
-    final root = await getApplicationSupportDirectory();
-    final directory = Directory('${root.path}/repair_intake_photos');
-    if (!directory.existsSync()) {
-      directory.createSync(recursive: true);
-    }
-    final dot = sourcePath.lastIndexOf('.');
-    final rawExtension = dot >= 0 ? sourcePath.substring(dot + 1) : 'jpg';
-    final extension = RegExp(r'^[A-Za-z0-9]{1,5}$').hasMatch(rawExtension)
-        ? rawExtension.toLowerCase()
-        : 'jpg';
-    final target =
-        '${directory.path}/${DateTime.now().microsecondsSinceEpoch}.$extension';
-    await File(sourcePath).copy(target);
-    return target;
+    final vehicle = _vehicle;
+    final client = _client;
+    return YallaStorageService.saveImageFromPath(
+      sourcePath: sourcePath,
+      module: 'repairs',
+      vehicleType: vehicle?.type ?? 'vehicle',
+      vehicleNumber: vehicle?.number ?? 'no_number',
+      beneficiaryName: client?.name ?? 'client',
+      date: _receivedDate,
+    );
   }
 
   Future<void> _selectReceivedDate() async {
@@ -1999,20 +1996,18 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                         final path = _photoPaths[index];
                         return Stack(
                           children: <Widget>[
-                            ClipRRect(
+                            YallaStoredImage(
+                              storedPath: path,
+                              width: 112,
+                              height: 112,
+                              fit: BoxFit.cover,
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                File(path),
+                              fallback: const SizedBox(
                                 width: 112,
                                 height: 112,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const SizedBox(
-                                  width: 112,
-                                  height: 112,
-                                  child: ColoredBox(
-                                    color: Color(0x11000000),
-                                    child: Icon(Icons.broken_image_outlined),
-                                  ),
+                                child: ColoredBox(
+                                  color: Color(0x11000000),
+                                  child: Icon(Icons.broken_image_outlined),
                                 ),
                               ),
                             ),
@@ -2648,15 +2643,10 @@ class _SignaturePadState extends State<_SignaturePad> {
     image.dispose();
     if (bytes == null) return null;
 
-    final root = await getApplicationSupportDirectory();
-    final directory = Directory('${root.path}/repair_signatures');
-    if (!directory.existsSync()) {
-      directory.createSync(recursive: true);
-    }
-    final path =
-        '${directory.path}/signature_${DateTime.now().microsecondsSinceEpoch}.png';
-    await File(path).writeAsBytes(bytes.buffer.asUint8List(), flush: true);
-    return path;
+    return YallaStorageService.saveSignature(
+      bytes: bytes.buffer.asUint8List(),
+      date: DateTime.now(),
+    );
   }
 
   void _addPoint(Offset localPosition) {

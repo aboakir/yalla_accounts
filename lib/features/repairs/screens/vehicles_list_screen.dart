@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -292,33 +291,19 @@ class _VehicleProfileThumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final value = path?.trim();
-    if (value != null && value.isNotEmpty) {
-      final file = File(value);
-      if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Image.file(
-            file,
-            width: 48,
-            height: 48,
-            fit: BoxFit.cover,
-            cacheWidth: 180,
-            errorBuilder: (_, __, ___) => _fallback(),
-          ),
-        );
-      }
-    }
-    return _fallback();
-  }
-
-  Widget _fallback() {
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: AppColors.primary.withOpacity(.12),
-      child: const Icon(
-        Icons.directions_car,
-        color: AppColors.primary,
+    return YallaStoredImage(
+      storedPath: path,
+      width: 48,
+      height: 48,
+      cacheWidth: 180,
+      borderRadius: BorderRadius.circular(14),
+      fallback: CircleAvatar(
+        radius: 24,
+        backgroundColor: AppColors.primary.withOpacity(.12),
+        child: const Icon(
+          Icons.directions_car,
+          color: AppColors.primary,
+        ),
       ),
     );
   }

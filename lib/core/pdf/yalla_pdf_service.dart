@@ -9,6 +9,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:open_file/open_file.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -159,28 +160,29 @@ class YallaPdfService {
   static Future<File> saveToDownloads({
     required Uint8List bytes,
     required String fileName,
-  }) async {
-    Directory? dir;
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      try {
-        dir = await getDownloadsDirectory();
-      } catch (_) {}
-    }
-    dir ??= await getApplicationDocumentsDirectory();
-    if (!await dir.exists()) await dir.create(recursive: true);
-
-    final path = p.join(dir.path, fileName);
-    final f = File(path);
-
-    await f.writeAsBytes(bytes, flush: true);
-    return f;
+    String module = 'exports',
+    DateTime? date,
+  }) {
+    return YallaStorageService.savePdf(
+      bytes: bytes,
+      module: module,
+      fileName: fileName,
+      date: date,
+    );
   }
 
   static Future<File> saveAndOpen({
     required Uint8List bytes,
     required String fileName,
+    String module = 'exports',
+    DateTime? date,
   }) async {
-    final f = await saveToDownloads(bytes: bytes, fileName: fileName);
+    final f = await saveToDownloads(
+      bytes: bytes,
+      fileName: fileName,
+      module: module,
+      date: date,
+    );
     await OpenFile.open(f.path);
     return f;
   }

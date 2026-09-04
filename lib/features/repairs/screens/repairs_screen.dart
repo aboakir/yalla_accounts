@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -736,36 +737,21 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ClipRRect(
+                    YallaStoredImage(
+                      storedPath: profilePath,
+                      width: 48,
+                      height: 48,
+                      cacheWidth: 180,
                       borderRadius: BorderRadius.circular(14),
-                      child: profilePath != null &&
-                              profilePath.isNotEmpty &&
-                              File(profilePath).existsSync()
-                          ? Image.file(
-                              File(profilePath),
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                              cacheWidth: 180,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 48,
-                                height: 48,
-                                color: AppColors.lightGreen,
-                                child: const Icon(
-                                  Icons.directions_car_filled_rounded,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            )
-                          : Container(
-                              width: 48,
-                              height: 48,
-                              color: AppColors.lightGreen,
-                              child: const Icon(
-                                Icons.directions_car_filled_rounded,
-                                color: AppColors.primary,
-                              ),
-                            ),
+                      fallback: Container(
+                        width: 48,
+                        height: 48,
+                        color: AppColors.lightGreen,
+                        child: const Icon(
+                          Icons.directions_car_filled_rounded,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

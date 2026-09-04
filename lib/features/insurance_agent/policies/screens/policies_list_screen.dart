@@ -612,7 +612,12 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
       final fileName =
           'policies_${yyyy}_${mm}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
-      await YallaPdfService.saveAndOpen(bytes: bytes, fileName: fileName);
+      await YallaPdfService.saveAndOpen(
+        bytes: bytes,
+        fileName: fileName,
+        module: 'insurance',
+        date: DateTime(yyyy, m),
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

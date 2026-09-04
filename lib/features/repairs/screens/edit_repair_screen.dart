@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:printing/printing.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/image_storage_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
@@ -802,7 +803,8 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(14),
-                                    child: Image.file(File(path),
+                                    child: YallaStoredImage(
+                                        storedPath: path,
                                         width: 120,
                                         height: 105,
                                         fit: BoxFit.cover),
@@ -1056,16 +1058,12 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                         for (final path in _imagePaths)
                           Stack(
                             children: [
-                              Container(
+                              YallaStoredImage(
+                                storedPath: path,
                                 width: 100,
                                 height: 100,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  image: DecorationImage(
-                                    image: FileImage(File(path)),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
+                                fit: BoxFit.cover,
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               Positioned(
                                 right: 4,

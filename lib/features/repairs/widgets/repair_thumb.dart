@@ -4,10 +4,10 @@
 // وإذا غير موجود → أول صورة من fallbackFirstPath
 // تضمن وحدة الصورة في جميع الشاشات
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 
 class RepairThumb extends StatelessWidget {
   final String repairId;
@@ -28,42 +28,25 @@ class RepairThumb extends StatelessWidget {
     return FutureBuilder<String?>(
       future: DBService.getRepairThumbnailPath(repairId),
       builder: (context, snap) {
-        // 1) أول شيء: thumbnail_path من قاعدة البيانات
         String? cover = snap.data;
-
-        // 2) إذا الـ thumbnail_path غير موجود → fallback
-        if (cover == null || cover.isEmpty) {
-          cover = fallbackFirstPath;
-        }
-
-        File? file;
-        if (cover != null && cover.isNotEmpty) {
-          final f = File(cover);
-          if (f.existsSync()) {
-            file = f;
-          }
-        }
-
-        // 3) واجهة العرض
-        final widgetContent = SizedBox(
+        if (cover == null || cover.isEmpty) cover = fallbackFirstPath;
+        final br = borderRadius ?? BorderRadius.circular(8);
+        return YallaStoredImage(
+          storedPath: cover,
           width: size,
           height: size,
-          child: file != null
-              ? Image.file(
-                  file,
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.medium,
-                )
-              : Container(
-                  color: AppColors.lightGrey,
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.directions_car,
-                      color: AppColors.primary),
-                ),
+          borderRadius: br,
+          fallback: Container(
+            width: size,
+            height: size,
+            color: AppColors.lightGrey,
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.directions_car,
+              color: AppColors.primary,
+            ),
+          ),
         );
-
-        final br = borderRadius ?? BorderRadius.circular(8);
-        return ClipRRect(borderRadius: br, child: widgetContent);
       },
     );
   }
