@@ -31,7 +31,16 @@ import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 // ============================================================================
 
 class ReceiptVoucherScreen extends StatefulWidget {
-  const ReceiptVoucherScreen({super.key});
+  final String? initialRepairId;
+  final int? initialClientId;
+  final String? initialClientType;
+
+  const ReceiptVoucherScreen({
+    super.key,
+    this.initialRepairId,
+    this.initialClientId,
+    this.initialClientType,
+  });
 
   @override
   State<ReceiptVoucherScreen> createState() => _ReceiptVoucherScreenState();
@@ -76,7 +85,72 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     settings = await WorkshopSettingsService.instance.getOrDefaults();
     await _loadClients();
     await _loadInsurances();
-    setState(() => loading = false);
+    await _applyInitialRepairPrefill();
+    if (mounted) setState(() => loading = false);
+  }
+
+  Future<void> _applyInitialRepairPrefill() async {
+    final repairId = widget.initialRepairId?.trim() ?? '';
+    if (repairId.isEmpty) return;
+
+    final db = await DBService.database;
+    final rows = await db.rawQuery(
+      '''
+      SELECT
+        r.id,
+        r.vehicleType,
+        r.vehicleModel,
+        r.vehicleNumber,
+        r.fileValue,
+        IFNULL(r.total_paid_amount, 0) AS paid,
+        r.client_id,
+        c.type AS client_type
+      FROM repairs r
+      LEFT JOIN clients c ON c.id = r.client_id
+      WHERE r.id = ?
+        AND (r.isArchived IS NULL OR r.isArchived = 0)
+      LIMIT 1
+      ''',
+      [repairId],
+    );
+    if (rows.isEmpty) return;
+
+    final row = rows.first;
+    final fileValue = (row['fileValue'] as num?)?.toDouble() ?? 0.0;
+    final paid = (row['paid'] as num?)?.toDouble() ?? 0.0;
+    final remaining = fileValue - paid;
+
+    // A fully settled/zero-value repair must never turn into a generic
+    // unallocated receipt just because it was opened from the repair menu.
+    if (remaining <= 0.005) return;
+
+    final rowClientId = row['client_id'];
+    final clientId = widget.initialClientId ??
+        (rowClientId is num
+            ? rowClientId.toInt()
+            : int.tryParse(rowClientId?.toString() ?? ''));
+    if (clientId == null) return;
+
+    final clientIdText = clientId.toString();
+    final existsInInsurance =
+        insurances.any((c) => c['id'].toString() == clientIdText);
+    final existsInClients =
+        clients.any((c) => c['id'].toString() == clientIdText);
+    if (!existsInInsurance && !existsInClients) return;
+
+    selectedClientType = existsInInsurance ? 'INSURANCE' : 'CLIENT';
+    selectedClientId = clientIdText;
+    selectedRepairs = <_RepairItem>[
+      _RepairItem(
+        id: row['id'].toString(),
+        type: row['vehicleType']?.toString() ?? '',
+        model: row['vehicleModel']?.toString() ?? '',
+        number: row['vehicleNumber']?.toString() ?? '',
+        fileValue: fileValue,
+        paid: paid,
+      ),
+    ];
+    totalPayment = 0.0;
   }
 
   Future<void> _loadClients() async {
@@ -586,7 +660,9 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
 
   Widget _buildRepairSection() {
     return _card(
-      title: "ملفات الإصلاح",
+      title: widget.initialRepairId == null
+          ? "ملفات الإصلاح"
+          : "ملف الإصلاح المرتبط بالسند",
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -555,6 +555,24 @@ class AppRoutes {
     if (name == receiptVoucher) {
       print('✅ تم الوصول إلى مسار سند القبض');
 
+      final args = settings.arguments;
+      if (args is Map) {
+        final clientRaw = args['clientId'];
+        final clientId = clientRaw is int
+            ? clientRaw
+            : int.tryParse(clientRaw?.toString() ?? '');
+
+        return _page(
+          settings,
+          ReceiptVoucherScreen(
+            initialRepairId:
+                (args['repairId'] ?? args['relatedRepairId'])?.toString(),
+            initialClientId: clientId,
+            initialClientType: args['clientType']?.toString(),
+          ),
+        );
+      }
+
       return _page(settings, const ReceiptVoucherScreen());
     }
     if (name == paymentVoucher) {

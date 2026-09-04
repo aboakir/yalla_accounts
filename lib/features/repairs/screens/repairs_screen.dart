@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 // import 'package:yalla_accounts/features/finance/screens/add_purchase_screen.dart'; // معطّل مؤقتًا
 
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
@@ -322,25 +323,27 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.payments),
-              title: const Text('دفعات هذا الملف'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(
-                  context,
-                  '/finance/payments',
-                  arguments: {
-                    'relatedRepairId': r.id,
-                    'clientName': r.beneficiaryName,
-                  },
-                ).then((updated) {
-                  if (updated == true) {
-                    ref.read(repairListProvider.notifier).loadRepairs();
-                  }
-                });
-              },
-            ),
+            if (r.remainingAmount > 0.005)
+              ListTile(
+                leading: const Icon(Icons.payments_outlined),
+                title: const Text('إضافة دفعة للملف'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.receiptVoucher,
+                    arguments: {
+                      'repairId': r.id,
+                      'clientId': r.clientId,
+                      'clientType': r.beneficiaryType,
+                    },
+                  ).then((updated) {
+                    if (updated == true) {
+                      ref.read(repairListProvider.notifier).loadRepairs();
+                    }
+                  });
+                },
+              ),
             ListTile(
               leading: Icon(
                 r.isArchived
