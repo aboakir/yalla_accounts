@@ -18,18 +18,78 @@ workflows:
           test -d ios
           echo "Yalla Accounts source verified."
 
-      - name: Get Flutter packages
+      - name: Disable Flutter Swift Package Manager
         script: |
           set -euo pipefail
+          flutter config --no-enable-swift-package-manager
+          flutter config --list | grep -i swift || true
+
+      - name: Remove unused speech_to_text from iPhone build snapshot
+        script: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("pubspec.yaml")
+          text = p.read_text()
+          lines = text.splitlines(keepends=True)
+
+          target = "  speech_to_text: ^6.6.0"
+          matches = [
+              i for i, line in enumerate(lines)
+              if line.rstrip("\r\n") == target
+          ]
+
+          if len(matches) != 1:
+              raise SystemExit(
+                  f"Expected exactly one speech_to_text dependency; found {len(matches)}"
+              )
+
+          del lines[matches[0]]
+          updated = "".join(lines)
+
+          if "speech_to_text:" in updated:
+              raise SystemExit("speech_to_text dependency still present")
+
+          if "  flutter_slidable: ^3.1.0" not in updated:
+              raise SystemExit("pubspec dependency indentation guard failed")
+
+          p.write_text(updated)
+          PY
+
+      - name: Get Flutter packages cleanly
+        script: |
+          set -euo pipefail
+          flutter clean
+          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
           flutter pub get
 
       - name: Install iOS pods
         script: |
           set -euo pipefail
           test -f ci/Podfile
+          rm -f ios/Podfile
           cp ci/Podfile ios/Podfile
+
           cd ios
-          pod install
+          pod deintegrate || true
+          rm -rf Pods Podfile.lock .symlinks
+          cd ..
+
+          flutter pub get
+
+          cd ios
+          pod install --repo-update
+
+          if grep -n "speech_to_text" Podfile.lock; then
+            echo "ERROR: speech_to_text unexpectedly present in Podfile.lock"
+            exit 1
+          fi
+
+          if [ -e .symlinks/plugins/speech_to_text ]; then
+            echo "ERROR: speech_to_text symlink unexpectedly exists"
+            exit 1
+          fi
 
       - name: Build unsigned iPhone release
         script: |
@@ -41,14 +101,18 @@ workflows:
           set -euo pipefail
           APP="build/ios/iphoneos/Runner.app"
           OUT="build/ios/ipa"
+
           test -d "$APP"
+
           rm -rf "$OUT"
           mkdir -p "$OUT/Payload"
           cp -R "$APP" "$OUT/Payload/Runner.app"
+
           (
             cd "$OUT"
             zip -qry "Yalla_Accounts_Unsigned_iPhone.ipa" Payload
           )
+
           test -f "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
           ls -lh "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
 
