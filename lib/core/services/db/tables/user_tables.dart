@@ -176,6 +176,11 @@ class UserTables {
       CREATE TABLE IF NOT EXISTS workshop_settings(
         id INTEGER PRIMARY KEY,
         workshopName TEXT,
+        address TEXT,
+        city TEXT,
+        phone1 TEXT,
+        phone2 TEXT,
+        email TEXT,
         logoPath TEXT,
         workStart TEXT,
         workEnd TEXT,
@@ -196,7 +201,45 @@ class UserTables {
       ON workshop_settings(workStart, workEnd);
     ''');
 
+    await ensureWorkshopSettingsCompatibility(db);
     await _migrateWorkshopSettingsSnakeToCamel(db);
+  }
+
+  static Future<void> ensureWorkshopSettingsCompatibility(
+    DatabaseExecutor db,
+  ) async {
+    const requiredColumns = <String, String>{
+      'workshopName': 'TEXT',
+      'address': 'TEXT',
+      'city': 'TEXT',
+      'phone1': 'TEXT',
+      'phone2': 'TEXT',
+      'email': 'TEXT',
+      'logoPath': 'TEXT',
+      'workStart': 'TEXT',
+      'workEnd': 'TEXT',
+      'dailyHours': 'REAL',
+      'breakMinutes': 'INTEGER',
+      'weekWorkdays': 'TEXT',
+      'latePenalty': 'REAL',
+      'earlyLeavePenalty': 'REAL',
+      'overtimeRate': 'REAL',
+      'hourlyRate': 'REAL',
+      'created_at': 'TEXT',
+      'updated_at': 'TEXT',
+    };
+
+    final info = await db.rawQuery('PRAGMA table_info(workshop_settings)');
+    final existing =
+        info.map((row) => row['name']?.toString()).whereType<String>().toSet();
+
+    for (final entry in requiredColumns.entries) {
+      if (!existing.contains(entry.key)) {
+        await db.execute(
+          'ALTER TABLE workshop_settings ADD COLUMN ${entry.key} ${entry.value};',
+        );
+      }
+    }
   }
 
   static Future<void> _migrateWorkshopSettingsSnakeToCamel(

@@ -697,16 +697,26 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                       isExpanded: true,
                       decoration: _dec('حالة المركبة'),
                       items: kVehicleStatuses
-                          .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .map((e) => DropdownMenuItem(
+                                value: e,
+                                enabled: !kWorkflowVehicleStatuses.contains(e),
+                                child: Text(e),
+                              ))
                           .toList(),
-                      onChanged: (v) async {
-                        if (v == null) return;
-                        setState(() => _vehicleStatus = v);
-                        await _updateSmart(
-                            candidates: ['vehicle_status', 'repair_status'],
-                            value: v);
-                      },
+                      onChanged:
+                          kWorkflowVehicleStatuses.contains(_vehicleStatus)
+                              ? null
+                              : (v) async {
+                                  if (v == null ||
+                                      kWorkflowVehicleStatuses.contains(v)) {
+                                    return;
+                                  }
+                                  setState(() => _vehicleStatus = v);
+                                  await _updateSmart(candidates: [
+                                    'vehicle_status',
+                                    'repair_status'
+                                  ], value: v);
+                                },
                     ),
                   ]),
                 ),
@@ -992,17 +1002,27 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
                         value:
                             normalizeOrNull(_vehicleStatus, kVehicleStatuses),
                         items: kVehicleStatuses
-                            .map((e) =>
-                                DropdownMenuItem(value: e, child: Text(e)))
+                            .map((e) => DropdownMenuItem(
+                                  value: e,
+                                  enabled:
+                                      !kWorkflowVehicleStatuses.contains(e),
+                                  child: Text(e),
+                                ))
                             .toList(),
-                        onChanged: (v) async {
-                          if (v != null) {
-                            setState(() => _vehicleStatus = v);
-                            await _updateSmart(
-                                candidates: ['vehicle_status', 'repair_status'],
-                                value: v);
-                          }
-                        },
+                        onChanged:
+                            kWorkflowVehicleStatuses.contains(_vehicleStatus)
+                                ? null
+                                : (v) async {
+                                    if (v == null ||
+                                        kWorkflowVehicleStatuses.contains(v)) {
+                                      return;
+                                    }
+                                    setState(() => _vehicleStatus = v);
+                                    await _updateSmart(candidates: [
+                                      'vehicle_status',
+                                      'repair_status'
+                                    ], value: v);
+                                  },
                         decoration: _dec('حالة المركبة'),
                       ),
                     ]),

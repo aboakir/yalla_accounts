@@ -24,7 +24,8 @@ void main() {
     final login = read('lib/features/auth/screens/login_screen.dart');
     final transport =
         read('lib/features/auth/services/yalla_admin_auth_service.dart');
-    expect(login, contains('طلب إنشاء منشأة / اشتراك جديد'));
+    expect(login, contains('طلب إنشاء منشأة جديدة'));
+    expect(login, contains('ReleaseDistributionConfig.isStoreDistribution'));
     expect(login, contains('_requestNewCustomerOrganization'));
     expect(transport, contains('/v1/customer-onboarding/request'));
     expect(

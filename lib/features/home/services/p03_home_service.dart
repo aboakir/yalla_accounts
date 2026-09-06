@@ -1,4 +1,5 @@
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/features/settings/services/commercial_settings_service.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 
@@ -72,7 +73,7 @@ class P03HomeService {
     final today = _dateOnly(DateTime.now());
 
     var workshopName = 'ورشتي';
-    var currencySymbol = '₪';
+    var currencySymbol = MoneyFormatter.symbol;
 
     try {
       final settings = await WorkshopSettingsService.instance.getSettings();

@@ -10,6 +10,9 @@ import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
 import 'package:yalla_accounts/features/finance/payments/screens/add_payment_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/shared/widgets/empty_state.dart';
+import 'package:yalla_accounts/shared/widgets/error_widget.dart';
+import 'package:yalla_accounts/shared/widgets/loading.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
@@ -30,6 +33,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
   final _searchCtrl = TextEditingController();
 
   bool _loading = false;
+  String? _loadError;
   List<Payment> _items = [];
 
   @override
@@ -81,7 +85,10 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
     try {
       List<Payment> rows;
 
@@ -116,8 +123,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
       setState(() => _items = rows);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('خطأ في تحميل الدفعات: $e')));
+      setState(() => _loadError = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -287,39 +293,49 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
           // -----------------------------------------------
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _items.isEmpty
-                    ? const Center(child: Text('لا توجد دفعات'))
-                    : ListView.separated(
-                        itemCount: _items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (_, i) {
-                          final p = _items[i];
-                          final amt = _nf.format(p.amount);
-                          final dateTxt = _df.format(p.date);
+                ? const LoadingWidget(message: 'جاري تحميل الدفعات...')
+                : _loadError != null
+                    ? ErrorDisplay(
+                        message: 'تعذر تحميل الدفعات.\n$_loadError',
+                        onRetry: _load,
+                      )
+                    : _items.isEmpty
+                        ? const YallaEmptyState(
+                            title: 'لا توجد دفعات',
+                            message: 'ستظهر سندات الدفعات هنا بعد تسجيلها.',
+                            icon: Icons.payments_outlined,
+                          )
+                        : ListView.separated(
+                            itemCount: _items.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (_, i) {
+                              final p = _items[i];
+                              final amt = _nf.format(p.amount);
+                              final dateTxt = _df.format(p.date);
 
-                          return ListTile(
-                            leading: const CircleAvatar(
-                              child: Icon(Icons.payment, size: 18),
-                            ),
-                            title: Text('المبلغ: $amt'),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('التاريخ: $dateTxt'),
-                                Text(
-                                    'الطريقة: ${p.method}  •  الحساب: ${p.accountName ?? '-'}'),
-                                Text(
-                                    'Repair: ${p.repairId ?? '-'}  •  Invoice: ${p.invoiceId ?? '-'}'),
-                                if ((p.notes ?? '').isNotEmpty)
-                                  Text('ملاحظات: ${p.notes}'),
-                              ],
-                            ),
-                            trailing: _statusChip(p.status),
-                            dense: true,
-                          );
-                        },
-                      ),
+                              return ListTile(
+                                leading: const CircleAvatar(
+                                  child: Icon(Icons.payment, size: 18),
+                                ),
+                                title: Text('المبلغ: $amt'),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('التاريخ: $dateTxt'),
+                                    Text(
+                                        'الطريقة: ${p.method}  •  الحساب: ${p.accountName ?? '-'}'),
+                                    Text(
+                                        'Repair: ${p.repairId ?? '-'}  •  Invoice: ${p.invoiceId ?? '-'}'),
+                                    if ((p.notes ?? '').isNotEmpty)
+                                      Text('ملاحظات: ${p.notes}'),
+                                  ],
+                                ),
+                                trailing: _statusChip(p.status),
+                                dense: true,
+                              );
+                            },
+                          ),
           ),
         ],
       ),

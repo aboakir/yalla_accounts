@@ -17,13 +17,6 @@ class FinanceService {
     return rows.isNotEmpty;
   }
 
-  static Future<bool> _columnExists(
-      Database db, String table, String column) async {
-    if (!await _tableExists(db, table)) return false;
-    final info = await db.rawQuery("PRAGMA table_info($table)");
-    return info.any((c) => (c['name'] ?? '').toString() == column);
-  }
-
   static Future<double> _sum(Database db, String sql,
       [List<Object?> args = const []]) async {
     final r = await db.rawQuery(sql, args);
@@ -37,10 +30,19 @@ class FinanceService {
     final db = await _db();
     final hasInvoices = await _tableExists(db, 'invoices');
     final hasLedger = await _tableExists(db, 'ledger_entries');
+    final hasGl = await _tableExists(db, 'gl_lines') &&
+        await _tableExists(db, 'accounts');
 
-    final totalRevenue = hasInvoices
-        ? await _sum(db, 'SELECT IFNULL(SUM(paid),0) FROM invoices')
-        : 0.0;
+    final totalRevenue = hasGl
+        ? await _sum(db, '''
+            SELECT COALESCE(SUM(l.credit-l.debit),0)
+            FROM gl_lines l
+            JOIN accounts a ON a.id=l.account_id
+            WHERE a.code='4000'
+          ''')
+        : hasInvoices
+            ? await _sum(db, 'SELECT IFNULL(SUM(total),0) FROM invoices')
+            : 0.0;
 
     double totalExpenses = 0.0;
     if (hasLedger) {
@@ -73,15 +75,7 @@ class FinanceService {
   static Future<IncomeStatement> getIncomeStatement() async {
     final db = await _db();
 
-    // أسماء الحسابات الشائعة
-    const revenueAccounts = [
-      'الإيرادات',
-      'ايرادات',
-      'Revenue',
-      'Revenues',
-      'Sales',
-      'مبيعات',
-    ];
+    // أسماء حسابات المصروفات التاريخية الشائعة.
     const expenseAccounts = [
       'المصروفات',
       'مصروفات',
@@ -95,39 +89,33 @@ class FinanceService {
     ];
 
     // ----- الإيرادات -----
+    // P10 source of truth: recognized revenue comes from the immutable GL
+    // revenue account. Invoices/repairs are compatibility fallbacks only for
+    // legacy databases that have no GL yet.
     double totalRevenues = 0.0;
 
-    // (1) من الفواتير إن وجدت
-    if (await _tableExists(db, 'invoices')) {
+    if (await _tableExists(db, 'gl_lines') &&
+        await _tableExists(db, 'gl_entries') &&
+        await _tableExists(db, 'accounts')) {
+      totalRevenues = await _sum(
+        db,
+        '''
+        SELECT COALESCE(SUM(l.credit-l.debit),0) AS v
+        FROM gl_lines l
+        JOIN accounts a ON a.id=l.account_id
+        WHERE a.code='4000'
+        ''',
+      );
+    }
+
+    if (totalRevenues.abs() <= 0.000001 && await _tableExists(db, 'invoices')) {
       totalRevenues =
           await _sum(db, 'SELECT IFNULL(SUM(total),0) FROM invoices');
     }
 
-    // (2) إن صفر/غير موجودة → من القيود (credit_account)
-    if (totalRevenues <= 0.0 && await _tableExists(db, 'ledger_entries')) {
-      final placeholders = List.filled(revenueAccounts.length, '?').join(',');
-      totalRevenues = await _sum(
-        db,
-        '''
-        SELECT IFNULL(SUM(amount),0) AS v
-        FROM ledger_entries
-        WHERE credit_account IN ($placeholders)
-        ''',
-        revenueAccounts,
-      );
-    }
-
-    // (3) إن ما زال صفر → من repairs (incomeAmount أو finalApprovedAmount)
-    if (totalRevenues <= 0.0 && await _tableExists(db, 'repairs')) {
-      double repairsIncome = 0.0;
-      if (await _columnExists(db, 'repairs', 'incomeAmount')) {
-        repairsIncome +=
-            await _sum(db, 'SELECT IFNULL(SUM(incomeAmount),0) FROM repairs');
-      } else if (await _columnExists(db, 'repairs', 'finalApprovedAmount')) {
-        repairsIncome += await _sum(
-            db, 'SELECT IFNULL(SUM(finalApprovedAmount),0) FROM repairs');
-      }
-      totalRevenues = repairsIncome;
+    if (totalRevenues.abs() <= 0.000001 && await _tableExists(db, 'repairs')) {
+      totalRevenues =
+          await _sum(db, 'SELECT IFNULL(SUM(fileValue),0) FROM repairs');
     }
 
     // ----- المصروفات -----

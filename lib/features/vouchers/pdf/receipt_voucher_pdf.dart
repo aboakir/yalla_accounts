@@ -201,7 +201,9 @@ class ReceiptVoucherPDF {
   static String _arabicMethod(String m) {
     final x = m.toLowerCase();
     if (x == "cash") return "نقدًا";
-    if (x == "bank") return "بنك";
+    if (x == "bank" || x == "bank_transfer" || x == "transfer")
+      return "تحويل بنكي";
+    if (x == "card" || x == "credit") return "بطاقة";
     if (x == "cheque") return "شيك";
     return m;
   }

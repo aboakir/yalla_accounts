@@ -14,6 +14,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 
 class EditRepairResult {
   final bool success;
@@ -151,8 +152,8 @@ class EditRepairService {
       final paid = _round2(await _paidOn(txn, repairId));
       if (newValue + 0.01 < paid) {
         throw StateError(
-          'لا يمكن تخفيض قيمة الملف إلى ${newValue.toStringAsFixed(2)} ₪ '
-          'لأن عليه دفعات مسجلة بقيمة ${paid.toStringAsFixed(2)} ₪. '
+          'لا يمكن تخفيض قيمة الملف إلى ${MoneyFormatter.format(newValue)} '
+          'لأن عليه دفعات مسجلة بقيمة ${MoneyFormatter.format(paid)}. '
           'عالج الدفعات أولًا ثم أعد التعديل.',
         );
       }

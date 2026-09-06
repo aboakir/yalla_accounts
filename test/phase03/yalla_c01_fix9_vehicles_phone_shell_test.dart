@@ -14,15 +14,15 @@ void main() {
       'lib/core/routes/app_routes.dart',
     ).readAsStringSync();
 
+    expect(vehicles, contains('if (context.isDesktopWidth)'));
     expect(
-      RegExp(
-        r"if\s*\(\s*MediaQuery\.sizeOf\(context\)\.width\s*>=\s*600\s*\)\s*"
-        r"const\s+YallaSidebar\s*\(\s*currentRoute:\s*'/vehicles_list'\s*\)",
-        multiLine: true,
-      ).hasMatch(vehicles),
-      isTrue,
-      reason:
-          'VehiclesListScreen must not embed its legacy sidebar on phone widths.',
+      vehicles,
+      contains("const YallaSidebar(currentRoute: '/vehicles_list')"),
+    );
+    expect(
+      vehicles,
+      contains('MediaQuery.sizeOf(context).width >= 600'),
+      reason: 'Phone widths must not directly render the desktop sidebar.',
     );
 
     final frameOwnNavStart =

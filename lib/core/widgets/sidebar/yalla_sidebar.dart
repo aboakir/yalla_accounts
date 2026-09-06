@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
 import 'sidebar_header.dart';
 import 'sidebar_search.dart';
@@ -26,47 +25,6 @@ class YallaSidebar extends ConsumerStatefulWidget {
 
 class _YallaSidebarState extends ConsumerState<YallaSidebar>
     with SingleTickerProviderStateMixin {
-  /*Start Trial*/
-  Future<bool> _canAddNewRepairFromSidebar() async {
-    final repairs = await RepairDatabaseService.getRepairsCount();
-    const maxFreeRepairs = 1000000;
-
-    print("Repairs: $repairs");
-    if (repairs >= maxFreeRepairs) {
-      if (!mounted) return false;
-
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AdaptiveAlertDialog(
-          title: const Text('🔒 انتهاء النسخة التجريبية'),
-          content: const Text(
-            'لقد وصلت إلى الحد الأقصى للنسخة التجريبية (10 ملفات إصلاح).\n\n'
-            'لتتمكن من إضافة مركبات جديدة، يرجى تفعيل الاشتراك.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('لاحقًا'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(context, AppRoutes.technicalSupport);
-              },
-              child: const Text('تواصل لتفعيل الاشتراك'),
-            ),
-          ],
-        ),
-      );
-
-      return false;
-    }
-
-    return true;
-  }
-
-  /*End Trial*/
-
   late final AnimationController _ctrl;
   late final Animation<double> _widthAnim;
   bool _isCollapsed = false;
@@ -120,6 +78,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   // Finance
   static const rFinanceRoot = '/finance';
   static const rFinanceDashboard = '/finance/dashboard';
+  static const rCollectionDashboard = AppRoutes.collectionDashboard;
   static const rJournalEntries = '/finance/journal/entries';
   static const rFinanceAccountLedger = '/finance/account-ledger';
   static const rIncomeStatement = '/finance/income-statement';
@@ -137,6 +96,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rSettingsUser = '/settings/user';
   static const rSettingsUI = '/settings/ui';
   static const rSettingsSupport = '/settings/support';
+  static const rSettingsSecurityData = '/settings/security-data';
   static const rTechnicalSupport = AppRoutes.technicalSupport;
 
   static const rSubscription = '/subscription';
@@ -223,12 +183,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     print("NAVIGATING TO: $route");
 
     if (_isNavigating || route.isEmpty) return;
-
-    if (route == rRepairsAdd) {
-      final allowed = await _canAddNewRepairFromSidebar();
-      print("Kosha:  $allowed");
-      if (!allowed) return;
-    }
 
     if (!mounted) return;
 
@@ -466,6 +420,11 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     // 6) المالية
     final financeItems = [
       (Icons.dashboard, 'لوحة مالية', rFinanceDashboard),
+      (
+        Icons.collections_bookmark_outlined,
+        'التحصيل والذمم',
+        rCollectionDashboard
+      ),
       (Icons.list_alt, 'قيود اليومية', rJournalEntries),
       (Icons.menu_book, 'دفتر الأستاذ', rFinanceAccountLedger),
       (Icons.stacked_bar_chart, 'قائمة الدخل', rIncomeStatement),
@@ -731,6 +690,10 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                             icon: Icons.store,
                             title: 'إعدادات الورشة',
                             route: rSettingsWorkshop),
+                        _tile(
+                            icon: Icons.shield_outlined,
+                            title: 'حماية البيانات',
+                            route: rSettingsSecurityData),
                         _tile(
                             icon: Icons.support_agent,
                             title: 'الدعم الفني',

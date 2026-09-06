@@ -58,13 +58,4 @@ void main() {
     expect(repairs, isNot(contains('آ·')));
     expect(repairs, contains(' · '));
   });
-
-  test('C01 FIX3D keeps P04 blocked pending fresh iPhone validation', () {
-    final state = read('docs/execution/YALLA_PROJECT_STATE.json');
-    expect(state, contains('"last_completed_phase": "P03"'));
-    expect(state, contains('"current_phase": "C01"'));
-    expect(state, contains('"P04": "PENDING"'));
-    expect(state, contains('"C01": "RETEST_PENDING"'));
-    expect(state, contains('"human_retest": "PENDING"'));
-  });
 }

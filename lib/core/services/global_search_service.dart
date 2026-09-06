@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/utils/public_text_sanitizer.dart';
 
 /// نتيجة بحث موحّدة لواجهة البحث الشامل.
 class SearchHit {
@@ -43,14 +44,25 @@ class GlobalSearchService {
     final db = await DBService.database;
     final like = '%$q%';
 
-    // نطلق الاستعلامات بالتوازي
+    Future<List<SearchHit>> guard(
+        Future<List<SearchHit>> Function() run) async {
+      try {
+        return await run();
+      } catch (_) {
+        return const <SearchHit>[];
+      }
+    }
+
     final futures = await Future.wait<List<SearchHit>>([
-      _searchRepairs(db, like),
-      _searchClients(db, like),
-      _searchInvoices(db, like),
-      _searchPayments(db, like),
-      _searchEmployees(db, like),
-      _searchSuppliers(db, like),
+      guard(() => _searchRepairs(db, like)),
+      guard(() => _searchClients(db, like)),
+      guard(() => _searchInvoices(db, like)),
+      guard(() => _searchPayments(db, like)),
+      guard(() => _searchEmployees(db, like)),
+      guard(() => _searchSuppliers(db, like)),
+      guard(() => _searchReceipts(db, like)),
+      guard(() => _searchCheques(db, like)),
+      guard(() => _searchPurchases(db, like)),
     ]);
 
     // دمج + قصّ
@@ -91,7 +103,8 @@ class GlobalSearchService {
         if (car.isNotEmpty) 'رقم المركبة: $car',
         if ((m['vehicleModel'] ?? '').toString().isNotEmpty)
           'موديل: ${m['vehicleModel']}',
-        if ((m['notes'] ?? '').toString().isNotEmpty) '${m['notes']}',
+        if (PublicTextSanitizer.sanitize(m['notes']).isNotEmpty)
+          PublicTextSanitizer.sanitize(m['notes']),
       ].where((s) => s.trim().isNotEmpty).join(' — ');
       return SearchHit(
         source: 'repairs',
@@ -151,7 +164,8 @@ class GlobalSearchService {
       final total = _toD(m['total']);
       final paid = _toD(m['paid']);
       final status = (m['status'] ?? '').toString();
-      final title = 'فاتورة ${id.isNotEmpty ? id.substring(0, 8) : ''}';
+      final shortId = id.length <= 8 ? id : id.substring(0, 8);
+      final title = 'فاتورة $shortId';
       final sub =
           'الإجمالي: ${_fmt(total)} — المدفوع: ${_fmt(paid)} — الحالة: $status';
       return SearchHit(
@@ -185,7 +199,8 @@ class GlobalSearchService {
       final sub = [
         if (method.isNotEmpty) 'طريقة: $method',
         if (date.isNotEmpty) date,
-        if ((m['notes'] ?? '').toString().isNotEmpty) '${m['notes']}',
+        if (PublicTextSanitizer.sanitize(m['notes']).isNotEmpty)
+          PublicTextSanitizer.sanitize(m['notes']),
       ].where((s) => s.trim().isNotEmpty).join(' — ');
       return SearchHit(
         source: 'payments',
@@ -250,6 +265,98 @@ class GlobalSearchService {
         title: name.isEmpty ? 'مورد' : name,
         subtitle: sub.isEmpty ? null : sub,
       );
+    }).toList();
+  }
+
+  // ---------------- Receipts ----------------
+  static Future<List<SearchHit>> _searchReceipts(
+      Database db, String like) async {
+    final rows = await db.rawQuery('''
+      SELECT h.receipt_number, h.total_amount, h.date, h.status, h.notes,
+             c.name AS client_name
+      FROM receipt_headers h
+      LEFT JOIN clients c ON c.id=h.client_id
+      WHERE ('RC-' || printf('%06d', h.receipt_number) LIKE ?
+         OR CAST(h.receipt_number AS TEXT) LIKE ?
+         OR COALESCE(c.name,'') LIKE ?
+         OR COALESCE(h.notes,'') LIKE ?)
+      ORDER BY h.date DESC
+      LIMIT 10
+    ''', [like, like, like, like]);
+
+    return rows.map((m) {
+      final n = (m['receipt_number'] as num).toInt();
+      final rc = 'RC-${n.toString().padLeft(6, '0')}';
+      final sub = [
+        PublicTextSanitizer.sanitize(m['client_name']),
+        _fmt(_toD(m['total_amount'])),
+        PublicTextSanitizer.sanitize(m['status']),
+      ].where((e) => e.isNotEmpty).join(' — ');
+      return SearchHit(
+          source: 'receipts',
+          id: n.toString(),
+          title: 'سند قبض $rc',
+          subtitle: sub);
+    }).toList();
+  }
+
+  // ---------------- Cheques ----------------
+  static Future<List<SearchHit>> _searchCheques(
+      Database db, String like) async {
+    final rows = await db.query(
+      'cheques',
+      where:
+          '''(cheque_no LIKE ? OR number LIKE ? OR bank_name LIKE ? OR bank LIKE ?
+        OR drawer_name LIKE ? OR recipient_name LIKE ? OR notes LIKE ?)''',
+      whereArgs: [like, like, like, like, like, like, like],
+      orderBy: 'due_date DESC',
+      limit: 10,
+    );
+    return rows.map((m) {
+      final id = (m['id'] ?? '').toString();
+      final no = (m['cheque_no'] ?? m['number'] ?? '').toString();
+      final sub = [
+        PublicTextSanitizer.sanitize(m['bank_name'] ?? m['bank']),
+        _fmt(_toD(m['amount'])),
+        PublicTextSanitizer.sanitize(m['status']),
+        (m['due_date'] ?? '').toString(),
+      ].where((e) => e.isNotEmpty).join(' — ');
+      return SearchHit(
+          source: 'cheques',
+          id: id,
+          title: no.isEmpty ? 'شيك #$id' : 'شيك $no',
+          subtitle: sub);
+    }).toList();
+  }
+
+  // ---------------- Purchases ----------------
+  static Future<List<SearchHit>> _searchPurchases(
+      Database db, String like) async {
+    final rows = await db.rawQuery('''
+      SELECT p.id, p.invoice_number, p.date, p.total, p.amount_total, p.status,
+             p.note, s.name AS supplier_name
+      FROM purchase_invoices p
+      LEFT JOIN suppliers s ON s.id=p.supplier_id
+      WHERE (p.id LIKE ? OR COALESCE(p.invoice_number,'') LIKE ?
+         OR COALESCE(s.name,'') LIKE ? OR COALESCE(p.note,'') LIKE ?)
+      ORDER BY p.date DESC
+      LIMIT 10
+    ''', [like, like, like, like]);
+    return rows.map((m) {
+      final id = (m['id'] ?? '').toString();
+      final no = (m['invoice_number'] ?? '').toString();
+      final total =
+          _toD(m['total']) != 0 ? _toD(m['total']) : _toD(m['amount_total']);
+      final sub = [
+        PublicTextSanitizer.sanitize(m['supplier_name']),
+        _fmt(total),
+        PublicTextSanitizer.sanitize(m['status']),
+      ].where((e) => e.isNotEmpty).join(' — ');
+      return SearchHit(
+          source: 'purchases',
+          id: id,
+          title: no.isEmpty ? 'فاتورة شراء' : 'فاتورة شراء $no',
+          subtitle: sub);
     }).toList();
   }
 

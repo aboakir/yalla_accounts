@@ -241,95 +241,45 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Future<void> _deletePaymentFromPaymentsTable(String id) async {
-    final ok = await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AdaptiveAlertDialog(
-        title: const Text('تأكيد'),
+      builder: (ctx) => AdaptiveAlertDialog(
+        title: const Text('عكس سند القبض'),
         content: const Text(
-            'سيتم حذف الدفعة من جدول payments وعكس القيد المرتبط وتحديث الفاتورة.'),
+          'لن يتم حذف الحركة. سيُنشأ مستند عكس رسمي، وإذا كان السند موزعًا على أكثر من ملف فسيتم عكس السند كاملًا.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('حذف')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('عكس رسمي'),
+          ),
         ],
       ),
     );
-    if (ok != true) return;
+    if (confirmed != true) return;
 
-    final db = await _db();
-    await db.transaction((txn) async {
-      final row =
-          await txn.query('payments', where: 'id=?', whereArgs: [id], limit: 1);
-      if (row.isEmpty) return;
-
-      final m = row.first;
-      final glId = (m['gl_entry_id'] is int)
-          ? (m['gl_entry_id'] as int)
-          : int.tryParse(m['gl_entry_id']?.toString() ?? '');
-      final invoiceId = m['invoice_id']?.toString();
-      final repairId = m['repair_id']?.toString();
-
-      if (glId != null) {
-        try {
-          await DBService.reverseEntryGL(glId,
-              note: 'Reverse on payment delete');
-        } catch (_) {}
-      }
-
-      await txn.delete('payments', where: 'id=?', whereArgs: [id]);
-
-      String? invId = invoiceId;
-      if ((invId == null || invId.isEmpty) && (repairId?.isNotEmpty == true)) {
-        final q = await txn.query('invoices',
-            columns: ['id', 'total'],
-            where: 'repair_id=?',
-            whereArgs: [repairId],
-            limit: 1);
-        if (q.isNotEmpty) invId = q.first['id']?.toString();
-      }
-
-      if (invId != null && invId.isNotEmpty) {
-        final paidRow = await txn.rawQuery(
-          'SELECT IFNULL(SUM(amount),0) AS s FROM payments WHERE invoice_id = ?',
-          [invId],
-        );
-        final paid = (paidRow.first['s'] is num)
-            ? (paidRow.first['s'] as num).toDouble()
-            : double.tryParse(paidRow.first['s'].toString()) ?? 0.0;
-
-        final totRow = await txn.query('invoices',
-            columns: ['total'], where: 'id=?', whereArgs: [invId], limit: 1);
-        final totalRaw = totRow.isNotEmpty ? totRow.first['total'] : 0;
-        final total = (totalRaw is num)
-            ? totalRaw.toDouble()
-            : double.tryParse(totalRaw.toString()) ?? 0.0;
-
-        String status;
-        if (paid <= 0.0000001) {
-          status = 'unpaid';
-        } else if ((total - paid).abs() <= 0.0000001 || paid > total) {
-          status = 'paid';
-        } else {
-          status = 'partial';
-        }
-
-        await txn.update(
-          'invoices',
-          {
-            'paid': paid,
-            'status': status,
-            'updated_at': DateTime.now().toIso8601String()
-          },
-          where: 'id=?',
-          whereArgs: [invId],
-        );
-      }
-    });
-
-    _load();
+    try {
+      await PaymentService.reverseReceiptByPaymentId(
+        id,
+        reason: 'عكس من شاشة الدفعات',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم عكس سند القبض رسميًا دون حذف الحركة الأصلية'),
+        ),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر عكس سند القبض: $e')),
+      );
+    }
   }
 
   // ===== UI =====
@@ -862,30 +812,16 @@ class _AddEditPaymentDialogState extends State<AddEditPaymentDialog> {
 
       final customerName = _clientNameById(_clientId!);
 
-      // في وضع التعديل: احذف القديمة واعكس GL ثم أنشئ جديدة
+      // P11: posted receipts are immutable. Correction is formal reversal + new receipt.
       if (editing) {
-        final db = await _db();
-        await db.transaction((txn) async {
-          final row = await txn.query('payments',
-              where: 'id=?', whereArgs: [oldId], limit: 1);
-          if (row.isNotEmpty) {
-            final glId = (row.first['gl_entry_id'] is int)
-                ? (row.first['gl_entry_id'] as int)
-                : int.tryParse(row.first['gl_entry_id']?.toString() ?? '');
-            if (glId != null) {
-              try {
-                await DBService.reverseEntryGL(glId,
-                    note: 'Reverse on payment edit');
-              } catch (_) {}
-            }
-          }
-          await txn.delete('payments', where: 'id=?', whereArgs: [oldId]);
-        });
+        throw StateError(
+          'سند القبض المنشور لا يتم تعديله مباشرة. اعكس السند رسميًا ثم أنشئ سندًا جديدًا.',
+        );
       }
 
       final payment = fpay.Payment(
         id: _newPaymentId(),
-        isIncome: false, // ← ضروري جداً (هذا ليس قبض بل صرف/مصروف)
+        isIncome: true, // P11 canonical receipt/income
         clientId: _clientId,
         repairId: _repairId!,
         relatedRepairId: _repairId!,

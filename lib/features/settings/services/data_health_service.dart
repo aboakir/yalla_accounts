@@ -188,6 +188,8 @@ class DataHealthService {
 
       changes['repair_detail_caches'] = await _repairRepairDetailCaches(txn);
 
+      changes['repair_payment_caches'] = await _repairRepairPaymentCaches(txn);
+
       changes['settlement_schema'] = await _repairSettlementSchema(txn);
 
       final candidate = await _runWithDb(txn);
@@ -627,6 +629,140 @@ class DataHealthService {
         amount: detailAudit.fileValueMismatchCount == 0
             ? null
             : detailAudit.fileValueMismatchAmount,
+      ),
+    );
+
+    final repairPaymentCacheMismatch = await _firstInt(
+      db,
+      '''
+      WITH paid AS (
+        SELECT
+          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
+          COUNT(*) AS payment_count,
+          SUM(amount) AS paid
+        FROM payments
+        WHERE COALESCE(isIncome,1)=1
+        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+      )
+      SELECT COUNT(*)
+      FROM repairs r
+      LEFT JOIN paid p ON p.repair_id=r.id
+      WHERE COALESCE(p.payment_count,0) > 0
+        AND (
+          ABS(COALESCE(r.total_paid_amount,0)-COALESCE(p.paid,0)) > 0.01
+         OR ABS(COALESCE(r.paidAmount,0)-COALESCE(p.paid,0)) > 0.01
+         OR COALESCE(r.paymentStatus,'') <>
+            CASE
+              WHEN COALESCE(r.fileValue,0) <= 0.005 THEN 'مسدد'
+              WHEN COALESCE(p.paid,0) <= 0.005 THEN 'غير مسدد'
+              WHEN COALESCE(p.paid,0)+0.005 >= COALESCE(r.fileValue,0) THEN 'مسدد'
+              ELSE 'مسدد جزئي'
+            END
+        )
+      ''',
+    );
+
+    items.add(
+      _zeroIsPass(
+        id: 'repair_payment_cache',
+        title: 'مطابقة مدفوع Repair مع Payments',
+        count: repairPaymentCacheMismatch,
+        okMessage: 'paidAmount و total_paid_amount مطابقان لـ SUM(payments).',
+        issueMessage:
+            'يوجد Repair cache لا يطابق المدفوعات ويمكن إصلاحه بأمان.',
+        issueStatus: DataHealthStatus.repairable,
+      ),
+    );
+
+    final legacyRepairPaymentEvidence = await _firstInt(
+      db,
+      '''
+      SELECT COUNT(*)
+      FROM repairs r
+      WHERE COALESCE(r.total_paid_amount,r.paidAmount,0) > 0.01
+        AND NOT EXISTS(
+          SELECT 1
+          FROM payments p
+          WHERE COALESCE(p.isIncome,1)=1
+            AND (
+              p.repair_id=r.id
+              OR (COALESCE(p.repair_id,'')='' AND p.relatedRepairId=r.id)
+            )
+        )
+      ''',
+    );
+
+    items.add(
+      DataHealthItem(
+        id: 'legacy_repair_payment_evidence',
+        title: 'دفعات Repair تاريخية بلا Payment rows',
+        message: legacyRepairPaymentEvidence == 0
+            ? 'لا توجد دفعات تاريخية تعتمد على cache فقط.'
+            : 'يوجد $legacyRepairPaymentEvidence Repair يحتوي مبلغًا مدفوعًا '
+                'قديمًا بلا Payment rows. لا يتم تصفيره أو اختلاق سند قبض تلقائيًا.',
+        status: legacyRepairPaymentEvidence == 0
+            ? DataHealthStatus.pass
+            : DataHealthStatus.warning,
+        affected: legacyRepairPaymentEvidence,
+      ),
+    );
+
+    final repairArReconciliation = await db.rawQuery(
+      '''
+      WITH paid AS (
+        SELECT
+          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
+          SUM(amount) AS paid
+        FROM payments
+        WHERE COALESCE(isIncome,1)=1
+        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+      ),
+      ar AS (
+        SELECT
+          l.repair_id,
+          SUM(l.debit-l.credit) AS balance
+        FROM gl_lines l
+        LEFT JOIN accounts a ON a.id=l.account_id
+        WHERE l.repair_id IS NOT NULL
+          AND (
+            a.code LIKE '1200.C%'
+            OR UPPER(COALESCE(l.party_type,'')) IN ('CLIENT','CUSTOMER')
+          )
+        GROUP BY l.repair_id
+      )
+      SELECT
+        COUNT(*) AS c,
+        COALESCE(SUM(ABS(
+          (COALESCE(r.fileValue,0)-COALESCE(p.paid,0))
+          - COALESCE(ar.balance,0)
+        )),0) AS amount
+      FROM repairs r
+      LEFT JOIN paid p ON p.repair_id=r.id
+      LEFT JOIN ar ON ar.repair_id=r.id
+      WHERE ABS(
+        (COALESCE(r.fileValue,0)-COALESCE(p.paid,0))
+        - COALESCE(ar.balance,0)
+      ) > 0.01
+      ''',
+    );
+
+    final repairArMismatchCount = _asInt(repairArReconciliation.first['c']);
+    final repairArMismatchAmount =
+        _asDouble(repairArReconciliation.first['amount']);
+
+    items.add(
+      DataHealthItem(
+        id: 'repair_ar_reconciliation',
+        title: 'مطابقة Repair مع ذمم GL',
+        message: repairArMismatchCount == 0
+            ? 'قيمة كل Repair ناقص مدفوعاته تطابق رصيد AR المرتبط به في GL.'
+            : 'يوجد $repairArMismatchCount Repair لا يطابق رصيده المالي في GL. '
+                'لا يتم إصلاح هذا الفرق تلقائيًا؛ يلزم Reversal/Adjustment رسمي.',
+        status: repairArMismatchCount == 0
+            ? DataHealthStatus.pass
+            : DataHealthStatus.error,
+        affected: repairArMismatchCount,
+        amount: repairArMismatchCount == 0 ? null : repairArMismatchAmount,
       ),
     );
 
@@ -1365,6 +1501,66 @@ class DataHealthService {
       ''',
     );
 
+    return changed;
+  }
+
+  Future<int> _repairRepairPaymentCaches(
+    DatabaseExecutor db,
+  ) async {
+    final rows = await db.rawQuery('''
+      WITH paid AS (
+        SELECT
+          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
+          COUNT(*) AS payment_count,
+          SUM(amount) AS paid
+        FROM payments
+        WHERE COALESCE(isIncome,1)=1
+        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+      )
+      SELECT
+        r.id,
+        COALESCE(r.fileValue,0) AS file_value,
+        COALESCE(p.paid,0) AS paid
+      FROM repairs r
+      LEFT JOIN paid p ON p.repair_id=r.id
+      WHERE COALESCE(p.payment_count,0) > 0
+        AND (
+          ABS(COALESCE(r.total_paid_amount,0)-COALESCE(p.paid,0)) > 0.01
+         OR ABS(COALESCE(r.paidAmount,0)-COALESCE(p.paid,0)) > 0.01
+         OR COALESCE(r.paymentStatus,'') <>
+            CASE
+              WHEN COALESCE(r.fileValue,0) <= 0.005 THEN 'مسدد'
+              WHEN COALESCE(p.paid,0) <= 0.005 THEN 'غير مسدد'
+              WHEN COALESCE(p.paid,0)+0.005 >= COALESCE(r.fileValue,0) THEN 'مسدد'
+              ELSE 'مسدد جزئي'
+            END
+        )
+    ''');
+
+    var changed = 0;
+    for (final row in rows) {
+      final id = row['id']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      final fileValue = _asDouble(row['file_value']);
+      final paid = _round2(_asDouble(row['paid']));
+      final status = fileValue <= 0.005
+          ? 'مسدد'
+          : paid <= 0.005
+              ? 'غير مسدد'
+              : paid + 0.005 >= fileValue
+                  ? 'مسدد'
+                  : 'مسدد جزئي';
+      changed += await db.update(
+        'repairs',
+        {
+          'paidAmount': paid,
+          'total_paid_amount': paid,
+          'paymentStatus': status,
+        },
+        where: 'id=?',
+        whereArgs: [id],
+      );
+    }
     return changed;
   }
 

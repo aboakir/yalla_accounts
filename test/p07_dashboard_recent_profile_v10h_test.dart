@@ -9,8 +9,9 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('DBService.getRepairThumbnailPath(repair.id)'));
-    expect(source, contains('File(profilePath).existsSync()'));
-    expect(source, contains('Image.file('));
+    expect(source, contains('DBService.getRepairThumbnailPath(repair.id)'));
+    expect(source, contains('YallaStoredImage('));
+    expect(source, contains('storedPath: snapshot.data'));
     expect(source, contains('Icons.directions_car_filled_rounded'));
   });
 }

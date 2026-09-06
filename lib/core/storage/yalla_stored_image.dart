@@ -13,6 +13,7 @@ class YallaStoredImage extends StatelessWidget {
     this.borderRadius,
     this.fallback,
     this.cacheWidth,
+    this.cacheHeight,
   });
 
   final String? storedPath;
@@ -22,6 +23,7 @@ class YallaStoredImage extends StatelessWidget {
   final BorderRadius? borderRadius;
   final Widget? fallback;
   final int? cacheWidth;
+  final int? cacheHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +36,12 @@ class YallaStoredImage extends StatelessWidget {
           child: const Icon(Icons.directions_car_outlined),
         );
 
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final effectiveCacheWidth =
+        cacheWidth ?? (width * dpr).ceil().clamp(64, 2048).toInt();
+    final effectiveCacheHeight =
+        cacheHeight ?? (height * dpr).ceil().clamp(64, 2048).toInt();
+
     return FutureBuilder<String?>(
       future: YallaStorageService.resolveExistingPath(storedPath),
       builder: (context, snapshot) {
@@ -45,7 +53,8 @@ class YallaStoredImage extends StatelessWidget {
                 width: width,
                 height: height,
                 fit: fit,
-                cacheWidth: cacheWidth,
+                cacheWidth: effectiveCacheWidth,
+                cacheHeight: effectiveCacheHeight,
                 errorBuilder: (_, __, ___) => fallbackWidget,
               );
         final radius = borderRadius;

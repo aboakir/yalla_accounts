@@ -32,7 +32,7 @@ class PurchasePaintScreen extends ConsumerStatefulWidget {
 class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final _supplierIdCtrl = TextEditingController(); // Supplier ID (INT) OPTIONAL
+  final _supplierIdCtrl = TextEditingController(); // Supplier ID (INT) REQUIRED
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController(text: 'دهانات');
 
@@ -90,25 +90,27 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
     try {
       final amount = double.parse(_normalize(_amountCtrl.text.trim()));
       final supplierId = int.tryParse(_supplierIdCtrl.text.trim());
+      if (supplierId == null || supplierId <= 0) {
+        throw ArgumentError('معرّف المورد يجب أن يكون رقمًا صالحًا');
+      }
 
-      // خط واحد إلزامي بنظام v51
       final lines = [
         {
-          "item": "دهانات",
-          "qty": 1,
-          "unit_price": amount,
-          "total": amount,
-          "category": "OTHER",
-          "note": _noteCtrl.text.trim(),
+          'item_name': 'دهانات',
+          'qty': 1.0,
+          'price': amount,
+          'category': 'PAINT',
+          'note': _noteCtrl.text.trim(),
         }
       ];
 
       await ref.read(purchaseProvider.notifier).add(
-            supplierId: 9999, // مطلوب وليس nullable
+            supplierId: supplierId,
             date: _date,
             method: _method,
             note: _noteCtrl.text.trim(),
-            items: lines, // unit_price + total
+            items: lines,
+            purchaseType: 'PAINT',
           );
 
       if (!mounted) return;
@@ -154,15 +156,21 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
 
-            // Supplier ID (اختياري)
+            // Supplier ID (إلزامي)
             TextFormField(
               inputFormatters: const [YallaDigitNormalizer()],
               controller: _supplierIdCtrl,
               decoration: const InputDecoration(
-                labelText: "Supplier ID (اختياري)",
+                labelText: "معرّف المورّد *",
                 prefixIcon: Icon(Icons.badge_outlined),
                 border: OutlineInputBorder(),
               ),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                final id = int.tryParse((value ?? '').trim());
+                if (id == null || id <= 0) return 'أدخل معرّف مورد صالح';
+                return null;
+              },
             ),
             const SizedBox(height: 12),
 

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/design/yalla_breakpoints.dart' as design;
 
 /// Unified adaptive layout primitives for Yalla Accounts.
 ///
 /// Breakpoints are deliberately shared across phone, tablet and desktop so
 /// feature screens do not invent their own device thresholds.
 abstract final class YallaBreakpoints {
-  static const double phone = 600;
-  static const double desktop = 1024;
+  static const double phone = design.YallaBreakpoints.tablet;
+  static const double desktop = design.YallaBreakpoints.desktop;
   static const double denseRowStack = 680;
 }
 
@@ -293,6 +294,53 @@ class AdaptiveDataTable extends StatelessWidget {
 
         return _table();
       },
+    );
+  }
+}
+
+/// Dialog surface that preserves the desktop dimensions but becomes a
+/// viewport-safe page-like surface on phones and compact tablets.
+class AdaptiveDialogSurface extends StatelessWidget {
+  const AdaptiveDialogSurface({
+    super.key,
+    required this.child,
+    required this.desktopWidth,
+    required this.desktopHeight,
+    this.padding = const EdgeInsets.all(24),
+  });
+
+  final Widget child;
+  final double desktopWidth;
+  final double desktopHeight;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final insets = MediaQuery.viewInsetsOf(context);
+    final compact = size.width < YallaBreakpoints.phone;
+    final horizontalInset = compact ? 12.0 : 40.0;
+    final verticalInset = compact ? 12.0 : 24.0;
+    final maxWidth = (size.width - (horizontalInset * 2))
+        .clamp(240.0, desktopWidth)
+        .toDouble();
+    final maxHeight = (size.height - insets.bottom - (verticalInset * 2))
+        .clamp(280.0, desktopHeight)
+        .toDouble();
+
+    return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: horizontalInset,
+        vertical: verticalInset,
+      ),
+      child: SizedBox(
+        width: maxWidth,
+        height: maxHeight,
+        child: Padding(
+          padding: compact ? const EdgeInsets.all(16) : padding,
+          child: child,
+        ),
+      ),
     );
   }
 }

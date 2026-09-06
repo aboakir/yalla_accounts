@@ -1,8 +1,5 @@
-// TEMPORARY DEVELOPMENT SWITCH.
-// AUTH UX redesign is intentionally deferred until after P18.
+// Historical compatibility marker only.
 //
-// true  = bypass application-user authentication and role route gate.
-// false = restore normal authentication behavior.
-//
-// IMPORTANT: MUST BE false before any production release.
-const bool kTemporaryAuthBypass = true;
+// P18 production authority closure removed the runtime bypass from AppRoutes.
+// This constant remains false so any stale external reference fails closed.
+const bool kTemporaryAuthBypass = false;

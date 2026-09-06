@@ -209,6 +209,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
         'attachments': null,
         'relatedRepairId': widget.repairId, // ← يجوز null
         'gl_entry_id': null,
+        'isIncome': 1,
       });
 
       await PaymentService.insertAndPostReceipt(

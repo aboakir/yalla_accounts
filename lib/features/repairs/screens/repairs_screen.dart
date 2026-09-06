@@ -23,6 +23,7 @@ import 'package:yalla_accounts/features/repairs/screens/add_repair_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/edit_repair_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/repair_details_screen.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_workflow_service.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_card.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_filter_bar.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_stats_cards.dart';
@@ -345,39 +346,88 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                   });
                 },
               ),
-            ListTile(
-              leading: Icon(
-                r.isArchived
-                    ? Icons.unarchive_outlined
-                    : Icons.archive_outlined,
-                color: AppColors.primary,
+            if (r.isArchived && r.status == RepairStatusText.closed)
+              ListTile(
+                leading: const Icon(
+                  Icons.lock_open,
+                  color: AppColors.primary,
+                ),
+                title: const Text('إعادة فتح الملف المغلق'),
+                subtitle: const Text('يتطلب سببًا موثقًا ويعيد الملف للتنفيذ'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _reopenClosedRepair(r);
+                },
               ),
-              title: Text(
-                r.isArchived ? 'استعادة من الأرشيف' : 'أرشفة الملف',
+            if (!r.isArchived) ...[
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text(
+                  'إلغاء الملف',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteRepairSafely(r);
+                },
               ),
-              onTap: () async {
-                Navigator.pop(context);
-                await ref
-                    .read(repairListProvider.notifier)
-                    .setArchived(r.id, !r.isArchived);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text(
-                'حذف الملف',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteRepairSafely(r);
-              },
-            ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _reopenClosedRepair(Repair repair) async {
+    final reason = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AdaptiveAlertDialog(
+        title: const Text('إعادة فتح ملف مغلق'),
+        content: TextField(
+          controller: reason,
+          minLines: 2,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            labelText: 'سبب إعادة الفتح *',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('إعادة فتح'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      reason.dispose();
+      return;
+    }
+    try {
+      await RepairWorkflowService.reopenClosed(
+        repairId: repair.id,
+        reason: reason.text,
+      );
+      await ref.read(repairListProvider.notifier).loadRepairs();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تمت إعادة فتح الملف بسبب موثق')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$e')),
+      );
+    } finally {
+      reason.dispose();
+    }
   }
 
   // ===== FAB آمن =====

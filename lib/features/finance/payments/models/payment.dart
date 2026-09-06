@@ -5,6 +5,8 @@
 
 class Payment {
   final String id;
+  final int? receiptNumber;
+  final String? reversalOfPaymentId;
 
   // دفعات القبض فقط
   final int? clientId;
@@ -38,6 +40,8 @@ class Payment {
 
   const Payment({
     required this.id,
+    this.receiptNumber,
+    this.reversalOfPaymentId,
     this.clientId,
     this.repairId,
     this.invoiceId,
@@ -81,6 +85,8 @@ class Payment {
   factory Payment.fromMap(Map<String, dynamic> map) {
     return Payment(
       id: _str(map['id']) ?? '',
+      receiptNumber: _int(map['receipt_number']),
+      reversalOfPaymentId: _str(map['reversal_of_payment_id']),
       clientId: _int(map['client_id']),
       repairId: _str(map['repair_id']),
       invoiceId: _str(map['invoice_id']),
@@ -104,6 +110,8 @@ class Payment {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'receipt_number': receiptNumber,
+      'reversal_of_payment_id': reversalOfPaymentId,
       'client_id': clientId,
       'repair_id': repairId,
       'invoice_id': invoiceId,
@@ -123,6 +131,8 @@ class Payment {
 
   Payment copyWith({
     String? id,
+    int? receiptNumber,
+    String? reversalOfPaymentId,
     int? clientId,
     String? repairId,
     String? invoiceId,
@@ -140,6 +150,8 @@ class Payment {
   }) {
     return Payment(
       id: id ?? this.id,
+      receiptNumber: receiptNumber ?? this.receiptNumber,
+      reversalOfPaymentId: reversalOfPaymentId ?? this.reversalOfPaymentId,
       clientId: clientId ?? this.clientId,
       repairId: repairId ?? this.repairId,
       invoiceId: invoiceId ?? this.invoiceId,

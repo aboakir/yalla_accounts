@@ -83,6 +83,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     // احسب المتبقي
     final totalPaid = await AccountsReceivableService.instance
         .totalPaidForRepair(widget.repair.id);
+    if (!mounted) return;
 
     final remaining =
         (widget.repair.totalFileValue - totalPaid).clamp(0.0, double.infinity);

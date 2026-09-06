@@ -12,6 +12,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:yalla_accounts/core/services/accounting_gl.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 
 class PurchasePaymentService {
@@ -20,10 +21,7 @@ class PurchasePaymentService {
   static const _TABLE = "purchase_invoices";
   static const _PAYMENTS = "payments";
 
-  // الحسابات الثابتة
-  static const _ACC_CASH = "1000";
-  static const _ACC_BANK = "1010";
-  static const _ACC_CHEQUE = "1020";
+  // أكواد الحسابات مصدرها المركزي الوحيد: GL.
 
   // ---------------------------------------------------------------------------
   // API — الاستدعاء من الواجهات
@@ -116,13 +114,13 @@ class PurchasePaymentService {
 
       if (methodNorm == "bank" || methodNorm == "transfer") {
         creditAcc =
-            await _accId(txn, _ACC_BANK) ?? (throw "Bank account 1010 missing");
+            await _accId(txn, GL.bank) ?? (throw "Bank account 1010 missing");
       } else if (methodNorm == "cheque") {
-        creditAcc =
-            await _accId(txn, _ACC_CHEQUE) ?? await _createChequeAccount(txn);
+        creditAcc = await _accId(txn, GL.receivedCheques) ??
+            await _createChequeAccount(txn);
       } else {
         creditAcc =
-            await _accId(txn, _ACC_CASH) ?? (throw "Cash account 1000 missing");
+            await _accId(txn, GL.cash) ?? (throw "Cash account 1000 missing");
       }
 
       // -----------------------------------------------------------------------

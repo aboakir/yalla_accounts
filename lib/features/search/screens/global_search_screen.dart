@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/global_search_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/clients/services/client_service.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
@@ -104,13 +105,22 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           break;
 
         case 'clients':
+          final clientId = int.tryParse(h.id);
+          final client = clientId == null
+              ? null
+              : await ClientService.getClientById(clientId);
           if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.clients);
+          if (client != null) {
+            Navigator.pushNamed(context, AppRoutes.clientEdit,
+                arguments: client);
+          } else {
+            Navigator.pushNamed(context, AppRoutes.clients);
+          }
           break;
 
         case 'invoices':
           if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.financeDashboard);
+          Navigator.pushNamed(context, AppRoutes.invoiceView, arguments: h.id);
           break;
 
         case 'payments':
@@ -125,9 +135,22 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
         case 'suppliers':
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('قريبًا: شاشة الموردين')),
-          );
+          Navigator.pushNamed(context, AppRoutes.suppliers);
+          break;
+
+        case 'receipts':
+          if (!mounted) return;
+          Navigator.pushNamed(context, AppRoutes.receiptVouchersList);
+          break;
+
+        case 'cheques':
+          if (!mounted) return;
+          Navigator.pushNamed(context, AppRoutes.chequesDashboard);
+          break;
+
+        case 'purchases':
+          if (!mounted) return;
+          Navigator.pushNamed(context, AppRoutes.purchasesList);
           break;
 
         default:
@@ -234,6 +257,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         return const Icon(Icons.badge);
       case 'suppliers':
         return const Icon(Icons.store);
+      case 'receipts':
+        return const Icon(Icons.receipt_long);
+      case 'cheques':
+        return const Icon(Icons.payments_outlined);
+      case 'purchases':
+        return const Icon(Icons.shopping_cart_outlined);
       default:
         return const Icon(Icons.search);
     }
@@ -253,6 +282,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
         return 'موظفون';
       case 'suppliers':
         return 'موردون';
+      case 'receipts':
+        return 'سندات قبض';
+      case 'cheques':
+        return 'شيكات';
+      case 'purchases':
+        return 'مشتريات';
       default:
         return src;
     }

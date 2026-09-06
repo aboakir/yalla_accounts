@@ -36,17 +36,16 @@ class AppTheme {
     inputDecorationTheme: baseInputDecoration,
     dropdownMenuTheme: DropdownMenuThemeData(
       menuStyle: MenuStyle(
-        backgroundColor:
-            const MaterialStatePropertyAll(AppColors.dropdownBackground),
+        backgroundColor: const MaterialStatePropertyAll(AppColors.inputFill),
       ),
       // ✅ صح: textStyle هو TextStyle? وليس Material/WidgetStateProperty
       textStyle: const TextStyle(
-        color: AppColors.textLight, // النص أبيض داخل القائمة
+        color: AppColors.textDark,
         fontSize: 14,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.dropdown, // خلفية سوداء للحقل نفسه
+        fillColor: AppColors.inputFill,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -83,30 +82,6 @@ class AppTheme {
     textTheme: const TextTheme(
       titleLarge:
           TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
-    ),
-  );
-
-  static ThemeData darkTheme = lightTheme.copyWith(
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: const Color(0xFF121212),
-    cardColor: const Color(0xFF1E1E1E),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF1F1F1F),
-      foregroundColor: Colors.white,
-    ),
-    inputDecorationTheme: baseInputDecoration.copyWith(
-      fillColor: const Color(0xFF2A2A2A),
-      labelStyle: const TextStyle(
-        color: Colors.white70,
-        fontSize: 15,
-      ),
-    ),
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.primary,
-      brightness: Brightness.dark,
-    ),
-    textTheme: const TextTheme(
-      titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
     ),
   );
 }

@@ -1,7 +1,14 @@
 class RoleKeys {
+  // P16 official Mobile V2 roles.
   static const String owner = 'owner';
   static const String manager = 'manager';
   static const String accountant = 'accountant';
+  static const String employee = 'employee';
+  static const String technician = 'technician';
+
+  // Historical SEC.008 roles remain recognized so existing installations and
+  // old signed/test data are never orphaned. New UI assignment exposes only
+  // the five official P16 roles above.
   static const String cashier = 'cashier';
   static const String workshopManager = 'workshop_manager';
   static const String estimator = 'estimator';
@@ -12,6 +19,11 @@ class RoleKeys {
   static const Set<String> assignable = {
     manager,
     accountant,
+    employee,
+    technician,
+  };
+
+  static const Set<String> legacyAssignable = {
     cashier,
     workshopManager,
     estimator,
@@ -27,6 +39,8 @@ class RoleKeys {
     owner,
     manager,
     accountant,
+    employee,
+    technician,
     cashier,
     workshopManager,
     estimator,
@@ -38,23 +52,27 @@ class RoleKeys {
   static String displayNameAr(String role) {
     switch (role) {
       case owner:
-        return 'مالك المنشأة';
+        return 'المالك';
       case manager:
-        return 'مدير';
+        return 'المدير';
       case accountant:
-        return 'محاسب';
+        return 'المحاسب';
+      case employee:
+        return 'موظف';
+      case technician:
+        return 'فني';
       case cashier:
-        return 'أمين صندوق';
+        return 'أمين صندوق (قديم)';
       case workshopManager:
-        return 'مدير الورشة';
+        return 'مدير الورشة (قديم)';
       case estimator:
-        return 'مُقدّر';
+        return 'مُقدّر (قديم)';
       case storekeeper:
-        return 'أمين مخزن';
+        return 'أمين مخزن (قديم)';
       case auditor:
-        return 'مدقق';
+        return 'مدقق (قديم)';
       case readOnly:
-        return 'قراءة فقط';
+        return 'قراءة فقط (قديم)';
       default:
         return role;
     }
@@ -66,8 +84,12 @@ class PermissionKeys {
   static const String customerCreate = 'CUSTOMER_CREATE';
   static const String customerEdit = 'CUSTOMER_EDIT';
 
+  static const String repairView = 'REPAIR_VIEW';
   static const String repairCreate = 'REPAIR_CREATE';
   static const String repairEdit = 'REPAIR_EDIT';
+  static const String repairWorkflow = 'REPAIR_WORKFLOW';
+  static const String repairClose = 'REPAIR_CLOSE';
+  static const String repairReopen = 'REPAIR_REOPEN';
 
   static const String invoiceCreate = 'INVOICE_CREATE';
   static const String invoiceApprove = 'INVOICE_APPROVE';
@@ -75,7 +97,14 @@ class PermissionKeys {
   static const String invoiceReverse = 'INVOICE_REVERSE';
 
   static const String receiptCreate = 'RECEIPT_CREATE';
+  static const String receiptReverse = 'RECEIPT_REVERSE';
   static const String paymentCreate = 'PAYMENT_CREATE';
+
+  static const String chequeManage = 'CHEQUE_MANAGE';
+  static const String purchaseManage = 'PURCHASE_MANAGE';
+  static const String repairCostManage = 'REPAIR_COST_MANAGE';
+  static const String payrollView = 'PAYROLL_VIEW';
+  static const String payrollManage = 'PAYROLL_MANAGE';
 
   static const String glView = 'GL_VIEW';
   static const String glManualPost = 'GL_MANUAL_POST';
@@ -88,8 +117,9 @@ class PermissionKeys {
   static const String userEdit = 'USER_EDIT';
   static const String userDisable = 'USER_DISABLE';
   static const String userUnlock = 'USER_UNLOCK';
-
   static const String roleManage = 'ROLE_MANAGE';
+
+  static const String auditView = 'AUDIT_VIEW';
 
   static const String periodClose = 'PERIOD_CLOSE';
   static const String periodReopen = 'PERIOD_REOPEN';
@@ -99,20 +129,32 @@ class PermissionKeys {
   static const String settingsTax = 'SETTINGS_TAX';
 
   static const String backupCreate = 'BACKUP_CREATE';
+  static const String backupExport = 'BACKUP_EXPORT';
   static const String backupRestore = 'BACKUP_RESTORE';
+  static const String windowsImport = 'WINDOWS_IMPORT';
 
   static const Set<String> all = {
     customerView,
     customerCreate,
     customerEdit,
+    repairView,
     repairCreate,
     repairEdit,
+    repairWorkflow,
+    repairClose,
+    repairReopen,
     invoiceCreate,
     invoiceApprove,
     invoicePost,
     invoiceReverse,
     receiptCreate,
+    receiptReverse,
     paymentCreate,
+    chequeManage,
+    purchaseManage,
+    repairCostManage,
+    payrollView,
+    payrollManage,
     glView,
     glManualPost,
     reportView,
@@ -123,56 +165,99 @@ class PermissionKeys {
     userDisable,
     userUnlock,
     roleManage,
+    auditView,
     periodClose,
     periodReopen,
     settingsView,
     settingsAccounting,
     settingsTax,
     backupCreate,
+    backupExport,
     backupRestore,
+    windowsImport,
   };
 }
 
 class AuthorizationPolicy {
   static const Map<String, Set<String>> rolePermissions = {
     RoleKeys.owner: PermissionKeys.all,
+
     RoleKeys.manager: {
       PermissionKeys.customerView,
       PermissionKeys.customerCreate,
       PermissionKeys.customerEdit,
+      PermissionKeys.repairView,
       PermissionKeys.repairCreate,
       PermissionKeys.repairEdit,
+      PermissionKeys.repairWorkflow,
+      PermissionKeys.repairClose,
+      PermissionKeys.repairReopen,
       PermissionKeys.invoiceCreate,
       PermissionKeys.invoiceApprove,
       PermissionKeys.receiptCreate,
       PermissionKeys.paymentCreate,
+      PermissionKeys.chequeManage,
+      PermissionKeys.purchaseManage,
+      PermissionKeys.repairCostManage,
+      PermissionKeys.payrollView,
       PermissionKeys.reportView,
       PermissionKeys.reportExport,
       PermissionKeys.userView,
+      PermissionKeys.auditView,
       PermissionKeys.settingsView,
       PermissionKeys.backupCreate,
+      PermissionKeys.backupExport,
     },
+
     RoleKeys.accountant: {
       PermissionKeys.customerView,
+      PermissionKeys.repairView,
       PermissionKeys.invoiceCreate,
       PermissionKeys.invoiceApprove,
       PermissionKeys.invoicePost,
       PermissionKeys.invoiceReverse,
       PermissionKeys.receiptCreate,
+      PermissionKeys.receiptReverse,
       PermissionKeys.paymentCreate,
+      PermissionKeys.chequeManage,
+      PermissionKeys.purchaseManage,
+      PermissionKeys.repairCostManage,
+      PermissionKeys.payrollView,
+      PermissionKeys.payrollManage,
       PermissionKeys.glView,
       PermissionKeys.glManualPost,
       PermissionKeys.reportView,
       PermissionKeys.reportExport,
+      PermissionKeys.auditView,
       PermissionKeys.periodClose,
       PermissionKeys.settingsView,
       PermissionKeys.settingsAccounting,
       PermissionKeys.settingsTax,
       PermissionKeys.backupCreate,
+      PermissionKeys.backupExport,
     },
+
+    RoleKeys.employee: {
+      PermissionKeys.customerView,
+      PermissionKeys.customerCreate,
+      PermissionKeys.customerEdit,
+      PermissionKeys.repairView,
+      PermissionKeys.repairCreate,
+      PermissionKeys.repairEdit,
+      PermissionKeys.repairWorkflow,
+    },
+
+    RoleKeys.technician: {
+      PermissionKeys.repairView,
+      PermissionKeys.repairWorkflow,
+    },
+
+    // Historical compatibility roles. They are hidden from the P16 role picker
+    // but remain functional until existing users are reassigned.
     RoleKeys.cashier: {
       PermissionKeys.customerView,
       PermissionKeys.customerCreate,
+      PermissionKeys.repairView,
       PermissionKeys.invoiceCreate,
       PermissionKeys.receiptCreate,
       PermissionKeys.paymentCreate,
@@ -182,8 +267,10 @@ class AuthorizationPolicy {
       PermissionKeys.customerView,
       PermissionKeys.customerCreate,
       PermissionKeys.customerEdit,
+      PermissionKeys.repairView,
       PermissionKeys.repairCreate,
       PermissionKeys.repairEdit,
+      PermissionKeys.repairWorkflow,
       PermissionKeys.invoiceCreate,
       PermissionKeys.reportView,
     },
@@ -191,23 +278,29 @@ class AuthorizationPolicy {
       PermissionKeys.customerView,
       PermissionKeys.customerCreate,
       PermissionKeys.customerEdit,
+      PermissionKeys.repairView,
       PermissionKeys.repairCreate,
       PermissionKeys.repairEdit,
       PermissionKeys.reportView,
     },
     RoleKeys.storekeeper: {
+      PermissionKeys.purchaseManage,
+      PermissionKeys.repairCostManage,
       PermissionKeys.reportView,
       PermissionKeys.reportExport,
     },
     RoleKeys.auditor: {
       PermissionKeys.customerView,
+      PermissionKeys.repairView,
       PermissionKeys.glView,
       PermissionKeys.reportView,
       PermissionKeys.reportExport,
+      PermissionKeys.auditView,
       PermissionKeys.settingsView,
     },
     RoleKeys.readOnly: {
       PermissionKeys.customerView,
+      PermissionKeys.repairView,
       PermissionKeys.glView,
       PermissionKeys.reportView,
       PermissionKeys.settingsView,

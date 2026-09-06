@@ -15,6 +15,7 @@ class RepairTables {
     await _createInvoicesTable(db);
     await _createRepairLinesTable(db);
     await _createRepairImagesTable(db);
+    await ensureP09WorkflowSchema(db);
 
     await ensureRepairsSchema(db);
   }
@@ -388,6 +389,7 @@ class RepairTables {
     await _ensureColumn(db, 'repairs', 'approved_by', 'TEXT');
     await _ensureColumn(db, 'repairs', 'client_id', 'INTEGER'); // ← أضف هذا فقط
     await ensureP07IntakeSchema(db);
+    await ensureP09WorkflowSchema(db);
     await _ensureRepairsExtraCols(db);
     await _ensureRepairsInvoiceIdCol(db);
     await _migrateRepairsInvoiceId(db);
@@ -399,6 +401,101 @@ class RepairTables {
   SET total_paid_amount = paidAmount
   WHERE total_paid_amount IS NULL;
 """);
+  }
+
+  /// P09 additive operational workflow schema.
+  ///
+  /// This table deliberately keeps estimate/approval/work-order state outside
+  /// repairs.status because legacy accounting code still couples that column
+  /// to invoice/GL events. No existing repair/accounting rows are rewritten.
+  static Future<void> ensureP09WorkflowSchema(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS repair_workflow (
+        repair_id TEXT PRIMARY KEY,
+        stage TEXT NOT NULL DEFAULT 'DRAFT',
+        damage_assessment TEXT NOT NULL DEFAULT '',
+        quote_number TEXT,
+        quote_valid_until TEXT,
+        quote_sent_at TEXT,
+        approved_at TEXT,
+        approved_by TEXT,
+        approval_method TEXT,
+        approval_note TEXT,
+        rejected_at TEXT,
+        rejection_reason TEXT,
+        work_order_started_at TEXT,
+        work_order_number TEXT,
+        responsible_employee_id TEXT,
+        initial_qc_at TEXT,
+        initial_qc_by TEXT,
+        initial_qc_notes TEXT,
+        qc_work_complete INTEGER NOT NULL DEFAULT 0,
+        qc_finish_checked INTEGER NOT NULL DEFAULT 0,
+        qc_cleanliness_checked INTEGER NOT NULL DEFAULT 0,
+        qc_documentation_checked INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY(repair_id) REFERENCES repairs(id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_repair_workflow_stage '
+      'ON repair_workflow(stage);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_repair_workflow_responsible '
+      'ON repair_workflow(responsible_employee_id);',
+    );
+
+    // P13 additive delivery/closure fields. Existing workflow/accounting rows
+    // are never rebuilt or rewritten.
+    await _ensureColumn(db, 'repair_workflow', 'final_qc_at', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'final_qc_by', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'final_qc_notes', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'final_qc_work_verified',
+        'INTEGER NOT NULL DEFAULT 0');
+    await _ensureColumn(db, 'repair_workflow', 'final_qc_finish_verified',
+        'INTEGER NOT NULL DEFAULT 0');
+    await _ensureColumn(db, 'repair_workflow', 'final_qc_cleanliness_verified',
+        'INTEGER NOT NULL DEFAULT 0');
+    await _ensureColumn(db, 'repair_workflow',
+        'final_qc_documentation_verified', 'INTEGER NOT NULL DEFAULT 0');
+    await _ensureColumn(db, 'repair_workflow', 'ready_for_delivery_at', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'ready_for_delivery_by', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'delivered_at', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'delivered_by', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'handover_recipient', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'handover_method', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'handover_note', 'TEXT');
+    await _ensureColumn(
+        db, 'repair_workflow', 'handover_signature_path', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'closed_at', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'closed_by', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'closure_note', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'reopened_at', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'reopened_by', 'TEXT');
+    await _ensureColumn(db, 'repair_workflow', 'reopen_reason', 'TEXT');
+    await _ensureColumn(
+        db, 'repair_workflow', 'reopen_count', 'INTEGER NOT NULL DEFAULT 0');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS repair_workflow_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        repair_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        from_stage TEXT,
+        to_stage TEXT,
+        actor_id TEXT,
+        note TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(repair_id) REFERENCES repairs(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_repair_workflow_events_repair '
+      'ON repair_workflow_events(repair_id, created_at);',
+    );
   }
 
   /// P07 additive intake migration. Never drops/rebuilds customer tables.

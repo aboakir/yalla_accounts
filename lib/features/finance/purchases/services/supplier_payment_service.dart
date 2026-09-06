@@ -13,12 +13,10 @@
 // -----------------------------------------------------------------------------
 
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/services/accounting_gl.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 
 class SupplierPaymentService {
-  static const String _ACC_CASH = "1000";
-  static const String _ACC_BANK = "1010";
-
   // normalize method
   static String _normalize(String? m) {
     final s = (m ?? "").toLowerCase().trim();
@@ -52,11 +50,11 @@ class SupplierPaymentService {
 
     // كاش أو بنك
     final creditAcc = await DBService.getAccountIdByCode(
-      norm == "bank" ? _ACC_BANK : _ACC_CASH,
+      norm == "bank" ? GL.bank : GL.cash,
     );
 
     if (creditAcc == null) {
-      throw "Missing account ${norm == 'bank' ? _ACC_BANK : _ACC_CASH}";
+      throw "Missing account ${norm == 'bank' ? GL.bank : GL.cash}";
     }
 
     final key = sourceId ?? "SUPPAY-$supplierId-${date.toIso8601String()}-$amt";

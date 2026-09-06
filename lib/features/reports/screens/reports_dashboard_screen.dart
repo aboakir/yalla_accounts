@@ -1,60 +1,41 @@
-// 📁 lib/features/reports/screens/reports_dashboard_screen.dart
-//
-// ReportsDashboardScreen — لوحة تقارير موحدة
-// - إزالة الاستيرادات المكسورة مؤقتًا.
-// - الإبقاء على نفس البطاقات، مع تعطيل التنقل برسالة "غير متاح مؤقتًا".
-// - جاهزة للعمل مع الـ Sidebar والاستجابة للحجم.
-
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
+/// P15 owner reports hub.
+///
+/// Every card routes to an existing report/source-of-truth screen. The hub does
+/// not calculate parallel financial numbers and therefore cannot drift from GL.
 class ReportsDashboardScreen extends StatelessWidget {
   const ReportsDashboardScreen({super.key});
-
-  Future<void> _notAvailable(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AdaptiveAlertDialog(
-        title: const Text('غير متاح مؤقتًا'),
-        content: const Text(
-          'هذه الشاشة سيتم تفعيلها لاحقًا بعد إضافة/ربط ملفات التقارير المطلوبة.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('حسنًا'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildReportCard({
     required BuildContext context,
     required IconData icon,
     required String title,
+    required String subtitle,
     required Color color,
-    required VoidCallback onTap,
+    required String route,
   }) {
-    return GestureDetector(
-      onTap: onTap,
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => Navigator.pushNamed(context, route),
       child: Card(
-        elevation: 3,
+        elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        shadowColor: color.withOpacity(0.4),
         child: SizedBox(
-          width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 160,
-          height: MediaQuery.sizeOf(context).width < 600 ? 118 : 160,
+          width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 210,
+          height: MediaQuery.sizeOf(context).width < 600 ? 126 : 170,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 36, color: color),
-                const SizedBox(height: 12),
+                Icon(icon, size: 34, color: color),
+                const SizedBox(height: 10),
                 Text(
                   title,
                   textAlign: TextAlign.center,
@@ -63,6 +44,14 @@ class ReportsDashboardScreen extends StatelessWidget {
                     color: color,
                     fontSize: 14,
                   ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: Colors.black54),
                 ),
               ],
             ),
@@ -76,59 +65,110 @@ class ReportsDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
 
-    Widget dashboardContent = SingleChildScrollView(
+    final cards = [
+      (
+        Icons.build_outlined,
+        'تقرير الإصلاحات',
+        'ملفات الإصلاح والحالة التشغيلية',
+        Colors.orange,
+        AppRoutes.repairReports
+      ),
+      (
+        Icons.people_alt_outlined,
+        'العملاء والذمم',
+        'العملاء ومتابعة الذمم والتحصيل',
+        Colors.blue,
+        AppRoutes.collectionDashboard
+      ),
+      (
+        Icons.receipt_long_outlined,
+        'سندات القبض',
+        'السندات الرسمية RC والتخصيصات',
+        Colors.teal,
+        AppRoutes.receiptVouchersList
+      ),
+      (
+        Icons.account_balance_wallet_outlined,
+        'قائمة الدخل',
+        'الإيرادات والمصروفات من GL',
+        Colors.green,
+        AppRoutes.incomeStatement
+      ),
+      (
+        Icons.balance_outlined,
+        'الميزانية',
+        'الأصول والالتزامات وحقوق الملكية',
+        Colors.indigo,
+        AppRoutes.reportsBalanceSheet
+      ),
+      (
+        Icons.fact_check_outlined,
+        'ميزان المراجعة',
+        'أرصدة الحسابات من GL',
+        Colors.deepPurple,
+        AppRoutes.reportsTrialBalance
+      ),
+      (
+        Icons.menu_book_outlined,
+        'دفتر الأستاذ',
+        'الحركات والقيود المحاسبية',
+        Colors.brown,
+        AppRoutes.reportsGeneralLedger
+      ),
+      (
+        Icons.schedule_outlined,
+        'تقادم الذمم',
+        'A/R Aging من المصدر المالي الرسمي',
+        Colors.red,
+        AppRoutes.reportsARAging
+      ),
+      (
+        Icons.shopping_cart_outlined,
+        'المشتريات',
+        'فواتير الشراء والموردون',
+        Colors.purple,
+        AppRoutes.purchasesDashboard
+      ),
+      (
+        Icons.badge_outlined,
+        'الموظفون والرواتب',
+        'الحضور والرواتب والتكاليف',
+        Colors.cyan,
+        AppRoutes.reportsPayroll
+      ),
+    ];
+
+    final dashboardContent = SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'تقارير سريعة',
+            'تقارير المالك',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                 ),
           ),
+          const SizedBox(height: 6),
+          const Text(
+            'كل بطاقة أدناه تفتح تقريرًا فعليًا من مصادر النظام الحالية، بدون أرقام تجريبية أو حسابات موازية.',
+            style: TextStyle(color: Colors.black54),
+          ),
           const SizedBox(height: 16),
           Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              _buildReportCard(
-                context: context,
-                icon: Icons.group,
-                title: 'تقرير العملاء',
-                color: Colors.blue,
-                onTap: () => _notAvailable(context),
-              ),
-              _buildReportCard(
-                context: context,
-                icon: Icons.person,
-                title: 'تقرير الموظفين',
-                color: Colors.green,
-                onTap: () => _notAvailable(context),
-              ),
-              _buildReportCard(
-                context: context,
-                icon: Icons.build,
-                title: 'تقرير الإصلاحات',
-                color: Colors.orange,
-                onTap: () => _notAvailable(context),
-              ),
-              _buildReportCard(
-                context: context,
-                icon: Icons.receipt_long,
-                title: 'تقرير المبيعات والتصدير',
-                color: Colors.purple,
-                onTap: () => _notAvailable(context),
-              ),
-              _buildReportCard(
-                context: context,
-                icon: Icons.account_balance_wallet,
-                title: 'التقرير المالي',
-                color: Colors.red,
-                onTap: () => _notAvailable(context),
-              ),
-            ],
+            spacing: 14,
+            runSpacing: 14,
+            children: cards
+                .map((c) => _buildReportCard(
+                      context: context,
+                      icon: c.$1,
+                      title: c.$2,
+                      subtitle: c.$3,
+                      color: c.$4,
+                      route: c.$5,
+                    ))
+                .toList(),
           ),
         ],
       ),
@@ -137,10 +177,8 @@ class ReportsDashboardScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text(
-          'لوحة تقارير',
-          style: TextStyle(color: Colors.white),
-        ),
+        title:
+            const Text('تقارير المالك', style: TextStyle(color: Colors.white)),
         leading: isDesktop
             ? null
             : Builder(
@@ -153,9 +191,7 @@ class ReportsDashboardScreen extends StatelessWidget {
       ),
       drawer: isDesktop
           ? null
-          : const Drawer(
-              child: YallaSidebar(currentRoute: '/reports'),
-            ),
+          : const Drawer(child: YallaSidebar(currentRoute: '/reports')),
       body: isDesktop
           ? AdaptiveRow(
               children: [

@@ -39,7 +39,12 @@ class _StepEmployeeNotesPhotoState
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final picked = await picker.pickImage(source: source);
+    final picked = await picker.pickImage(
+      source: source,
+      imageQuality: 82,
+      maxWidth: 2400,
+      maxHeight: 2400,
+    );
     if (picked != null) {
       ref.read(employeeFormProvider.notifier).updateImage(picked.path);
     }
@@ -98,6 +103,8 @@ class _StepEmployeeNotesPhotoState
                           width: double.infinity,
                           height: 250,
                           fit: BoxFit.cover,
+                          cacheWidth: 1200,
+                          cacheHeight: 750,
                         ),
                       ),
                       Positioned(

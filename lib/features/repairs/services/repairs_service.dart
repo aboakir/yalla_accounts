@@ -13,6 +13,7 @@
 
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
@@ -212,17 +213,51 @@ class RepairsService {
     ''', args);
 
     final out = <Repair>[];
+    final ids = rows
+        .map((row) => row['id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+    final imagesByRepair = await _listImagePathsForRepairIds(ids);
 
     for (final m in rows) {
       final map = Map<String, dynamic>.from(m);
-      final imgs = await listImagePaths(map['id'].toString());
-      map['imagePaths'] = imgs;
+      final id = map['id']?.toString() ?? '';
+      map['imagePaths'] = imagesByRepair[id] ?? const <String>[];
       try {
         out.add(Repair.fromMap(map));
       } catch (_) {}
     }
 
     return out;
+  }
+
+  Future<Map<String, List<String>>> _listImagePathsForRepairIds(
+    List<String> repairIds,
+  ) async {
+    if (repairIds.isEmpty) return const <String, List<String>>{};
+    await _ensureImagesTable();
+
+    final result = <String, List<String>>{};
+    const chunkSize = 400;
+    for (int start = 0; start < repairIds.length; start += chunkSize) {
+      final end = math.min(start + chunkSize, repairIds.length);
+      final chunk = repairIds.sublist(start, end);
+      final placeholders = List.filled(chunk.length, '?').join(',');
+      final rows = await db.rawQuery(
+        'SELECT repair_id, path FROM repairs_images '
+        'WHERE repair_id IN ($placeholders) '
+        'ORDER BY repair_id ASC, datetime(created_at) ASC, rowid ASC',
+        chunk,
+      );
+
+      for (final row in rows) {
+        final id = row['repair_id']?.toString() ?? '';
+        final path = row['path']?.toString() ?? '';
+        if (id.isEmpty || path.isEmpty) continue;
+        result.putIfAbsent(id, () => <String>[]).add(path);
+      }
+    }
+    return result;
   }
 
   // ========================= Images table ====================================
@@ -327,7 +362,7 @@ class RepairsService {
     for (final pth in paths) {
       final resolved = await YallaStorageService.resolveExistingPath(pth);
       if (resolved == null) continue;
-      final s = _scoreImage(resolved);
+      final s = await _scoreImage(resolved);
       if (s == null) continue;
       final portable = s.copyWith(path: pth);
       maxSharp = math.max(maxSharp, portable.sharpness);
@@ -438,100 +473,21 @@ class RepairsService {
   }
 
   // ============================= Image Scoring ================================
-  _ImgScore? _scoreImage(String path) {
-    try {
-      final f = File(path);
-      if (!f.existsSync()) return null;
-
-      final bytes = f.readAsBytesSync();
-      final img = im.decodeImage(bytes);
-
-      if (img == null) return null;
-
-      final w = img.width;
-      final h = img.height;
-
-      final scaled =
-          (math.max(w, h) > 512) ? im.copyResize(img, width: 512) : img;
-
-      final g = im.grayscale(scaled);
-
-      // Sharpness: global + central region. Vehicle photos usually keep the
-      // car close to the centre, so centre detail helps avoid selecting a
-      // sharp background with a blurry vehicle.
-      double sharpSum = 0;
-      int sharpCount = 0;
-      double centerSharpSum = 0;
-      int centerSharpCount = 0;
-
-      final centerLeft = (g.width * 0.15).round();
-      final centerRight = (g.width * 0.85).round();
-      final centerTop = (g.height * 0.12).round();
-      final centerBottom = (g.height * 0.88).round();
-
-      for (int y = 1; y < g.height - 1; y++) {
-        for (int x = 1; x < g.width - 1; x++) {
-          final l = g.getPixel(x - 1, y).r;
-          final r = g.getPixel(x + 1, y).r;
-          final u = g.getPixel(x, y - 1).r;
-          final d = g.getPixel(x, y + 1).r;
-
-          final detail = (r - l).abs() + (d - u).abs();
-          sharpSum += detail;
-          sharpCount++;
-
-          if (x >= centerLeft &&
-              x <= centerRight &&
-              y >= centerTop &&
-              y <= centerBottom) {
-            centerSharpSum += detail;
-            centerSharpCount++;
-          }
-        }
-      }
-
-      final sharpness = sharpCount == 0 ? 0.0 : sharpSum / (sharpCount * 255.0);
-      final centerSharpness = centerSharpCount == 0
-          ? 0.0
-          : centerSharpSum / (centerSharpCount * 255.0);
-
-      // Brightness + contrast. Flat or badly exposed images are less useful
-      // as small profile thumbnails even when one edge is technically sharp.
-      double mean = 0.0;
-      double meanSq = 0.0;
-      int samples = 0;
-
-      for (int y = 0; y < g.height; y += 4) {
-        for (int x = 0; x < g.width; x += 4) {
-          final value = g.getPixel(x, y).r / 255.0;
-          mean += value;
-          meanSq += value * value;
-          samples++;
-        }
-      }
-
-      if (samples > 0) {
-        mean /= samples;
-        meanSq /= samples;
-      }
-
-      final brightnessScore = math.max(0.0, 1.0 - (mean - 0.58).abs() * 2.2);
-      final variance = math.max(0.0, meanSq - (mean * mean));
-      final contrastScore = math.sqrt(variance);
-      final orientationScore = (w >= h) ? 1.0 : 0.45;
-
-      return _ImgScore(
-        path: path,
-        sharpness: sharpness,
-        centerSharpness: centerSharpness,
-        brightnessScore: brightnessScore,
-        contrastScore: contrastScore,
-        orientationScore: orientationScore,
-        total: 0.0,
-      );
-    } catch (_) {
-      return null;
-    }
+  Future<_ImgScore?> _scoreImage(String path) async {
+    final data = await compute<String, Map<String, double>?>(
+      _scoreImagePayload,
+      path,
+    );
+    if (data == null) return null;
+    return _ImgScore(
+      path: path,
+      sharpness: data['sharpness'] ?? 0,
+      centerSharpness: data['centerSharpness'] ?? 0,
+      brightnessScore: data['brightnessScore'] ?? 0,
+      contrastScore: data['contrastScore'] ?? 0,
+      orientationScore: data['orientationScore'] ?? 0,
+      total: 0,
+    );
   }
 
   // -------------------------------------------------------------------
@@ -547,6 +503,85 @@ class RepairsService {
       where: 'id = ?',
       whereArgs: [repairId],
     );
+  }
+}
+
+Map<String, double>? _scoreImagePayload(String path) {
+  try {
+    final file = File(path);
+    if (!file.existsSync()) return null;
+    final image = im.decodeImage(file.readAsBytesSync());
+    if (image == null) return null;
+
+    final originalWidth = image.width;
+    final originalHeight = image.height;
+    final scaled = math.max(originalWidth, originalHeight) > 512
+        ? (originalWidth >= originalHeight
+            ? im.copyResize(image, width: 512)
+            : im.copyResize(image, height: 512))
+        : image;
+    final gray = im.grayscale(scaled);
+
+    double sharpSum = 0;
+    int sharpCount = 0;
+    double centerSharpSum = 0;
+    int centerSharpCount = 0;
+    final centerLeft = (gray.width * 0.15).round();
+    final centerRight = (gray.width * 0.85).round();
+    final centerTop = (gray.height * 0.12).round();
+    final centerBottom = (gray.height * 0.88).round();
+
+    for (int y = 1; y < gray.height - 1; y++) {
+      for (int x = 1; x < gray.width - 1; x++) {
+        final left = gray.getPixel(x - 1, y).r;
+        final right = gray.getPixel(x + 1, y).r;
+        final up = gray.getPixel(x, y - 1).r;
+        final down = gray.getPixel(x, y + 1).r;
+        final detail = (right - left).abs() + (down - up).abs();
+        sharpSum += detail;
+        sharpCount++;
+        if (x >= centerLeft &&
+            x <= centerRight &&
+            y >= centerTop &&
+            y <= centerBottom) {
+          centerSharpSum += detail;
+          centerSharpCount++;
+        }
+      }
+    }
+
+    final sharpness = sharpCount == 0 ? 0.0 : sharpSum / (sharpCount * 255.0);
+    final centerSharpness = centerSharpCount == 0
+        ? 0.0
+        : centerSharpSum / (centerSharpCount * 255.0);
+
+    double mean = 0;
+    double meanSq = 0;
+    int samples = 0;
+    for (int y = 0; y < gray.height; y += 4) {
+      for (int x = 0; x < gray.width; x += 4) {
+        final value = gray.getPixel(x, y).r / 255.0;
+        mean += value;
+        meanSq += value * value;
+        samples++;
+      }
+    }
+    if (samples > 0) {
+      mean /= samples;
+      meanSq /= samples;
+    }
+
+    final brightnessScore = math.max(0.0, 1.0 - (mean - 0.58).abs() * 2.2);
+    final variance = math.max(0.0, meanSq - (mean * mean));
+    return <String, double>{
+      'sharpness': sharpness,
+      'centerSharpness': centerSharpness,
+      'brightnessScore': brightnessScore,
+      'contrastScore': math.sqrt(variance),
+      'orientationScore': originalWidth >= originalHeight ? 1.0 : 0.45,
+    };
+  } catch (_) {
+    return null;
   }
 }
 

@@ -18,11 +18,13 @@ void main() {
     expect(login, contains('نفس شاشة الدخول لحسابات Yalla الإدارية'));
   });
 
-  test('Yalla admin credentials remain server-side and sessions memory-only', () {
+  test('Yalla admin credentials remain server-side and sessions memory-only',
+      () {
     final transport =
         read('lib/features/auth/services/yalla_admin_auth_service.dart');
 
-    expect(transport, contains("String.fromEnvironment('YALLA_LICENSING_BASE_URL')"));
+    expect(transport,
+        contains("String.fromEnvironment('YALLA_LICENSING_BASE_URL')"));
     expect(transport, contains('/v1/control-center/auth/login'));
     expect(transport, contains('/v1/control-center/auth/mfa/verify'));
     expect(transport, contains('/v1/control-center/auth/session'));
@@ -49,7 +51,8 @@ void main() {
     expect(contract, contains('never seeds a default password'));
   });
 
-  test('native Control Center exposes server sections and protected actions', () {
+  test('native Control Center exposes server sections and protected actions',
+      () {
     final screen =
         read('lib/features/auth/screens/yalla_control_center_screen.dart');
 
@@ -70,10 +73,8 @@ void main() {
       ),
     ) as Map<String, dynamic>;
 
-    final presentation =
-        manifest['presentation'] as Map<String, dynamic>;
-    final authentication =
-        manifest['authentication'] as Map<String, dynamic>;
+    final presentation = manifest['presentation'] as Map<String, dynamic>;
+    final authentication = manifest['authentication'] as Map<String, dynamic>;
 
     expect(manifest['server_model_version'], 10);
     expect(manifest['client_database_version'], 69);
@@ -82,7 +83,8 @@ void main() {
     expect(authentication['native_persisted_admin_tokens'], isFalse);
   });
 
-  test('no master password or hardcoded Super Owner credential is introduced', () {
+  test('no master password or hardcoded Super Owner credential is introduced',
+      () {
     final login = read('lib/features/auth/screens/login_screen.dart');
     final transport =
         read('lib/features/auth/services/yalla_admin_auth_service.dart');

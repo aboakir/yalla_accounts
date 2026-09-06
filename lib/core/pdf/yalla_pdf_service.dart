@@ -17,6 +17,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/models/workshop_settings.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/core/utils/public_text_sanitizer.dart';
 
 // -----------------------------------------------------------------------------
 class YallaPdfService {
@@ -192,7 +193,7 @@ class YallaPdfService {
   // ---------------------------------------------------------------------------
   static pw.Widget ar(String text, {pw.TextStyle? style}) {
     return pw.Text(
-      text,
+      normalizePdfText(text),
       textDirection: pw.TextDirection.rtl,
       textAlign: pw.TextAlign.right,
       style: (style ?? const pw.TextStyle()).copyWith(font: _fonts.base),
@@ -234,6 +235,7 @@ class YallaPdfService {
   static String normalizePdfText(String input) {
     if (input.isEmpty) return input;
 
+    input = PublicTextSanitizer.sanitize(input);
     input = input.replaceAll('−', '-'); // ✅ حل U+2212
     input = latinNumbers(input); // ✅ أرقام إنجليزية
 
@@ -419,6 +421,7 @@ class YallaPdfService {
       DateFormat('yyyy-MM-dd')
           .format(DateTime.tryParse(date) ?? DateTime.now()),
     );
+    final publicNotes = PublicTextSanitizer.sanitize(notes);
 
     doc.addPage(
       pw.MultiPage(
@@ -480,7 +483,7 @@ class YallaPdfService {
           // ----------------------------------------------------------
           // الملاحظات إن وجدت
           // ----------------------------------------------------------
-          if (notes != null && notes.trim().isNotEmpty)
+          if (publicNotes.isNotEmpty)
             pw.Container(
               padding: const pw.EdgeInsets.all(12),
               decoration: pw.BoxDecoration(
@@ -488,7 +491,7 @@ class YallaPdfService {
                 borderRadius: pw.BorderRadius.circular(6),
               ),
               child: pw.Text(
-                "ملاحظات: $notes",
+                "ملاحظات: $publicNotes",
                 textDirection: pw.TextDirection.rtl,
                 style: pw.TextStyle(fontSize: 12),
               ),

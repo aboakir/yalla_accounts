@@ -247,6 +247,16 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
                                             file,
                                             fit: BoxFit.contain,
                                             width: double.infinity,
+                                            cacheWidth:
+                                                (MediaQuery.sizeOf(context)
+                                                            .width *
+                                                        MediaQuery
+                                                            .devicePixelRatioOf(
+                                                                context) *
+                                                        1.5)
+                                                    .round()
+                                                    .clamp(1024, 2048)
+                                                    .toInt(),
                                           )
                                         : Container(
                                             color: Colors.grey.shade200,

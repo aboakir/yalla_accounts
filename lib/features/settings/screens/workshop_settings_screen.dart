@@ -12,8 +12,8 @@ import 'package:yalla_accounts/features/settings/services/workshop_settings_serv
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/account_security_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/manage_users_screen.dart';
+import 'package:yalla_accounts/features/settings/screens/security_data_screen.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
-import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -246,21 +246,6 @@ class _WorkshopSettingsScreenState
     );
   }
 
-  // ================= RESET DB =================
-  Future<void> _resetDatabase() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => const AdaptiveAlertDialog(
-        title: Text('تحذير'),
-        content: Text('سيتم حذف قاعدة البيانات بالكامل.'),
-      ),
-    );
-
-    if (confirm == true) {
-      await DatabaseMigration.resetDatabase();
-    }
-  }
-
   // ================= UI =================
   @override
   Widget build(BuildContext context) {
@@ -295,13 +280,6 @@ class _WorkshopSettingsScreenState
                     )
                   : const Icon(Icons.save),
               label: const Text('حفظ جميع الإعدادات'),
-            ),
-            const SizedBox(height: 40),
-            ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.red),
-              title:
-                  const Text('Reset DB', style: TextStyle(color: Colors.red)),
-              onTap: _resetDatabase,
             ),
           ],
         ),
@@ -477,6 +455,22 @@ class _WorkshopSettingsScreenState
                   Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
                       builder: (_) => const ManageUsersScreen(),
+                    ),
+                  );
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.shield_outlined),
+                title: const Text('الأمان وحماية البيانات'),
+                subtitle: const Text(
+                  'سجل التدقيق، النسخ المشفرة الأسبوعية، الاستعادة، ونقل Windows.',
+                ),
+                trailing: const Icon(Icons.chevron_left),
+                onTap: () {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SecurityDataScreen(),
                     ),
                   );
                 },

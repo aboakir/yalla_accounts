@@ -6,13 +6,16 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 class FinanceReportService {
   static Future<Database> _db() => DBService.database;
 
-  /// 🔹 إيرادات الإصلاحات شهريًا (من repairs.fileValue)
+  /// 🔹 إيرادات الإصلاحات شهريًا من GL account 4000.
   static Future<Map<String, double>> getMonthlyIncomeFromRepairs() async {
     final db = await _db();
     final rows = await db.rawQuery('''
-      SELECT strftime('%Y-%m', receivedDate) AS month,
-             IFNULL(SUM(fileValue), 0)       AS income
-      FROM repairs
+      SELECT strftime('%Y-%m', e.date) AS month,
+             COALESCE(SUM(l.credit-l.debit),0) AS income
+      FROM gl_lines l
+      JOIN gl_entries e ON e.id=l.entry_id
+      JOIN accounts a ON a.id=l.account_id
+      WHERE a.code='4000'
       GROUP BY month
       ORDER BY month
     ''');

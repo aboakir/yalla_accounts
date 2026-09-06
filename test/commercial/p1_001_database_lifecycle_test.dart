@@ -124,7 +124,7 @@ void main() {
 
     expect(backup.contains('resetDatabase('), isFalse);
     expect(backup.contains('closeDatabase(checkpoint: true)'), isTrue);
-    expect(backup.contains('_validateCandidate'), isTrue);
+    expect(backup.contains('validateDatabaseCandidate'), isTrue);
     expect(backup.contains('safetyBackup'), isTrue);
   });
 

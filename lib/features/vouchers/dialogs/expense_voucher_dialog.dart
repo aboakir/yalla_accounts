@@ -7,6 +7,7 @@
 // -----------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -55,130 +56,127 @@ class _ExpenseVoucherDialogState extends State<ExpenseVoucherDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(40),
-      child: Container(
-        width: 650,
-        padding: const EdgeInsets.all(26),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Text(
-              "إدخال مصروف يدوي",
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+    return AdaptiveDialogSurface(
+      desktopWidth: 650,
+      desktopHeight: 620,
+      padding: const EdgeInsets.all(26),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const Text(
+            "إدخال مصروف يدوي",
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
+          ),
 
-            const SizedBox(height: 22),
+          const SizedBox(height: 22),
 
-            // نوع المصروف
-            DropdownButtonFormField(
-              value: _selectedExpenseType,
-              items: _expenseTypes
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedExpenseType = v!),
+          // نوع المصروف
+          DropdownButtonFormField(
+            value: _selectedExpenseType,
+            items: _expenseTypes
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedExpenseType = v!),
+          ),
+
+          const SizedBox(height: 14),
+
+          // مبلغ
+          TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
+            controller: _amountCtrl,
+            textAlign: TextAlign.right,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              hintText: "المبلغ",
+              border: OutlineInputBorder(),
             ),
+          ),
 
-            const SizedBox(height: 14),
+          const SizedBox(height: 14),
 
-            // مبلغ
-            TextField(
-              inputFormatters: const [YallaDigitNormalizer()],
-              controller: _amountCtrl,
-              textAlign: TextAlign.right,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+          // طريقة الدفع
+          DropdownButtonFormField(
+            value: _selectedMethod,
+            items: const [
+              DropdownMenuItem(value: "CASH", child: Text("نقدًا")),
+              DropdownMenuItem(value: "BANK", child: Text("بنك")),
+              DropdownMenuItem(value: "TRANSFER", child: Text("تحويل بنكي")),
+            ],
+            onChanged: (v) => setState(() => _selectedMethod = v!),
+          ),
+
+          const SizedBox(height: 14),
+
+          // تاريخ
+          GestureDetector(
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+              );
+              if (d != null) setState(() => _selectedDate = d);
+            },
+            child: InputDecorator(
               decoration: const InputDecoration(
-                hintText: "المبلغ",
                 border: OutlineInputBorder(),
               ),
+              child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
             ),
+          ),
 
-            const SizedBox(height: 14),
+          const SizedBox(height: 14),
 
-            // طريقة الدفع
-            DropdownButtonFormField(
-              value: _selectedMethod,
-              items: const [
-                DropdownMenuItem(value: "CASH", child: Text("نقدًا")),
-                DropdownMenuItem(value: "BANK", child: Text("بنك")),
-                DropdownMenuItem(value: "TRANSFER", child: Text("تحويل بنكي")),
-              ],
-              onChanged: (v) => setState(() => _selectedMethod = v!),
+          // ملاحظات
+          TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
+            controller: _notesCtrl,
+            textAlign: TextAlign.right,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              hintText: "ملاحظات (اختياري)",
+              border: OutlineInputBorder(),
             ),
+          ),
 
-            const SizedBox(height: 14),
+          const SizedBox(height: 22),
 
-            // تاريخ
-            GestureDetector(
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: _selectedDate,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                if (d != null) setState(() => _selectedDate = d);
-              },
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                ),
-                child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // ملاحظات
-            TextField(
-              inputFormatters: const [YallaDigitNormalizer()],
-              controller: _notesCtrl,
-              textAlign: TextAlign.right,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                hintText: "ملاحظات (اختياري)",
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 22),
-
-            // حفظ
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ElevatedButton(
-                onPressed: _confirm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 14,
-                  ),
-                ),
-                child: const Text(
-                  "إضافة المصروف",
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+          // حفظ
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: ElevatedButton(
+              onPressed: _confirm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
                 ),
               ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("إغلاق"),
+              child: const Text(
+                "إضافة المصروف",
+                style: TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 12),
+
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("إغلاق"),
+            ),
+          ),
+        ],
       ),
     );
   }

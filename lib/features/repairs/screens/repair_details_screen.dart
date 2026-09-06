@@ -28,13 +28,11 @@ import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_pdf_generator.dart';
 
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
-import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
-import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
+import 'package:yalla_accounts/features/repairs/widgets/repair_workflow_card.dart';
+import 'package:yalla_accounts/features/repairs/widgets/repair_profitability_card.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
-
-import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class RepairDetailsScreen extends StatefulWidget {
   final Repair repair;
@@ -52,33 +50,14 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
   List<Map<String, dynamic>> _repairWorks = [];
   List<Map<String, dynamic>> _repairParts = [];
+  List<Map<String, Object?>> _changeHistory = [];
 
-  final _currency = NumberFormat('#,##0.00', 'ar');
   final _df = DateFormat('yyyy-MM-dd');
+  final _historyDf = DateFormat('yyyy-MM-dd HH:mm');
 
   int? _invoiceGlEntryId;
 
   final ScrollController _imagesScrollCtrl = ScrollController();
-
-  static const List<_PayMethod> _methods = [
-    _PayMethod('cash', 'الصندوق (1000)'),
-    _PayMethod('bank', 'البنك (1010)'),
-  ];
-
-  // خيارات القوائم
-  static const List<String> _insuranceOptions = [
-    'تم تسليم الفاتورة',
-    'تم التسديد في التعويضات',
-    'تم التسديد في المالية',
-    'تم الصرف',
-  ];
-
-  static const List<String> _vehicleOptions = [
-    'تم الاستلام',
-    'قيد الإصلاح',
-    'جاهزة للتسليم',
-    'تم التسليم',
-  ];
 
   @override
   void initState() {
@@ -116,6 +95,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     // P07_LINE_READBACK_SERIALIZED
     await _loadPersistedRepairLines();
     await _refreshInvoiceGl();
+    await _loadChangeHistory();
   }
 
   Future<void> _reloadRepair() async {
@@ -125,7 +105,63 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     if (r != null) {
       setState(() => _repair = r);
       await _refreshInvoiceGl();
+      await _loadChangeHistory();
     }
+  }
+
+  Future<void> _loadChangeHistory() async {
+    if (_repair.id.isEmpty) {
+      if (mounted) setState(() => _changeHistory = []);
+      return;
+    }
+
+    try {
+      final db = await DBService.database;
+      final table = await db.rawQuery(
+        "SELECT name FROM sqlite_master "
+        "WHERE type = 'table' AND name = 'repair_edit_history' LIMIT 1",
+      );
+      if (!mounted) return;
+      if (table.isEmpty) {
+        setState(() => _changeHistory = []);
+        return;
+      }
+
+      final rows = await db.query(
+        'repair_edit_history',
+        where: 'repair_id = ?',
+        whereArgs: [_repair.id],
+        orderBy: 'created_at DESC',
+        limit: 20,
+      );
+      if (!mounted) return;
+      setState(() => _changeHistory = List<Map<String, Object?>>.from(rows));
+    } catch (_) {
+      if (mounted) setState(() => _changeHistory = []);
+    }
+  }
+
+  String get _visibleNotes {
+    final raw = _repair.notes?.trim() ?? '';
+    if (raw.isEmpty) return '';
+
+    return raw
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty && !line.startsWith('[YALLA_'))
+        .join('\n');
+  }
+
+  String _formatHistoryDate(Object? value) {
+    if (value == null) return '—';
+    final parsed = DateTime.tryParse(value.toString());
+    if (parsed == null) return value.toString();
+    return _historyDf.format(parsed.toLocal());
+  }
+
+  double _historyNumber(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0.0;
   }
 
   // ===== كشف اسم العمود الحقيقي وتحديثه بشكل آمن =====
@@ -222,152 +258,30 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     if (_repair.id.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('لا يمكن إضافة دفعة قبل حفظ ملف الإصلاح.')),
-      );
-      return;
-    }
-
-    final amountCtrl = TextEditingController();
-    final notesCtrl = TextEditingController(text: 'دفعة على ملف إصلاح');
-    DateTime payDate = DateTime.now();
-    _PayMethod method = _methods.first;
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setM) => AdaptiveAlertDialog(
-          title: const Text('إضافة دفعة'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  inputFormatters: const [YallaDigitNormalizer()],
-                  controller: amountCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration:
-                      InputDecoration(labelText: 'المبلغ', hintText: '0.00'),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<_PayMethod>(
-                  value: method,
-                  items: _methods
-                      .map((m) =>
-                          DropdownMenuItem(value: m, child: Text(m.label)))
-                      .toList(),
-                  onChanged: (v) => setM(() => method = v ?? _methods.first),
-                  decoration: InputDecoration(labelText: 'طريقة الدفع'),
-                ),
-                const SizedBox(height: 10),
-                AdaptiveRow(
-                  children: [
-                    const Text('التاريخ: '),
-                    TextButton(
-                      onPressed: () async {
-                        final d = await showDatePicker(
-                          context: ctx,
-                          firstDate: DateTime(DateTime.now().year - 3, 1, 1),
-                          lastDate: DateTime(DateTime.now().year + 1, 12, 31),
-                          initialDate: payDate,
-                        );
-                        if (d != null) setM(() => payDate = d);
-                      },
-                      child: Text(_df.format(payDate)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  inputFormatters: const [YallaDigitNormalizer()],
-                  controller: notesCtrl,
-                  maxLines: 2,
-                  decoration:
-                      const InputDecoration(labelText: 'ملاحظات (اختياري)'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('إلغاء')),
-            ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('ط­ظپط¸')),
-          ],
+          content: Text('لا يمكن إضافة دفعة قبل حفظ ملف الإصلاح.'),
         ),
-      ),
+      );
+      return;
+    }
+
+    if (_repair.remainingAmount <= 0.005) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الملف مسدد بالكامل')),
+      );
+      return;
+    }
+
+    final updated = await Navigator.of(context).pushNamed(
+      AppRoutes.receiptVoucher,
+      arguments: <String, Object?>{
+        'repairId': _repair.id,
+        'clientId': _repair.clientId,
+        'clientType': _repair.beneficiaryType,
+      },
     );
 
-    if (ok != true) return;
-
-    final raw = amountCtrl.text.trim().replaceAll(',', '');
-    final amount = double.tryParse(raw) ?? 0.0;
-    if (amount <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('أدخل مبلغًا صالحًا')));
-      return;
-    }
-
-    final remaining = _repair.remainingAmount;
-    if (remaining <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('الملف مسدد بالكامل')));
-      return;
-    }
-    if (amount > remaining + 0.0001) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('المبلغ يتجاوز المتبقي (${_currency.format(remaining)})')),
-      );
-      return;
-    }
-
-    final payment = Payment(
-      id: '',
-      clientId: _repair.clientId,
-      invoiceId: _repair.invoiceId,
-      repairId: _repair.id,
-      relatedRepairId: _repair.id,
-      amount: double.parse(amount.toStringAsFixed(2)),
-      date: payDate,
-      method: method.key,
-      accountName: method.key,
-      status: "confirmed", // ← String بدل Enum
-      notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
-      attachments: null,
-      glEntryId: null,
-
-      // REQUIRED — لازم موجود حسب الموديل
-      isIncome: true, // ← لأنها دفعة قبض للعميل
-    );
-
-    try {
-      await PaymentService.insertAndPostReceipt(
-        payment: payment,
-        customerName: _repair.beneficiaryName,
-        method: method.key,
-        descriptionOverride:
-            notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
-      );
-// تحديث إجمالي المدفوعات داخل repairs بعد إضافة الدفعة
-      final repSvc = await RepairsService.instance();
-      await repSvc.updateTotalsFromPayments(_repair.id);
-
-      await _reloadRepair(); // إعادة تحميل بعد تحديث totals
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('✅ تم تسجيل الدفعة: ${_currency.format(amount)}')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ فشل الحفظ: $e')));
+    if (updated == true) {
+      await _reloadRepair();
     }
   }
 
@@ -550,9 +464,16 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                     ),
                                   );
                                 }
+                                final decodeWidth = (viewport.width *
+                                        MediaQuery.devicePixelRatioOf(context) *
+                                        1.5)
+                                    .round()
+                                    .clamp(1024, 2048)
+                                    .toInt();
                                 return Image.file(
                                   File(resolved),
                                   fit: BoxFit.contain,
+                                  cacheWidth: decodeWidth,
                                 );
                               },
                             ),
@@ -853,13 +774,39 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   }
 
   // ===== لوحة الحالة — نصف المساحة لكل قائمة، جنب بعض =====
+
+  Widget _buildWorkflowCard() {
+    return RepairWorkflowCard(
+      repair: _repair,
+      onChanged: _reloadRepair,
+      onShareEstimate: _sharePdf,
+    );
+  }
+
   Widget _buildStatusPanel() {
     final currentInsurance =
-        normalizeOrNull(_repair.insuranceStatus, _insuranceOptions) ??
+        normalizeOrNull(_repair.insuranceStatus, kInsuranceFollowups) ??
             _repair.insuranceStatus;
-    final currentVehicle =
-        normalizeOrNull(_repair.vehicleStatus, _vehicleOptions) ??
-            _repair.vehicleStatus;
+    final currentVehicle = normalizeValue(
+            _repair.vehicleStatus, kVehicleStatuses,
+            aliases: kVehicleStatusAliases) ??
+        _repair.vehicleStatus;
+
+    final insuranceOptions = <String>[...kInsuranceFollowups];
+    if (currentInsurance.trim().isNotEmpty &&
+        !insuranceOptions.contains(currentInsurance)) {
+      insuranceOptions.insert(0, currentInsurance);
+    }
+
+    final workflowOwnsVehicleStatus =
+        kWorkflowVehicleStatuses.contains(currentVehicle);
+    final vehicleOptions = workflowOwnsVehicleStatus
+        ? <String>[currentVehicle]
+        : <String>[...kManualVehicleStatuses];
+    if (currentVehicle.trim().isNotEmpty &&
+        !vehicleOptions.contains(currentVehicle)) {
+      vehicleOptions.insert(0, currentVehicle);
+    }
 
     return Card(
       child: Padding(
@@ -878,10 +825,10 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: _insuranceOptions.contains(currentInsurance)
+                      value: insuranceOptions.contains(currentInsurance)
                           ? currentInsurance
                           : null,
-                      items: _insuranceOptions
+                      items: insuranceOptions
                           .map(
                               (v) => DropdownMenuItem(value: v, child: Text(v)))
                           .toList(),
@@ -911,10 +858,10 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     isExpanded: true,
-                    value: _vehicleOptions.contains(currentVehicle)
+                    value: vehicleOptions.contains(currentVehicle)
                         ? currentVehicle
                         : null,
-                    items: _vehicleOptions
+                    items: vehicleOptions
                         .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                         .toList(),
                     decoration: InputDecoration(
@@ -922,9 +869,11 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
-                    onChanged: (v) {
-                      if (v != null) _updateVehicleStatus(v);
-                    },
+                    onChanged: workflowOwnsVehicleStatus
+                        ? null
+                        : (v) {
+                            if (v != null) _updateVehicleStatus(v);
+                          },
                   ),
                 ],
               ),
@@ -935,28 +884,152 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
+  Widget _buildNotesCard() {
+    final notes = _visibleNotes;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'الملاحظات',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              notes.isEmpty ? 'لا توجد ملاحظات مسجلة.' : notes,
+              style: TextStyle(
+                color: notes.isEmpty ? Colors.black54 : Colors.black87,
+                height: 1.45,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChangeHistoryCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'سجل التغييرات',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'يعرض التغييرات المالية المسجلة حاليًا على الملف.',
+              style: TextStyle(color: Colors.black54, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            if (_changeHistory.isEmpty)
+              const Text(
+                'لا توجد تغييرات مالية مسجلة لهذا الملف.',
+                style: TextStyle(color: Colors.black54),
+              )
+            else
+              ..._changeHistory.map((row) {
+                final oldValue = _historyNumber(row['old_value']);
+                final newValue = _historyNumber(row['new_value']);
+                final difference = _historyNumber(row['difference']);
+                final editedBy = (row['edited_by'] ?? '').toString().trim();
+                final notes = (row['notes'] ?? '').toString().trim();
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.lightGrey),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          '${MoneyFormatter.format(oldValue)} → ${MoneyFormatter.format(newValue)}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'الفرق: ${MoneyFormatter.format(difference)}',
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                        Text(
+                          'التاريخ: ${_formatHistoryDate(row['created_at'])}',
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        if (editedBy.isNotEmpty)
+                          Text(
+                            'بواسطة: $editedBy',
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                        if (notes.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(notes),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentButton({bool filled = false}) {
+    final canAddPayment = _repair.remainingAmount > 0.005;
+    if (!canAddPayment) return const SizedBox.shrink();
+
+    if (filled) {
+      return FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          minimumSize: const Size.fromHeight(50),
+        ),
+        onPressed: _addPayment,
+        icon: const Icon(Icons.add_card_rounded),
+        label: const Text('إضافة دفعة'),
+      );
+    }
+
+    return ElevatedButton.icon(
+      onPressed: _addPayment,
+      icon: const Icon(Icons.add_card_rounded),
+      label: const Text('إضافة دفعة'),
+    );
+  }
+
   // شريط الإجراءات
-  Widget _buildActionsBar() {
+  Widget _buildActionsBar({bool showPaymentAction = true}) {
     final remaining = _repair.remainingAmount;
     return Card(
       margin: const EdgeInsets.only(top: 16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: AdaptiveRow(
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 10,
           children: [
-            Expanded(
-              child: Text(
-                'المتبقي: ${MoneyFormatter.format(remaining)}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                textAlign: TextAlign.right,
-              ),
+            Text(
+              'المتبقي: ${MoneyFormatter.format(remaining)}',
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(width: 8),
-            const Padding(
-              padding: EdgeInsetsDirectional.only(start: 8),
-              child: Text('✅ محفوظ محاسبيًا تلقائيًا',
-                  style: TextStyle(color: Colors.green)),
+            const Text(
+              '✅ محفوظ محاسبيًا تلقائيًا',
+              style: TextStyle(color: Colors.green),
             ),
+            if (showPaymentAction && remaining > 0.005) _buildPaymentButton(),
           ],
         ),
       ),
@@ -1164,22 +1237,21 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               ),
             ),
             const SizedBox(height: 14),
+            _buildWorkflowCard(),
+            const SizedBox(height: 12),
             _buildStatusPanel(),
+            const SizedBox(height: 14),
+            RepairProfitabilityCard(
+              repairId: _repair.id,
+              isClosed: _repair.isClosed,
+            ),
             const SizedBox(height: 14),
             Row(
               children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    onPressed: _addPayment,
-                    icon: const Icon(Icons.add_card_rounded),
-                    label: const Text('إضافة دفعة'),
-                  ),
-                ),
-                const SizedBox(width: 10),
+                if (remaining > 0.005) ...[
+                  Expanded(child: _buildPaymentButton(filled: true)),
+                  const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
@@ -1199,7 +1271,11 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             const SizedBox(height: 12),
             _buildDataTable('القطع المطلوبة', _repairParts),
             const SizedBox(height: 14),
-            _buildActionsBar(),
+            _buildNotesCard(),
+            const SizedBox(height: 14),
+            _buildChangeHistoryCard(),
+            const SizedBox(height: 14),
+            _buildActionsBar(showPaymentAction: false),
             if (hasInvoice) ...[
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -1219,7 +1295,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 1000;
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= YallaBreakpoints.desktop;
     final f = DateFormat('yyyy-MM-dd');
     final String? firstImg =
         _repair.imagePaths.isNotEmpty ? _repair.imagePaths.first : null;
@@ -1240,13 +1317,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             aliases: kVehicleStatusAliases) ??
         _repair.vehicleStatus;
     final insuranceStatus =
-        normalizeOrNull(_repair.insuranceStatus, _insuranceOptions) ??
+        normalizeOrNull(_repair.insuranceStatus, kInsuranceFollowups) ??
             _repair.insuranceStatus;
 
     final hasInvoice =
         (_repair.invoiceId != null && _repair.invoiceId!.trim().isNotEmpty);
 
-    if (MediaQuery.sizeOf(context).width < 600) {
+    if (width < YallaBreakpoints.phone) {
       return _buildPhoneDetails(
         repairType: repairType,
         vehicleStatus: vehicleStatus,
@@ -1259,10 +1336,27 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     return Scaffold(
       body: AdaptiveRow(
         children: [
-          const YallaSidebar(currentRoute: AppRoutes.repairDetail),
+          if (isDesktop)
+            const YallaSidebar(currentRoute: AppRoutes.repairDetail),
           Expanded(
             child: Scaffold(
+              drawer: isDesktop
+                  ? null
+                  : const Drawer(
+                      child: YallaSidebar(
+                        currentRoute: AppRoutes.repairDetail,
+                      ),
+                    ),
               appBar: AppBar(
+                leading: isDesktop
+                    ? null
+                    : Builder(
+                        builder: (context) => IconButton(
+                          tooltip: 'القائمة',
+                          icon: const Icon(Icons.menu),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
+                        ),
+                      ),
                 title: const Text('تفاصيل إصلاح المركبة'),
                 actions: [
                   IconButton(
@@ -1294,7 +1388,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               ),
               body: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: isWide
+                child: isDesktop
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -1337,6 +1431,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                         ),
                                       ),
                                     ),
+                                    const SizedBox(height: 12),
+                                    _buildWorkflowCard(),
                                     const SizedBox(height: 12),
                                     _buildStatusPanel(),
                                   ],
@@ -1433,6 +1529,11 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 16),
+                          RepairProfitabilityCard(
+                            repairId: _repair.id,
+                            isClosed: _repair.isClosed,
+                          ),
 
                           // شريط الإجراءات
                           _buildActionsBar(),
@@ -1448,9 +1549,124 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           _buildDataTable('أعمال الإصلاح', _repairWorks),
                           const SizedBox(height: 16),
                           _buildDataTable('القطع المطلوبة', _repairParts),
+                          const SizedBox(height: 16),
+                          _buildNotesCard(),
+                          const SizedBox(height: 16),
+                          _buildChangeHistoryCard(),
                         ],
                       )
-                    : const Center(child: Text('الشاشة صغيرة جدًا')),
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Card(
+                            child: ListTile(
+                              leading: RepairThumb(
+                                repairId: _repair.id,
+                                fallbackFirstPath: thumb,
+                                size: 56,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              title: const Text('البيانات المالية 💰'),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'حالة السداد: ${_repair.displayPaymentStatus}',
+                                  ),
+                                  Text(
+                                    'قيمة الملف: ${MoneyFormatter.format(_repair.totalFileValue)}',
+                                  ),
+                                  Text(
+                                    'المدفوع: ${MoneyFormatter.format(_repair.totalPaidAmount)}',
+                                  ),
+                                  Text(
+                                    'المتبقي: ${MoneyFormatter.format(_repair.remainingAmount)}',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Card(
+                            child: ListTile(
+                              title: const Text('بيانات المركبة والمستفيد'),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('نوع: ${_repair.vehicleType}'),
+                                  Text('الموديل: ${_repair.vehicleModel}'),
+                                  Text('رقم: ${_repair.vehicleNumber}'),
+                                  Text(
+                                    'تاريخ الاستلام: ${f.format(_repair.receivedDate)}',
+                                  ),
+                                  Text('نوع العمل: $repairType'),
+                                  Text('حالة المركبة: $vehicleStatus'),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'نوع المستفيد: ${_repair.beneficiaryType}',
+                                  ),
+                                  Text('الاسم: ${_repair.beneficiaryName}'),
+                                  if (_repair.beneficiaryType == 'شركة تأمين')
+                                    Text('متابعة التأمين: $insuranceStatus'),
+                                  const SizedBox(height: 12),
+                                  if (hasInvoice)
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: <Widget>[
+                                        ElevatedButton.icon(
+                                          icon: const Icon(Icons.receipt_long),
+                                          label: const Text('عرض الفاتورة'),
+                                          onPressed: () =>
+                                              Navigator.of(context).pushNamed(
+                                            AppRoutes.invoiceView,
+                                            arguments: _repair.invoiceId!,
+                                          ),
+                                        ),
+                                        if (_invoiceGlEntryId != null)
+                                          ElevatedButton.icon(
+                                            icon: const Icon(
+                                              Icons.account_balance,
+                                            ),
+                                            label: Text(
+                                              'عرض قيد GL #$_invoiceGlEntryId',
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.of(context).pushNamed(
+                                              AppRoutes.financeGL,
+                                              arguments: <String, Object?>{
+                                                'entryId': _invoiceGlEntryId,
+                                              },
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildWorkflowCard(),
+                          const SizedBox(height: 12),
+                          _buildStatusPanel(),
+                          const SizedBox(height: 12),
+                          RepairProfitabilityCard(
+                            repairId: _repair.id,
+                            isClosed: _repair.isClosed,
+                          ),
+                          _buildActionsBar(),
+                          const SizedBox(height: 16),
+                          _buildImagesStrip(),
+                          const SizedBox(height: 16),
+                          _buildDataTable('أعمال الإصلاح', _repairWorks),
+                          const SizedBox(height: 16),
+                          _buildDataTable('القطع المطلوبة', _repairParts),
+                          const SizedBox(height: 16),
+                          _buildNotesCard(),
+                          const SizedBox(height: 16),
+                          _buildChangeHistoryCard(),
+                        ],
+                      ),
               ),
             ),
           ),
@@ -1460,11 +1676,6 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   }
 }
 
-class _PayMethod {
-  final String key; // 'cash' | 'bank'
-  final String label;
-  const _PayMethod(this.key, this.label);
-}
 // ===============================
 // 🔑 Intents (Top-Level)
 // ===============================

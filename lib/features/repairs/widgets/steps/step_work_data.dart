@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/services/image_storage_service.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_form_provider.dart';
 import 'package:yalla_accounts/features/repairs/widgets/view_image_screen.dart';
 
@@ -62,8 +63,9 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
       );
       if (picked == null) return;
 
+      final optimized = await ImageStorageService.compressImage(picked);
       final dir = await getApplicationDocumentsDirectory();
-      final fileName = '${const Uuid().v4()}${p.extension(picked.path)}';
+      final fileName = '${const Uuid().v4()}.jpg';
       final savePath = p.join(dir.path, 'repairs_images', fileName);
 
       final saveDir = Directory(p.dirname(savePath));
@@ -71,8 +73,9 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
         await saveDir.create(recursive: true);
       }
 
-      final saved = await File(picked.path).copy(savePath);
-      ref.read(repairFormProvider.notifier).addImage(saved.path);
+      await File(savePath)
+          .writeAsBytes(await optimized.readAsBytes(), flush: true);
+      ref.read(repairFormProvider.notifier).addImage(savePath);
       if (mounted) setState(() {});
     } catch (e) {
       if (!mounted) return;
@@ -261,12 +264,12 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
             DropdownButtonFormField<String>(
               value: normalizeValue(
                 form.vehicleStatus,
-                kVehicleStatuses,
+                kManualVehicleStatuses,
                 aliases: kVehicleStatusAliases,
               ),
               decoration: _dec('حالة المركبة'),
               hint: const Text('اختر حالة المركبة'),
-              items: kVehicleStatuses
+              items: kManualVehicleStatuses
                   .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                   .toList(),
               onChanged: (v) {
@@ -377,6 +380,8 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
                                   width: 100,
                                   height: 100,
                                   fit: BoxFit.cover,
+                                  cacheWidth: 240,
+                                  cacheHeight: 240,
                                 )
                               : Container(
                                   width: 100,

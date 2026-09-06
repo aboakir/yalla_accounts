@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 /// Stable visual constants for Yalla Accounts Mobile V2.
 ///
 /// P01 deliberately does not connect these tokens to the existing application
 /// theme. Screens adopt them only in their approved implementation phase.
 abstract final class YallaColors {
-  static const Color brand = Color(0xFF59C414);
+  static const Color brand = AppColors.primary;
   static const Color brandDark = Color(0xFF2F6F38);
   static const Color canvas = Color(0xFFF7F9F8);
   static const Color surface = Color(0xFFFFFFFF);

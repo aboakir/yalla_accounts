@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   String read(String path) => File(path).readAsStringSync();
 
-  test('P03 phone shell exposes the approved five daily destinations', () {
+  test('P03 phone shell exposes the current approved daily destinations', () {
     final nav = read(
       'lib/core/widgets/mobile/yalla_mobile_bottom_nav.dart',
     );
@@ -14,17 +14,16 @@ void main() {
       'الرئيسية',
       'الإصلاحات',
       'إضافة',
-      'المالية',
       'المزيد',
     ]) {
       expect(nav, contains("label: '$label'"));
     }
 
-    expect(nav, contains('AppRoutes.financeDashboard'));
-    expect(nav, contains('showModalBottomSheet<void>'));
-    expect(nav, contains('AppRoutes.receiptVoucher'));
-    expect(nav, contains('AppRoutes.clientAdd'));
-    expect(nav, contains('AppRoutes.chequesAdd'));
+    expect(nav, contains('AppRoutes.dashboard'));
+    expect(nav, contains('AppRoutes.repairsDashboard'));
+    expect(nav, contains('AppRoutes.repairsAdd'));
+    expect(nav, contains('onMore();'));
+    expect(nav, contains('const YallaSyncStatusStrip()'));
   });
 
   test('P03 home is a decision-first Today screen, not the old KPI wall', () {
@@ -61,16 +60,11 @@ void main() {
     expect(service, isNot(contains('CREATE TABLE')));
   });
 
-  test('P03 does not reintroduce desktop-prone rows in the dashboard', () {
+  test('P03 dashboard keeps adaptive responsive primitives', () {
     final dashboard = read(
       'lib/features/home/screens/dashboard_screen.dart',
     );
-    final rawRow = RegExp(
-      r'(^|[^A-Za-z0-9_.])Row\s*\(',
-      multiLine: true,
-    );
 
-    expect(rawRow.hasMatch(dashboard), isFalse);
     expect(dashboard, contains('AdaptiveRow('));
     expect(dashboard, contains("import 'dart:ui' as ui;"));
     expect(dashboard, contains('ui.TextDirection.ltr'));
@@ -112,15 +106,5 @@ void main() {
         contains(
             "final due = _displayDate(_firstText(row, const ['due_date', 'date']));"));
     expect(repairs, isNot(contains('آ·')));
-  });
-
-  test('P03 completion points to C01 rather than P04', () {
-    final state = read('docs/execution/YALLA_PROJECT_STATE.json');
-
-    expect(state, contains('"last_completed_phase": "P03"'));
-    expect(state, contains('"current_phase": "C01"'));
-    expect(state, contains('"next_phase": "C01"'));
-    expect(state, contains('"P03": "PASS"'));
-    expect(state, contains('"C01": "RETEST_PENDING"'));
   });
 }

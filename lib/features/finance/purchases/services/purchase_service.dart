@@ -12,6 +12,7 @@
 
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/services/accounting_gl.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 
 class PurchaseService {
@@ -21,11 +22,7 @@ class PurchaseService {
   static const _TABLE = "purchase_invoices";
   static const _LINES = "purchase_invoice_lines";
 
-  // الحسابات
-  static const _ACC_CASH = "1000";
-  static const _ACC_BANK = "1010";
-  static const _ACC_AP = "2200";
-  static const _ACC_EXP = "5900";
+  // أكواد الحسابات مصدرها المركزي الوحيد: GL.
 
   // ---------------------------------------------------------------------------
   // Normalize payment method
@@ -74,9 +71,9 @@ class PurchaseService {
     // =======================================================================
     // حساب GL Accounts
     // =======================================================================
-    final cashAcc = await _accId(db, _ACC_CASH);
-    final bankAcc = await _accId(db, _ACC_BANK);
-    final expAcc = await _accId(db, _ACC_EXP);
+    final cashAcc = await _accId(db, GL.cash);
+    final bankAcc = await _accId(db, GL.bank);
+    final expAcc = await _accId(db, GL.otherExpense);
 
     if (cashAcc == null || bankAcc == null || expAcc == null) {
       throw "Missing essential accounts";

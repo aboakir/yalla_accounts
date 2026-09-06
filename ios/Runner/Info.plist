@@ -47,5 +47,9 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to securely unlock Yalla Accounts.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>يستخدم Yalla Accounts الكاميرا لإضافة صور المركبات والإصلاحات والموظفين التي يختار المستخدم إرفاقها بالسجلات.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>يستخدم Yalla Accounts مكتبة الصور لاختيار الصور التي يقرر المستخدم إرفاقها بسجلات المركبات والإصلاحات والموظفين.</string>
 </dict>
 </plist>

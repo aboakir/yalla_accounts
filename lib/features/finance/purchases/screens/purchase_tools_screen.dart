@@ -43,6 +43,7 @@ class _PurchaseToolsScreenState extends State<PurchaseToolsScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
+    if (!mounted) return;
     if (d != null) setState(() => _date = DateTime(d.year, d.month, d.day));
   }
 

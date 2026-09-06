@@ -626,28 +626,25 @@ class Repair {
   /// customer/insurer supplied parts.
   double get totalFileValue => fileValue;
 
-  double get totalPaidAmount {
-    double total = paidAmount;
-    if (checkDetails != null) {
-      total += checkDetails!.fold<double>(0.0, (s, c) => s + c.amount);
-    }
-    if (installmentSchedule != null) {
-      total += installmentSchedule!
-          .where((inst) => inst.paid)
-          .fold<double>(0.0, (s, inst) => s + inst.amount);
-    }
-    if (transferAmount != null) {
-      total += transferAmount!;
-    }
-    return total;
-  }
+  /// Canonical paid snapshot. P10 intentionally does not add legacy cheque,
+  /// installment or transfer fields on top of paidAmount because paidAmount is
+  /// loaded from total_paid_amount first and that cache mirrors SUM(payments).
+  double get totalPaidAmount => paidAmount;
 
   double get remainingAmount {
     final value = totalFileValue - totalPaidAmount;
     return value < 0 ? 0.0 : value;
   }
 
-  bool get isClosed => remainingAmount <= 0;
+  double get customerCredit {
+    final value = totalPaidAmount - totalFileValue;
+    return value > 0 ? value : 0.0;
+  }
+
+  bool get isFinanciallySettled => remainingAmount <= 0.005;
+
+  /// Operational closure is not the same thing as full payment.
+  bool get isClosed => isArchived && status == RepairStatusText.closed;
 
   String get computedPaymentStatus {
     if (totalFileValue <= 0) return 'مسدد';

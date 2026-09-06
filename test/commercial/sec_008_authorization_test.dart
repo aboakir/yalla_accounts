@@ -124,28 +124,28 @@ void main() {
       await service.createAdditionalUser(
         AppUser(
           id: '',
-          name: 'cashier008',
-          email: 'cashier008@example.test',
-          role: RoleKeys.cashier,
+          name: 'manager008',
+          email: 'manager008@example.test',
+          role: RoleKeys.manager,
           status: 'active',
           createdAt: DateTime.now(),
         ),
-        'CashierPass008',
+        'ManagerPass008',
       );
 
-      final cashierRow = (await db.query(
+      final managerRow = (await db.query(
         'users',
         where: 'name = ?',
-        whereArgs: ['cashier008'],
+        whereArgs: ['manager008'],
       ))
           .single;
-      expect(cashierRow['role'], RoleKeys.cashier);
-      expect(cashierRow['is_owner'], 0);
-      expect(cashierRow['must_change_password'], 1);
+      expect(managerRow['role'], RoleKeys.manager);
+      expect(managerRow['is_owner'], 0);
+      expect(managerRow['must_change_password'], 1);
       expect(
         PasswordHasher.verify(
-          'CashierPass008',
-          cashierRow['password']!.toString(),
+          'ManagerPass008',
+          managerRow['password']!.toString(),
         ).isValid,
         isTrue,
       );
@@ -153,22 +153,22 @@ void main() {
       final permissions = PermissionService(databaseProvider: provider);
       expect(
         await permissions.hasPermissionForUser(
-          cashierRow['id']!.toString(),
+          managerRow['id']!.toString(),
           PermissionKeys.receiptCreate,
         ),
         isTrue,
       );
       expect(
         await permissions.hasPermissionForUser(
-          cashierRow['id']!.toString(),
+          managerRow['id']!.toString(),
           PermissionKeys.userCreate,
         ),
         isFalse,
       );
 
-      final cashier = AppUser.fromMap(cashierRow);
+      final manager = AppUser.fromMap(managerRow);
       await AuthSessionService(databaseProvider: provider)
-          .createSession(cashier);
+          .createSession(manager);
       await expectLater(
         service.createAdditionalUser(
           AppUser(

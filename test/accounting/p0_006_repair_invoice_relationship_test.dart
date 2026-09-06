@@ -38,10 +38,9 @@ void main() {
       'lib/features/finance/invoices/services/invoice_service.dart',
     );
 
+    expect(source.contains('_assertInvoiceMutable('), isTrue);
     expect(
-      source.contains(
-        r'Posted invoice $existingId is immutable.',
-      ),
+      source.contains(r'Posted invoice $id is immutable.'),
       isTrue,
     );
     expect(
@@ -49,6 +48,13 @@ void main() {
         'Use a formal credit/debit note or reversal/reissue workflow.',
       ),
       isTrue,
+    );
+    expect(
+      RegExp(r'await _assertInvoiceMutable\(txn, id\);')
+          .allMatches(source)
+          .length,
+      greaterThanOrEqualTo(2),
+      reason: 'Both update and delete paths must fail closed once posted.',
     );
     expect(
       source.contains('return DBService.inTx((txn) async {'),
@@ -69,17 +75,47 @@ void main() {
     expect(method.contains("'paid': _round(newPaid)"), isTrue);
   });
 
-  test('P0.006 accounted repair deletion fails closed', () {
-    final source = read(
+  test(
+      'P0.006 accounted repair cancellation uses formal reversal + soft cancel',
+      () {
+    final databaseSource = read(
       'lib/features/repairs/services/repair_database_service.dart',
+    );
+    final accountingSource = read(
+      'lib/features/repairs/services/repair_auto_accounting_service.dart',
     );
 
     expect(
-      source.contains(
-        'Cannot delete an invoiced/accounted repair.',
+      databaseSource.contains(
+        'await RepairAutoAccountingService.deleteRepair(id);',
       ),
       isTrue,
     );
-    expect(source.contains("tx.delete('gl_entries'"), isFalse);
+
+    final start = accountingSource.indexOf(
+      'static Future<void> deleteRepair(String repairId) async {',
+    );
+    expect(start, greaterThanOrEqualTo(0));
+    final method = accountingSource.substring(start);
+
+    // Payments must be formally handled before cancellation.
+    expect(method.contains('paymentCount > 0'), isTrue);
+
+    // Posted financial history is preserved through reversal, never DELETE.
+    expect(method.contains('DBService.reverseEntryGLOn('), isTrue);
+    expect(method.contains("tx.delete('gl_entries'"), isFalse);
+    expect(method.contains("tx.delete('gl_lines'"), isFalse);
+
+    // The repair is soft-cancelled/archived instead of physically deleted.
+    expect(method.contains("'status': cancelledStatus"), isTrue);
+    expect(method.contains("'isArchived': 1"), isTrue);
+    expect(
+      method.contains("'reason': 'DELETE / CANCEL'"),
+      isTrue,
+    );
+    expect(
+      method.contains("tx.insert('repair_accounting_adjustments'"),
+      isTrue,
+    );
   });
 }

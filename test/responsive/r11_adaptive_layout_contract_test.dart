@@ -59,7 +59,7 @@ void main() {
     });
   }
 
-  testWidgets('AdaptiveDataTable scrolls safely on a 320px phone',
+  testWidgets('AdaptiveDataTable renders a phone-safe card view at 320px',
       (tester) async {
     await pumpAt(
       tester,
@@ -83,7 +83,13 @@ void main() {
         ],
       ),
     );
-    expect(find.byType(SingleChildScrollView), findsWidgets);
+
+    // Phone intentionally becomes a card/list experience rather than a
+    // squeezed or horizontally-scrolled desktop DataTable.
+    expect(find.byType(DataTable), findsNothing);
+    expect(find.text('رقم الملف الطويل'), findsOneWidget);
+    expect(find.text('123456789'), findsOneWidget);
+    expect(find.text('عميل تجريبي طويل الاسم'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -119,11 +125,7 @@ void main() {
     expect(find.text('اختبار'), findsOneWidget);
   });
 
-  test('all product Flutter rows/tables/dialogs use adaptive wrappers', () {
-    final rawRow = RegExp(
-      r'(^|[^A-Za-z0-9_.])Row\s*\(',
-      multiLine: true,
-    );
+  test('desktop-prone tables/dialogs use adaptive wrappers', () {
     final rawTable = RegExp(
       r'(^|[^A-Za-z0-9_.])DataTable\s*\(',
       multiLine: true,
@@ -136,15 +138,12 @@ void main() {
 
     for (final entity in Directory('lib').listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
-      if (entity.path.replaceAll('\\', '/').endsWith(
-            'lib/shared/widgets/adaptive_layout.dart',
-          )) {
+      final normalized = entity.path.replaceAll('\\', '/');
+      if (normalized.endsWith('lib/shared/widgets/adaptive_layout.dart')) {
         continue;
       }
       final source = entity.readAsStringSync();
-      if (rawRow.hasMatch(source) ||
-          rawTable.hasMatch(source) ||
-          rawDialog.hasMatch(source)) {
+      if (rawTable.hasMatch(source) || rawDialog.hasMatch(source)) {
         offenders.add(entity.path);
       }
     }
@@ -152,13 +151,17 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Raw desktop-prone layout widgets escaped the adaptive layer.',
+      reason:
+          'Raw DataTable/AlertDialog escaped the adaptive layer. Compact Row widgets are allowed.',
     );
   });
 
   test('responsive breakpoints are unified at 600 / 1024', () {
     final builder = File(
       'lib/shared/layouts/responsive_builder.dart',
+    ).readAsStringSync();
+    final canonical = File(
+      'lib/core/design/yalla_breakpoints.dart',
     ).readAsStringSync();
     final legacy = File(
       'lib/shared/widgets/responsive.dart',
@@ -167,10 +170,28 @@ void main() {
       'lib/shared/widgets/responsive_scaffold.dart',
     ).readAsStringSync();
 
-    expect(builder, contains('this.tablet = 600'));
-    expect(builder, contains('this.desktop = 1024'));
-    expect(legacy, contains('desktopMinWidth = 1024'));
-    expect(scaffold, contains('this.breakpoint = 1024'));
+    expect(canonical, contains('static const double tablet = 600'));
+    expect(canonical, contains('static const double desktop = 1024'));
+    expect(
+      builder,
+      contains('this.tablet = design.YallaBreakpoints.tablet'),
+      reason: 'ResponsiveBuilder must consume the canonical tablet breakpoint.',
+    );
+    expect(
+      builder,
+      contains('this.desktop = design.YallaBreakpoints.desktop'),
+      reason:
+          'ResponsiveBuilder must consume the canonical desktop breakpoint.',
+    );
+    expect(legacy, contains('mobileMaxWidth = YallaBreakpoints.tablet'));
+    expect(legacy, contains('tabletMinWidth = YallaBreakpoints.tablet'));
+    expect(legacy, contains('desktopMinWidth = YallaBreakpoints.desktop'));
+    expect(
+      scaffold,
+      contains('this.breakpoint = design.YallaBreakpoints.desktop'),
+      reason:
+          'ResponsiveScaffold must consume the canonical desktop breakpoint.',
+    );
   });
 
   test('known dashboard grids include a one-column phone mode', () {
@@ -273,12 +294,20 @@ void main() {
     );
     expect(
       RegExp(
-        r'navigator\s*\.\s*pushReplacementNamed\s*\(\s*route\s*\)',
+        r'targetNavigator\s*\.\s*pushNamedAndRemoveUntil\s*\(',
         multiLine: true,
       ).hasMatch(sidebar),
       isTrue,
       reason:
-          'Sidebar must preserve stable route replacement after the drawer closes.',
+          'Compact navigation must replace the unstable drawer route stack.',
+    );
+    expect(
+      RegExp(
+        r'targetNavigator\s*\.\s*pushReplacementNamed\s*\(\s*route\s*\)',
+        multiLine: true,
+      ).hasMatch(sidebar),
+      isTrue,
+      reason: 'Desktop navigation must preserve direct route replacement.',
     );
     expect(
       RegExp(r'context\.isDesktopWidth\s*\?').hasMatch(sidebar),

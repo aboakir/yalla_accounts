@@ -10,10 +10,21 @@ class RepairReportService {
     final db = await _db;
 
     final results = await db.rawQuery('''
-      SELECT beneficiaryName, SUM(fileValue - paidAmount) AS outstanding
-      FROM repairs
-      WHERE (fileValue - paidAmount) > 0
-      GROUP BY beneficiaryName
+      WITH paid AS (
+        SELECT
+          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
+          SUM(amount) AS paid
+        FROM payments
+        WHERE COALESCE(isIncome,1)=1
+        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+      )
+      SELECT
+        r.beneficiaryName,
+        SUM(MAX(r.fileValue-COALESCE(p.paid,0),0)) AS outstanding
+      FROM repairs r
+      LEFT JOIN paid p ON p.repair_id=r.id
+      WHERE r.fileValue-COALESCE(p.paid,0) > 0.005
+      GROUP BY r.beneficiaryName
     ''');
 
     final Map<String, double> receivables = {};

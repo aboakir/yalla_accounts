@@ -60,6 +60,19 @@ class UserAuthorizationTables {
         },
         conflictAlgorithm: ConflictAlgorithm.ignore,
       );
+      // Existing installations may already have this role from SEC.008.
+      // Keep its metadata synchronized with the P16 policy without replacing
+      // the row (REPLACE could cascade role-permission rows).
+      await db.update(
+        'auth_roles',
+        {
+          'display_name_ar': RoleKeys.displayNameAr(role),
+          'is_system': 1,
+          'is_assignable': RoleKeys.isAssignable(role) ? 1 : 0,
+        },
+        where: 'role_key = ?',
+        whereArgs: [role],
+      );
     }
   }
 
@@ -81,6 +94,13 @@ class UserAuthorizationTables {
 
   static Future<void> _seedRolePermissions(DatabaseExecutor db) async {
     for (final entry in AuthorizationPolicy.rolePermissions.entries) {
+      // P16 role permissions are canonical. Remove stale grants left by older
+      // policy versions before inserting the current matrix.
+      await db.delete(
+        'auth_role_permissions',
+        where: 'role_key = ?',
+        whereArgs: [entry.key],
+      );
       for (final permission in entry.value) {
         await db.insert(
           'auth_role_permissions',
@@ -115,6 +135,8 @@ class UserAuthorizationTables {
         AND LOWER(COALESCE(role, '')) NOT IN (
           '${RoleKeys.manager}',
           '${RoleKeys.accountant}',
+          '${RoleKeys.employee}',
+          '${RoleKeys.technician}',
           '${RoleKeys.cashier}',
           '${RoleKeys.workshopManager}',
           '${RoleKeys.estimator}',
@@ -206,9 +228,16 @@ class UserAuthorizationTables {
     if (permission.startsWith('SETTINGS_')) {
       return 'SETTINGS';
     }
-    if (permission.startsWith('BACKUP_')) {
+    if (permission.startsWith('BACKUP_') ||
+        permission == PermissionKeys.windowsImport) {
       return 'BACKUP';
     }
+    if (permission == PermissionKeys.auditView) {
+      return 'AUDIT';
+    }
+    if (permission.startsWith('CHEQUE_')) return 'CHEQUE';
+    if (permission.startsWith('PURCHASE_')) return 'PURCHASE';
+    if (permission.startsWith('PAYROLL_')) return 'PAYROLL';
     return 'OTHER';
   }
 }

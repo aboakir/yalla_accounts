@@ -16,7 +16,9 @@ import 'package:yalla_accounts/features/repairs/services/repair_intake_service.d
 import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 /// P07 — fast repair intake wizard.
 ///
@@ -197,7 +199,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) => AdaptiveAlertDialog(
           title: const Text('إضافة عميل سريع'),
           content: SizedBox(
             width: 420,
@@ -283,7 +285,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     final modelController = TextEditingController();
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AdaptiveAlertDialog(
         title: const Text('إضافة مركبة سريعة'),
         content: SizedBox(
           width: 440,
@@ -628,7 +630,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     final message = error.toString().replaceFirst('StateError: ', '');
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: Text(title),
         content: Text(message),
         actions: <Widget>[
@@ -982,18 +984,9 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     }
   }
 
-  String _money(double value) {
-    final fixed = value.toStringAsFixed(2);
-    final parts = fixed.split('.');
-    final whole = parts.first;
-    final buffer = StringBuffer();
-    for (var i = 0; i < whole.length; i++) {
-      final reverseIndex = whole.length - i;
-      buffer.write(whole[i]);
-      if (reverseIndex > 1 && reverseIndex % 3 == 1) buffer.write(',');
-    }
-    return '${buffer.toString()}.${parts.last}';
-  }
+  String _money(double value) => MoneyFormatter.number(value);
+
+  String get _currencySymbol => MoneyFormatter.symbol;
 
   String _linesNote(List<_RepairLineDraft> lines, {required bool isPart}) {
     final mode = isPart ? _partsPricingMode : _worksPricingMode;
@@ -1013,7 +1006,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     if (mode == 'detailed') {
       return lines
           .map((line) =>
-              '• ${line.name}: ${line.qty} × ${_money(line.price)} = ${_money(line.total)} ₪')
+              '• ${line.name}: ${line.qty} × ${_money(line.price)} = ${_money(line.total)} $_currencySymbol')
           .join('\n');
     }
     return lines
@@ -1169,9 +1162,9 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                                     decimal: true,
                                   ),
                                   textInputAction: TextInputAction.done,
-                                  decoration: const InputDecoration(
+                                  decoration: InputDecoration(
                                     labelText: 'سعر الوحدة *',
-                                    suffixText: '₪',
+                                    suffixText: MoneyFormatter.symbol,
                                   ),
                                   onChanged: (_) => setSheetState(() {}),
                                   validator: (value) {
@@ -1219,7 +1212,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                                   ),
                                 ),
                                 Text(
-                                  '${_money(previewTotal())} ₪',
+                                  '${_money(previewTotal())} $_currencySymbol',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w900,
@@ -1382,7 +1375,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               decoration: InputDecoration(
                 labelText:
                     isPart ? 'إجمالي قيمة القطع *' : 'إجمالي أعمال الإصلاح *',
-                suffixText: '₪',
+                suffixText: MoneyFormatter.symbol,
                 helperText: 'يمكن إضافة البنود كوصف فقط دون تسعير كل بند.',
               ),
             ),
@@ -1445,7 +1438,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                             const SizedBox(height: 4),
                             Text(
                               priced
-                                  ? '${line.qty} × ${_money(line.price)} ₪'
+                                  ? '${line.qty} × ${_money(line.price)} $_currencySymbol'
                                   : 'الكمية ${line.qty}${mode == 'list' ? ' • بدون سعر' : ''}',
                               style: theme.textTheme.bodySmall
                                   ?.copyWith(color: Colors.black54),
@@ -1455,7 +1448,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                       ),
                       if (priced) ...<Widget>[
                         const SizedBox(width: 8),
-                        Text('${_money(line.total)} ₪',
+                        Text('${_money(line.total)} $_currencySymbol',
                             style:
                                 const TextStyle(fontWeight: FontWeight.w900)),
                       ],
@@ -1491,7 +1484,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                 ),
               ),
               if (mode != 'list')
-                Text('${_money(total)} ₪',
+                Text('${_money(total)} $_currencySymbol',
                     style: const TextStyle(fontWeight: FontWeight.w900)),
             ],
           ),
@@ -1770,7 +1763,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                     ),
                   ),
                   Text(
-                    '${_money(_sectionTotal(isPart: false) + _sectionTotal(isPart: true))} ₪',
+                    '${_money(_sectionTotal(isPart: false) + _sectionTotal(isPart: true))} $_currencySymbol',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -2151,16 +2144,16 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
               if (_works.isNotEmpty)
                 _ReviewRow(
                   'أعمال الإصلاح',
-                  '${_works.length} بند • ${_pricingModeLabel(_worksPricingMode)} • ${_money(_sectionTotal(isPart: false))} ₪\n${_linesReview(_works, isPart: false)}',
+                  '${_works.length} بند • ${_pricingModeLabel(_worksPricingMode)} • ${_money(_sectionTotal(isPart: false))} $_currencySymbol\n${_linesReview(_works, isPart: false)}',
                 ),
               if (_parts.isNotEmpty)
                 _ReviewRow(
                   'القطع المطلوبة',
-                  '${_parts.length} بند • ${_pricingModeLabel(_partsPricingMode)} • ${_partsPricingMode == 'list' ? 'بدون سعر' : '${_money(_sectionTotal(isPart: true))} ₪'}\n${_linesReview(_parts, isPart: true)}',
+                  '${_parts.length} بند • ${_pricingModeLabel(_partsPricingMode)} • ${_partsPricingMode == 'list' ? 'بدون سعر' : '${_money(_sectionTotal(isPart: true))} $_currencySymbol'}\n${_linesReview(_parts, isPart: true)}',
                 ),
               _ReviewRow(
                 'إجمالي الملف',
-                '${_money(_sectionTotal(isPart: false) + _sectionTotal(isPart: true))} ₪',
+                '${_money(_sectionTotal(isPart: false) + _sectionTotal(isPart: true))} $_currencySymbol',
               ),
               if (_payer != 'العميل' &&
                   _insuranceCompanyController.text.trim().isNotEmpty)

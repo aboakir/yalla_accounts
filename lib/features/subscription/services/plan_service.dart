@@ -1,33 +1,13 @@
-import 'package:yalla_accounts/core/services/db_service.dart';
 import '../models/plan.dart';
 
+/// Plans shown by the client must be a projection of server commercial state,
+/// not rows created or trusted from local SQLite.
 class PlanService {
-  // جلب جميع الباقات الفعالة
-  Future<List<Plan>> getAllActivePlans() async {
-    final db = await DBService.database;
+  static const String serverAuthorityRequired = 'SERVER_AUTHORITY_REQUIRED';
 
-    final results = await db.query(
-      'plans',
-      where: 'isActive = ?',
-      whereArgs: [1],
-    );
+  Never _deny() => throw StateError(serverAuthorityRequired);
 
-    return results.map((row) => Plan.fromMap(row)).toList();
-  }
+  Future<List<Plan>> getAllActivePlans() async => _deny();
 
-  // جلب باقة محددة حسب ID
-  Future<Plan?> getPlanById(String id) async {
-    final db = await DBService.database;
-
-    final results = await db.query(
-      'plans',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-
-    if (results.isNotEmpty) {
-      return Plan.fromMap(results.first);
-    }
-    return null;
-  }
+  Future<Plan?> getPlanById(String id) async => _deny();
 }

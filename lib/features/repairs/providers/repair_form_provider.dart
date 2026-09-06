@@ -360,6 +360,7 @@ class RepairFormNotifier extends StateNotifier<RepairFormData> {
         actualCost: null,
         isLedgerEnabled: false,
       );
+      if (!context.mounted) return false;
 
       // ✅ إذا كان هناك شيك معلق، نخزنه مع ربطه بالإصلاح
       if (state.pendingCheque != null) {
@@ -381,6 +382,7 @@ class RepairFormNotifier extends StateNotifier<RepairFormData> {
       ));
       return true;
     } catch (e) {
+      if (!context.mounted) return false;
       _err(context, 'خطأ أثناء الحفظ: $e');
       return false;
     }

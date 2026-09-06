@@ -2,7 +2,7 @@ name: yalla_accounts
 description: طھط·ط¨ظٹظ‚ Yalla ط§ظ„ظ…ط­ط§ط³ط¨ظٹ
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+18
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -73,7 +73,7 @@ dependencies:
   flutter_facebook_auth: ^7.1.0
   sign_in_with_apple: ^6.1.0
   badges: ^3.1.2
-  speech_to_text: ^6.6.0
+  speech_to_text: 7.4.0
   flutter_slidable: ^3.1.0
   url_launcher: ^6.3.0
   window_manager: ^0.5.1
@@ -106,3 +106,11 @@ flutter:
     - assets/fonts/NotoSansArabic-Regular.ttf
     - assets/fonts/TraditionalArabic-Regular.ttf
     - assets/fonts/Tahoma-Regular.ttf
+
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700

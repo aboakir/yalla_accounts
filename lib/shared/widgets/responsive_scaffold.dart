@@ -1,6 +1,7 @@
 // 📁 lib/core/widgets/responsive_scaffold.dart
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/design/yalla_breakpoints.dart' as design;
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -32,7 +33,7 @@ class ResponsiveScaffold extends StatelessWidget {
     required this.title,
     required this.currentRoute,
     this.floatingActionButton,
-    this.breakpoint = 1024,
+    this.breakpoint = design.YallaBreakpoints.desktop,
     this.sidebarWidth = 260,
     this.appBarActions,
   });

@@ -40,7 +40,8 @@ void main() {
 
     expect(details, contains('await svc.autoSelectCoverAndSave'));
     expect(repairs, contains('final profilePath = r.thumbnailPath?.trim();'));
-    expect(repairs, contains('Image.file('));
+    expect(repairs, contains('YallaStoredImage('));
+    expect(repairs, contains('storedPath: profilePath'));
 
     expect(vehicleService, contains('repair.thumbnailPath?.trim()'));
     expect(vehicles, contains('vehicle.profileImagePath'));
@@ -48,6 +49,6 @@ void main() {
 
     expect(receipt, contains('thumbnail_path'));
     expect(receipt, contains('_buildRepairImage'));
-    expect(receipt, contains('File(value).existsSync()'));
+    expect(receipt, contains('YallaStoredImage('));
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:yalla_accounts/core/services/sync/sync_state_service.dart';
+import 'package:yalla_accounts/core/services/sync/outbox_sync_coordinator.dart';
 
 /// Compact P04 sync-state indicator shown above the phone bottom navigation.
 class YallaSyncStatusStrip extends StatelessWidget {
@@ -51,6 +52,32 @@ class YallaSyncStatusStrip extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (snapshot.transportConfigured &&
+                    (snapshot.phase == YallaSyncPhase.failed ||
+                        snapshot.phase == YallaSyncPhase.offline)) ...[
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () async {
+                      await OutboxSyncCoordinator.instance.drain();
+                      await SyncStateService.instance.refresh();
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      child: Text(
+                        'إعادة المحاولة',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w800,
+                          color: presentation.foreground,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

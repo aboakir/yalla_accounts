@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 
 class ImageStorageService {
@@ -26,8 +27,16 @@ class ImageStorageService {
 
   static Future<XFile> compressImage(XFile original) async {
     try {
-      await original.length();
-      return original;
+      final extension = p.extension(original.path).replaceFirst('.', '');
+      final optimized = await YallaStorageService.optimizeImageBytes(
+        bytes: await original.readAsBytes(),
+        extension: extension.isEmpty ? 'jpg' : extension,
+      );
+      return XFile.fromData(
+        optimized.bytes,
+        name: 'yalla_optimized.${optimized.extension}',
+        mimeType: 'image/jpeg',
+      );
     } catch (_) {
       return original;
     }

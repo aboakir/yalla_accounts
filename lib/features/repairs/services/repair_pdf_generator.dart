@@ -25,6 +25,9 @@ import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/models/workshop_settings.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
+import 'package:yalla_accounts/core/utils/public_text_sanitizer.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_line_bridge.dart';
 
 class RepairPdfGenerator {
   static late _FontSet _gFonts;
@@ -85,15 +88,35 @@ class RepairPdfGenerator {
     } catch (_) {}
 
     // ============================
-    // Totals
+    // P15 document truth
     // ============================
-    final partsTotal = _sumList(repair.parts, 'price');
-    final worksTotal = _sumList(repair.works, 'price');
-    final grandTotal = partsTotal + worksTotal;
+    RepairLineSnapshot? canonicalLines;
+    try {
+      canonicalLines = await RepairLineBridge.load(repair.id);
+    } catch (_) {}
 
-    final paid = (repair.paidAmount).toDouble();
-    final remaining = grandTotal - paid;
-    final isQuote = repair.invoiceId == null || repair.invoiceId!.isEmpty;
+    final works = (canonicalLines?.works.isNotEmpty ?? false)
+        ? canonicalLines!.works
+        : _normalizeLegacyLines(repair.works);
+    final parts = (canonicalLines?.parts.isNotEmpty ?? false)
+        ? canonicalLines!.parts
+        : _normalizeLegacyLines(repair.parts);
+
+    RepairFinancialTruth? truth;
+    try {
+      truth = await RepairFinancialTruthService.load(repair.id);
+    } catch (_) {}
+
+    final partsTotal = _sumLineTotals(parts);
+    final worksTotal = _sumLineTotals(works);
+    final grandTotal = truth?.fileValue ?? repair.fileValue;
+    final paid = truth?.paid ?? repair.totalPaidAmount;
+    final remaining = truth?.remaining ??
+        ((grandTotal - paid) < 0 ? 0.0 : (grandTotal - paid));
+    final credit = truth?.credit ?? repair.customerCredit;
+    final isQuote =
+        repair.invoiceId == null || repair.invoiceId!.trim().isEmpty;
+    final publicNotes = PublicTextSanitizer.sanitize(repair.notes);
 
     // =====================================================================
     // PAGE 1 — MAIN PAGE
@@ -139,6 +162,26 @@ class RepairPdfGenerator {
 
           pw.SizedBox(height: 10),
           _buildTitle(isQuote),
+          if (isQuote &&
+              ((repair.quoteNumber ?? '').trim().isNotEmpty ||
+                  repair.quoteValidUntil != null)) ...[
+            pw.SizedBox(height: 7),
+            pw.Wrap(
+              alignment: pw.WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 6,
+              children: [
+                if ((repair.quoteNumber ?? '').trim().isNotEmpty)
+                  _chip(_ar('رقم العرض: ${repair.quoteNumber}')),
+                if (repair.quoteValidUntil != null)
+                  _chip(
+                    _ar(
+                      'صالح حتى: ${dateFmt.format(repair.quoteValidUntil!)}',
+                    ),
+                  ),
+              ],
+            ),
+          ],
           pw.SizedBox(height: 10),
 
           if (repair.beneficiaryName.trim().isNotEmpty)
@@ -153,7 +196,7 @@ class RepairPdfGenerator {
           pw.SizedBox(height: 12),
           _buildVehicleInfo(repair, dateFmt),
           pw.SizedBox(height: 12),
-          _buildStatusBar(repair, isQuote, paid, remaining),
+          _buildStatusBar(repair, isQuote, paid, remaining, credit),
           pw.SizedBox(height: 12),
 
           _ar(
@@ -161,7 +204,7 @@ class RepairPdfGenerator {
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 6),
-          _buildPagedTable(repair.works),
+          _buildPagedTable(works),
 
           pw.SizedBox(height: 14),
 
@@ -170,14 +213,14 @@ class RepairPdfGenerator {
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 6),
-          _buildPagedTable(repair.parts),
+          _buildPagedTable(parts),
 
           pw.SizedBox(height: 12),
           _buildTotalsSummary(partsTotal, worksTotal, grandTotal),
 
-          if ((repair.notes ?? '').isNotEmpty) ...[
+          if (publicNotes.isNotEmpty) ...[
             pw.SizedBox(height: 10),
-            _ar("ملاحظات: ${repair.notes ?? ''}"),
+            _ar("ملاحظات: $publicNotes"),
           ],
 
           pw.SizedBox(height: 20),
@@ -189,18 +232,30 @@ class RepairPdfGenerator {
 // IMAGES — SAFE PAGED GRID (NO MultiPage / NO Wrap / NO Freeze)
 // =====================================================================
 
-    final imageBytes = <Uint8List>[];
+    final resolvedImagePaths = <String>[];
     for (final storedPath in repair.imagePaths) {
       final resolved =
           await YallaStorageService.resolveExistingPath(storedPath);
-      if (resolved == null) continue;
-      imageBytes.add(await File(resolved).readAsBytes());
+      if (resolved != null) resolvedImagePaths.add(resolved);
     }
 
     const imagesPerPage = 6; // شبكة ثابتة 2 × 3
 
-    for (int i = 0; i < imageBytes.length; i += imagesPerPage) {
-      final pageImages = imageBytes.skip(i).take(imagesPerPage).toList();
+    for (int i = 0; i < resolvedImagePaths.length; i += imagesPerPage) {
+      final pagePaths = resolvedImagePaths
+          .skip(i)
+          .take(imagesPerPage)
+          .toList(growable: false);
+      final pageImages = <Uint8List>[];
+      for (final path in pagePaths) {
+        final optimized = await YallaStorageService.optimizeImageBytes(
+          bytes: await File(path).readAsBytes(),
+          extension: p.extension(path).replaceFirst('.', ''),
+          maxDimension: 1200,
+          quality: 72,
+        );
+        pageImages.add(optimized.bytes);
+      }
 
       pdf.addPage(
         pw.Page(
@@ -264,7 +319,7 @@ class RepairPdfGenerator {
 
     final prefix = (repair.invoiceId == null || repair.invoiceId!.isEmpty)
         ? "QUOTE"
-        : "INVOICE";
+        : "REPAIR";
 
     final fileName = "$prefix-$cleanType-$cleanName-$cleanNumber-$date.pdf";
 
@@ -357,7 +412,7 @@ class RepairPdfGenerator {
           ),
         ),
         child: _ar(
-          isQuote ? "عرض سعر لإصلاح مركبة" : "فاتورة إصلاح",
+          isQuote ? "عرض سعر لإصلاح مركبة" : "ملف إصلاح مركبة",
           style: pw.TextStyle(
             fontWeight: pw.FontWeight.bold,
             fontSize: 14,
@@ -404,8 +459,8 @@ class RepairPdfGenerator {
   // =====================================================================
   // STATUS BAR
   // =====================================================================
-  static pw.Widget _buildStatusBar(
-      Repair repair, bool isQuote, double paid, double remaining) {
+  static pw.Widget _buildStatusBar(Repair repair, bool isQuote, double paid,
+      double remaining, double credit) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
@@ -427,7 +482,8 @@ class RepairPdfGenerator {
         pw.Wrap(
           spacing: 8,
           children: [
-            _chip(_ar("الحالة: ${repair.paymentStatus}")),
+            _chip(_ar(
+                "الحالة: ${PublicTextSanitizer.sanitize(repair.displayPaymentStatus)}")),
             _chip(pw.Row(children: [_ar("مدفوع:"), _ltrText(_fmt(paid))])),
             _chip(
               pw.Row(
@@ -437,6 +493,15 @@ class RepairPdfGenerator {
                 ],
               ),
             ),
+            if (credit > 0.005)
+              _chip(
+                pw.Row(
+                  children: [
+                    _ar("رصيد دائن:"),
+                    _ltrText(_fmt(credit)),
+                  ],
+                ),
+              ),
           ],
         ),
       ],
@@ -458,7 +523,7 @@ class RepairPdfGenerator {
           _chip(pw.Row(children: [_ar("مجموع القطع:"), _ltrText(_fmt(parts))])),
           _chip(
             pw.Row(children: [
-              _ar("الإجمالي:"),
+              _ar("قيمة الملف المعتمدة:"),
               _ltrText(_fmt(total)),
               _ar(" ${MoneyFormatter.symbol}"),
             ]),
@@ -625,6 +690,7 @@ class RepairPdfGenerator {
         0: pw.FlexColumnWidth(3),
         1: pw.FlexColumnWidth(1),
         2: pw.FlexColumnWidth(1.2),
+        3: pw.FlexColumnWidth(1.2),
       },
       children: [
         pw.TableRow(
@@ -632,22 +698,28 @@ class RepairPdfGenerator {
           children: [
             _cell("الوصف", header: true, arabic: true),
             _cell("الكمية", header: true, arabic: true),
-            _cell("السعر", header: true, arabic: true),
+            _cell("سعر الوحدة", header: true, arabic: true),
+            _cell("الإجمالي", header: true, arabic: true),
           ],
         ),
         ...rows.map((row) {
-          final name = "${row['name'] ?? ''}";
-          final qty = ((row['qty'] as num?)?.toDouble() ?? 1).toString();
-          final price = _fmt(((row['price'] as num?)?.toDouble() ?? 0.0));
+          final name = PublicTextSanitizer.sanitize(row['name']);
+          final qtyValue = _asDouble(row['qty'] ?? row['quantity'], 1.0);
+          final priceValue = _asDouble(
+              row['price'] ?? row['unit_price'] ?? row['unitPrice'], 0.0);
+          final storedTotal = _asDouble(
+              row['total'] ?? row['line_total'] ?? row['amount'], 0.0);
+          final totalValue =
+              storedTotal != 0 ? storedTotal : qtyValue * priceValue;
 
           return pw.TableRow(
             children: [
               _cell(name, arabic: true),
-              _cellWidget(_ltrText(qty), align: pw.Alignment.center),
-              _cellWidget(
-                _ltrText(price),
-                align: pw.Alignment.centerLeft,
-              ),
+              _cellWidget(_ltrText(_fmt(qtyValue)), align: pw.Alignment.center),
+              _cellWidget(_ltrText(_fmt(priceValue)),
+                  align: pw.Alignment.centerLeft),
+              _cellWidget(_ltrText(_fmt(totalValue)),
+                  align: pw.Alignment.centerLeft),
             ],
           );
         }),
@@ -666,10 +738,39 @@ class RepairPdfGenerator {
   static String _beneficiaryText(String t) =>
       _isInsurance(t) ? "شركة تأمين" : "أفراد";
 
-  static double _sumList(List<Map<String, dynamic>>? list, String key) {
-    return (list ?? [])
-        .map((e) => (e[key] as num?)?.toDouble() ?? 0.0)
-        .fold(0.0, (a, b) => a + b);
+  static double _asDouble(Object? value, double fallback) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static List<Map<String, dynamic>> _normalizeLegacyLines(
+      List<Map<String, dynamic>>? rows) {
+    return (rows ?? const <Map<String, dynamic>>[])
+        .map((row) {
+          final qty = _asDouble(row['qty'] ?? row['quantity'], 1.0);
+          final price = _asDouble(
+              row['price'] ?? row['unit_price'] ?? row['unitPrice'], 0.0);
+          final stored = _asDouble(
+              row['total'] ?? row['line_total'] ?? row['amount'], 0.0);
+          return <String, dynamic>{
+            'name': PublicTextSanitizer.sanitize(
+                row['name'] ?? row['description'] ?? row['item_name']),
+            'qty': qty,
+            'price': price,
+            'total': stored != 0 ? stored : qty * price,
+          };
+        })
+        .where((row) => (row['name'] ?? '').toString().trim().isNotEmpty)
+        .toList();
+  }
+
+  static double _sumLineTotals(List<Map<String, dynamic>> rows) {
+    return rows.fold<double>(0.0, (sum, row) {
+      final qty = _asDouble(row['qty'], 1.0);
+      final price = _asDouble(row['price'], 0.0);
+      final stored = _asDouble(row['total'], 0.0);
+      return sum + (stored != 0 ? stored : qty * price);
+    });
   }
 
   static final NumberFormat _numFmt = NumberFormat("#,##0.00", "ar");

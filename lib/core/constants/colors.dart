@@ -16,10 +16,8 @@ class AppColors {
   static const Color info = Color(0xFF29B6F6);
   static const Color textDark = Color(0xFF212121);
   static const Color textLight = Color(0xFFFFFFFF);
-  static const Color dropdown =
-      Color(0xFF000000); // للقوائم المنسدلة (لون النص والخلفية الأسود)
-  static const Color dropdownBackground =
-      Color(0xFF121212); // خلفية القائمة المنسدلة
+  static const Color dropdown = Color(0xFFFFFFFF);
+  static const Color dropdownBackground = Color(0xFFFFFFFF);
 
   static const Color inputFill = Color(0xFFFFFFFF); // لتعبئة الحقول
 

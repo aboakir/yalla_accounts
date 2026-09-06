@@ -13,7 +13,7 @@ void main() {
     sq.databaseFactory = databaseFactoryFfi;
   });
 
-  test('P1.003 fresh v60 commercial schema and sequence', () async {
+  test('P1.003 fresh current commercial schema and sequence', () async {
     final temp = await Directory.systemTemp.createTemp('p1_003_');
     final path = '${temp.path}${Platform.pathSeparator}fresh.db';
     final db = await DatabaseMigration.initDatabase(pathOverride: path);
@@ -22,8 +22,8 @@ void main() {
             await db.rawQuery('PRAGMA user_version'),
           ) ??
           0;
-      expect(v, 60);
-      expect(DatabaseConstants.dbVersion, 60);
+      expect(v, DatabaseConstants.dbVersion);
+      expect(DatabaseConstants.dbVersion, greaterThanOrEqualTo(69));
       expect(await db.query('document_sequences'), hasLength(6));
       expect(
         await DocumentNumberService.nextOn(

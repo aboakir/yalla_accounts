@@ -67,6 +67,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
   List<Map<String, Object?>> repairsPool = [];
 
   double totalPayment = 0.0;
+  double availableCredit = 0.0;
   bool loading = true;
   bool _isSaving = false;
 
@@ -152,6 +153,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
       ),
     ];
     totalPayment = 0.0;
+    await _refreshCustomerCredit();
   }
 
   Future<void> _loadClients() async {
@@ -190,6 +192,136 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
   }
 
 // ============================================================================
+
+  Future<void> _refreshCustomerCredit() async {
+    final clientId = int.tryParse(selectedClientId ?? '');
+    if (clientId == null) {
+      if (mounted) setState(() => availableCredit = 0.0);
+      return;
+    }
+    final value = await PaymentService.customerCreditForClient(clientId);
+    if (mounted) setState(() => availableCredit = value);
+  }
+
+  Future<void> _applyCustomerCredit() async {
+    final clientId = int.tryParse(selectedClientId ?? '');
+    if (clientId == null) return _snack('اختر العميل أولًا');
+    if (availableCredit <= 0.005) return _snack('لا يوجد رصيد دائن متاح');
+    if (selectedRepairs.isEmpty) return _snack('اختر ملف إصلاح لتخصيص الرصيد');
+    if (totalPayment > 0.005) {
+      return _snack('استخدم الرصيد الدائن قبل إدخال مبلغ قبض جديد');
+    }
+
+    _RepairItem? target;
+    if (selectedRepairs.length == 1) {
+      target = selectedRepairs.first;
+    } else {
+      final repairId = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AdaptiveAlertDialog(
+          title: const Text('اختر الملف لتخصيص الرصيد'),
+          content: SizedBox(
+            width: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: selectedRepairs
+                  .where((r) => r.remaining > 0.005)
+                  .map(
+                    (r) => ListTile(
+                      title: Text('${r.type} ${r.model} — ${r.number}'),
+                      subtitle:
+                          Text('المتبقي: ${_currency.format(r.remaining)}'),
+                      onTap: () => Navigator.pop(ctx, r.id),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('إلغاء'),
+            ),
+          ],
+        ),
+      );
+      if (repairId == null) return;
+      for (final item in selectedRepairs) {
+        if (item.id == repairId) {
+          target = item;
+          break;
+        }
+      }
+    }
+    final selectedTarget = target;
+    if (selectedTarget == null || selectedTarget.remaining <= 0.005) {
+      return _snack('الملف المحدد مسدد بالكامل');
+    }
+
+    final maxAmount = availableCredit < selectedTarget.remaining
+        ? availableCredit
+        : selectedTarget.remaining;
+    final controller = TextEditingController(
+      text: maxAmount.toStringAsFixed(2),
+    );
+    final requested = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AdaptiveAlertDialog(
+        title: const Text('استخدام الرصيد الدائن'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('الرصيد المتاح: ${_currency.format(availableCredit)}'),
+            Text('متبقي الملف: ${_currency.format(selectedTarget.remaining)}'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              inputFormatters: const [YallaDigitNormalizer()],
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'المبلغ المراد تخصيصه',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text.trim());
+              Navigator.pop(ctx, value);
+            },
+            child: const Text('تخصيص'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (requested == null || requested <= 0.005) return;
+
+    try {
+      final applied = await PaymentService.allocateCustomerCreditToRepair(
+        clientId: clientId,
+        repairId: selectedTarget.id,
+        amount: requested,
+        notes: 'تخصيص رصيد دائن من شاشة سند القبض',
+      );
+      selectedTarget.paid += applied;
+      selectedTarget.paymentAmount = 0.0;
+      totalPayment = 0.0;
+      await _refreshCustomerCredit();
+      if (mounted) setState(() {});
+      _snack('تم تخصيص ${_currency.format(applied)} من رصيد العميل للملف');
+    } catch (e) {
+      _snack('تعذر تخصيص الرصيد: $e');
+    }
+  }
 
   Future<void> _openRepairsPicker() async {
     await _loadRepairsPool();
@@ -340,97 +472,52 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     if (_isSaving) return;
     if (selectedClientId == null) return _snack("اختر العميل");
 
-    final totalAmount = selectedRepairs.isNotEmpty
-        ? totalPayment
-        : (double.tryParse(amountCtrl.text.trim()) ?? 0.0);
-
+    final clientId = int.tryParse(selectedClientId!);
+    if (clientId == null) return _snack("بيانات العميل غير صالحة");
+    final generalAmount = selectedRepairs.isEmpty
+        ? (double.tryParse(amountCtrl.text.trim()) ?? 0.0)
+        : 0.0;
+    final totalAmount =
+        selectedRepairs.isNotEmpty ? totalPayment : generalAmount;
     if (totalAmount <= 0) return _snack("المبلغ غير صالح");
 
     final payMethod = selectedMethod == "CASH"
         ? "cash"
-        : selectedMethod == "BANK"
-            ? "bank"
-            : "cheque";
+        : selectedMethod == "BANK_TRANSFER"
+            ? "bank_transfer"
+            : selectedMethod == "CARD"
+                ? "card"
+                : "cheque";
 
-    if (selectedMethod == "CHEQUE") {
-      if (_pendingCheque == null) {
-        return _snack("أدخل بيانات الشيك أولًا");
-      }
-
-      // One physical cheque is one financial instrument/source document.
-      // Do not split one cheque into independent PAYMENT documents.
-      if (selectedRepairs.length > 1) {
-        return _snack(
-          "الشيك الواحد يجب ربطه بملف واحد أو بسند قبض عام. "
-          "أنشئ سندًا منفصلًا لكل شيك.",
-        );
-      }
+    if (selectedMethod == "CHEQUE" && _pendingCheque == null) {
+      return _snack("أدخل بيانات الشيك أولًا");
     }
 
     if (mounted) setState(() => _isSaving = true);
-
     try {
-      if (selectedRepairs.isNotEmpty) {
-        for (final r in selectedRepairs) {
-          final amt = r.paymentAmount ?? 0;
-          if (amt <= 0) continue;
-
-          final payment = Payment(
-            id: "",
-            clientId: int.tryParse(selectedClientId!),
-            repairId: r.id,
-            relatedRepairId: r.id,
-            invoiceId: null,
-            amount: amt,
-            date: selectedDate,
-            method: payMethod,
-            accountName: null,
-            status: "confirmed",
-            notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
-            attachments: null,
-            glEntryId: null,
-            chequeId: null,
-            isIncome: true,
-          );
-
-          await PaymentService.insertAndPostReceipt(
-            payment: payment,
-            customerName: "",
-            method: payMethod,
-            updateInvoice: true,
-            chequeDraft: selectedMethod == "CHEQUE" ? _pendingCheque : null,
-          );
-        }
-      } else {
-        final payment = Payment(
-          id: "",
-          clientId: int.tryParse(selectedClientId!),
-          repairId: null,
-          relatedRepairId: null,
-          invoiceId: null,
-          amount: totalAmount,
-          date: selectedDate,
-          method: payMethod,
-          accountName: null,
-          status: "confirmed",
-          notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
-          attachments: null,
-          glEntryId: null,
-          chequeId: null,
-          isIncome: true,
-        );
-
-        await PaymentService.insertAndPostReceipt(
-          payment: payment,
-          customerName: "",
-          method: payMethod,
-          updateInvoice: false,
-          chequeDraft: selectedMethod == "CHEQUE" ? _pendingCheque : null,
-        );
-      }
+      final result = await PaymentService.insertCanonicalReceipt(
+        clientId: clientId,
+        customerName: _selectedClientName(),
+        method: payMethod,
+        date: selectedDate,
+        allocations: selectedRepairs
+            .where((r) => (r.paymentAmount ?? 0) > 0)
+            .map((r) => ReceiptAllocationInput(
+                  repairId: r.id,
+                  amount: r.paymentAmount ?? 0,
+                ))
+            .toList(),
+        unallocatedAmount: generalAmount,
+        notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+        chequeDraft: selectedMethod == "CHEQUE" ? _pendingCheque : null,
+      );
 
       if (!mounted) return;
-      _snack("تم حفظ سند القبض بنجاح");
+      final number = result.receiptNumber.toString().padLeft(6, '0');
+      final creditText = result.customerCredit > 0.005
+          ? " — رصيد دائن: ${_currency.format(result.customerCredit)}"
+          : "";
+      _snack("تم حفظ سند RC-$number بنجاح$creditText");
       _resetForm();
       Navigator.pop(context, true);
     } catch (e) {
@@ -438,6 +525,17 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  String _selectedClientName() {
+    final data = selectedClientType == "CLIENT" ? clients : insurances;
+    if (selectedClientId == null) return '';
+    for (final row in data) {
+      if (row['id'].toString() == selectedClientId) {
+        return row['name']?.toString() ?? '';
+      }
+    }
+    return '';
   }
 
 // ============================================================================
@@ -451,6 +549,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     amountCtrl.clear();
     notesCtrl.clear();
     totalPayment = 0.0;
+    availableCredit = 0.0;
     _pendingCheque = null;
     setState(() {});
   }
@@ -511,6 +610,8 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
                 _buildClientType(),
                 _buildClientSelector(),
                 if (selectedClientId != null) _buildRepairSection(),
+                if (selectedClientId != null && availableCredit > 0.005)
+                  _buildCustomerCreditCard(),
                 if (selectedClientId != null && selectedRepairs.isEmpty)
                   _buildGeneralPaymentBox(),
                 _buildPaymentMethod(),
@@ -542,6 +643,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
           selectedClientId = null;
           selectedRepairs.clear();
           totalPayment = 0;
+          availableCredit = 0;
           amountCtrl.clear();
           setState(() {});
         },
@@ -599,10 +701,12 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
                           final c = filtered[i];
                           return ListTile(
                             title: Text(c["name"].toString()),
-                            onTap: () {
+                            onTap: () async {
                               selectedClientId = c["id"].toString();
                               selectedRepairs.clear();
                               totalPayment = 0;
+                              await _refreshCustomerCredit();
+                              if (!mounted) return;
                               Navigator.pop(ctx);
                               setState(() {});
                             },
@@ -707,6 +811,35 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     );
   }
 
+  Widget _buildCustomerCreditCard() {
+    return _card(
+      title: 'رصيد العميل الدائن',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _currency.format(availableCredit),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'هذا المبلغ مقبوض سابقًا وغير مخصص لملف. تخصيصه لا ينشئ قبضًا جديدًا.',
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: selectedRepairs.isEmpty ? null : _applyCustomerCredit,
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            label: const Text('استخدام الرصيد في ملف إصلاح'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGeneralPaymentBox() {
     return _card(
       title: "مبلغ عام",
@@ -729,7 +862,8 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
         value: selectedMethod,
         items: const [
           DropdownMenuItem(value: "CASH", child: Text("نقدًا")),
-          DropdownMenuItem(value: "BANK", child: Text("بنك")),
+          DropdownMenuItem(value: "BANK_TRANSFER", child: Text("تحويل بنكي")),
+          DropdownMenuItem(value: "CARD", child: Text("بطاقة")),
           DropdownMenuItem(value: "CHEQUE", child: Text("شيك")),
         ],
         onChanged: (v) async {
@@ -737,6 +871,13 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
           setState(() {});
 
           if (selectedMethod == "CHEQUE") {
+            if (selectedRepairs.length > 1) {
+              _snack(
+                  "الشيك الواحد يجب ربطه بملف واحد فقط. أنشئ سندًا منفصلًا لكل شيك.");
+              selectedMethod = "CASH";
+              setState(() {});
+              return;
+            }
             double amt = selectedRepairs.isEmpty
                 ? double.tryParse(amountCtrl.text.trim()) ?? 0
                 : totalPayment;
@@ -909,7 +1050,7 @@ class _RepairItem {
   final String model;
   final String number;
   final double fileValue;
-  final double paid;
+  double paid;
 
   double? paymentAmount;
 

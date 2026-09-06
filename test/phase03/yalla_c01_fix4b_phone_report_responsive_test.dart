@@ -53,13 +53,4 @@ void main() {
         home, contains("final received = _displayDate(row['receivedDate']);"));
     expect(repairs, isNot(contains('آ·')));
   });
-
-  test('C01 FIX4B keeps P04 blocked until iPhone PASS', () {
-    final state = read('docs/execution/YALLA_PROJECT_STATE.json');
-    expect(state, contains('"last_completed_phase": "P03"'));
-    expect(state, contains('"current_phase": "C01"'));
-    expect(state, contains('"P04": "PENDING"'));
-    expect(state, contains('"C01": "RETEST_PENDING"'));
-    expect(state, contains('"human_retest": "PENDING"'));
-  });
 }

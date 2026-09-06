@@ -1,56 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
-import 'package:yalla_accounts/features/subscription/services/subscription_service.dart';
-import 'package:yalla_accounts/features/subscription/services/plan_service.dart';
-import 'package:yalla_accounts/features/subscription/models/plan.dart';
 
-class CurrentSubscriptionScreen extends ConsumerStatefulWidget {
+import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
+import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
+
+class CurrentSubscriptionScreen extends StatefulWidget {
   const CurrentSubscriptionScreen({super.key});
 
   @override
-  ConsumerState<CurrentSubscriptionScreen> createState() =>
+  State<CurrentSubscriptionScreen> createState() =>
       _CurrentSubscriptionScreenState();
 }
 
-class _CurrentSubscriptionScreenState
-    extends ConsumerState<CurrentSubscriptionScreen> {
-  Map<String, dynamic>? _subscription;
-  Plan? _plan;
+class _CurrentSubscriptionScreenState extends State<CurrentSubscriptionScreen> {
+  VerifiedLicense? _license;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentSubscription();
+    _load();
   }
 
-  Future<void> _loadCurrentSubscription() async {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return;
+  Future<void> _load() async {
+    final license = await ActivationStateRepository()
+        .loadAuthenticLicenseForCurrentInstallation(allowExpired: true);
+    if (!mounted) return;
+    setState(() {
+      _license = license;
+      _isLoading = false;
+    });
+  }
 
-    final subscription =
-        await SubscriptionService().getActiveSubscription(user.id);
-
-    if (subscription != null) {
-      final plan = await PlanService().getPlanById(subscription['planId']);
-      setState(() {
-        _subscription = subscription;
-        _plan = plan;
-        _isLoading = false;
-      });
-    } else {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  String _date(DateTime value) {
+    final local = value.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final formatter = DateFormat('yyyy-MM-dd');
-
+    final license = _license;
     return Scaffold(
       appBar: AppBar(
         title: const Text('الاشتراك الحالي'),
@@ -58,55 +47,48 @@ class _CurrentSubscriptionScreenState
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _subscription == null
+          : license == null
               ? const Center(
-                  child: Text(
-                    '❌ لا يوجد اشتراك نشط حاليًا',
-                    style: TextStyle(fontSize: 18),
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'لا يوجد اشتراك موثّق مرتبط بهذا الجهاز والتثبيت.',
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 )
-              : Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _plan?.name ?? 'باقة غير معروفة',
-                            style: Theme.of(context).textTheme.headlineSmall,
+                      padding: const EdgeInsets.all(24),
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'الحالة: ${license.operationalStatus}',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                  'Subscription ID: ${license.subscriptionId}'),
+                              Text('License ID: ${license.licenseId}'),
+                              Text('ينتهي: ${_date(license.expiresAt)}'),
+                              Text(
+                                'Entitlement revision: '
+                                '${license.entitlementRevision}',
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                              "تاريخ البداية: ${formatter.format(DateTime.parse(_subscription!['startDate']))}"),
-                          Text(
-                              "تاريخ الانتهاء: ${formatter.format(DateTime.parse(_subscription!['endDate']))}"),
-                          Text("السعر: ${_subscription!['price']} شيكل"),
-                          const SizedBox(height: 16),
-                          _buildRemainingDaysText(),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-    );
-  }
-
-  Widget _buildRemainingDaysText() {
-    final end = DateTime.parse(_subscription!['endDate']);
-    final remaining = end.difference(DateTime.now()).inDays;
-    return Text(
-      "🕒 عدد الأيام المتبقية: $remaining يوم",
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
-        color: Colors.green,
-      ),
     );
   }
 }

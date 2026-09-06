@@ -13,6 +13,18 @@ const List<String> kVehicleStatuses = [
   'تم التسليم',
 ];
 
+// P13: these two states are owned by the formal workflow and must not be
+// selected manually from intake/edit forms.
+const List<String> kManualVehicleStatuses = [
+  'بانتظار الإصلاح',
+  'قيد الإصلاح',
+];
+
+const List<String> kWorkflowVehicleStatuses = [
+  'جاهزة للتسليم',
+  'تم التسليم',
+];
+
 // 🧩 أنواع العمل
 const List<String> kRepairTypes = [
   'بودي ودهان',

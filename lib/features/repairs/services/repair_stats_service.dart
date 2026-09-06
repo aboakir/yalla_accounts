@@ -30,16 +30,7 @@ class RepairStatsService {
   static Future<double> getTotalFileValue() async {
     final db = await _db;
     final rows = await db.rawQuery('''
-      SELECT IFNULL(
-               SUM(
-                 COALESCE(
-                   finalApprovedAmount,   -- إن وجد اعتماد نهائي
-                   fileValue,             -- وإلا قيمة الملف الأساسية
-                   0
-                 )
-               ),
-               0
-             ) AS v
+      SELECT COALESCE(SUM(fileValue),0) AS v
       FROM repairs
     ''');
 
@@ -49,21 +40,13 @@ class RepairStatsService {
 
   // ✅ مجموع المدفوع من كافة الملفات:
   //    نستخدم total_paid_amount الجديد،
-  //    وإن كان NULL نرجع لـ paidAmount القديمة.
   static Future<double> getTotalPaidAmount() async {
     final db = await _db;
     final rows = await db.rawQuery('''
-      SELECT IFNULL(
-               SUM(
-                 COALESCE(
-                   total_paid_amount,   -- العمود الجديد
-                   paidAmount,          -- احتياطي للبيانات القديمة
-                   0
-                 )
-               ),
-               0
-             ) AS v
-      FROM repairs
+      SELECT COALESCE(SUM(amount),0) AS v
+      FROM payments
+      WHERE COALESCE(isIncome,1)=1
+        AND COALESCE(NULLIF(repair_id,''), relatedRepairId) IS NOT NULL
     ''');
 
     final v = rows.first['v'];
@@ -74,29 +57,21 @@ class RepairStatsService {
   static Future<List<Map<String, dynamic>>> getMonthlyRepairSummary() async {
     final db = await _db;
     final rows = await db.rawQuery('''
-      SELECT 
-        strftime('%Y-%m', receivedDate)              AS month,
-        COUNT(*)                                     AS repair_count,
-        IFNULL(
-          SUM(
-            COALESCE(
-              finalApprovedAmount,
-              fileValue,
-              0
-            )
-          ),
-          0
-        )                                           AS total_file_value,
-        IFNULL(
-          SUM(
-COALESCE(
-  paidAmount,
-  0
-)
-          ),
-          0
-        )                                           AS total_paid_amount
-      FROM repairs
+      WITH paid AS (
+        SELECT
+          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
+          SUM(amount) AS paid
+        FROM payments
+        WHERE COALESCE(isIncome,1)=1
+        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+      )
+      SELECT
+        strftime('%Y-%m', r.receivedDate) AS month,
+        COUNT(*) AS repair_count,
+        COALESCE(SUM(r.fileValue),0) AS total_file_value,
+        COALESCE(SUM(COALESCE(p.paid,0)),0) AS total_paid_amount
+      FROM repairs r
+      LEFT JOIN paid p ON p.repair_id=r.id
       GROUP BY month
       ORDER BY month DESC
     ''');

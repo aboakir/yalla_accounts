@@ -27,6 +27,7 @@ import 'tables/license_runtime_tables.dart';
 import 'tables/license_validation_tables.dart';
 import 'tables/owner_bootstrap_tables.dart';
 import 'tables/user_authorization_tables.dart';
+import 'tables/p16_security_tables.dart';
 import 'tables/repair_tables.dart';
 import 'tables/accounting_tables.dart';
 import 'tables/hr_tables.dart';
@@ -38,6 +39,7 @@ import 'tables/technical_tables.dart';
 import 'tables/vehicle_tables.dart';
 import 'views/accounting_views.dart';
 import 'tables/payments_tables.dart';
+import 'tables/receipt_tables.dart';
 import 'tables/voucher_tables.dart';
 import 'tables/purchase_invoices_table.dart';
 import 'tables/purchase_payments_table.dart';
@@ -132,6 +134,22 @@ class DatabaseMigration {
       // query the newer status/retry columns.
       await ensureP04OutboxCompatibilityBeforeValidation(db);
 
+      // Group 2 hardening: workshop settings are part of the canonical DB
+      // contract. Older/current-v69 installations may have the narrow legacy
+      // table because dbVersion did not change when presentation fields were
+      // introduced. Add only missing nullable columns before validation.
+      await UserTables.ensureWorkshopSettingsCompatibility(db);
+
+      // P11 keeps dbVersion at 69: receipt identity/reversal columns are
+      // additive and must exist on already-upgraded installations too.
+      await PaymentsTables.ensurePaymentsSchema(db);
+      await ReceiptTables.createAllTables(db);
+
+      // P14 keeps dbVersion at 69. Purchase-line category/note are additive
+      // compatibility columns and must exist on already-upgraded databases.
+      await PurchaseInvoicesTable.createAllTables(db);
+      await PurchasePaymentsTable.createAllTables(db);
+
       await _validateDatabase(db);
       await encryption?.commit();
       return db;
@@ -171,6 +189,7 @@ class DatabaseMigration {
     await TechnicalTables.createAllTables(db);
 
     await PaymentsTables.createAllTables(db);
+    await ReceiptTables.createAllTables(db);
     await VoucherTables.createAllTables(db);
 
     // Database migration compatibility note.
@@ -205,6 +224,7 @@ class DatabaseMigration {
     await TechnicalTables.onUpgrade(db, oldV, newV);
 
     await PaymentsTables.ensurePaymentsSchema(db);
+    await ReceiptTables.createAllTables(db);
     await InsuranceTables.ensureInsuranceSchema(db);
 
     await InsuranceTables.createAllTables(db);
@@ -328,6 +348,8 @@ class DatabaseMigration {
     // SEC.008 - canonical roles, permissions and enforcement catalog.
     if (oldV < 67) {
       await UserAuthorizationTables.ensure(db);
+      // P16 - roles/audit/backup guardian metadata. Additive and idempotent.
+      await P16SecurityTables.ensure(db);
       debugPrint("Upgrade v67 users/roles/permissions schema applied");
     }
 
@@ -389,9 +411,14 @@ class DatabaseMigration {
     // SEC.008 - canonical local authorization catalog and role guards.
     await UserAuthorizationTables.ensure(db);
 
+    // P16 - append-only audit + backup guardian / recovery metadata.
+    // dbVersion intentionally remains 69, so this must run on every current-version open.
+    await P16SecurityTables.ensure(db);
+
     await ChequeTables.ensureChequesSchema(db);
     await AccountingTables.ensureInvoicesSchema(db);
     await PaymentsTables.ensurePaymentsSchema(db);
+    await ReceiptTables.createAllTables(db);
     await InsuranceTables.ensureInsuranceSchema(db);
 
     await _ensureVoucherExtraColumns(db);

@@ -41,7 +41,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
   DateTime _date = DateTime.now();
 
   // نستخدم قيم نصية مباشرة (ما في PaymentMethods / PaymentStatus)
-  String _method = 'cash'; // cash | bank | credit | cheque
+  String _method = 'cash'; // cash | bank_transfer | card | cheque
   String _status = 'confirmed'; // confirmed | pending | cancelled
 
   @override
@@ -112,13 +112,18 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
         'relatedRepairId': repairId.isEmpty ? null : repairId,
         'amount': double.parse(amount.toStringAsFixed(2)),
         'date': DateTime(_date.year, _date.month, _date.day).toIso8601String(),
-        'method': _method, // cash / bank / credit / cheque
+        'method': _method, // cash / bank_transfer / card / cheque
         'accountName': null,
         'status': _status, // 'confirmed' | 'pending' | 'cancelled'
         'notes': notes.isEmpty ? null : notes,
         'attachments': null,
         'gl_entry_id': null,
+        'isIncome': 1,
       });
+
+      if (_method == 'cheque') {
+        throw StateError('استخدم سند القبض الرسمي لإدخال بيانات الشيك.');
+      }
 
       await PaymentService.insertAndPostReceipt(
         payment: payment,
@@ -235,11 +240,11 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                     child: Text('نقد'),
                   ),
                   DropdownMenuItem(
-                    value: 'bank',
-                    child: Text('تحويل/بنك'),
+                    value: 'bank_transfer',
+                    child: Text('تحويل بنكي'),
                   ),
                   DropdownMenuItem(
-                    value: 'credit',
+                    value: 'card',
                     child: Text('بطاقة'),
                   ),
                   DropdownMenuItem(

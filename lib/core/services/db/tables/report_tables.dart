@@ -182,8 +182,10 @@ class ReportTables {
 
     // عدد الإصلاحات المكتملة
     final repairsResult = await db.rawQuery('''
-      SELECT COUNT(*) as completed_repairs FROM repairs 
-      WHERE receivedDate BETWEEN ? AND ? AND isArchived = 1
+      SELECT COUNT(*) as completed_repairs FROM repairs
+      WHERE receivedDate BETWEEN ? AND ?
+        AND status = 'CLOSED'
+        AND COALESCE(isArchived, 0) = 1
     ''', [
       startDate.toIso8601String().split('T').first,
       endDate.toIso8601String().split('T').first,

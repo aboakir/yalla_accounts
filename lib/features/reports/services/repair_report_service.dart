@@ -6,9 +6,8 @@ class RepairReportService {
     final allRepairs = await RepairDatabaseService.getAllRepairs();
     final totalRepairs = allRepairs.length;
 
-    // تأكد من تعديل هذا الشرط حسب الخاصية الصحيحة في Repair
-    final completedRepairs =
-        allRepairs.where((r) => r.vehicleStatus == 'مكتمل').length;
+    // P13: completion means formal CLOSED, never generic archive/cancel.
+    final completedRepairs = allRepairs.where((r) => r.isClosed).length;
     final pendingRepairs = totalRepairs - completedRepairs;
 
     return RepairReport(

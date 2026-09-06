@@ -101,7 +101,7 @@ class _DashboardBody extends StatelessWidget {
         final outgoing =
             list.where((c) => c.chequeType == ChequeType.outgoing).length;
         final collection =
-            list.where((c) => c.chequeType == ChequeType.collection).length;
+            list.where((c) => c.status == ChequeStatus.deposited).length;
 
         final pending =
             list.where((c) => c.status == ChequeStatus.pending).length;
@@ -124,8 +124,7 @@ class _DashboardBody extends StatelessWidget {
             .where((c) =>
                 c.dueDate.isAfter(now) &&
                 c.dueDate.isBefore(soon) &&
-                c.status != ChequeStatus.collected &&
-                c.status != ChequeStatus.cancelled)
+                c.status == ChequeStatus.pending)
             .toList();
 
         dueSoon.sort((a, b) => a.dueDate.compareTo(b.dueDate));

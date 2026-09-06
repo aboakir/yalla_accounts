@@ -17,6 +17,7 @@ import 'package:yalla_accounts/features/settings/services/workshop_settings_serv
 import 'package:yalla_accounts/features/settings/models/workshop_settings.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/features/documents/services/p15_document_service.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
@@ -85,25 +86,23 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
 
     all = await db.rawQuery("""
       SELECT
-        p.id,
-        p.amount,
-        p.date,
-        p.method,
-        p.notes,
-        (
-          SELECT e.id
-          FROM gl_entries e
-          WHERE e.source = 'PAYMENT'
-            AND e.source_id = p.id
-          ORDER BY e.id DESC
-          LIMIT 1
-        ) AS gl_entry_id,
-        (
-          SELECT name FROM clients c WHERE c.id = CAST(p.client_id AS TEXT)
-        ) AS clientName
+        COALESCE(CAST(p.receipt_number AS TEXT), p.id) AS receipt_key,
+        p.receipt_number,
+        MIN(p.id) AS id,
+        SUM(p.amount) AS amount,
+        MAX(p.date) AS date,
+        MAX(p.method) AS method,
+        MAX(p.notes) AS notes,
+        MAX(p.client_id) AS client_id,
+        MAX(c.name) AS clientName,
+        GROUP_CONCAT(p.gl_entry_id) AS gl_entry_ids,
+        SUM(CASE WHEN p.reversal_of_payment_id IS NOT NULL THEN 1 ELSE 0 END) AS reversal_lines
       FROM payments p
+      LEFT JOIN clients c ON c.id = p.client_id
       WHERE p.isIncome = 1
-      ORDER BY p.date DESC
+        AND LOWER(COALESCE(p.method,'')) <> 'customer_credit'
+      GROUP BY COALESCE(CAST(p.receipt_number AS TEXT), p.id)
+      ORDER BY MAX(p.date) DESC
     """);
 
     final today = DateFormat("yyyy-MM-dd").format(DateTime.now());
@@ -112,13 +111,17 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     final rowToday = await db.rawQuery("""
       SELECT SUM(amount) AS s 
       FROM payments 
-      WHERE isIncome = 1 AND substr(date,1,10)=?
+      WHERE isIncome = 1
+        AND LOWER(COALESCE(method,'')) <> 'customer_credit'
+        AND substr(date,1,10)=?
     """, [today]);
 
     final rowMonth = await db.rawQuery("""
       SELECT SUM(amount) AS s 
       FROM payments 
-      WHERE isIncome = 1 AND substr(date,1,7)=?
+      WHERE isIncome = 1
+        AND LOWER(COALESCE(method,'')) <> 'customer_credit'
+        AND substr(date,1,7)=?
     """, [month]);
 
     totalToday = (rowToday.first["s"] as num? ?? 0).toDouble();
@@ -134,7 +137,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   void _applyFilters() {
     filtered = all.where((row) {
       final txt =
-          "${row["id"]} ${row["amount"]} ${row["clientName"]} ${row["notes"]}"
+          "${row["receipt_number"] ?? row["id"]} ${row["amount"]} ${row["clientName"]} ${row["notes"]}"
               .toLowerCase();
 
       if (!txt.contains(search.toLowerCase())) return false;
@@ -297,7 +300,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
             DropdownButton<String>(
               value: filterMethod,
               underline: const SizedBox(),
-              items: const ["الكل", "cash", "bank", "cheque"]
+              items: const ["الكل", "cash", "bank_transfer", "card", "cheque"]
                   .map((e) => DropdownMenuItem(
                         value: e,
                         child: Text(e.toUpperCase()),
@@ -350,7 +353,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
               children: const [
                 Expanded(flex: 1, child: Text("PDF")),
                 Expanded(
-                    flex: 2, child: Text("ID", textAlign: TextAlign.center)),
+                    flex: 2, child: Text("السند", textAlign: TextAlign.center)),
                 Expanded(
                     flex: 3,
                     child: Text("التاريخ", textAlign: TextAlign.center)),
@@ -398,6 +401,27 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                           icon: const Icon(Icons.picture_as_pdf,
                               color: Colors.red),
                           onPressed: () async {
+                            final rawNumber = row["receipt_number"];
+                            if (rawNumber != null) {
+                              final receiptNumber = rawNumber is int
+                                  ? rawNumber
+                                  : int.tryParse(rawNumber.toString());
+                              if (receiptNumber != null) {
+                                final bytes =
+                                    await P15DocumentService.generateReceiptPdf(
+                                  receiptNumber,
+                                );
+                                await YallaPdfService.saveAndOpen(
+                                  bytes: bytes,
+                                  fileName:
+                                      "receipt_RC-${receiptNumber.toString().padLeft(6, '0')}.pdf",
+                                  module: 'receipts',
+                                );
+                                return;
+                              }
+                            }
+
+                            // Legacy rows without a P11 receipt header remain printable.
                             final bytes =
                                 await YallaPdfService.generateReceiptVoucherPdf(
                               voucherId: row["id"].toString(),
@@ -408,10 +432,10 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                                   "-",
                               notes: row["notes"]?.toString(),
                             );
-
                             await YallaPdfService.saveAndOpen(
                               bytes: bytes,
                               fileName: "receipt_${row["id"]}.pdf",
+                              module: 'receipts',
                             );
                           },
                         ),
@@ -420,7 +444,9 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                       Expanded(
                         flex: 2,
                         child: Text(
-                          row["id"].toString(),
+                          row["receipt_number"] == null
+                              ? row["id"].toString()
+                              : "RC-${row["receipt_number"].toString().padLeft(6, '0')}",
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -460,7 +486,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                       Expanded(
                         flex: 2,
                         child: Text(
-                          row["gl_entry_id"]?.toString() ?? "-",
+                          row["gl_entry_ids"]?.toString() ?? "-",
                           textAlign: TextAlign.center,
                         ),
                       ),

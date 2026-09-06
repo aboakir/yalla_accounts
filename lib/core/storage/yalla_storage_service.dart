@@ -1,9 +1,75 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as im;
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+
+class YallaOptimizedImage {
+  const YallaOptimizedImage({
+    required this.bytes,
+    required this.extension,
+    required this.width,
+    required this.height,
+  });
+
+  final Uint8List bytes;
+  final String extension;
+  final int width;
+  final int height;
+}
+
+Map<String, Object?> _optimizeImagePayload(Map<String, Object?> input) {
+  final bytes = input['bytes'] as Uint8List;
+  final extension = (input['extension'] as String? ?? 'jpg').toLowerCase();
+  final maxDimension = input['maxDimension'] as int? ?? 1920;
+  final quality = input['quality'] as int? ?? 82;
+
+  try {
+    final decoded = im.decodeImage(bytes);
+    if (decoded == null) {
+      return <String, Object?>{
+        'bytes': bytes,
+        'extension': extension,
+        'width': 0,
+        'height': 0,
+      };
+    }
+
+    final width = decoded.width;
+    final height = decoded.height;
+    final maxSide = width > height ? width : height;
+    im.Image working = decoded;
+
+    if (maxSide > maxDimension) {
+      working = width >= height
+          ? im.copyResize(decoded, width: maxDimension)
+          : im.copyResize(decoded, height: maxDimension);
+    }
+
+    final encoded = Uint8List.fromList(im.encodeJpg(working, quality: quality));
+    final originalIsJpeg = extension == 'jpg' || extension == 'jpeg';
+    final keepOriginal = maxSide <= maxDimension &&
+        originalIsJpeg &&
+        bytes.lengthInBytes <= encoded.lengthInBytes;
+
+    return <String, Object?>{
+      'bytes': keepOriginal ? bytes : encoded,
+      'extension': keepOriginal ? 'jpg' : 'jpg',
+      'width': working.width,
+      'height': working.height,
+    };
+  } catch (_) {
+    return <String, Object?>{
+      'bytes': bytes,
+      'extension': extension,
+      'width': 0,
+      'height': 0,
+    };
+  }
+}
 
 /// Canonical cross-platform Yalla Accounts file storage.
 ///
@@ -75,6 +141,43 @@ class YallaStorageService {
   static String _relativeJoin(List<String> parts) =>
       p.posix.joinAll(parts.map(_toPosix));
 
+  /// P17 canonical image optimization gate. All persisted workshop photos
+  /// pass through this method so a future screen cannot accidentally store a
+  /// 12/48 MP original without resizing. CPU-heavy decode/encode runs off the
+  /// UI isolate via [compute].
+  static Future<YallaOptimizedImage> optimizeImageBytes({
+    required Uint8List bytes,
+    required String extension,
+    int maxDimension = 1920,
+    int quality = 82,
+  }) async {
+    if (bytes.isEmpty) {
+      return YallaOptimizedImage(
+        bytes: bytes,
+        extension: extension,
+        width: 0,
+        height: 0,
+      );
+    }
+
+    final result = await compute<Map<String, Object?>, Map<String, Object?>>(
+      _optimizeImagePayload,
+      <String, Object?>{
+        'bytes': bytes,
+        'extension': extension,
+        'maxDimension': maxDimension,
+        'quality': quality,
+      },
+    );
+
+    return YallaOptimizedImage(
+      bytes: result['bytes'] as Uint8List,
+      extension: result['extension'] as String? ?? 'jpg',
+      width: result['width'] as int? ?? 0,
+      height: result['height'] as int? ?? 0,
+    );
+  }
+
   static Future<String> saveImage({
     required XFile image,
     required String module,
@@ -133,6 +236,10 @@ class YallaStorageService {
     required String beneficiaryName,
     required DateTime date,
   }) async {
+    final optimized = await optimizeImageBytes(
+      bytes: bytes,
+      extension: extension,
+    );
     final root = await rootDirectory();
     final safeModule = _module(module);
     final year = date.year.toString();
@@ -148,10 +255,10 @@ class YallaStorageService {
           _safe(beneficiaryName, fallback: 'client'),
           stamp.toString(),
         ].join('_') +
-        '.${_safe(extension, fallback: 'jpg')}';
+        '.${_safe(optimized.extension, fallback: 'jpg')}';
 
     final file = File(p.join(dir.path, fileName));
-    await file.writeAsBytes(bytes, flush: true);
+    await file.writeAsBytes(optimized.bytes, flush: true);
     return _relativeJoin([relDir, fileName]);
   }
 

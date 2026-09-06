@@ -10,20 +10,47 @@
 
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
+import 'package:yalla_accounts/core/services/accounting_gl.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/db/tables/receipt_tables.dart';
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/finance/invoices/services/invoice_service.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/services/cheque_accounting_service.dart';
 import 'package:yalla_accounts/features/settings/services/commercial_settings_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
+
+class ReceiptAllocationInput {
+  const ReceiptAllocationInput({
+    required this.repairId,
+    required this.amount,
+    this.paymentId,
+  });
+  final String repairId;
+  final double amount;
+  final String? paymentId;
+}
+
+class CanonicalReceiptResult {
+  const CanonicalReceiptResult({
+    required this.receiptNumber,
+    required this.paymentIds,
+    required this.allocatedAmount,
+    required this.customerCredit,
+  });
+
+  final int receiptNumber;
+  final List<String> paymentIds;
+  final double allocatedAmount;
+  final double customerCredit;
+}
 
 class PaymentService {
   static const String table = 'payments';
-
-  static const _ACC_CASH_CODE = '1000'; // الصندوق
-  static const _ACC_BANK_CODE = '1010'; // البنك
-  static const _ACC_AR_CODE = '1200'; // ذمم العملاء
 
   static const _K_STATUS_CONFIRMED = 'confirmed';
   static const _K_PARTY_CLIENT = 'CLIENT';
@@ -41,6 +68,9 @@ class PaymentService {
       'حوالة',
       'حوالة تأمين',
       'card',
+      'credit',
+      'bank_transfer',
+      'transfer',
       'visa',
       'master',
       'بطاقة',
@@ -78,9 +108,12 @@ class PaymentService {
 
   // ─────────── Schema ───────────
   static Future<void> _ensureTableAndSchema(DatabaseExecutor exec) async {
+    await ReceiptTables.createAllTables(exec);
     await exec.execute('''
 CREATE TABLE IF NOT EXISTS payments (
   id TEXT PRIMARY KEY,
+  receipt_number INTEGER,
+  reversal_of_payment_id TEXT,
   client_id INTEGER,
   repair_id TEXT,
   invoice_id TEXT,
@@ -97,6 +130,24 @@ CREATE TABLE IF NOT EXISTS payments (
   isIncome INTEGER NOT NULL DEFAULT 1
 )
     ''');
+    final paymentColumns = await exec.rawQuery('PRAGMA table_info(payments)');
+    final names = paymentColumns.map((row) => row['name']?.toString()).toSet();
+    if (!names.contains('receipt_number')) {
+      await exec
+          .execute('ALTER TABLE payments ADD COLUMN receipt_number INTEGER');
+    }
+    if (!names.contains('reversal_of_payment_id')) {
+      await exec.execute(
+        'ALTER TABLE payments ADD COLUMN reversal_of_payment_id TEXT',
+      );
+    }
+    await exec.execute(
+      'CREATE INDEX IF NOT EXISTS idx_payments_receipt_num ON payments(receipt_number)',
+    );
+    await exec.execute(
+      'CREATE INDEX IF NOT EXISTS idx_payments_reversal_of ON payments(reversal_of_payment_id)',
+    );
+
     await exec.execute(
         'CREATE INDEX IF NOT EXISTS idx_payments_client ON $table(client_id)');
     await exec.execute(
@@ -165,9 +216,17 @@ CREATE TABLE IF NOT EXISTS payments (
   }
 
   static Future<bool> _glExists(DatabaseExecutor db, String paymentId) async {
+    final linked = await db.query(
+      table,
+      columns: const ['gl_entry_id'],
+      where: 'id=?',
+      whereArgs: [paymentId],
+      limit: 1,
+    );
+    if (linked.isNotEmpty && linked.first['gl_entry_id'] != null) return true;
     final r = await db.query(
       'gl_entries',
-      columns: ['id'],
+      columns: const ['id'],
       where: 'source=? AND source_id=?',
       whereArgs: ['PAYMENT', paymentId],
       limit: 1,
@@ -399,7 +458,436 @@ CREATE TABLE IF NOT EXISTS payments (
     return maps.map(Payment.fromMap).toList();
   }
 
-  // ───────── Receipt + GL (لا معاملات متداخلة) ─────────
+  // ───────── P11 Canonical Receipt + GL ─────────
+  static Future<int> _nextReceiptNumberOnTxn(DatabaseExecutor db) async {
+    await ReceiptTables.createAllTables(db);
+    final rows = await db.rawQuery('''
+      SELECT COALESCE(MAX(n), 0) + 1 AS next_no
+      FROM (
+        SELECT MAX(receipt_number) AS n FROM receipt_headers
+        UNION ALL
+        SELECT MAX(receipt_number) AS n FROM payments
+      )
+    ''');
+    final raw = rows.first['next_no'];
+    return raw is num ? raw.toInt() : int.tryParse('$raw') ?? 1;
+  }
+
+  static String _canonicalReceiptMethod(String raw) {
+    final value = raw.trim().toLowerCase();
+    if (ChequeAccountingService.isChequeMethod(value)) return 'cheque';
+    if (value == 'card' ||
+        value == 'credit' ||
+        value == 'visa' ||
+        value == 'master' ||
+        value == 'pos' ||
+        value.contains('بطاقة')) {
+      return 'card';
+    }
+    if (value == 'bank_transfer' ||
+        value == 'transfer' ||
+        value == 'bank' ||
+        value.contains('تحويل') ||
+        value.contains('حوالة') ||
+        value.contains('بنك')) {
+      return 'bank_transfer';
+    }
+    return 'cash';
+  }
+
+  static Future<void> _insertReceiptHeaderOnTxn({
+    required Transaction txn,
+    required int receiptNumber,
+    required int clientId,
+    required DateTime date,
+    required String method,
+    required double totalAmount,
+    required double allocatedAmount,
+    required double creditAmount,
+    String status = 'posted',
+    int? reversalOfReceiptNumber,
+    String? notes,
+  }) async {
+    await ReceiptTables.createAllTables(txn);
+    await txn.insert(
+      'receipt_headers',
+      {
+        'receipt_number': receiptNumber,
+        'client_id': clientId,
+        'date': date.toIso8601String(),
+        'method': method,
+        'total_amount': double.parse(totalAmount.toStringAsFixed(2)),
+        'allocated_amount': double.parse(allocatedAmount.toStringAsFixed(2)),
+        'credit_amount': double.parse(creditAmount.toStringAsFixed(2)),
+        'status': status,
+        'reversal_of_receipt_number': reversalOfReceiptNumber,
+        'notes': notes,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
+  }
+
+  static Future<void> _insertReceiptAllocationOnTxn({
+    required Transaction txn,
+    required int receiptNumber,
+    required Payment payment,
+    required String allocationType,
+  }) async {
+    await ReceiptTables.createAllTables(txn);
+    await txn.insert(
+      'receipt_allocations',
+      {
+        'receipt_number': receiptNumber,
+        'payment_id': payment.id,
+        'repair_id':
+            _pickRepairId(payment).isEmpty ? null : _pickRepairId(payment),
+        'amount': payment.amount,
+        'allocation_type': allocationType,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
+  }
+
+  static Future<Payment> _insertAndPostReceiptOnTxn({
+    required Transaction txn,
+    required Payment payment,
+    required String customerName,
+    required String method,
+    required int receiptNumber,
+    String? descriptionOverride,
+    Map<String, dynamic>? chequeDraft,
+  }) async {
+    await _ensureTableAndSchema(txn);
+    if (payment.amount <= 0) throw ArgumentError('amount must be > 0');
+    if (!payment.isIncome) {
+      throw StateError('Canonical receipt accepts income payments only.');
+    }
+
+    final canonicalMethod = _canonicalReceiptMethod(method);
+    final rawRepairId = payment.repairId?.trim().isNotEmpty == true
+        ? payment.repairId!.trim()
+        : (payment.relatedRepairId ?? '').trim();
+    final repairId = rawRepairId.isEmpty ? null : rawRepairId;
+    final accountName = (payment.accountName?.trim().isNotEmpty == true)
+        ? payment.accountName!.trim()
+        : _resolveAccountFromMethod(canonicalMethod);
+    final status = payment.status.trim().isEmpty
+        ? _K_STATUS_CONFIRMED
+        : payment.status.trim();
+    final paymentId = payment.id.isEmpty ? const Uuid().v4() : payment.id;
+
+    final existing = await txn.query(
+      table,
+      where: 'id=?',
+      whereArgs: [paymentId],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      final persisted = Payment.fromMap(existing.first);
+      final sameMaterialDocument =
+          (persisted.amount - payment.amount).abs() <= 0.01 &&
+              _canonicalReceiptMethod(persisted.method) == canonicalMethod &&
+              (persisted.clientId ?? 0) == (payment.clientId ?? 0) &&
+              _pickRepairId(persisted) == _pickRepairId(payment);
+      if (!sameMaterialDocument) {
+        throw StateError(
+          'Receipt payment $paymentId already exists with different material fields.',
+        );
+      }
+      await _ensurePaymentGLAndLinksOnTxn(
+        txn: txn,
+        paymentId: paymentId,
+        payment: persisted,
+        accountName: persisted.accountName?.trim().isNotEmpty == true
+            ? persisted.accountName!.trim()
+            : accountName,
+        customerName: customerName,
+        repairId: repairId,
+        descriptionOverride: descriptionOverride,
+      );
+      if (repairId != null) await _refreshRepairSnapshot(txn, repairId);
+      return persisted;
+    }
+
+    var storedPayment = payment.copyWith(
+      id: paymentId,
+      receiptNumber: receiptNumber,
+      method: canonicalMethod,
+      accountName: accountName,
+      status: status,
+      relatedRepairId: repairId,
+    );
+
+    if (ChequeAccountingService.isChequeMethod(canonicalMethod)) {
+      if (chequeDraft == null) {
+        throw StateError('Cheque receipt requires cheque details.');
+      }
+      final chequeId = await ChequeAccountingService.createLinkedChequeOnTxn(
+        txn: txn,
+        draft: chequeDraft,
+        type: ChequeType.incoming,
+        amount: storedPayment.amount,
+        currency: (await CommercialSettingsService.instance.get(executor: txn))
+            .baseCurrencyCode,
+        sourceType: 'PAYMENT',
+        sourceId: paymentId,
+        clientId: storedPayment.clientId,
+        recipientType: 'WORKSHOP',
+        recipientName: 'Workshop',
+      );
+      storedPayment = storedPayment.copyWith(chequeId: chequeId);
+    }
+
+    await txn.insert(
+      table,
+      storedPayment.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
+    await _ensurePaymentGLAndLinksOnTxn(
+      txn: txn,
+      paymentId: paymentId,
+      payment: storedPayment,
+      accountName: accountName,
+      customerName: customerName,
+      repairId: repairId,
+      descriptionOverride: descriptionOverride,
+    );
+    if (repairId != null) await _refreshRepairSnapshot(txn, repairId);
+
+    final persistedRows = await txn.query(
+      table,
+      where: 'id=?',
+      whereArgs: [paymentId],
+      limit: 1,
+    );
+    return Payment.fromMap(persistedRows.first);
+  }
+
+  /// One source document, one SQLite transaction, N repair allocations.
+  /// Requested over-allocation is capped at each repair's remaining balance;
+  /// any surplus becomes an unallocated customer credit line on the same
+  /// receipt. A physical cheque remains one payment/one linked cheque.
+  static Future<CanonicalReceiptResult> insertCanonicalReceipt({
+    required int clientId,
+    required String customerName,
+    required String method,
+    required DateTime date,
+    required List<ReceiptAllocationInput> allocations,
+    double unallocatedAmount = 0,
+    String? unallocatedPaymentId,
+    String? notes,
+    Map<String, dynamic>? chequeDraft,
+  }) async {
+    final p16Actor =
+        await AuthorizationGuard.require(PermissionKeys.receiptCreate);
+    if (clientId <= 0) throw StateError('Receipt requires a valid client.');
+    final canonicalMethod = _canonicalReceiptMethod(method);
+    final requestedTotal = allocations.fold<double>(
+          0,
+          (sum, line) => sum + line.amount,
+        ) +
+        unallocatedAmount;
+    if (requestedTotal <= 0.005) {
+      throw StateError('Receipt amount must be greater than zero.');
+    }
+    if (allocations.any((line) => line.amount < 0) || unallocatedAmount < 0) {
+      throw StateError('Receipt allocation cannot be negative.');
+    }
+    if (canonicalMethod == 'cheque' && allocations.length > 1) {
+      throw StateError('One physical cheque can be linked to one repair only.');
+    }
+    if (canonicalMethod == 'cheque' &&
+        allocations.isNotEmpty &&
+        unallocatedAmount > 0.005) {
+      throw StateError(
+        'A physical cheque cannot be split between a repair and general credit.',
+      );
+    }
+
+    final db = await DBService.database;
+    final affectedRepairs = <String>{};
+    final result = await db.transaction<CanonicalReceiptResult>((txn) async {
+      await _ensureTableAndSchema(txn);
+      await ReceiptTables.createAllTables(txn);
+      final receiptNumber = await _nextReceiptNumberOnTxn(txn);
+      final paymentIds = <String>[];
+      var allocatedAmount = 0.0;
+      var creditAmount = unallocatedAmount;
+      var overflowCredit = 0.0;
+
+      for (final line in allocations) {
+        if (line.amount <= 0.005) continue;
+        final repairRows = await txn.query(
+          'repairs',
+          columns: const ['id', 'client_id', 'fileValue'],
+          where: 'id=?',
+          whereArgs: [line.repairId],
+          limit: 1,
+        );
+        if (repairRows.isEmpty) {
+          throw StateError('Repair ${line.repairId} not found.');
+        }
+        final repairClient = repairRows.first['client_id'];
+        final repairClientId = repairClient is num
+            ? repairClient.toInt()
+            : int.tryParse('$repairClient');
+        if (repairClientId != clientId) {
+          throw StateError(
+            'All receipt allocations must belong to the same client.',
+          );
+        }
+        final fileValue = (repairRows.first['fileValue'] as num?)?.toDouble() ??
+            double.tryParse('${repairRows.first['fileValue']}') ??
+            0.0;
+        final alreadyPaid = await RepairFinancialTruthService.paidForRepair(
+          line.repairId,
+          executor: txn,
+        );
+        final remaining = (fileValue - alreadyPaid).clamp(0.0, double.infinity);
+        final accepted = line.amount > remaining ? remaining : line.amount;
+        final overflow = line.amount - accepted;
+        if (overflow > 0.005) {
+          overflowCredit += overflow;
+          creditAmount += overflow;
+        }
+
+        if (accepted > 0.005) {
+          final payment = Payment(
+            id: line.paymentId?.trim().isNotEmpty == true
+                ? line.paymentId!.trim()
+                : const Uuid().v4(),
+            receiptNumber: receiptNumber,
+            clientId: clientId,
+            repairId: line.repairId,
+            relatedRepairId: line.repairId,
+            invoiceId: null,
+            amount: double.parse(accepted.toStringAsFixed(2)),
+            date: date,
+            method: canonicalMethod,
+            accountName: null,
+            status: _K_STATUS_CONFIRMED,
+            notes: notes,
+            attachments: null,
+            glEntryId: null,
+            chequeId: null,
+            isIncome: true,
+          );
+          final stored = await _insertAndPostReceiptOnTxn(
+            txn: txn,
+            payment: payment,
+            customerName: customerName,
+            method: canonicalMethod,
+            receiptNumber: receiptNumber,
+            descriptionOverride: notes,
+            chequeDraft: chequeDraft,
+          );
+          paymentIds.add(stored.id);
+          allocatedAmount += stored.amount;
+          affectedRepairs.add(line.repairId);
+          await _insertReceiptAllocationOnTxn(
+            txn: txn,
+            receiptNumber: receiptNumber,
+            payment: stored,
+            allocationType: 'REPAIR',
+          );
+        }
+      }
+
+      if (canonicalMethod == 'cheque' && overflowCredit > 0.005) {
+        throw StateError(
+          'Cheque amount exceeds the selected repair balance. Enter the excess as a separate general receipt.',
+        );
+      }
+
+      if (creditAmount > 0.005) {
+        final credit = Payment(
+          id: unallocatedPaymentId?.trim().isNotEmpty == true
+              ? unallocatedPaymentId!.trim()
+              : const Uuid().v4(),
+          receiptNumber: receiptNumber,
+          clientId: clientId,
+          repairId: null,
+          relatedRepairId: null,
+          invoiceId: null,
+          amount: double.parse(creditAmount.toStringAsFixed(2)),
+          date: date,
+          method: canonicalMethod,
+          accountName: null,
+          status: _K_STATUS_CONFIRMED,
+          notes: [
+            if (notes?.trim().isNotEmpty == true) notes!.trim(),
+            'رصيد دائن غير مخصص للعميل',
+          ].join(' — '),
+          attachments: null,
+          glEntryId: null,
+          chequeId: null,
+          isIncome: true,
+        );
+        final stored = await _insertAndPostReceiptOnTxn(
+          txn: txn,
+          payment: credit,
+          customerName: customerName,
+          method: canonicalMethod,
+          receiptNumber: receiptNumber,
+          descriptionOverride: credit.notes,
+          chequeDraft: canonicalMethod == 'cheque' ? chequeDraft : null,
+        );
+        paymentIds.add(stored.id);
+        await _insertReceiptAllocationOnTxn(
+          txn: txn,
+          receiptNumber: receiptNumber,
+          payment: stored,
+          allocationType: 'CREDIT',
+        );
+      }
+
+      final postedTotal = allocatedAmount + creditAmount;
+      await _insertReceiptHeaderOnTxn(
+        txn: txn,
+        receiptNumber: receiptNumber,
+        clientId: clientId,
+        date: date,
+        method: canonicalMethod,
+        totalAmount: postedTotal,
+        allocatedAmount: allocatedAmount,
+        creditAmount: creditAmount,
+        notes: notes,
+      );
+
+      return CanonicalReceiptResult(
+        receiptNumber: receiptNumber,
+        paymentIds: paymentIds,
+        allocatedAmount: double.parse(allocatedAmount.toStringAsFixed(2)),
+        customerCredit: double.parse(creditAmount.toStringAsFixed(2)),
+      );
+    });
+
+    for (final repairId in affectedRepairs) {
+      try {
+        await InvoiceService.I.recomputeForRepair(repairId);
+      } catch (_) {}
+    }
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: 'RECEIPT_POSTED',
+      entityType: 'RECEIPT',
+      entityId: 'RC-${result.receiptNumber.toString().padLeft(6, '0')}',
+      after: {
+        'client_id': clientId,
+        'method': canonicalMethod,
+        'allocated': result.allocatedAmount,
+        'credit': result.customerCredit,
+        'payment_ids': result.paymentIds,
+      },
+    );
+    return result;
+  }
+
+  /// Backward-compatible single-line API. New callers should prefer
+  /// insertCanonicalReceipt; legacy callers still receive a real receipt number.
   static Future<void> insertAndPostReceipt({
     required Payment payment,
     required String customerName,
@@ -414,159 +902,556 @@ CREATE TABLE IF NOT EXISTS payments (
         'insertAndPostReceipt accepts receipt/income payments only.',
       );
     }
+    final clientId = payment.clientId;
+    if (clientId == null || clientId <= 0) {
+      throw StateError('Receipt requires a valid client_id.');
+    }
 
+    // Preserve retry/idempotency semantics for old callers that supply an ID.
+    if (payment.id.trim().isNotEmpty) {
+      final db = await DBService.database;
+      await _ensureTableAndSchema(db);
+      final existing = await db.query(
+        table,
+        columns: const ['id'],
+        where: 'id=?',
+        whereArgs: [payment.id.trim()],
+        limit: 1,
+      );
+      if (existing.isNotEmpty) {
+        await postPaymentFromDbId(payment.id.trim());
+        return;
+      }
+    }
+
+    final repairId = _pickRepairId(payment);
+    await insertCanonicalReceipt(
+      clientId: clientId,
+      customerName: customerName,
+      method: method,
+      date: payment.date,
+      allocations: repairId.isEmpty
+          ? const <ReceiptAllocationInput>[]
+          : <ReceiptAllocationInput>[
+              ReceiptAllocationInput(
+                repairId: repairId,
+                amount: payment.amount,
+                paymentId: payment.id.isEmpty ? null : payment.id,
+              ),
+            ],
+      unallocatedAmount: repairId.isEmpty ? payment.amount : 0,
+      unallocatedPaymentId:
+          repairId.isEmpty && payment.id.isNotEmpty ? payment.id : null,
+      notes: descriptionOverride ?? payment.notes,
+      chequeDraft: chequeDraft,
+    );
+  }
+
+  /// Unallocated customer credit is receipt money already posted to AR but not
+  /// yet attributed to a repair, minus any later repair allocations from it.
+  static Future<double> customerCreditForClient(
+    int clientId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? await DBService.database;
+    await _ensureTableAndSchema(db);
+    final rows = await db.rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN COALESCE(repair_id,'')='' AND COALESCE(relatedRepairId,'')=''
+            AND LOWER(COALESCE(method,'')) <> 'customer_credit'
+          THEN amount ELSE 0 END),0)
+        -
+        COALESCE(SUM(CASE
+          WHEN LOWER(COALESCE(method,''))='customer_credit'
+            AND (COALESCE(repair_id,'')<>'' OR COALESCE(relatedRepairId,'')<>'')
+          THEN amount ELSE 0 END),0) AS available
+      FROM payments
+      WHERE client_id=? AND COALESCE(isIncome,1)=1
+    ''', [clientId]);
+    final raw = rows.first['available'];
+    final value = raw is num ? raw.toDouble() : double.tryParse('$raw') ?? 0.0;
+    return value <= 0.005 ? 0.0 : double.parse(value.toStringAsFixed(2));
+  }
+
+  /// Applies previously received customer credit to one repair without moving
+  /// cash/bank again. GL only re-dimensions AR from unallocated client credit to
+  /// the selected repair, so total customer AR is unchanged.
+  static Future<double> allocateCustomerCreditToRepair({
+    required int clientId,
+    required String repairId,
+    required double amount,
+    String? notes,
+  }) async {
+    final p16Actor =
+        await AuthorizationGuard.require(PermissionKeys.receiptCreate);
+    if (clientId <= 0 || repairId.trim().isEmpty || amount <= 0.005) {
+      throw ArgumentError('Valid client, repair and amount are required.');
+    }
     final db = await DBService.database;
-    String? repairForPost;
-
+    final paymentId = const Uuid().v4();
+    late double applied;
     await db.transaction((txn) async {
       await _ensureTableAndSchema(txn);
+      await ReceiptTables.createAllTables(txn);
+      final repairs = await txn.query(
+        'repairs',
+        columns: const ['client_id', 'fileValue'],
+        where: 'id=?',
+        whereArgs: [repairId],
+        limit: 1,
+      );
+      if (repairs.isEmpty) throw StateError('Repair $repairId not found.');
+      final repairClientRaw = repairs.first['client_id'];
+      final repairClientId = repairClientRaw is num
+          ? repairClientRaw.toInt()
+          : int.tryParse('$repairClientRaw');
+      if (repairClientId != clientId) {
+        throw StateError(
+            'Customer credit can only be applied to the same client.');
+      }
 
-      final rawRepairId = payment.repairId?.trim().isNotEmpty == true
-          ? payment.repairId!.trim()
-          : (payment.relatedRepairId ?? '').trim();
-      final repairId = rawRepairId.isEmpty ? null : rawRepairId;
-      repairForPost = repairId;
+      final available = await customerCreditForClient(clientId, executor: txn);
+      if (available <= 0.005) throw StateError('No available customer credit.');
+      final fileValue = (repairs.first['fileValue'] as num?)?.toDouble() ??
+          double.tryParse('${repairs.first['fileValue']}') ??
+          0.0;
+      final paid = await RepairFinancialTruthService.paidForRepair(
+        repairId,
+        executor: txn,
+      );
+      final remaining = (fileValue - paid).clamp(0.0, double.infinity);
+      if (remaining <= 0.005)
+        throw StateError('Repair is already fully settled.');
+      applied = amount;
+      if (available < applied) applied = available;
+      if (remaining < applied) applied = remaining.toDouble();
+      applied = double.parse(applied.toStringAsFixed(2));
+      if (applied <= 0.005) throw StateError('Nothing can be allocated.');
 
-      final accountName = (payment.accountName?.trim().isNotEmpty == true)
-          ? payment.accountName!.trim()
-          : _resolveAccountFromMethod(method);
+      final arAccountId = await _ensureClientAccountOnTxn(txn, clientId);
+      final glId = await DBService.postEntryGLOn(
+        ex: txn,
+        date: DateTime.now(),
+        source: 'CREDIT_ALLOCATION',
+        sourceId: paymentId,
+        note: notes?.trim().isNotEmpty == true
+            ? notes!.trim()
+            : 'تخصيص رصيد دائن للملف $repairId',
+        lines: [
+          {
+            'account_id': arAccountId,
+            'debit': applied,
+            'credit': 0.0,
+            'party_type': _K_PARTY_CLIENT,
+            'party_id': clientId,
+            'invoice_id': null,
+            'repair_id': null,
+          },
+          {
+            'account_id': arAccountId,
+            'debit': 0.0,
+            'credit': applied,
+            'party_type': _K_PARTY_CLIENT,
+            'party_id': clientId,
+            'invoice_id': await _findInvoiceIdOnTxn(
+              txn: txn,
+              repairId: repairId,
+            ),
+            'repair_id': repairId,
+          },
+        ],
+      );
 
-      final status = payment.status.trim().isEmpty
-          ? _K_STATUS_CONFIRMED
-          : payment.status.trim();
-      final paymentId = payment.id.isEmpty ? const Uuid().v4() : payment.id;
+      final payment = Payment(
+        id: paymentId,
+        clientId: clientId,
+        repairId: repairId,
+        relatedRepairId: repairId,
+        invoiceId: await _findInvoiceIdOnTxn(txn: txn, repairId: repairId),
+        amount: applied,
+        date: DateTime.now(),
+        method: 'customer_credit',
+        accountName: 'رصيد العميل',
+        status: _K_STATUS_CONFIRMED,
+        notes: notes ?? 'تخصيص من رصيد العميل الدائن',
+        attachments: null,
+        glEntryId: glId,
+        chequeId: null,
+        isIncome: true,
+      );
+      await txn.insert(
+        table,
+        payment.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+      await txn.insert(
+        'customer_credit_allocations',
+        {
+          'id': const Uuid().v4(),
+          'client_id': clientId,
+          'repair_id': repairId,
+          'payment_id': paymentId,
+          'amount': applied,
+          'gl_entry_id': glId,
+          'date': payment.date.toIso8601String(),
+          'notes': notes,
+          'created_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+      await _refreshRepairSnapshot(txn, repairId);
+    });
 
-      final existing = await txn.query(
+    try {
+      await InvoiceService.I.recomputeForRepair(repairId);
+    } catch (_) {}
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: 'CUSTOMER_CREDIT_ALLOCATED',
+      entityType: 'REPAIR',
+      entityId: repairId,
+      after: {'client_id': clientId, 'amount': applied},
+      reason: notes,
+    );
+    return applied;
+  }
+
+  static Future<void> reverseReceiptByPaymentId(
+    String paymentId, {
+    String? reason,
+  }) async {
+    final db = await DBService.database;
+    await _ensureTableAndSchema(db);
+    final rows = await db.query(
+      table,
+      columns: const ['receipt_number'],
+      where: 'id=?',
+      whereArgs: [paymentId],
+      limit: 1,
+    );
+    if (rows.isEmpty) throw StateError('Payment not found.');
+    final raw = rows.first['receipt_number'];
+    final receiptNumber = raw is num ? raw.toInt() : int.tryParse('$raw');
+    if (receiptNumber == null) {
+      await _reverseLegacySinglePayment(paymentId, reason: reason);
+      return;
+    }
+    await reverseReceipt(receiptNumber, reason: reason);
+  }
+
+  static Future<void> reverseReceiptByGlEntryId(
+    int glEntryId, {
+    String? reason,
+  }) async {
+    final db = await DBService.database;
+    final rows = await db.query(
+      table,
+      columns: const ['id'],
+      where: 'gl_entry_id=?',
+      whereArgs: [glEntryId],
+      limit: 1,
+    );
+    if (rows.isEmpty) throw StateError('Payment for GL entry not found.');
+    await reverseReceiptByPaymentId(
+      rows.first['id'].toString(),
+      reason: reason,
+    );
+  }
+
+  static Future<void> _reverseLegacySinglePayment(
+    String paymentId, {
+    String? reason,
+  }) async {
+    final p16Actor =
+        await AuthorizationGuard.require(PermissionKeys.receiptReverse);
+    final db = await DBService.database;
+    final affectedRepairs = <String>{};
+    await db.transaction((txn) async {
+      await _ensureTableAndSchema(txn);
+      await ReceiptTables.createAllTables(txn);
+      final rows = await txn.query(
         table,
         where: 'id=?',
         whereArgs: [paymentId],
         limit: 1,
       );
-
-      if (existing.isNotEmpty) {
-        var persisted = Payment.fromMap(existing.first);
-
-        final sameMaterialDocument =
-            (persisted.amount - payment.amount).abs() <= 0.01 &&
-                persisted.method.trim().toLowerCase() ==
-                    payment.method.trim().toLowerCase() &&
-                (persisted.clientId ?? 0) == (payment.clientId ?? 0) &&
-                _pickRepairId(persisted) == _pickRepairId(payment);
-
-        if (!sameMaterialDocument) {
-          throw StateError(
-            'Receipt $paymentId already exists with different material fields.',
-          );
-        }
-
-        if (ChequeAccountingService.isChequeMethod(method) &&
-            persisted.chequeId == null) {
-          if (chequeDraft == null) {
-            throw StateError(
-              'Cheque receipt exists without a cheque link. '
-              'Provide cheque details before retrying.',
-            );
-          }
-
-          final chequeId =
-              await ChequeAccountingService.createLinkedChequeOnTxn(
-            txn: txn,
-            draft: chequeDraft,
-            type: ChequeType.incoming,
-            amount: persisted.amount,
-            currency:
-                (await CommercialSettingsService.instance.get(executor: txn))
-                    .baseCurrencyCode,
-            sourceType: 'PAYMENT',
-            sourceId: paymentId,
-            clientId: persisted.clientId,
-            recipientType: 'WORKSHOP',
-            recipientName: 'Workshop',
-          );
-
-          await txn.update(
-            table,
-            {'cheque_id': chequeId},
-            where: 'id=?',
-            whereArgs: [paymentId],
-          );
-          persisted = persisted.copyWith(chequeId: chequeId);
-        }
-
-        await _ensurePaymentGLAndLinksOnTxn(
-          txn: txn,
-          paymentId: paymentId,
-          payment: persisted,
-          accountName: (persisted.accountName?.trim().isNotEmpty == true)
-              ? persisted.accountName!.trim()
-              : accountName,
-          customerName: customerName,
-          repairId: repairId,
-          descriptionOverride: descriptionOverride,
-        );
-
-        if (repairId != null) {
-          await _refreshRepairSnapshot(txn, repairId);
-        }
-        return;
-      }
-
-      var storedPayment = payment.copyWith(
-        id: paymentId,
-        accountName: accountName,
-        status: status,
-        relatedRepairId: repairId,
-      );
-
-      if (ChequeAccountingService.isChequeMethod(method)) {
-        if (chequeDraft == null) {
-          throw StateError('Cheque receipt requires cheque details.');
-        }
-
-        final chequeId = await ChequeAccountingService.createLinkedChequeOnTxn(
-          txn: txn,
-          draft: chequeDraft,
-          type: ChequeType.incoming,
-          amount: storedPayment.amount,
-          currency:
-              (await CommercialSettingsService.instance.get(executor: txn))
-                  .baseCurrencyCode,
-          sourceType: 'PAYMENT',
-          sourceId: paymentId,
-          clientId: storedPayment.clientId,
-          recipientType: 'WORKSHOP',
-          recipientName: 'Workshop',
-        );
-
-        storedPayment = storedPayment.copyWith(chequeId: chequeId);
-      }
-
-      await txn.insert(
+      if (rows.isEmpty) return;
+      final original = Payment.fromMap(rows.first);
+      final duplicate = await txn.query(
         table,
-        storedPayment.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.abort,
+        columns: const ['id'],
+        where: 'reversal_of_payment_id=?',
+        whereArgs: [paymentId],
+        limit: 1,
       );
-
-      await _ensurePaymentGLAndLinksOnTxn(
+      if (duplicate.isNotEmpty) {
+        throw StateError('Payment is already reversed.');
+      }
+      final nextNo = await _nextReceiptNumberOnTxn(txn);
+      final reversal = await _reversePaymentLineOnTxn(
         txn: txn,
-        paymentId: paymentId,
-        payment: storedPayment,
-        accountName: accountName,
-        customerName: customerName,
-        repairId: repairId,
-        descriptionOverride: descriptionOverride,
+        original: original,
+        reversalReceiptNumber: nextNo,
+        reason: reason,
       );
+      await _insertReceiptAllocationOnTxn(
+        txn: txn,
+        receiptNumber: nextNo,
+        payment: reversal,
+        allocationType: 'REVERSAL',
+      );
+      await _insertReceiptHeaderOnTxn(
+        txn: txn,
+        receiptNumber: nextNo,
+        clientId: original.clientId ?? 0,
+        date: reversal.date,
+        method: original.method,
+        totalAmount: reversal.amount,
+        allocatedAmount: _pickRepairId(original).isEmpty ? 0 : reversal.amount,
+        creditAmount: _pickRepairId(original).isEmpty ? reversal.amount : 0,
+        notes: reason ?? 'عكس رسمي لدفعة قديمة',
+      );
+      final repairId = _pickRepairId(original);
+      if (repairId.isNotEmpty) affectedRepairs.add(repairId);
+    });
+    for (final repairId in affectedRepairs) {
+      try {
+        await InvoiceService.I.recomputeForRepair(repairId);
+      } catch (_) {}
+    }
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: 'LEGACY_PAYMENT_REVERSED',
+      entityType: 'PAYMENT',
+      entityId: paymentId,
+      reason: reason,
+    );
+  }
 
-      if (repairId != null) {
-        await _refreshRepairSnapshot(txn, repairId);
+  static Future<void> reverseReceipt(
+    int receiptNumber, {
+    String? reason,
+  }) async {
+    final p16Actor =
+        await AuthorizationGuard.require(PermissionKeys.receiptReverse);
+    final db = await DBService.database;
+    final affectedRepairs = <String>{};
+    await db.transaction((txn) async {
+      await _ensureTableAndSchema(txn);
+      await ReceiptTables.createAllTables(txn);
+      final header = await txn.query(
+        'receipt_headers',
+        where: 'receipt_number=?',
+        whereArgs: [receiptNumber],
+        limit: 1,
+      );
+      if (header.isNotEmpty &&
+          (header.first['status'] ?? '').toString().toLowerCase() ==
+              'reversed') {
+        throw StateError('Receipt is already reversed.');
+      }
+
+      final rows = await txn.query(
+        table,
+        where: 'receipt_number=? AND amount>0 AND COALESCE(isIncome,1)=1',
+        whereArgs: [receiptNumber],
+        orderBy: 'id',
+      );
+      if (rows.isEmpty) {
+        throw StateError(
+          'Receipt RC-${receiptNumber.toString().padLeft(6, '0')} not found.',
+        );
+      }
+      final originals = rows.map(Payment.fromMap).toList();
+      for (final original in originals) {
+        final duplicate = await txn.query(
+          table,
+          columns: const ['id'],
+          where: 'reversal_of_payment_id=?',
+          whereArgs: [original.id],
+          limit: 1,
+        );
+        if (duplicate.isNotEmpty) {
+          throw StateError('Receipt is already reversed.');
+        }
+      }
+
+      final reversalReceiptNumber = await _nextReceiptNumberOnTxn(txn);
+      var reversalAllocated = 0.0;
+      var reversalCredit = 0.0;
+      for (final original in originals) {
+        final repairId = _pickRepairId(original);
+        if (repairId.isNotEmpty) affectedRepairs.add(repairId);
+        final reversal = await _reversePaymentLineOnTxn(
+          txn: txn,
+          original: original,
+          reversalReceiptNumber: reversalReceiptNumber,
+          reason: reason,
+        );
+        await _insertReceiptAllocationOnTxn(
+          txn: txn,
+          receiptNumber: reversalReceiptNumber,
+          payment: reversal,
+          allocationType: 'REVERSAL',
+        );
+        if (repairId.isEmpty) {
+          reversalCredit += reversal.amount;
+        } else {
+          reversalAllocated += reversal.amount;
+        }
+      }
+
+      int? clientId;
+      for (final original in originals) {
+        if ((original.clientId ?? 0) > 0) {
+          clientId = original.clientId;
+          break;
+        }
+      }
+      if (clientId == null || clientId <= 0) {
+        throw StateError('Receipt has no valid client.');
+      }
+      await _insertReceiptHeaderOnTxn(
+        txn: txn,
+        receiptNumber: reversalReceiptNumber,
+        clientId: clientId,
+        date: DateTime.now(),
+        method: originals.first.method,
+        totalAmount: reversalAllocated + reversalCredit,
+        allocatedAmount: reversalAllocated,
+        creditAmount: reversalCredit,
+        reversalOfReceiptNumber: receiptNumber,
+        notes: reason ??
+            'عكس رسمي للسند RC-${receiptNumber.toString().padLeft(6, '0')}',
+      );
+      if (header.isNotEmpty) {
+        await txn.update(
+          'receipt_headers',
+          {'status': 'reversed'},
+          where: 'receipt_number=?',
+          whereArgs: [receiptNumber],
+        );
       }
     });
 
-    if (updateInvoice && repairForPost != null && repairForPost!.isNotEmpty) {
+    for (final repairId in affectedRepairs) {
       try {
-        await InvoiceService.I.recomputeForRepair(repairForPost!);
+        await InvoiceService.I.recomputeForRepair(repairId);
       } catch (_) {}
     }
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: 'RECEIPT_REVERSED',
+      entityType: 'RECEIPT',
+      entityId: 'RC-${receiptNumber.toString().padLeft(6, '0')}',
+      reason: reason,
+    );
+  }
+
+  static Future<Payment> _reversePaymentLineOnTxn({
+    required Transaction txn,
+    required Payment original,
+    required int reversalReceiptNumber,
+    String? reason,
+  }) async {
+    int? reversalGlId;
+    if (original.chequeId != null) {
+      final chequeRows = await txn.query(
+        'cheques',
+        where: 'id=?',
+        whereArgs: [original.chequeId],
+        limit: 1,
+      );
+      if (chequeRows.isEmpty) throw StateError('Linked cheque not found.');
+      final cheque = Cheque.fromMap(chequeRows.first);
+      if (cheque.status == ChequeStatus.collected || cheque.isEndorsed == 1) {
+        throw StateError(
+          'Collected/endorsed cheque must use the cheque return lifecycle before receipt correction.',
+        );
+      }
+      await ChequeAccountingService.transitionStatusOnTxn(
+        txn: txn,
+        chequeId: original.chequeId!,
+        newStatus: ChequeStatus.cancelled,
+        reason: reason ?? 'Formal receipt reversal',
+      );
+      final statusGl = await txn.query(
+        'gl_entries',
+        columns: const ['id'],
+        where: 'source=? AND source_id=?',
+        whereArgs: ['CHEQUE_STATUS', '${original.chequeId}:cancelled'],
+        orderBy: 'id DESC',
+        limit: 1,
+      );
+      if (statusGl.isNotEmpty) {
+        final raw = statusGl.first['id'];
+        reversalGlId = raw is num ? raw.toInt() : int.tryParse('$raw');
+      }
+    } else {
+      var glId = original.glEntryId;
+      if (glId == null) {
+        final glRows = await txn.query(
+          'gl_entries',
+          columns: const ['id'],
+          where: 'source=? AND source_id=?',
+          whereArgs: ['PAYMENT', original.id],
+          limit: 1,
+        );
+        if (glRows.isNotEmpty) {
+          final raw = glRows.first['id'];
+          glId = raw is num ? raw.toInt() : int.tryParse('$raw');
+        }
+      }
+      if (glId == null) {
+        throw StateError('Posted GL entry not found for ${original.id}.');
+      }
+      reversalGlId = await DBService.reverseEntryGLOn(
+        txn,
+        glId,
+        note: reason ?? 'Formal receipt reversal',
+      );
+    }
+
+    final reversal = Payment(
+      id: const Uuid().v4(),
+      receiptNumber: reversalReceiptNumber,
+      reversalOfPaymentId: original.id,
+      clientId: original.clientId,
+      repairId: original.repairId,
+      invoiceId: original.invoiceId,
+      relatedRepairId: original.relatedRepairId,
+      amount: -original.amount,
+      date: DateTime.now(),
+      method: original.method,
+      accountName: original.accountName,
+      status: 'reversal',
+      notes: [
+        'عكس رسمي للسند ${original.receiptNumber == null ? original.id : 'RC-${original.receiptNumber!.toString().padLeft(6, '0')}'}',
+        if (reason?.trim().isNotEmpty == true) reason!.trim(),
+      ].join(' — '),
+      attachments: null,
+      glEntryId: reversalGlId,
+      chequeId: original.chequeId,
+      isIncome: true,
+    );
+    await txn.insert(
+      table,
+      reversal.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
+    await txn.update(
+      table,
+      {'status': 'reversed'},
+      where: 'id=?',
+      whereArgs: [original.id],
+    );
+    final repairId = _pickRepairId(original);
+    if (repairId.isNotEmpty) await _refreshRepairSnapshot(txn, repairId);
+    return reversal;
   }
 
   // ───── postPaymentFromDbId (Idempotent) ─────
@@ -751,8 +1636,8 @@ CREATE TABLE IF NOT EXISTS payments (
     );
 
     final debitAccId = accountName == 'البنك'
-        ? (await _getAccountIdByCode(txn, _ACC_BANK_CODE))!
-        : (await _getAccountIdByCode(txn, _ACC_CASH_CODE))!;
+        ? (await _getAccountIdByCode(txn, GL.bank))!
+        : (await _getAccountIdByCode(txn, GL.cash))!;
 
     final note =
         'تسوية دفعة (Adjust) — ${accountName == "الصندوق" ? "نقدية" : "بنكية"}';
@@ -893,8 +1778,8 @@ CREATE TABLE IF NOT EXISTS payments (
       return;
     }
 
-    final cashId = await _getAccountIdByCode(txn, _ACC_CASH_CODE);
-    final bankId = await _getAccountIdByCode(txn, _ACC_BANK_CODE);
+    final cashId = await _getAccountIdByCode(txn, GL.cash);
+    final bankId = await _getAccountIdByCode(txn, GL.bank);
 
     if (cashId == null || bankId == null) {
       throw StateError('الحسابات الأساسية 1000/1010 غير موجودة');
@@ -985,42 +1870,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
   static Future<void> _refreshRepairSnapshot(
       Transaction txn, String repairId) async {
-    // جمع كل المدفوعات المرتبطة بالملف
-    final sumRows = await txn.rawQuery(
-      'SELECT IFNULL(SUM(amount),0) s FROM $table WHERE repair_id=? OR relatedRepairId=?',
-      [repairId, repairId],
-    );
-    final paidSumRaw = sumRows.first['s'];
-    final paidSum = paidSumRaw is num
-        ? paidSumRaw.toDouble()
-        : double.tryParse('$paidSumRaw') ?? 0.0;
-
-    // قراءة قيمة الملف الأصلية (fileValue)
-    double fileValue = 0.0;
-    final r = await txn.rawQuery(
-        'SELECT IFNULL(fileValue,0) f FROM repairs WHERE id=? LIMIT 1',
-        [repairId]);
-    if (r.isNotEmpty) {
-      final f = r.first['f'];
-      fileValue = f is num ? f.toDouble() : double.tryParse('$f') ?? 0.0;
-    }
-
-    // تحديد حالة السداد
-    final newStatus = paidSum >= fileValue
-        ? 'مسدد'
-        : (paidSum > 0 ? 'مسدد جزئي' : 'غير مسدد');
-
-    // تحديث الأعمدة الصحيحة
-    await txn.update(
-      'repairs',
-      {
-        'total_paid_amount': paidSum,
-        'paymentStatus': newStatus,
-        'isArchived': paidSum >= fileValue ? 1 : 0,
-      },
-      where: 'id=?',
-      whereArgs: [repairId],
-    );
+    await RepairFinancialTruthService.refreshRepairPaymentCache(txn, repairId);
   }
   // ---------------------------------------------------------------------------
 // 🧾 insertAndPostPayment — نظام سند صرف كامل (OUTFLOW)
@@ -1195,8 +2045,8 @@ CREATE TABLE IF NOT EXISTS payments (
       //-----------------------------------------------------------------------
       // حساب الصندوق/البنك (دائن)
       //-----------------------------------------------------------------------
-      final cashAccId = await _getAccountIdByCode(txn, _ACC_CASH_CODE);
-      final bankAccId = await _getAccountIdByCode(txn, _ACC_BANK_CODE);
+      final cashAccId = await _getAccountIdByCode(txn, GL.cash);
+      final bankAccId = await _getAccountIdByCode(txn, GL.bank);
 
       if (cashAccId == null || bankAccId == null) {
         throw StateError("Missing main accounts 1000/1010");

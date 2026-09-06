@@ -1,42 +1,14 @@
-// -----------------------------------------------------------------------------
-// 📁 lib/core/licensing/license_manager.dart
-// Central License Decision Manager
-// -----------------------------------------------------------------------------
-
-import 'trial_manager.dart';
-
+/// Legacy compatibility facade.
+///
+/// Commercial state must come from the verified server-signed license.
 enum LicenseStatus {
-  trialValid,
-  trialExpired,
-  activated,
+  serverAuthorityRequired,
 }
 
 class LicenseManager {
-  /// Main entry point
+  static const String serverAuthorityRequired = 'SERVER_AUTHORITY_REQUIRED';
+
   static Future<LicenseStatus> checkStatus() async {
-    // 🔓 لاحقًا: لو فيه تفعيل دائم
-    final activated = await _isActivated();
-    if (activated) {
-      return LicenseStatus.activated;
-    }
-
-    // ⏱️ Trial logic
-    await TrialManager.ensureInitialized();
-
-    final expired = await TrialManager.isExpired();
-    if (expired) {
-      return LicenseStatus.trialExpired;
-    }
-
-    return LicenseStatus.trialValid;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Activation (placeholder for paid license)
-  // ---------------------------------------------------------------------------
-
-  static Future<bool> _isActivated() async {
-    // جاهزة للمرحلة القادمة
-    return false;
+    throw StateError(serverAuthorityRequired);
   }
 }

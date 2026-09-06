@@ -4,7 +4,6 @@
 // - يمرّر RouteSettings لكل MaterialPageRoute للحفاظ على اسم المسار.
 
 import 'package:flutter/material.dart';
-import 'package:yalla_accounts/dev/temporary_auth_bypass.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
@@ -46,6 +45,7 @@ import 'package:yalla_accounts/features/finance/screens/income_statement_screen.
 import 'package:yalla_accounts/features/finance/screens/cash_account_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/bank_account_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/accounts_receivable_screen.dart';
+import 'package:yalla_accounts/features/finance/screens/collection_dashboard_screen.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_browser_screen.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/account_ledger_screen.dart';
@@ -126,6 +126,7 @@ import 'package:yalla_accounts/features/subscription/screens/pending_subscriptio
 
 // ===== Settings =====
 import 'package:yalla_accounts/features/settings/screens/workshop_settings_screen.dart';
+import 'package:yalla_accounts/features/settings/screens/security_data_screen.dart';
 import 'package:yalla_accounts/features/support/screens/technical_support_screen.dart';
 
 // ===== Models =====
@@ -208,6 +209,7 @@ class AppRoutes {
 
   // ===== Finance =====
   static const financeDashboard = '/finance/dashboard';
+  static const collectionDashboard = '/finance/collections';
   static const payments = '/finance/payments';
 // ===== Vouchers =====
   static const receiptVoucher = '/finance/receipt-voucher';
@@ -312,6 +314,7 @@ class AppRoutes {
   static const settingsUser = '/settings/user';
   static const settingsUI = '/settings/ui';
   static const settingsSupport = '/settings/support';
+  static const settingsSecurityData = '/settings/security-data';
   static const subscription = '/subscription';
   static const subscriptionScreen = subscription;
   static const currentSubscription = '/current-subscription';
@@ -338,6 +341,7 @@ class AppRoutes {
     settingsWorkshop,
     settingsUser,
     settingsUI,
+    settingsSecurityData,
     subscription,
     currentSubscription,
     adminSubscriptions,
@@ -354,20 +358,15 @@ class AppRoutes {
     final ownerOnly = _ownerRoutes.contains(routeName);
 
     return MaterialPageRoute<T>(
-      builder: (_) => kTemporaryAuthBypass && !isPublic
-          ? YallaMobileRouteFrame(
-              routeName: routeName,
-              child: child,
-            )
-          : isPublic
-              ? child
-              : AuthenticatedRouteGate(
-                  ownerOnly: ownerOnly,
-                  child: YallaMobileRouteFrame(
-                    routeName: routeName,
-                    child: child,
-                  ),
-                ),
+      builder: (_) => isPublic
+          ? child
+          : AuthenticatedRouteGate(
+              ownerOnly: ownerOnly,
+              child: YallaMobileRouteFrame(
+                routeName: routeName,
+                child: child,
+              ),
+            ),
       settings: settings,
     );
   }
@@ -379,19 +378,6 @@ class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
 
-    // YALLA_TEMP_AUTH_BYPASS
-    // Temporary development freeze until completion of P18.
-    // Login / recovery / register / logout routes are redirected to dashboard.
-    if (kTemporaryAuthBypass &&
-        (name == login ||
-            name == forgotAccess ||
-            name == register ||
-            name == logout)) {
-      return _page(
-        const RouteSettings(name: dashboard),
-        const DashboardScreen(),
-      );
-    }
     if (name == login || name == forgotAccess) {
       return _page(settings, const LoginScreen());
     }
@@ -693,6 +679,9 @@ class AppRoutes {
     if (name == clientArrears) {
       return _page(settings, const AccountsReceivableScreen());
     }
+    if (name == collectionDashboard) {
+      return _page(settings, const CollectionDashboardScreen());
+    }
 
     // Insurance
     if (name == insuranceInvoices) {
@@ -851,6 +840,9 @@ class AppRoutes {
     }
     if (name == settingsUI) {
       return _under(settings, 'إعدادات الواجهة');
+    }
+    if (name == settingsSecurityData) {
+      return _page(settings, const SecurityDataScreen());
     }
     if (name == AppRoutes.technicalSupport) {
       return _page(settings, const TechnicalSupportScreen());

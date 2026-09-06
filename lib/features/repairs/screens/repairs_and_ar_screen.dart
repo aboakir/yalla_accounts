@@ -102,6 +102,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
               final amount = double.tryParse(controller.text) ?? 0;
               final paidSoFar = await AccountsReceivableService.instance
                   .totalPaidForRepair(r.id.toString());
+              if (!context.mounted) return;
 
               final remaining =
                   (r.totalFileValue - paidSoFar).clamp(0.0, double.infinity);
@@ -119,6 +120,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
               );
 
               await _loadRepairs();
+              if (!context.mounted) return;
               ref.invalidate(pendingArProvider);
               Navigator.pop(context);
             },

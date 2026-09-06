@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/licensing/activation/activation_state_reposi
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 
 /// P1.002 single startup gate.
@@ -49,6 +50,7 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
     }
 
     ref.read(currentUserProvider.notifier).state = user;
+    AuthorizationGuard.enableInteractiveEnforcement();
 
     if (user.mustChangePassword) {
       _navigated = true;

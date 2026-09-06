@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/release/release_distribution_config.dart';
+import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/recover_access_dialog.dart';
@@ -12,6 +14,7 @@ import 'package:yalla_accounts/features/auth/screens/yalla_admin_account_dialogs
 import 'package:yalla_accounts/features/auth/screens/yalla_control_center_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/device_unlock_screen.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/auth/services/commercial_access_gate_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
@@ -85,6 +88,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     ref.read(currentUserProvider.notifier).state = user;
+    AuthorizationGuard.enableInteractiveEnforcement();
     if (!mounted) return;
     if (user.mustChangePassword) {
       Navigator.of(context).pushReplacement(
@@ -594,13 +598,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: TextStyle(color: Colors.black54, fontSize: 12),
                     ),
                     const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed:
-                          _loading ? null : _requestNewCustomerOrganization,
-                      icon: const Icon(Icons.add_business_outlined),
-                      label: const Text('طلب إنشاء منشأة / اشتراك جديد'),
-                    ),
-                    const SizedBox(height: 4),
+                    if (!ReleaseDistributionConfig.isStoreDistribution) ...[
+                      OutlinedButton.icon(
+                        onPressed:
+                            _loading ? null : _requestNewCustomerOrganization,
+                        icon: const Icon(Icons.add_business_outlined),
+                        label: const Text('طلب إنشاء منشأة جديدة'),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
                     TextButton.icon(
                       onPressed: _loading ? null : _openYallaAdminEnrollment,
                       icon: const Icon(Icons.admin_panel_settings_outlined),
@@ -615,6 +621,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         style: TextStyle(color: Colors.black54),
                       ),
                     ],
+                    const SizedBox(height: 10),
+                    const Divider(),
+                    const ReleaseLegalLinks(compact: true),
                     if (_canCreateFirstOwner) ...[
                       const SizedBox(height: 14),
                       const Divider(),

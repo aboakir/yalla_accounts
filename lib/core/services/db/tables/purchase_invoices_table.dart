@@ -60,6 +60,7 @@ class PurchaseInvoicesTable {
         unit_price REAL DEFAULT 0,
         price REAL DEFAULT 0,            -- ★ للكود الجديد
         total REAL DEFAULT 0,
+        category TEXT,
 
         note TEXT,
 
@@ -108,6 +109,8 @@ class PurchaseInvoicesTable {
     // البنود
     await _ensureColumn(db, 'purchase_invoice_lines', 'item_name', 'TEXT');
     await _ensureColumn(db, 'purchase_invoice_lines', 'price', 'REAL');
+    await _ensureColumn(db, 'purchase_invoice_lines', 'category', 'TEXT');
+    await _ensureColumn(db, 'purchase_invoice_lines', 'note', 'TEXT');
   }
 
   // ===========================================================================

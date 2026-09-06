@@ -19,6 +19,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_invoice_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_read_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_cost_service.dart';
 
 // -----------------------------------------------------------------------------
 // MODEL
@@ -124,6 +125,21 @@ class PurchaseNotifier extends StateNotifier<List<Purchase>> {
   // ---------------------------------------------------------------------------
   Future<void> delete(String invoiceId) async {
     final db = await _db;
+    await RepairCostService.ensureSchema(db);
+    final allocations = await db.rawQuery('''
+      SELECT COUNT(*) AS c
+      FROM repair_cost_entries rc
+      JOIN purchase_invoice_lines pl ON pl.id = rc.source_line_id
+      WHERE pl.invoice_id = ?
+        AND rc.status = 'ACTIVE'
+        AND rc.source_type = 'PURCHASE_LINE'
+    ''', [invoiceId]);
+    final allocatedCount = (allocations.first['c'] as num?)?.toInt() ?? 0;
+    if (allocatedCount > 0) {
+      throw StateError(
+        'لا يمكن حذف فاتورة شراء مخصصة لملف إصلاح. اعكس تخصيصات التكلفة أولًا.',
+      );
+    }
 
     await db.transaction((txn) async {
       // 1) جلب قيود GL الخاصة بالفاتورة

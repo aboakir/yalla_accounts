@@ -1,234 +1,161 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
-import 'package:yalla_accounts/features/subscription/models/plan.dart';
-import 'package:yalla_accounts/features/subscription/services/plan_service.dart';
-import 'package:yalla_accounts/features/subscription/services/subscription_service.dart';
-import 'package:yalla_accounts/features/auth/models/app_user.dart';
-import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
+import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 
-class SubscriptionScreen extends ConsumerStatefulWidget {
+class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
 
   @override
-  ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
 }
 
-class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
-  List<Plan> _plans = [];
-  bool _isLoading = true;
-  bool _trialActivated = false;
+class _SubscriptionScreenState extends State<SubscriptionScreen> {
+  final String whatsappNumber = '+970598888888';
 
-  final String whatsappNumber = '+970598888888'; // ✅ غيّر الرقم حسب فريقك
+  VerifiedLicense? _license;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _checkAndActivateTrial();
+    _loadCommercialState();
   }
 
-  Future<void> _checkAndActivateTrial() async {
-    final user = ModalRoute.of(context)?.settings.arguments as AppUser?;
-    if (user == null || _trialActivated) return;
-
-    try {
-      final plans = await PlanService().getAllActivePlans();
-      setState(() {
-        _plans = plans;
-        _isLoading = false;
-      });
-
-      final freePlan = plans.firstWhere(
-        (p) => p.price == 0,
-        orElse: () => Plan.empty(),
-      );
-
-      final subscriptionService = SubscriptionService();
-      final alreadyActive =
-          await subscriptionService.isSubscriptionActive(user.id);
-
-      if (!alreadyActive) {
-        await subscriptionService.activateTrial(user.id, freePlan.durationDays);
-        setState(() => _trialActivated = true);
-
-        if (!mounted) return;
-
-        await Future.delayed(const Duration(milliseconds: 300));
-        showDialog(
-          context: context,
-          builder: (_) => AdaptiveAlertDialog(
-            title: const Text("🎉 تم التفعيل"),
-            content: Text(
-                "تم تفعيل الباقة المجانية لمدة ${freePlan.durationDays} يوم."),
-            actions: [
-              TextButton(
-                child: const Text("ابدأ"),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushReplacementNamed(
-                    context,
-                    '/dashboard', // ✅ عدّل هذا إذا اسم الشاشة مختلف
-                    arguments: user,
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ حدث خطأ أثناء تحميل الباقات: $e")),
-      );
-    }
+  Future<void> _loadCommercialState() async {
+    final license = await ActivationStateRepository()
+        .loadAuthenticLicenseForCurrentInstallation(allowExpired: true);
+    if (!mounted) return;
+    setState(() {
+      _license = license;
+      _isLoading = false;
+    });
   }
 
   Future<void> _openWhatsApp() async {
     final url =
-        'https://wa.me/$whatsappNumber?text=أرغب بالاشتراك في Yalla Accounts';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("❌ تعذر فتح واتساب")),
-      );
+        'https://wa.me/$whatsappNumber?text=أحتاج مساعدة في Yalla Accounts';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
     }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تعذر فتح واتساب')),
+    );
   }
 
   void _exitApp() {
     SystemNavigator.pop();
   }
 
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final license = _license;
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(12),
-            child: Container(
-              width: MediaQuery.sizeOf(context).width < 600
-                  ? double.infinity
-                  : 500,
-              padding: EdgeInsets.all(
-                MediaQuery.sizeOf(context).width < 600 ? 16 : 24,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(blurRadius: 8, color: Colors.black12)
-                ],
-              ),
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header
-                          AdaptiveRow(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                "تفعيل الاشتراك",
-                                style: TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                              AdaptiveRow(
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      Navigator.pushReplacementNamed(
-                                          context, '/login');
-                                    },
-                                    icon: const Icon(Icons.arrow_back_ios),
-                                  ),
-                                  IconButton(
-                                    onPressed: _exitApp,
-                                    icon: const Icon(Icons.close),
-                                  ),
-                                ],
-                              )
-                            ],
-                          ),
-                          const Divider(),
-                          const SizedBox(height: 12),
-                          const Text(
-                            "💡 خطوات تفعيل الاشتراك:",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                              "1️⃣ اختر الباقة المناسبة من القائمة أدناه."),
-                          const Text("2️⃣ حوّل المبلغ إلى الحساب البنكي."),
-                          const Text("3️⃣ أرسل صورة الحوالة عبر واتساب."),
-                          const Text("4️⃣ يتم التفعيل يدويًا خلال 24 ساعة."),
-                          const SizedBox(height: 16),
-
-                          ElevatedButton.icon(
-                            onPressed: _openWhatsApp,
-                            icon: const FaIcon(FontAwesomeIcons.whatsapp),
-                            label: const Text("تواصل مع فريق يلا عبر واتساب"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(45),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          const Text(
-                            "🧾 الباقات المتوفرة:",
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 12),
-
-                          ..._plans.map((plan) => GestureDetector(
-                                onTap: () {
-                                  if (plan.price != 0) {
-                                    _openWhatsApp();
-                                  }
-                                },
-                                child: Card(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 3,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: ListTile(
-                                      title: Text(plan.name),
-                                      subtitle:
-                                          Text(plan.description ?? "بدون وصف"),
-                                      trailing: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text("${plan.price} شيكل"),
-                                          Text("لمدة ${plan.durationDays} يوم"),
-                                        ],
+      appBar: AppBar(
+        title: const Text('الاشتراك والترخيص'),
+        actions: [
+          IconButton(
+            onPressed: _exitApp,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    shrinkWrap: true,
+                    children: [
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: license == null
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'لا يوجد ترخيص تجاري موثّق لهذا التثبيت.',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 10),
+                                    const Text(
+                                      'التجربة والاشتراك والتجديد لا يتم إنشاؤها محليًا داخل التطبيق. '
+                                      'يلزم تفعيل صادر عن خادم Yalla.',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    FilledButton.icon(
+                                      onPressed: () =>
+                                          Navigator.pushReplacementNamed(
+                                        context,
+                                        AppRoutes.activation,
+                                      ),
+                                      icon: const Icon(Icons.verified_outlined),
+                                      label: const Text('فتح التفعيل'),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'حالة تجارية موثّقة',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'الحالة: ${license.operationalStatus}',
+                                    ),
+                                    Text(
+                                      'الاشتراك: ${license.subscriptionId}',
+                                    ),
+                                    Text(
+                                      'انتهاء الترخيص: '
+                                      '${_formatDate(license.expiresAt)}',
+                                    ),
+                                    Text(
+                                      'مراجعة الصلاحيات: '
+                                      '${license.entitlementRevision}',
+                                    ),
+                                  ],
                                 ),
-                              )),
-                        ],
+                        ),
                       ),
-                    ),
-            ),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: _openWhatsApp,
+                        icon: const FaIcon(FontAwesomeIcons.whatsapp),
+                        label: const Text('الدعم الفني عبر واتساب'),
+                      ),
+                      const SizedBox(height: 12),
+                      const ReleaseLegalLinks(),
+                    ],
+                  ),
           ),
         ),
       ),

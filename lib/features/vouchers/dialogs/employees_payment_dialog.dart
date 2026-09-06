@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:intl/intl.dart';
 
@@ -99,191 +100,185 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      insetPadding: const EdgeInsets.all(40),
-      child: Container(
-        width: 780,
-        height: 600,
-        padding: const EdgeInsets.all(26),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Text(
-              "اختيار موظف وسداد راتب أو دفعة",
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+    return AdaptiveDialogSurface(
+      desktopWidth: 780,
+      desktopHeight: 600,
+      padding: const EdgeInsets.all(26),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const Text(
+            "اختيار موظف وسداد راتب أو دفعة",
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 18),
+          ),
+          const SizedBox(height: 18),
 
-            // بحث الموظفين
+          // بحث الموظفين
+          TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
+            controller: _searchCtrl,
+            textAlign: TextAlign.right,
+            decoration: const InputDecoration(
+              hintText: "بحث باسم الموظف أو المسمى الوظيفي",
+              border: OutlineInputBorder(),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // اختيار الموظف
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _filtered.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "لا يوجد موظفين مطابقين",
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _filtered.length,
+                        itemBuilder: (_, i) {
+                          final row = _filtered[i];
+                          final selected = _selectedEmployee?['employeePid'] ==
+                              row['employeePid'];
+
+                          return InkWell(
+                            onTap: () => _chooseEmployee(row),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              margin: const EdgeInsets.symmetric(vertical: 5),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? Colors.green.shade50
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: selected
+                                      ? Colors.green
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    row['fullName'] ?? '',
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (row['jobTitle'] != null)
+                                    Text(
+                                      row['jobTitle'],
+                                      textAlign: TextAlign.right,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+
+          const SizedBox(height: 10),
+
+          if (_selectedEmployee != null) ...[
+            const Divider(height: 26),
+
+            // مبلغ
             TextField(
               inputFormatters: const [YallaDigitNormalizer()],
-              controller: _searchCtrl,
+              controller: _amountCtrl,
               textAlign: TextAlign.right,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                hintText: "بحث باسم الموظف أو المسمى الوظيفي",
+                hintText: "المبلغ",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // طريقة الدفع
+            DropdownButtonFormField(
+              value: _selectedMethod,
+              items: const [
+                DropdownMenuItem(value: "CASH", child: Text("نقدًا")),
+                DropdownMenuItem(value: "BANK", child: Text("بنك")),
+                DropdownMenuItem(value: "TRANSFER", child: Text("تحويل بنكي")),
+              ],
+              onChanged: (v) => setState(() => _selectedMethod = v!),
+            ),
+            const SizedBox(height: 14),
+
+            // تاريخ
+            GestureDetector(
+              onTap: () async {
+                final d = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                );
+                if (d != null) setState(() => _selectedDate = d);
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+                child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // ملاحظات
+            TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
+              controller: _notesCtrl,
+              textAlign: TextAlign.right,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: "ملاحظات (اختياري)",
                 border: OutlineInputBorder(),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
-            // اختيار الموظف
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filtered.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "لا يوجد موظفين مطابقين",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _filtered.length,
-                          itemBuilder: (_, i) {
-                            final row = _filtered[i];
-                            final selected =
-                                _selectedEmployee?['employeePid'] ==
-                                    row['employeePid'];
-
-                            return InkWell(
-                              onTap: () => _chooseEmployee(row),
-                              child: Container(
-                                padding: const EdgeInsets.all(14),
-                                margin: const EdgeInsets.symmetric(vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? Colors.green.shade50
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: selected
-                                        ? Colors.green
-                                        : Colors.grey.shade300,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      row['fullName'] ?? '',
-                                      textAlign: TextAlign.right,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    if (row['jobTitle'] != null)
-                                      Text(
-                                        row['jobTitle'],
-                                        textAlign: TextAlign.right,
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-            ),
-
-            const SizedBox(height: 10),
-
-            if (_selectedEmployee != null) ...[
-              const Divider(height: 26),
-
-              // مبلغ
-              TextField(
-                inputFormatters: const [YallaDigitNormalizer()],
-                controller: _amountCtrl,
-                textAlign: TextAlign.right,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  hintText: "المبلغ",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // طريقة الدفع
-              DropdownButtonFormField(
-                value: _selectedMethod,
-                items: const [
-                  DropdownMenuItem(value: "CASH", child: Text("نقدًا")),
-                  DropdownMenuItem(value: "BANK", child: Text("بنك")),
-                  DropdownMenuItem(
-                      value: "TRANSFER", child: Text("تحويل بنكي")),
-                ],
-                onChanged: (v) => setState(() => _selectedMethod = v!),
-              ),
-              const SizedBox(height: 14),
-
-              // تاريخ
-              GestureDetector(
-                onTap: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (d != null) setState(() => _selectedDate = d);
-                },
-                child: InputDecorator(
-                  decoration:
-                      const InputDecoration(border: OutlineInputBorder()),
-                  child: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // ملاحظات
-              TextField(
-                inputFormatters: const [YallaDigitNormalizer()],
-                controller: _notesCtrl,
-                textAlign: TextAlign.right,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: "ملاحظات (اختياري)",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // حفظ
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ElevatedButton(
-                  onPressed: _confirmPayment,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 14),
-                  ),
-                  child: const Text(
-                    "تأكيد السداد",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 10),
-
+            // حفظ
             Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("إغلاق"),
+              alignment: AlignmentDirectional.centerStart,
+              child: ElevatedButton(
+                onPressed: _confirmPayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                ),
+                child: const Text(
+                  "تأكيد السداد",
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
               ),
             ),
           ],
-        ),
+
+          const SizedBox(height: 10),
+
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("إغلاق"),
+            ),
+          ),
+        ],
       ),
     );
   }

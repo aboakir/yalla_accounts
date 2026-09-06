@@ -24,6 +24,7 @@ class PaymentsTables {
         id TEXT PRIMARY KEY,              -- UUID الداخلي
 
         receipt_number INTEGER,           -- ⭐ رقم سند قصير يظهر للمستخدم
+        reversal_of_payment_id TEXT,       -- P11 formal counter-receipt link
 
         party_id TEXT,
         client_id INTEGER,
@@ -76,6 +77,9 @@ class PaymentsTables {
 
     await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_payments_receipt_num ON payments(receipt_number);');
+
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_payments_reversal_of ON payments(reversal_of_payment_id);');
   }
 
   // ============================================================
@@ -88,6 +92,13 @@ class PaymentsTables {
       table: 'payments',
       column: 'receipt_number',
       type: 'INTEGER',
+    );
+
+    await ensureColumnOn(
+      db: db,
+      table: 'payments',
+      column: 'reversal_of_payment_id',
+      type: 'TEXT',
     );
 
     // 2) باقي الأعمدة
@@ -125,6 +136,8 @@ class PaymentsTables {
       column: 'isIncome',
       type: 'INTEGER NOT NULL DEFAULT 1',
     );
+
+    await _ensurePaymentsIndexes(db);
   }
 
   // ============================================================
@@ -164,6 +177,7 @@ class PaymentsTables {
       CREATE TABLE $table (
         id TEXT PRIMARY KEY,
         receipt_number INTEGER,
+        reversal_of_payment_id TEXT,
         party_id TEXT,
         client_id INTEGER,
         repair_id TEXT,

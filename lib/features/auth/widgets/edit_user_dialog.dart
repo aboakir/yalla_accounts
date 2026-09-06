@@ -109,14 +109,21 @@ class _EditUserDialogState extends ConsumerState<EditUserDialog> {
                           child: Text('مالك المنشأة'),
                         ),
                       ]
-                    : RoleKeys.assignable
-                        .map(
+                    : <DropdownMenuItem<String>>[
+                        if (!RoleKeys.assignable.contains(_role))
+                          DropdownMenuItem(
+                            value: _role,
+                            enabled: false,
+                            child: Text(
+                                '${RoleKeys.displayNameAr(_role)} — دور قديم'),
+                          ),
+                        ...RoleKeys.assignable.map(
                           (role) => DropdownMenuItem(
                             value: role,
                             child: Text(RoleKeys.displayNameAr(role)),
                           ),
-                        )
-                        .toList(growable: false),
+                        ),
+                      ],
                 onChanged: widget.user.isOwner || _isSaving
                     ? null
                     : (value) {

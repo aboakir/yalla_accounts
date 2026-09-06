@@ -2,7 +2,7 @@
 //
 // Accounts Receivable (Individuals / Insurance) — v19 Unified (Pro UI)
 // -------------------------------------------------------------------
-// المصدر: v_client_ar + invoices + payments + repairs
+// المصدر: GL AR + invoices/payments compatibility totals + repairs
 // - فلترة البحث + حالة السداد + نطاق تاريخ (يطبَّق على الدفعات فقط)
 // - تبويبات: أفراد / شركة تأمين (مع عدّاد لكل تبويب)
 // - KPIs أعلى الشاشة (إجمالي الفواتير/المدفوع/المتبقي)
@@ -10,7 +10,7 @@
 // - BottomSheet لعرض ملفات العميل (الإجمالي/المدفوع/المتبقي لكل ملف) + صورة thumbnail لكل ملف
 // - تصدير CSV لما هو ظاهر
 //
-// يتطلب: DBService v19+ ويوجد view باسم v_client_ar
+// P10: الرصيد النهائي يأتي من GL عبر DBService.getClientAR().
 
 import 'dart:convert';
 import 'dart:io';
@@ -88,24 +88,8 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
     try {
       final db = await _db();
 
-      // تأكيد وجود الـ View
-      final viewOk = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='view' AND name='v_client_ar' LIMIT 1",
-      );
-      if (viewOk.isEmpty) {
-        throw StateError(
-          'v_client_ar غير موجود. شغّل ترقية DBService v19 أو resetDatabase أثناء التطوير.',
-        );
-      }
-
-      // 1) قراءة الذمم من v_client_ar
-      final arRows = await db.rawQuery('''
-        SELECT client_id, client_name, IFNULL(invoices_total,0) AS invoices_total,
-               IFNULL(payments_total,0) AS payments_total,
-               IFNULL(balance_due,0) AS balance_due
-        FROM v_client_ar
-        ORDER BY LOWER(client_name) ASC
-      ''');
+      // P10: canonical AR comes directly from GL through DBService.
+      final arRows = await DBService.getClientAR();
 
       // 2) نوع العميل من clients → 'شركة تأمين' | 'أفراد'
       final typesRows = await db.rawQuery('SELECT id, type FROM clients');
@@ -159,7 +143,10 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
           final paid = _range == null
               ? (m['payments_total'] as num?)?.toDouble() ?? 0.0
               : (paidInRange[cid] ?? 0.0);
-          final balance = inv - paid;
+          // P10: balance_due is canonical GL AR. A date filter changes only
+          // the displayed collections amount; it must not recalculate AR from
+          // historical invoice totals.
+          final balance = (m['balance_due'] as num?)?.toDouble() ?? 0.0;
           final type = typeById[cid] ?? 'أفراد';
           return _ClientRow(
             clientId: cid,
@@ -216,7 +203,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
 
   double get _sumInv => _filtered.fold(0.0, (s, r) => s + r.invoicesTotal);
   double get _sumPaid => _filtered.fold(0.0, (s, r) => s + r.paymentsTotal);
-  double get _sumRemain => _sumInv - _sumPaid;
+  double get _sumRemain => _filtered.fold(0.0, (s, r) => s + r.balance);
 
   // ===== أفعال =====
   Future<void> _pickRange() async {
@@ -538,6 +525,13 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                           ),
                         ),
                         const Spacer(),
+                        IconButton(
+                          tooltip: 'التحصيل والمتابعة',
+                          icon: const Icon(Icons.collections_bookmark_outlined,
+                              color: Colors.white),
+                          onPressed: () => Navigator.pushNamed(
+                              context, AppRoutes.collectionDashboard),
+                        ),
 
                         // --------------------------
                         // زر PDF الجديد

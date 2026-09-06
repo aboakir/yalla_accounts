@@ -133,7 +133,7 @@ class ReportsGLService {
   }) async {
     final db = await DBService.database;
 
-    // نجلب كل حركات ذمم العملاء من GL حيث party_type='CUSTOMER' أو من ربط الحسابات.
+    // نجلب كل حركات ذمم العملاء من GL من CLIENT/CUSTOMER أو من ربط الحسابات.
     final sql = '''
       WITH ar AS (
         SELECT
@@ -150,7 +150,7 @@ class ReportsGLService {
             c.account_id = l.account_id
             OR
             -- أو استخدام party_type كبديل
-            (l.party_type = 'CUSTOMER' AND l.party_id IS NOT NULL)
+            (UPPER(COALESCE(l.party_type,'')) IN ('CLIENT','CUSTOMER') AND l.party_id IS NOT NULL)
           )
           AND e.date <= ?
       )

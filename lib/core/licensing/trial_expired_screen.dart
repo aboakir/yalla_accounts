@@ -1,11 +1,12 @@
-// -----------------------------------------------------------------------------
-// 📁 lib/features/core/licensing/trial_expired_screen.dart
-// Trial Expired Screen — Hard Lock After 300 Hours
-// -----------------------------------------------------------------------------
-
 import 'package:flutter/material.dart';
-import 'package:yalla_accounts/core/constants/colors.dart';
 
+import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
+
+/// Legacy route name retained for compatibility.
+///
+/// P18 no longer calculates a local trial expiry. If this route is reached,
+/// the safe action is to return to the signed activation flow.
 class TrialExpiredScreen extends StatelessWidget {
   const TrialExpiredScreen({super.key});
 
@@ -15,20 +16,20 @@ class TrialExpiredScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
+          constraints: const BoxConstraints(maxWidth: 440),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.lock_outline,
+                  Icons.verified_user_outlined,
                   size: 72,
                   color: AppColors.primary,
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'انتهت الفترة التجريبية',
+                  'الترخيص التجاري غير متاح',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
@@ -37,8 +38,8 @@ class TrialExpiredScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'تم انتهاء مدة النسخة التجريبية (300 ساعة).\n'
-                  'لا يمكن الاستمرار باستخدام البرنامج دون تفعيل.',
+                  'يلزم التحقق من تفعيل صادر عن خادم Yalla لهذا الجهاز '
+                  'والتثبيت. لا يتم إنشاء فترة تجريبية محليًا.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -46,35 +47,17 @@ class TrialExpiredScreen extends StatelessWidget {
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
+                  child: FilledButton(
                     onPressed: () {
-                      // لاحقًا: فتح شاشة التفعيل
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        AppRoutes.activation,
+                        (_) => false,
+                      );
                     },
-                    child: const Text(
-                      'تفعيل البرنامج',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {
-                    // إغلاق التطبيق نهائيًا
-                    // لا نسمح بالرجوع للخلف
-                  },
-                  child: const Text(
-                    'إغلاق البرنامج',
-                    style: TextStyle(color: Colors.grey),
+                    child: const Text('فتح التفعيل'),
                   ),
                 ),
               ],

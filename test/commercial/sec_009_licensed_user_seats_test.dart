@@ -166,9 +166,9 @@ void main() {
       await users.createAdditionalUser(
         AppUser(
           id: '',
-          name: 'cashier009',
+          name: 'employee009',
           email: '',
-          role: RoleKeys.cashier,
+          role: RoleKeys.employee,
           status: 'active',
           createdAt: DateTime.now(),
         ),
@@ -181,7 +181,7 @@ void main() {
             id: '',
             name: 'blocked009',
             email: '',
-            role: RoleKeys.readOnly,
+            role: RoleKeys.technician,
             status: 'active',
             createdAt: DateTime.now(),
           ),
@@ -201,7 +201,7 @@ void main() {
           id: '',
           name: 'frozen009',
           email: '',
-          role: RoleKeys.readOnly,
+          role: RoleKeys.technician,
           status: 'frozen',
           createdAt: DateTime.now(),
         ),
@@ -225,13 +225,13 @@ void main() {
         ),
       );
 
-      final cashier = (await db.query(
+      final employee = (await db.query(
         'users',
         where: 'name = ?',
-        whereArgs: ['cashier009'],
+        whereArgs: ['employee009'],
       ))
           .single;
-      await users.updateStatus(cashier['id']!.toString(), 'frozen');
+      await users.updateStatus(employee['id']!.toString(), 'frozen');
       await users.updateStatus(frozen['id']!.toString(), 'active');
 
       final active = await db.rawQuery(

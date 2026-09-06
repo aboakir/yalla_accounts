@@ -4,7 +4,6 @@ import 'package:sqflite/sqflite.dart' as sq;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:yalla_accounts/core/services/db/database_constants.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/features/auth/services/password_hasher.dart';
 
@@ -38,193 +37,200 @@ Future<Map<String, Object?>> financialBaseline(sq.Database db) async {
 }
 
 void main() {
-  test('P1.002 live DB migration v58 -> v59 preserves accounting', () async {
-    sqfliteFfiInit();
-    sq.databaseFactory = databaseFactoryFfi;
+  test(
+    'P1.002 live DB migration v58 -> v59 preserves accounting',
+    () async {
+      sqfliteFfiInit();
+      sq.databaseFactory = databaseFactoryFfi;
 
-    final path = await DatabaseConstants.dbFilePath();
-    if (!File(path).existsSync()) {
-      throw StateError('Live DB not found at $path');
-    }
+      final path = Platform.environment['YALLA_P1002_LIVE_DB_PATH']!.trim();
+      if (!File(path).existsSync()) {
+        throw StateError('Live DB not found at $path');
+      }
 
-    final beforeDb = await databaseFactoryFfi.openDatabase(path);
+      final beforeDb = await databaseFactoryFfi.openDatabase(path);
 
-    final int beforeVersion;
-    final List<Map<String, Object?>> beforeUsers;
-    final int activationCodesBefore;
-    final Map<String, Object?> financialBefore;
+      final int beforeVersion;
+      final List<Map<String, Object?>> beforeUsers;
+      final int activationCodesBefore;
+      final Map<String, Object?> financialBefore;
 
-    try {
-      beforeVersion = firstInt(
-        await beforeDb.rawQuery('PRAGMA user_version'),
-      );
-
-      if (beforeVersion != 58) {
-        throw StateError(
-          'P1.002 expected audited live DB v58, found v$beforeVersion',
+      try {
+        beforeVersion = firstInt(
+          await beforeDb.rawQuery('PRAGMA user_version'),
         );
-      }
 
-      beforeUsers = await beforeDb.query(
-        'users',
-        columns: [
-          'id',
-          'name',
-          'email',
-          'password',
-          'role',
-          'status',
-          'is_owner',
-          'created_at',
-        ],
-        orderBy: 'created_at ASC',
-      );
+        if (beforeVersion != 58) {
+          throw StateError(
+            'P1.002 expected audited live DB v58, found v$beforeVersion',
+          );
+        }
 
-      if (beforeUsers.length != 1) {
-        throw StateError(
-          'P1.002 audited baseline expected exactly one current user; '
-          'found ${beforeUsers.length}.',
+        beforeUsers = await beforeDb.query(
+          'users',
+          columns: [
+            'id',
+            'name',
+            'email',
+            'password',
+            'role',
+            'status',
+            'is_owner',
+            'created_at',
+          ],
+          orderBy: 'created_at ASC',
         );
+
+        if (beforeUsers.length != 1) {
+          throw StateError(
+            'P1.002 audited baseline expected exactly one current user; '
+            'found ${beforeUsers.length}.',
+          );
+        }
+
+        activationCodesBefore = firstInt(
+          await beforeDb.rawQuery(
+            'SELECT COUNT(*) FROM activation_codes',
+          ),
+        );
+
+        financialBefore = await financialBaseline(beforeDb);
+      } finally {
+        await beforeDb.close();
       }
 
-      activationCodesBefore = firstInt(
-        await beforeDb.rawQuery(
-          'SELECT COUNT(*) FROM activation_codes',
-        ),
+      final migrated = await DatabaseMigration.initDatabase(
+        pathOverride: path,
       );
 
-      financialBefore = await financialBaseline(beforeDb);
-    } finally {
-      await beforeDb.close();
-    }
+      try {
+        final version = firstInt(
+          await migrated.rawQuery('PRAGMA user_version'),
+        );
+        if (version != 59) {
+          throw StateError('Expected DB v59 after P1.002, found v$version');
+        }
 
-    final migrated = await DatabaseMigration.initDatabase(
-      pathOverride: path,
-    );
+        final integrity = await migrated.rawQuery('PRAGMA integrity_check');
+        if (integrity.isEmpty ||
+            integrity.first.values.first.toString().toLowerCase() != 'ok') {
+          throw StateError('integrity_check failed: $integrity');
+        }
 
-    try {
-      final version = firstInt(
-        await migrated.rawQuery('PRAGMA user_version'),
-      );
-      if (version != 59) {
-        throw StateError('Expected DB v59 after P1.002, found v$version');
-      }
+        final fk = await migrated.rawQuery('PRAGMA foreign_key_check');
+        if (fk.isNotEmpty) {
+          throw StateError('foreign_key_check failed: $fk');
+        }
 
-      final integrity = await migrated.rawQuery('PRAGMA integrity_check');
-      if (integrity.isEmpty ||
-          integrity.first.values.first.toString().toLowerCase() != 'ok') {
-        throw StateError('integrity_check failed: $integrity');
-      }
+        final afterUsers = await migrated.query(
+          'users',
+          columns: [
+            'id',
+            'name',
+            'email',
+            'password',
+            'role',
+            'status',
+            'is_owner',
+            'created_at',
+            'must_change_password',
+          ],
+          orderBy: 'created_at ASC',
+        );
 
-      final fk = await migrated.rawQuery('PRAGMA foreign_key_check');
-      if (fk.isNotEmpty) {
-        throw StateError('foreign_key_check failed: $fk');
-      }
+        if (afterUsers.length != beforeUsers.length) {
+          throw StateError('User count changed during P1.002 migration.');
+        }
 
-      final afterUsers = await migrated.query(
-        'users',
-        columns: [
-          'id',
-          'name',
-          'email',
-          'password',
-          'role',
-          'status',
-          'is_owner',
-          'created_at',
-          'must_change_password',
-        ],
-        orderBy: 'created_at ASC',
-      );
+        for (var i = 0; i < beforeUsers.length; i++) {
+          final before = beforeUsers[i];
+          final after = afterUsers[i];
 
-      if (afterUsers.length != beforeUsers.length) {
-        throw StateError('User count changed during P1.002 migration.');
-      }
+          for (final field in [
+            'id',
+            'name',
+            'email',
+            'password',
+            'role',
+            'status',
+            'is_owner',
+            'created_at',
+          ]) {
+            if (before[field]?.toString() != after[field]?.toString()) {
+              throw StateError(
+                'P1.002 migration unexpectedly changed users.$field',
+              );
+            }
+          }
 
-      for (var i = 0; i < beforeUsers.length; i++) {
-        final before = beforeUsers[i];
-        final after = afterUsers[i];
-
-        for (final field in [
-          'id',
-          'name',
-          'email',
-          'password',
-          'role',
-          'status',
-          'is_owner',
-          'created_at',
-        ]) {
-          if (before[field]?.toString() != after[field]?.toString()) {
+          final password = after['password']?.toString() ?? '';
+          if (PasswordHasher.isLegacySha256(password) &&
+              (after['must_change_password'] as num?)?.toInt() != 1) {
             throw StateError(
-              'P1.002 migration unexpectedly changed users.$field',
+              'Legacy credential was not flagged for mandatory change.',
             );
           }
         }
 
-        final password = after['password']?.toString() ?? '';
-        if (PasswordHasher.isLegacySha256(password) &&
-            (after['must_change_password'] as num?)?.toInt() != 1) {
+        final activationCodesAfter = firstInt(
+          await migrated.rawQuery(
+            'SELECT COUNT(*) FROM activation_codes',
+          ),
+        );
+        if (activationCodesAfter != activationCodesBefore) {
           throw StateError(
-            'Legacy credential was not flagged for mandatory change.',
+            'Legacy activation-code rows were modified by migration.',
           );
         }
-      }
 
-      final activationCodesAfter = firstInt(
-        await migrated.rawQuery(
-          'SELECT COUNT(*) FROM activation_codes',
-        ),
-      );
-      if (activationCodesAfter != activationCodesBefore) {
-        throw StateError(
-          'Legacy activation-code rows were modified by migration.',
+        final sessions = firstInt(
+          await migrated.rawQuery('SELECT COUNT(*) FROM auth_sessions'),
         );
-      }
-
-      final sessions = firstInt(
-        await migrated.rawQuery('SELECT COUNT(*) FROM auth_sessions'),
-      );
-      final grants = firstInt(
-        await migrated.rawQuery(
-          'SELECT COUNT(*) FROM password_reset_grants',
-        ),
-      );
-
-      if (sessions != 0 || grants != 0) {
-        throw StateError(
-          'P1.002 migration must not invent sessions/reset grants.',
+        final grants = firstInt(
+          await migrated.rawQuery(
+            'SELECT COUNT(*) FROM password_reset_grants',
+          ),
         );
-      }
 
-      final financialAfter = await financialBaseline(migrated);
-      if (financialBefore['line_count'] != financialAfter['line_count'] ||
-          (number(financialBefore['debit_total']) -
-                      number(financialAfter['debit_total']))
-                  .abs() >
-              0.001 ||
-          (number(financialBefore['credit_total']) -
-                      number(financialAfter['credit_total']))
-                  .abs() >
-              0.001) {
-        throw StateError(
-          'Historical GL changed during P1.002 migration.',
-        );
-      }
+        if (sessions != 0 || grants != 0) {
+          throw StateError(
+            'P1.002 migration must not invent sessions/reset grants.',
+          );
+        }
 
-      print('P1.002 live migration validation PASS.');
-      print('Database version: 58 -> 59');
-      print('Existing users preserved: ${afterUsers.length}');
-      print('Existing password bytes preserved by migration: PASS');
-      print('Legacy credential mandatory-change flag: PASS');
-      print('Fresh auth sessions created by migration: 0');
-      print('Fresh password-reset grants created by migration: 0');
-      print('Legacy activation rows preserved: $activationCodesAfter');
-      print('Historical GL totals unchanged: PASS');
-      print('Foreign-key validation: PASS');
-      print('DB integrity: PASS');
-    } finally {
-      await migrated.close();
-    }
-  });
+        final financialAfter = await financialBaseline(migrated);
+        if (financialBefore['line_count'] != financialAfter['line_count'] ||
+            (number(financialBefore['debit_total']) -
+                        number(financialAfter['debit_total']))
+                    .abs() >
+                0.001 ||
+            (number(financialBefore['credit_total']) -
+                        number(financialAfter['credit_total']))
+                    .abs() >
+                0.001) {
+          throw StateError(
+            'Historical GL changed during P1.002 migration.',
+          );
+        }
+
+        print('P1.002 live migration validation PASS.');
+        print('Database version: 58 -> 59');
+        print('Existing users preserved: ${afterUsers.length}');
+        print('Existing password bytes preserved by migration: PASS');
+        print('Legacy credential mandatory-change flag: PASS');
+        print('Fresh auth sessions created by migration: 0');
+        print('Fresh password-reset grants created by migration: 0');
+        print('Legacy activation rows preserved: $activationCodesAfter');
+        print('Historical GL totals unchanged: PASS');
+        print('Foreign-key validation: PASS');
+        print('DB integrity: PASS');
+      } finally {
+        await migrated.close();
+      }
+    },
+    skip: (Platform.environment['YALLA_P1002_LIVE_DB_PATH']?.trim().isEmpty ??
+            true)
+        ? 'Requires audited v58 fixture; default suite must not touch customer DB'
+        : false,
+  );
 }

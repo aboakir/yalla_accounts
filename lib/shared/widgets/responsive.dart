@@ -4,6 +4,7 @@
 //
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/design/yalla_breakpoints.dart';
 
 /// أنواع الأجهزة المدعومة
 enum DeviceType { mobile, tablet, desktop }
@@ -11,13 +12,13 @@ enum DeviceType { mobile, tablet, desktop }
 /// فئة أدوات عامة لتحديد نوع الجهاز حسب العرض.
 class Responsive {
   /// العرض الأقصى للهاتف
-  static const double mobileMaxWidth = 600;
+  static const double mobileMaxWidth = YallaBreakpoints.tablet;
 
   /// العرض الأدنى للتابلت
-  static const double tabletMinWidth = 600;
+  static const double tabletMinWidth = YallaBreakpoints.tablet;
 
   /// العرض الأدنى للديسكتوب
-  static const double desktopMinWidth = 1024;
+  static const double desktopMinWidth = YallaBreakpoints.desktop;
 
   /// يُرجع true إذا كان العرض <= حد الموبايل
   static bool isMobile(BuildContext context) {

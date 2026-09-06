@@ -56,7 +56,10 @@ void main() {
     expect(filterBar, contains("label: 'حالة المركبة'"));
     expect(filterBar, contains("label: 'نوع المستفيد'"));
     expect(filterBar, contains("label: 'الأرشيف'"));
-    expect(screen, contains("'أرشفة الملف'"));
-    expect(screen, contains("'استعادة من الأرشيف'"));
+    // P13 owns user-facing close/reopen. P06 archive remains an internal
+    // persistence primitive and list filter, not a raw UI toggle.
+    expect(screen, isNot(contains("'أرشفة الملف'")));
+    expect(screen, isNot(contains("'استعادة من الأرشيف'")));
+    expect(screen, contains('إعادة فتح الملف المغلق'));
   });
 }

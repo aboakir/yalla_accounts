@@ -5,11 +5,13 @@ import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_bottom_nav.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/settings/widgets/weekly_backup_guardian_dialog.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import '../services/p03_home_service.dart';
@@ -56,41 +58,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     today = DateFormat('yyyy-MM-dd').format(now);
     startOfMonth = "${now.year}-${now.month.toString().padLeft(2, '0')}-01";
     _loadAll();
-  }
-
-  Future<bool> _canAddNewRepair() async {
-    const maxFreeRepairs = 1000000000; // TEMP DEV BYPASS UNTIL P18
-    final db = await DBService.database;
-    final result = await db.rawQuery('SELECT COUNT(*) as cnt FROM repairs');
-    final count = (result.first['cnt'] as int?) ?? 0;
-    if (count >= maxFreeRepairs) {
-      if (!mounted) return false;
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AdaptiveAlertDialog(
-          title: const Text('🔒 انتهاء النسخة التجريبية'),
-          content: const Text(
-            'لقد وصلت إلى الحد الأقصى للنسخة التجريبية (10 ملفات إصلاح).\n\n'
-            'لتتمكن من إضافة مركبات جديدة، يرجى تفعيل الاشتراك.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('لاحقًا'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pushNamed(context, AppRoutes.technicalSupport);
-              },
-              child: const Text('تواصل لتفعيل الاشتراك'),
-            ),
-          ],
-        ),
-      );
-      return false;
-    }
-    return true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) WeeklyBackupGuardianDialog.maybeShow(context);
+    });
   }
 
   Future<void> _loadAll() async {
@@ -99,17 +69,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final now = DateTime.now();
     final monthStart = "${now.year}-${now.month.toString().padLeft(2, '0')}-01";
 
-    monthlyIncomeFiles = await db.rawQuery(
-      "SELECT SUM(fileValue + incomeAmount) AS total FROM repairs WHERE receivedDate >= ?",
-      [monthStart],
-    ).then((r) => (r.first["total"] as num? ?? 0).toDouble());
+    // P10 source of truth: recognized revenue comes from GL account 4000.
+    // Cash collection is measured separately and must never be added again as
+    // revenue, otherwise the same sale is counted twice.
+    monthlyIncomeFiles = await db.rawQuery("""
+      SELECT COALESCE(SUM(l.credit-l.debit),0) AS total
+      FROM gl_lines l
+      JOIN gl_entries e ON e.id=l.entry_id
+      JOIN accounts a ON a.id=l.account_id
+      WHERE DATE(e.date) >= ? AND a.code='4000'
+    """, [monthStart]).then((r) => (r.first["total"] as num? ?? 0).toDouble());
 
     monthlyIncomePayments = await db.rawQuery("""
-      SELECT SUM(l.debit) AS total
+      SELECT COALESCE(SUM(l.debit-l.credit),0) AS total
       FROM gl_lines l
       JOIN gl_entries e ON e.id = l.entry_id
       JOIN accounts a ON a.id = l.account_id
       WHERE DATE(e.date) >= ?
+        AND e.source='PAYMENT'
         AND a.code IN ('1000','1010')
     """, [monthStart]).then((r) => (r.first["total"] as num? ?? 0).toDouble());
 
@@ -127,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       WHERE date >= ?
     """, [monthStart]).then((r) => (r.first["total"] as num? ?? 0).toDouble());
 
-    monthlyIncomeTotal = monthlyIncomeFiles + monthlyIncomePayments;
+    monthlyIncomeTotal = monthlyIncomeFiles;
     monthlyExpensesTotal = monthlyExpensesPurchases +
         monthlyExpensesSalaries +
         monthlyExpensesOther;
@@ -137,18 +114,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : (monthlyProfit / monthlyIncomeTotal) * 100;
 
     final repairSummary = await db.rawQuery("""
+      WITH paid AS (
+        SELECT
+          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
+          SUM(amount) AS paid
+        FROM payments
+        WHERE COALESCE(isIncome,1)=1
+        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+      )
       SELECT
         COUNT(*) AS cnt,
-        COALESCE(SUM(fileValue + incomeAmount), 0) AS total
-      FROM repairs
+        COALESCE(SUM(r.fileValue),0) AS total,
+        COALESCE(SUM(COALESCE(p.paid,0)),0) AS paid,
+        COALESCE(SUM(MAX(r.fileValue-COALESCE(p.paid,0),0)),0) AS remaining
+      FROM repairs r
+      LEFT JOIN paid p ON p.repair_id=r.id
     """);
     repairCount = (repairSummary.first['cnt'] as num? ?? 0).toInt();
     repairFilesValue = (repairSummary.first['total'] as num? ?? 0).toDouble();
-
-    // M1 intentionally does not invent accounting semantics.
-    // Paid/ready values will be wired to the authoritative repair fields in M2.
-    repairPaid = 0;
-    repairRemaining = repairFilesValue;
+    repairPaid = (repairSummary.first['paid'] as num? ?? 0).toDouble();
+    repairRemaining =
+        (repairSummary.first['remaining'] as num? ?? 0).toDouble();
     readyRepairCount = 0;
 
     _phoneSnapshot = await P03HomeService.load();
@@ -184,9 +170,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildPhoneDashboard() {
     final snapshot = _phoneSnapshot ??
-        const P03HomeSnapshot(
+        P03HomeSnapshot(
           workshopName: 'ورشتي',
-          currencySymbol: '₪',
+          currencySymbol: MoneyFormatter.symbol,
           repairsReceivedToday: 0,
           receiptsToday: 0,
           paymentsToday: 0,
@@ -758,7 +744,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openNewRepair() async {
-    if (!await _canAddNewRepair() || !mounted) return;
+    if (!mounted) return;
     Navigator.pushNamed(context, AppRoutes.repairsAdd);
   }
 
@@ -1064,9 +1050,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: ActionShortcutButton(
                         label: "إضافة مركبة",
-                        onTap: () async {
-                          final allowed = await _canAddNewRepair();
-                          if (!allowed || !mounted) return;
+                        onTap: () {
                           Navigator.pushNamed(context, AppRoutes.repairsAdd);
                         },
                       ),

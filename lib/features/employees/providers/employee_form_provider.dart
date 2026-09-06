@@ -15,6 +15,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:yalla_accounts/core/services/image_storage_service.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/employee.dart';
@@ -378,10 +380,16 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormData> {
         if (!await imagesDir.exists()) {
           await imagesDir.create(recursive: true);
         }
-        final fileName = '${const Uuid().v4()}${p.extension(original.path)}';
+        final optimized = await ImageStorageService.compressImage(
+          XFile(original.path),
+        );
+        final fileName = '${const Uuid().v4()}.jpg';
         final newPath = p.join(imagesDir.path, fileName);
-        await original.copy(newPath);
-        debugPrint('📁 تم نسخ صورة الموظف إلى $newPath');
+        await File(newPath).writeAsBytes(
+          await optimized.readAsBytes(),
+          flush: true,
+        );
+        debugPrint('📁 تم حفظ صورة الموظف المحسنة في $newPath');
         return newPath;
       }
     } catch (e) {

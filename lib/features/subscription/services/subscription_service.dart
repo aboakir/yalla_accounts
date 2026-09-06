@@ -1,7 +1,12 @@
-import 'package:yalla_accounts/core/services/db_service.dart';
-
+/// Legacy local subscription facade.
+///
+/// P18 authority rule: the client never creates, renews, or invents a
+/// subscription. The server issues signed commercial state.
 class SubscriptionService {
-  /// إنشاء اشتراك جديد
+  static const String serverAuthorityRequired = 'SERVER_AUTHORITY_REQUIRED';
+
+  Never _deny() => throw StateError(serverAuthorityRequired);
+
   Future<void> createSubscription({
     required String id,
     required String planId,
@@ -9,89 +14,17 @@ class SubscriptionService {
     required DateTime endDate,
     required String userId,
     required double price,
-  }) async {
-    final db = await DBService.database;
+  }) async =>
+      _deny();
 
-    await db.insert('subscriptions', {
-      'id': id,
-      'planId': planId,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
-      'userId': userId,
-      'price': price,
-    });
-  }
+  Future<Map<String, dynamic>?> getActiveSubscription(String userId) async =>
+      _deny();
 
-  /// جلب الاشتراك الفعال للمستخدم
-  Future<Map<String, dynamic>?> getActiveSubscription(String userId) async {
-    final db = await DBService.database;
-    final now = DateTime.now().toIso8601String();
+  Future<bool> isSubscriptionActive(String userId) async => _deny();
 
-    final results = await db.query(
-      'subscriptions',
-      where: 'userId = ? AND endDate > ?',
-      whereArgs: [userId, now],
-      orderBy: 'endDate DESC',
-      limit: 1,
-    );
+  Future<List<Map<String, dynamic>>> getAvailablePlans() async => _deny();
 
-    return results.isNotEmpty ? results.first : null;
-  }
+  Future<Map<String, dynamic>?> getPlanById(String planId) async => _deny();
 
-  /// التحقق من وجود اشتراك مفعل
-  Future<bool> isSubscriptionActive(String userId) async {
-    final sub = await getActiveSubscription(userId);
-    if (sub == null) return false;
-
-    final endDate = DateTime.tryParse(sub['endDate'] ?? '');
-    return endDate != null && endDate.isAfter(DateTime.now());
-  }
-
-  /// جلب جميع الباقات الفعالة
-  Future<List<Map<String, dynamic>>> getAvailablePlans() async {
-    final db = await DBService.database;
-    return await db.query('plans', where: 'isActive = 1');
-  }
-
-  /// جلب باقة محددة عبر ID
-  Future<Map<String, dynamic>?> getPlanById(String planId) async {
-    final db = await DBService.database;
-    final result = await db.query(
-      'plans',
-      where: 'id = ?',
-      whereArgs: [planId],
-      limit: 1,
-    );
-    return result.isNotEmpty ? result.first : null;
-  }
-
-  /// ✅ تفعيل اشتراك تجريبي لمدة محددة (مرة واحدة فقط)
-  Future<bool> activateTrial(String userId, int durationDays) async {
-    final db = await DBService.database;
-
-    // التأكد من عدم وجود اشتراك مجاني مفعل مسبقًا
-    final existingTrial = await db.query(
-      'subscriptions',
-      where: 'userId = ? AND planId = ?',
-      whereArgs: [userId, 'trial'],
-    );
-
-    if (existingTrial.isNotEmpty) {
-      return false; // لا تقم بالتفعيل مرة ثانية
-    }
-
-    final now = DateTime.now();
-    final end = now.add(Duration(days: durationDays));
-
-    await db.insert('subscriptions', {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'planId': 'trial',
-      'startDate': now.toIso8601String(),
-      'endDate': end.toIso8601String(),
-      'userId': userId,
-      'price': 0.0,
-    });
-
-    return true; // ✅ تم التفعيل بنجاح
-  }
+  Future<bool> activateTrial(String userId, int durationDays) async => _deny();
 }

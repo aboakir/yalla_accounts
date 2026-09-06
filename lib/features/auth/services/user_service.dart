@@ -13,6 +13,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/owner_bootstrap_tables.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 import 'package:yalla_accounts/features/auth/services/first_owner_bootstrap_service.dart';
 import 'package:yalla_accounts/features/auth/services/password_hasher.dart';
 import 'package:yalla_accounts/features/auth/services/permission_service.dart';
@@ -322,6 +323,7 @@ class UserService {
 
     final db = await _db();
     final now = DateTime.now().toUtc().toIso8601String();
+    final targetUserId = const Uuid().v4();
     await db.transaction((txn) async {
       final duplicate = await txn.rawQuery(
         'SELECT 1 FROM users WHERE name = ? COLLATE NOCASE LIMIT 1',
@@ -336,7 +338,7 @@ class UserService {
       }
 
       await txn.insert('users', {
-        'id': const Uuid().v4(),
+        'id': targetUserId,
         'name': name,
         'email': user.email.trim(),
         'password': PasswordHasher.hash(password),
@@ -351,6 +353,20 @@ class UserService {
         'password_changed_at': now,
       });
     });
+    await AuditTrailService.log(
+      executor: db,
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'USER_CREATED',
+      entityType: 'user',
+      entityId: targetUserId,
+      after: {
+        'name': name,
+        'email': user.email.trim(),
+        'role': user.role,
+        'status': status,
+      },
+    );
 
     return true;
   }
@@ -570,6 +586,26 @@ class UserService {
         databaseProvider: _databaseProvider,
       ).revokeAllForUser(target.id);
     }
+    await AuditTrailService.log(
+      executor: db,
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'USER_UPDATED',
+      entityType: 'user',
+      entityId: target.id,
+      before: {
+        'name': target.name,
+        'email': target.email,
+        'role': target.role,
+        'status': target.status,
+      },
+      after: {
+        'name': user.name.trim(),
+        'email': user.email.trim(),
+        'role': target.isOwner ? RoleKeys.owner : nextRole,
+        'status': target.isOwner ? 'active' : nextStatus,
+      },
+    );
   }
 
   /// Hard-delete is intentionally disabled. User records are retained for
@@ -637,6 +673,16 @@ class UserService {
     await AuthSessionService(
       databaseProvider: _databaseProvider,
     ).revokeAllForUser(id);
+    await AuditTrailService.log(
+      executor: db,
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: status == 'active' ? 'USER_ENABLED' : 'USER_DISABLED',
+      entityType: 'user',
+      entityId: id,
+      before: {'status': previousStatus},
+      after: {'status': status},
+    );
   }
 
   Future<void> changePassword(String id, String newPassword) async {
@@ -691,6 +737,14 @@ class UserService {
     await AuthSessionService(
       databaseProvider: _databaseProvider,
     ).revokeAllForUser(userId);
+    await AuditTrailService.log(
+      executor: db,
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'PASSWORD_CHANGED',
+      entityType: 'user',
+      entityId: userId,
+    );
 
     return true;
   }
@@ -748,6 +802,14 @@ class UserService {
     await AuthSessionService(
       databaseProvider: _databaseProvider,
     ).revokeAllForUser(userId);
+    await AuditTrailService.log(
+      executor: db,
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'PASSWORD_RESET_BY_OWNER',
+      entityType: 'user',
+      entityId: userId,
+    );
   }
 
   Future<bool> verifyOwnerPassword(String password) async {

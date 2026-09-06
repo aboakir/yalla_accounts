@@ -21,7 +21,7 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  String _role = RoleKeys.readOnly;
+  String _role = RoleKeys.employee;
   String _status = 'active';
   bool _isLoading = false;
   bool _obscurePassword = true;

@@ -13,6 +13,9 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 
 class InvoiceService {
   InvoiceService._();
@@ -129,6 +132,8 @@ class InvoiceService {
     final existing = await getByRepairId(repairId);
     if (existing != null) return existing['id'].toString();
 
+    final p16Actor =
+        await AuthorizationGuard.require(PermissionKeys.invoiceCreate);
     // إنشاء جديدة
     final id = const Uuid().v4();
     final nowIso = DateTime.now().toIso8601String();
@@ -157,6 +162,22 @@ class InvoiceService {
       },
       conflictAlgorithm: ConflictAlgorithm.abort,
     );
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: 'INVOICE_CREATED',
+      entityType: 'invoice',
+      entityId: id,
+      after: {
+        'repair_id': repairId,
+        'client_id': clientId,
+        'subtotal': sub,
+        'vat': vatValue,
+        'total': tot,
+        'status': status,
+      },
+      reason: note ?? notes,
+    );
 
     return id;
   }
@@ -178,8 +199,11 @@ class InvoiceService {
     int? clientId,
     bool postToGL = true,
   }) async {
+    final p16Actor = await AuthorizationGuard.require(
+      postToGL ? PermissionKeys.invoicePost : PermissionKeys.invoiceCreate,
+    );
     // P0.006 — invoice creation + posting is one atomic transaction.
-    return DBService.inTx((txn) async {
+    final invoiceId = await DBService.inTx((txn) async {
       return createInvoiceOnTransaction(
         txn: txn,
         id: id,
@@ -196,6 +220,23 @@ class InvoiceService {
         postToGL: postToGL,
       );
     });
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: postToGL ? 'INVOICE_CREATED_AND_POSTED' : 'INVOICE_CREATED',
+      entityType: 'invoice',
+      entityId: invoiceId,
+      after: {
+        'repair_id': repairId,
+        'client_id': clientId,
+        'total': total,
+        'vat': vatAmount,
+        'status': status,
+        'posted_to_gl': postToGL,
+      },
+      reason: note ?? notes,
+    );
+    return invoiceId;
   }
 
   // ============================================================
@@ -412,6 +453,42 @@ class InvoiceService {
     return invId;
   }
 
+  Future<void> _assertInvoiceMutable(
+    DatabaseExecutor db,
+    String id,
+  ) async {
+    final invoiceRows = await db.query(
+      _table,
+      columns: const ['gl_entry_id', 'post_to_gl'],
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (invoiceRows.isEmpty) return;
+
+    final row = invoiceRows.first;
+    final rawGlId = row['gl_entry_id'];
+    final hasStoredGlId = rawGlId != null &&
+        rawGlId.toString().trim().isNotEmpty &&
+        rawGlId.toString() != '0';
+    final markedPosted = (row['post_to_gl'] as num?)?.toInt() == 1;
+
+    final postedRows = await db.query(
+      'gl_entries',
+      columns: const ['id'],
+      where: 'source = ? AND source_id = ?',
+      whereArgs: ['INVOICE', id],
+      limit: 1,
+    );
+
+    if (hasStoredGlId || markedPosted || postedRows.isNotEmpty) {
+      throw StateError(
+        'Posted invoice $id is immutable. '
+        'Use a formal credit/debit note or reversal/reissue workflow.',
+      );
+    }
+  }
+
   // ============================================================
   // 7) Update Invoice
   // ============================================================
@@ -428,56 +505,64 @@ class InvoiceService {
     String? glEntryId,
     int? clientId,
   }) async {
-    final db = await DBService.database;
-    await _ensureSchema(db);
+    return DBService.inTx((txn) async {
+      await _ensureSchema(txn);
+      await _assertInvoiceMutable(txn, id);
 
-    double? totOut = total;
+      double? totOut = total;
 
-    if (subtotal != null || vat != null) {
-      final cur = await getById(id);
-      final sub = subtotal ?? _asD(cur?['subtotal']) ?? 0.0;
-      final v = vat ?? _asD(cur?['vat']) ?? 0.0;
-      totOut = _to2(sub + v);
-    }
+      if (subtotal != null || vat != null) {
+        final currentRows = await txn.query(
+          _table,
+          where: 'id = ?',
+          whereArgs: [id],
+          limit: 1,
+        );
+        final cur = currentRows.isEmpty ? null : currentRows.first;
+        final sub = subtotal ?? _asD(cur?['subtotal']) ?? 0.0;
+        final v = vat ?? _asD(cur?['vat']) ?? 0.0;
+        totOut = _to2(sub + v);
+      }
 
-    final data = <String, Object?>{
-      if (date != null) 'date': date.toIso8601String(),
-      if (subtotal != null) 'subtotal': _to2(subtotal),
-      if (vat != null) 'vat': _to2(vat),
-      if (totOut != null) 'total': _to2(totOut),
-      if (status != null) 'status': status,
-      if (notes != null) 'notes': notes,
-      if (method != null) 'method': method,
-      if (note != null) 'note': note,
-      if (clientId != null) 'client_id': clientId,
-      if (glEntryId != null) 'gl_entry_id': glEntryId,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
+      final data = <String, Object?>{
+        if (date != null) 'date': date.toIso8601String(),
+        if (subtotal != null) 'subtotal': _to2(subtotal),
+        if (vat != null) 'vat': _to2(vat),
+        if (totOut != null) 'total': _to2(totOut),
+        if (status != null) 'status': status,
+        if (notes != null) 'notes': notes,
+        if (method != null) 'method': method,
+        if (note != null) 'note': note,
+        if (clientId != null) 'client_id': clientId,
+        if (glEntryId != null) 'gl_entry_id': glEntryId,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
 
-    data.removeWhere((k, v) => v == null);
+      data.removeWhere((k, v) => v == null);
+      if (data.length == 1) return 0;
 
-    if (data.length == 1) return 0;
-
-    return db.update(
-      _table,
-      data,
-      where: 'id=?',
-      whereArgs: [id],
-    );
+      return txn.update(
+        _table,
+        data,
+        where: 'id=?',
+        whereArgs: [id],
+      );
+    });
   }
 
   // ============================================================
   // 8) Delete Invoice
   // ============================================================
   Future<int> deleteInvoice(String id) async {
-    final db = await DBService.database;
-    await _ensureSchema(db);
-
-    return db.delete(
-      _table,
-      where: 'id=?',
-      whereArgs: [id],
-    );
+    return DBService.inTx((txn) async {
+      await _ensureSchema(txn);
+      await _assertInvoiceMutable(txn, id);
+      return txn.delete(
+        _table,
+        where: 'id=?',
+        whereArgs: [id],
+      );
+    });
   }
 
   // ============================================================

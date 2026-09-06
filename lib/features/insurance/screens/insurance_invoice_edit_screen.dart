@@ -97,6 +97,7 @@ class _InsuranceInvoiceEditScreenState
           .updateInvoice(invoice);
     }
 
+    if (!mounted) return;
     Navigator.pop(context, true);
   }
 

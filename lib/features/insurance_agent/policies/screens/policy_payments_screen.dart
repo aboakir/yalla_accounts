@@ -247,8 +247,8 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                     lastDate: DateTime(2100),
                   );
                   if (picked != null) {
+                    if (!context.mounted) return;
                     payDate = picked;
-                    // ignore: use_build_context_synchronously
                     (context as Element).markNeedsBuild();
                   }
                 },

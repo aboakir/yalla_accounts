@@ -2,10 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
+import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/finance/payments/screens/payment_list_screen.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
@@ -22,10 +23,10 @@ class UserDashboardScreen extends ConsumerStatefulWidget {
 
 class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
   late AppUser user;
-  late bool isSubscriptionActive;
-  late String subscriptionType;
-  late String subscriptionEndDateDisplay;
-  late int remainingDays;
+  bool isSubscriptionActive = false;
+  String subscriptionType = 'جاري التحقق';
+  String subscriptionEndDateDisplay = '—';
+  int remainingDays = 0;
 
   // لمنع تكرار التنقل داخل addPostFrameCallback
   bool _navigated = false;
@@ -47,72 +48,48 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
   void initState() {
     super.initState();
     user = widget.user;
-    _calculateSubscriptionStatus();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _navigated) return;
-
-      // خزّن المستخدم الحالي في الـ provider
       ref.read(currentUserProvider.notifier).state = user;
-
-      if (isSubscriptionActive && remainingDays <= 3) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('🔔 تنبيه: اشتراكك سينتهي بعد $remainingDays يوم'),
-            duration: const Duration(seconds: 5),
-            backgroundColor: Colors.orange.shade700,
-          ),
-        );
-      }
-
-      // لو الاشتراك غير فعّال والمستخدم ليس أدمن → توجيه لصفحة الاشتراك
-      if (!isSubscriptionActive && user.role != 'admin') {
-        _navigated = true;
-        Navigator.pushReplacementNamed(context, AppRoutes.subscription);
-      }
+      await _loadCommercialStatus();
     });
   }
 
-  void _calculateSubscriptionStatus() {
-    final now = DateTime.now();
+  Future<void> _loadCommercialStatus() async {
+    final license = await ActivationStateRepository()
+        .loadAuthenticLicenseForCurrentInstallation(allowExpired: true);
+    if (!mounted || _navigated) return;
 
-    if (user.role == 'admin') {
-      subscriptionType = 'مشرف';
-      isSubscriptionActive = true;
-      subscriptionEndDateDisplay = 'لا يوجد انتهاء';
-      remainingDays = 9999;
+    if (license == null) {
+      setState(() {
+        subscriptionType = 'غير مفعل';
+        subscriptionEndDateDisplay = 'غير محدد';
+        remainingDays = 0;
+        isSubscriptionActive = false;
+      });
+      _navigated = true;
+      Navigator.pushReplacementNamed(context, AppRoutes.subscription);
       return;
     }
 
-    final freeTrialValid = user.freeTrialStart != null &&
-        user.freeTrialEnd != null &&
-        now.isAfter(user.freeTrialStart!) &&
-        now.isBefore(user.freeTrialEnd!);
-
-    final subscriptionValid = user.subscriptionDate != null &&
-        user.subscriptionEndDate != null &&
-        now.isAfter(user.subscriptionDate!) &&
-        now.isBefore(user.subscriptionEndDate!);
-
-    if (freeTrialValid) {
-      subscriptionType = 'مجاني';
-      final end = user.freeTrialEnd!;
-      remainingDays = end.difference(now).inDays;
-      subscriptionEndDateDisplay = _formatDate(end);
+    final now = DateTime.now().toUtc();
+    final days = license.expiresAt.difference(now).inDays;
+    setState(() {
+      subscriptionType = license.operationalStatus.toUpperCase();
+      subscriptionEndDateDisplay = _formatDate(license.expiresAt);
+      remainingDays = days < 0 ? 0 : days;
       isSubscriptionActive = true;
-    } else if (subscriptionValid) {
-      subscriptionType = 'مشترك';
-      final end = user.subscriptionEndDate!;
-      remainingDays = end.difference(now).inDays;
-      subscriptionEndDateDisplay = _formatDate(end);
-      isSubscriptionActive = true;
-    } else {
-      subscriptionType = 'غير مفعل';
-      subscriptionEndDateDisplay = user.subscriptionEndDate != null
-          ? _formatDate(user.subscriptionEndDate!)
-          : 'غير محدد';
-      remainingDays = 0;
-      isSubscriptionActive = false;
+    });
+
+    if (remainingDays <= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('تنبيه: الترخيص الحالي ينتهي بعد $remainingDays يوم'),
+          duration: const Duration(seconds: 5),
+          backgroundColor: Colors.orange.shade700,
+        ),
+      );
     }
   }
 
@@ -121,8 +98,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await ref.read(authSessionServiceProvider).logout();
     ref.read(currentUserProvider.notifier).state = null;
     if (!mounted) return;
     Navigator.of(context)
@@ -135,7 +111,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
       builder: (_) => AdaptiveAlertDialog(
         title: const Text('تنبيه'),
         content: const Text(
-          'عذرًا، لا يمكنك استخدام التطبيق بسبب انتهاء الفترة المجانية أو عدم تجديد الاشتراك. يرجى التواصل مع الدعم الفني.',
+          'لا يوجد ترخيص تجاري موثّق لهذا التثبيت. يرجى فتح شاشة التفعيل أو التواصل مع الدعم الفني.',
         ),
         actions: [
           TextButton(

@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
+import 'package:yalla_accounts/core/licensing/entitlements/commercial_entitlement_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 
@@ -253,11 +254,37 @@ class CommercialAccessGateService {
       );
     }
 
+    final entitlementDecision = CommercialEntitlementPolicy.evaluate(license);
+    if (!entitlementDecision.valid) {
+      return CommercialAccessDecision.deny(
+        code: entitlementDecision.code,
+        message: 'بيانات صلاحيات الاشتراك الموقّعة غير صالحة.',
+      );
+    }
+
     final now = DateTime.now().toUtc();
     final status = license.operationalStatus.toUpperCase();
-    final readOnly = status == 'SUSPENDED' ||
-        status == 'REVOKED' ||
-        status == 'CANCELLED' ||
+
+    final bool lifecycleReadOnly;
+    switch (status) {
+      case 'ACTIVE':
+      case 'GRACE':
+        lifecycleReadOnly = false;
+        break;
+      case 'SUSPENDED':
+      case 'EXPIRED':
+      case 'REVOKED':
+      case 'CANCELLED':
+        lifecycleReadOnly = true;
+        break;
+      default:
+        return const CommercialAccessDecision.deny(
+          code: 'LICENSE_STATUS_INVALID',
+          message: 'حالة الترخيص الموقّعة غير معتمدة.',
+        );
+    }
+
+    final readOnly = lifecycleReadOnly ||
         !license.expiresAt.isAfter(now) ||
         !license.validationGraceUntil.isAfter(now);
 

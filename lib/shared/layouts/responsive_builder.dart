@@ -1,5 +1,6 @@
 // lib/shared/layouts/responsive_builder.dart
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/design/yalla_breakpoints.dart' as design;
 
 /// تصنيف أنواع الأجهزة وفق العرض.
 enum DeviceType { mobile, tablet, desktop }
@@ -13,8 +14,8 @@ class Breakpoints {
   final double desktop; // الحد الأدنى لظهور الـ Desktop
 
   const Breakpoints({
-    this.tablet = 600,
-    this.desktop = 1024,
+    this.tablet = design.YallaBreakpoints.tablet,
+    this.desktop = design.YallaBreakpoints.desktop,
   }) : assert(tablet > 0 && desktop > tablet,
             'Breakpoints must satisfy: 0 < tablet < desktop');
 

@@ -9,6 +9,9 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/cheque_tables.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 
 class ChequeAccountingService {
@@ -206,83 +209,118 @@ class ChequeAccountingService {
     String? reason,
     DateTime? eventDate,
   }) async {
+    final p16Actor =
+        await AuthorizationGuard.require(PermissionKeys.chequeManage);
     final db = await DBService.database;
-
-    return db.transaction<Cheque>((txn) async {
-      await ChequeTables.ensureChequesSchema(txn);
-
-      final rows = await txn.query(
-        'cheques',
-        where: 'id=?',
-        whereArgs: [chequeId],
-        limit: 1,
-      );
-      if (rows.isEmpty) throw StateError('Cheque not found.');
-
-      final cheque = Cheque.fromMap(rows.first);
-
-      if (cheque.isLegacyIncomplete == 1) {
-        throw StateError(
-          'Complete the recovered cheque number, bank and dates before '
-          'recording a lifecycle event.',
-        );
-      }
-
-      if (cheque.status == newStatus) return cheque;
-
-      _assertTransition(cheque, newStatus);
-
-      final when = eventDate ?? DateTime.now();
-      int? lifecycleGlId;
-
-      final hasAccountingSource = cheque.glEntryId != null &&
-          (cheque.sourceType ?? '').trim().isNotEmpty &&
-          (cheque.sourceId ?? '').trim().isNotEmpty;
-
-      if (hasAccountingSource) {
-        lifecycleGlId = await _postStatusAccounting(
-          txn: txn,
-          cheque: cheque,
-          newStatus: newStatus,
-          date: when,
-          reason: reason,
-        );
-      }
-
-      await txn.update(
-        'cheques',
-        {
-          'status': newStatus.name,
-          'return_reason': (newStatus == ChequeStatus.returned ||
-                  newStatus == ChequeStatus.cancelled)
-              ? reason
-              : cheque.returnReason,
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-        where: 'id=?',
-        whereArgs: [chequeId],
-      );
-
-      await _event(
-        txn,
+    final beforeRows = await db.query(
+      'cheques',
+      columns: const ['status'],
+      where: 'id=?',
+      whereArgs: [chequeId],
+      limit: 1,
+    );
+    final beforeStatus =
+        beforeRows.isEmpty ? null : beforeRows.first['status']?.toString();
+    final result = await db.transaction<Cheque>(
+      (txn) => transitionStatusOnTxn(
+        txn: txn,
         chequeId: chequeId,
-        type: 'status:${newStatus.name}',
-        fromStatus: cheque.status.name,
-        toStatus: newStatus.name,
-        glEntryId: lifecycleGlId,
-        note: reason,
-        eventDate: when,
-      );
+        newStatus: newStatus,
+        reason: reason,
+        eventDate: eventDate,
+      ),
+    );
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: 'CHEQUE_STATUS_CHANGED',
+      entityType: 'cheque',
+      entityId: chequeId.toString(),
+      before: {'status': beforeStatus},
+      after: {'status': result.status.name},
+      reason: reason,
+    );
+    return result;
+  }
 
-      final refreshed = await txn.query(
-        'cheques',
-        where: 'id=?',
-        whereArgs: [chequeId],
-        limit: 1,
-      );
+  /// P11: same-transaction lifecycle action used by a formal receipt reversal.
+  /// This keeps cheque status + lifecycle GL + receipt counter-document atomic.
+  static Future<Cheque> transitionStatusOnTxn({
+    required Transaction txn,
+    required int chequeId,
+    required ChequeStatus newStatus,
+    String? reason,
+    DateTime? eventDate,
+  }) async {
+    await ChequeTables.ensureChequesSchema(txn);
 
-      return Cheque.fromMap(refreshed.first);
-    });
+    final rows = await txn.query(
+      'cheques',
+      where: 'id=?',
+      whereArgs: [chequeId],
+      limit: 1,
+    );
+    if (rows.isEmpty) throw StateError('Cheque not found.');
+
+    final cheque = Cheque.fromMap(rows.first);
+    if (cheque.isLegacyIncomplete == 1) {
+      throw StateError(
+        'Complete the recovered cheque number, bank and dates before '
+        'recording a lifecycle event.',
+      );
+    }
+    if (cheque.status == newStatus) return cheque;
+
+    _assertTransition(cheque, newStatus);
+
+    final when = eventDate ?? DateTime.now();
+    int? lifecycleGlId;
+    final hasAccountingSource = cheque.glEntryId != null &&
+        (cheque.sourceType ?? '').trim().isNotEmpty &&
+        (cheque.sourceId ?? '').trim().isNotEmpty;
+
+    if (hasAccountingSource) {
+      lifecycleGlId = await _postStatusAccounting(
+        txn: txn,
+        cheque: cheque,
+        newStatus: newStatus,
+        date: when,
+        reason: reason,
+      );
+    }
+
+    await txn.update(
+      'cheques',
+      {
+        'status': newStatus.name,
+        'return_reason': (newStatus == ChequeStatus.returned ||
+                newStatus == ChequeStatus.cancelled)
+            ? reason
+            : cheque.returnReason,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id=?',
+      whereArgs: [chequeId],
+    );
+
+    await _event(
+      txn,
+      chequeId: chequeId,
+      type: 'status:${newStatus.name}',
+      fromStatus: cheque.status.name,
+      toStatus: newStatus.name,
+      glEntryId: lifecycleGlId,
+      note: reason,
+      eventDate: when,
+    );
+
+    final refreshed = await txn.query(
+      'cheques',
+      where: 'id=?',
+      whereArgs: [chequeId],
+      limit: 1,
+    );
+    return Cheque.fromMap(refreshed.first);
   }
 
   static Future<Cheque> endorseToSupplier({
@@ -290,9 +328,11 @@ class ChequeAccountingService {
     required String supplierPid,
     required DateTime endorsementDate,
   }) async {
+    final p16Actor =
+        await AuthorizationGuard.require(PermissionKeys.chequeManage);
     final db = await DBService.database;
 
-    return db.transaction<Cheque>((txn) async {
+    final result = await db.transaction<Cheque>((txn) async {
       await ChequeTables.ensureChequesSchema(txn);
 
       final rows = await txn.query(
@@ -391,6 +431,45 @@ class ChequeAccountingService {
       );
       return Cheque.fromMap(refreshed.first);
     });
+    await AuditTrailService.log(
+      actorUserId: p16Actor?.id,
+      actorRole: p16Actor?.role,
+      action: 'CHEQUE_ENDORSED',
+      entityType: 'cheque',
+      entityId: chequeId.toString(),
+      before: {
+        'status': ChequeStatus.pending.name,
+        'cheque_type': ChequeType.incoming.name
+      },
+      after: {
+        'status': result.status.name,
+        'cheque_type': result.chequeType.name,
+        'supplier_id': supplierPid,
+      },
+    );
+    return result;
+  }
+
+  static Future<Map<String, Object?>> _paymentDimensionsOnTxn(
+    DatabaseExecutor db,
+    Cheque cheque,
+  ) async {
+    if ((cheque.sourceType ?? '').toUpperCase() != 'PAYMENT' ||
+        (cheque.sourceId ?? '').trim().isEmpty) {
+      return const <String, Object?>{};
+    }
+    final rows = await db.query(
+      'payments',
+      columns: const ['repair_id', 'invoice_id'],
+      where: 'id=?',
+      whereArgs: [cheque.sourceId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return const <String, Object?>{};
+    return <String, Object?>{
+      'repair_id': rows.first['repair_id'],
+      'invoice_id': rows.first['invoice_id'],
+    };
   }
 
   static Future<int?> _postStatusAccounting({
@@ -403,6 +482,7 @@ class ChequeAccountingService {
     final incomingId = await _requiredAccount(txn, '1020');
     final outgoingId = await _requiredAccount(txn, '1030');
     final bankId = await _requiredAccount(txn, '1010');
+    final paymentDimensions = await _paymentDimensionsOnTxn(txn, cheque);
 
     List<Map<String, Object?>>? lines;
 
@@ -443,6 +523,8 @@ class ChequeAccountingService {
             'credit': 0.0,
             'party_type': 'CLIENT',
             'party_id': clientId.toString(),
+            'repair_id': paymentDimensions['repair_id'],
+            'invoice_id': paymentDimensions['invoice_id'],
             'cheque_id': cheque.id,
           },
           {
@@ -509,6 +591,8 @@ class ChequeAccountingService {
             'credit': 0.0,
             'party_type': 'CLIENT',
             'party_id': clientId.toString(),
+            'repair_id': paymentDimensions['repair_id'],
+            'invoice_id': paymentDimensions['invoice_id'],
             'cheque_id': cheque.id,
           },
           {

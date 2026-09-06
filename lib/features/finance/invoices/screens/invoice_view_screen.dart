@@ -4,13 +4,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/finance/invoices/services/invoice_service.dart';
 import 'package:yalla_accounts/features/finance/invoices/widgets/invoice_add_payment_button.dart';
+import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
+import 'package:yalla_accounts/features/documents/services/p15_document_service.dart';
 
 class InvoiceViewScreen extends StatefulWidget {
   final String invoiceId;
@@ -220,6 +227,8 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     final double vat = _asD(inv['vat']);
 
     try {
+      final p16Actor =
+          await AuthorizationGuard.require(PermissionKeys.invoicePost);
       final newId = await DBService.postInvoiceGL(
         invoiceId: invoiceIdStr,
         date: DateTime.now(),
@@ -229,10 +238,45 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
         repairId: repairIdStr.isEmpty ? null : repairIdStr,
       );
 
+      await AuditTrailService.log(
+        actorUserId: p16Actor?.id,
+        actorRole: p16Actor?.role,
+        action: 'INVOICE_GL_POSTED',
+        entityType: 'invoice',
+        entityId: invoiceIdStr,
+        after: {
+          'gl_entry_id': newId,
+          'repair_id': repairIdStr,
+          'total': total,
+          'vat': vat
+        },
+      );
       await _snack('تم ترحيل قيد الفاتورة GL (#$newId)');
       await _load();
     } catch (e) {
       await _snack('فشل ترحيل GL: $e', error: true);
+    }
+  }
+
+  Future<void> _invoicePdf({String action = 'open'}) async {
+    try {
+      final bytes = await P15DocumentService.generateCustomerInvoicePdf(
+        widget.invoiceId,
+      );
+      final fileName = 'invoice_${widget.invoiceId}.pdf';
+      if (action == 'print') {
+        await Printing.layoutPdf(onLayout: (_) async => bytes);
+      } else if (action == 'share') {
+        await Printing.sharePdf(bytes: bytes, filename: fileName);
+      } else {
+        await YallaPdfService.saveAndOpen(
+          bytes: bytes,
+          fileName: fileName,
+          module: 'invoices',
+        );
+      }
+    } catch (e) {
+      await _snack('تعذر إنشاء PDF الفاتورة: $e', error: true);
     }
   }
 
@@ -258,12 +302,24 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     if (ok != true) return;
 
     try {
+      final p16Actor =
+          await AuthorizationGuard.require(PermissionKeys.invoiceReverse);
+      final reversedGlId = _glEntryId!;
       await DBService.reverseEntryGL(
-        _glEntryId!,
+        reversedGlId,
         note: 'Reverse from InvoiceViewScreen',
       );
 
       await _recomputeInvoicePaidAndStatus();
+      await AuditTrailService.log(
+        actorUserId: p16Actor?.id,
+        actorRole: p16Actor?.role,
+        action: 'INVOICE_GL_REVERSED',
+        entityType: 'invoice',
+        entityId: widget.invoiceId,
+        before: {'gl_entry_id': reversedGlId},
+        reason: 'عكس من شاشة الفاتورة',
+      );
       await _snack('تم عكس قيد الفاتورة');
       await _load();
     } catch (e) {
@@ -275,25 +331,31 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AdaptiveAlertDialog(
-        title: const Text('عكس القيد'),
-        content: Text('عكس قيد الدفعة #$glEntryId ؟'),
+        title: const Text('عكس سند القبض'),
+        content: const Text(
+          'سيتم إنشاء عكس رسمي للسند كاملًا، وليس عكس قيد GL منفردًا.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
           ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('عكس')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('عكس رسمي'),
+          ),
         ],
       ),
     );
     if (ok != true) return;
 
     try {
-      await DBService.reverseEntryGL(glEntryId,
-          note: 'Reverse payment from InvoiceViewScreen');
+      await PaymentService.reverseReceiptByGlEntryId(
+        glEntryId,
+        reason: 'عكس من شاشة الفاتورة',
+      );
       await _recomputeInvoicePaidAndStatus();
-      await _snack('تم عكس قيد الدفعة');
+      await _snack('تم إنشاء العكس الرسمي للسند');
       await _load();
     } catch (e) {
       await _snack('فشل العكس: $e', error: true);
@@ -415,6 +477,21 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                       runSpacing: 8,
                       alignment: WrapAlignment.end,
                       children: [
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.picture_as_pdf),
+                          label: const Text('PDF'),
+                          onPressed: () => _invoicePdf(),
+                        ),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.print_outlined),
+                          label: const Text('طباعة'),
+                          onPressed: () => _invoicePdf(action: 'print'),
+                        ),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.share_outlined),
+                          label: const Text('مشاركة'),
+                          onPressed: () => _invoicePdf(action: 'share'),
+                        ),
                         ElevatedButton.icon(
                           icon: const Icon(Icons.copy),
                           label: const Text('نسخ رقم الفاتورة'),

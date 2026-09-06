@@ -23,6 +23,7 @@ import 'package:yalla_accounts/core/licensing/validation/periodic_license_valida
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/services/commercial_settings_service.dart';
 
+import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_theme.dart';
 import 'package:yalla_accounts/shared/widgets/yalla_mobile_adaptive.dart';
 
@@ -176,10 +177,39 @@ void main() {
   });
 }
 
-class _BootstrapFailureApp extends StatelessWidget {
+class _BootstrapFailureApp extends StatefulWidget {
+  const _BootstrapFailureApp({required this.error});
+
   final Object error;
 
-  const _BootstrapFailureApp({required this.error});
+  @override
+  State<_BootstrapFailureApp> createState() => _BootstrapFailureAppState();
+}
+
+class _BootstrapFailureAppState extends State<_BootstrapFailureApp> {
+  late Object _error = widget.error;
+  bool _retrying = false;
+
+  Future<void> _retry() async {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    try {
+      await _bootstrap();
+      if (!mounted) return;
+      runApp(
+        ProviderScope(
+          observers: [_YallaObserver()],
+          child: const MyApp(),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error;
+        _retrying = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,8 +248,22 @@ class _BootstrapFailureApp extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     SelectableText(
-                      error.toString(),
+                      _error.toString(),
                       textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: _retrying ? null : _retry,
+                      icon: _retrying
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh_rounded),
+                      label: Text(
+                        _retrying ? 'جاري إعادة المحاولة...' : 'إعادة المحاولة',
+                      ),
                     ),
                   ],
                 ),
@@ -283,9 +327,9 @@ class MyApp extends StatelessWidget {
 
         theme: ThemeData(
           useMaterial3: true,
-          fontFamily: 'Roboto',
+          fontFamily: 'Cairo',
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Color(0xFF22C55E),
+            seedColor: AppColors.primary,
             brightness: Brightness.light,
           ),
           appBarTheme: AppBarTheme(

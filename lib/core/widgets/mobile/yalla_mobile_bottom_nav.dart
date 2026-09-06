@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_sync_status_strip.dart';
 
 /// الهاتف فقط: تنقل يومي مختصر. بقية النظام يبقى داخل Drawer/More.
 /// لا يغيّر routes أو قاعدة البيانات.
@@ -44,51 +45,58 @@ class YallaMobileBottomNav extends StatelessWidget {
             ),
           ],
         ),
-        child: NavigationBar(
-          height: 68,
-          elevation: 0,
-          backgroundColor: Colors.white,
-          indicatorColor: AppColors.lightGreen,
-          selectedIndex: homeSelected ? 0 : (repairsSelected ? 1 : 3),
-          onDestinationSelected: (index) async {
-            switch (index) {
-              case 0:
-                _go(context, AppRoutes.dashboard);
-                break;
-              case 1:
-                _go(context, AppRoutes.repairsDashboard);
-                break;
-              case 2:
-                Navigator.of(context).pushNamed(AppRoutes.repairsAdd);
-                break;
-              case 3:
-                onMore();
-                break;
-            }
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-              label: 'الرئيسية',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.car_repair_outlined),
-              selectedIcon:
-                  Icon(Icons.car_repair_rounded, color: AppColors.primary),
-              label: 'الإصلاحات',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.add_circle_outline_rounded),
-              selectedIcon:
-                  Icon(Icons.add_circle_rounded, color: AppColors.primary),
-              label: 'إضافة',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.grid_view_rounded),
-              selectedIcon:
-                  Icon(Icons.grid_view_rounded, color: AppColors.primary),
-              label: 'المزيد',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const YallaSyncStatusStrip(),
+            NavigationBar(
+              height: 68,
+              elevation: 0,
+              backgroundColor: Colors.white,
+              indicatorColor: AppColors.lightGreen,
+              selectedIndex: homeSelected ? 0 : (repairsSelected ? 1 : 3),
+              onDestinationSelected: (index) async {
+                switch (index) {
+                  case 0:
+                    _go(context, AppRoutes.dashboard);
+                    break;
+                  case 1:
+                    _go(context, AppRoutes.repairsDashboard);
+                    break;
+                  case 2:
+                    Navigator.of(context).pushNamed(AppRoutes.repairsAdd);
+                    break;
+                  case 3:
+                    onMore();
+                    break;
+                }
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon:
+                      Icon(Icons.home_rounded, color: AppColors.primary),
+                  label: 'الرئيسية',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.car_repair_outlined),
+                  selectedIcon:
+                      Icon(Icons.car_repair_rounded, color: AppColors.primary),
+                  label: 'الإصلاحات',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.add_circle_outline_rounded),
+                  selectedIcon:
+                      Icon(Icons.add_circle_rounded, color: AppColors.primary),
+                  label: 'إضافة',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.grid_view_rounded),
+                  selectedIcon:
+                      Icon(Icons.grid_view_rounded, color: AppColors.primary),
+                  label: 'المزيد',
+                ),
+              ],
             ),
           ],
         ),

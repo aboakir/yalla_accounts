@@ -20,6 +20,7 @@ import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/first_owner_bootstrap_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
+import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 
 class _MemorySecretStore implements DeviceIdentitySecretStore {
   final Map<String, String> values = {};
@@ -202,6 +203,7 @@ void main() {
     final temp = await Directory.systemTemp.createTemp('yalla_sec006_');
     final path = '${temp.path}${Platform.pathSeparator}activation.db';
     final db = await DatabaseMigration.initDatabase(pathOverride: path);
+    await WorkshopSettingsService.createTable(db);
     Future<sq.Database> provider() async => db;
     final secretStore = _MemorySecretStore();
     final deviceService = DeviceIdentityService(

@@ -150,5 +150,9 @@ void main() {
         await db.close();
       }
     },
+    skip: (Platform.environment['YALLA_SEC001_LIVE_DB_PATH']?.trim().isEmpty ??
+            true)
+        ? 'Historical fixture test; set YALLA_SEC001_LIVE_DB_PATH explicitly to run'
+        : false,
   );
 }

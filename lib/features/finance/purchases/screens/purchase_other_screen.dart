@@ -101,12 +101,14 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
         }).toList(),
       );
 
+      if (!mounted) return;
       _toast("تم حفظ الفاتورة بنجاح");
       Navigator.pop(context);
     } catch (e) {
+      if (!mounted) return;
       _toast("خطأ أثناء الحفظ: $e");
     } finally {
-      setState(() => _saving = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
