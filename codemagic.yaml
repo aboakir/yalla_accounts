@@ -53,7 +53,11 @@ workflows:
       - name: Build unsigned iPhone release
         script: |
           set -euo pipefail
-          flutter build ios --release --no-codesign
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --dart-define=YALLA_LICENSING_BASE_URL=https://b563e2490e02a2.lhr.life \
+            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=256da347315a3b53df365fa431fd4b77fad4d0a1bae8f102b6815523173bb25a
 
       - name: Package unsigned IPA
         script: |
