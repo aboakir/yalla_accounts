@@ -180,10 +180,26 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final empState = ref.watch(employeeProvider);
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
-    if (selectedEmployee != null &&
-        !empState.employees.any((e) => e.id == selectedEmployee!.id)) {
-      selectedEmployee = null;
-      records = [];
+    // STAGE1_P0_ATTENDANCE_SELECTION_RECOVERY
+    // Riverpod can refresh the employee list with new Employee instances.
+    // DropdownButton requires its value to be one of the exact current items;
+    // rebind by id to prevent a release-mode ErrorWidget/blank body.
+    if (selectedEmployee != null) {
+      final matches = empState.employees
+          .where((e) => e.id == selectedEmployee!.id)
+          .toList(growable: false);
+      if (matches.isEmpty) {
+        selectedEmployee = null;
+        records = [];
+      } else {
+        selectedEmployee = matches.first;
+      }
+    } else if (!empState.isLoading && empState.employees.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted || selectedEmployee != null) return;
+        setState(() => selectedEmployee = empState.employees.first);
+        await _loadAttendance();
+      });
     }
 
     return Scaffold(
@@ -418,10 +434,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   Widget _buildDropdown(List<Employee> employees) {
+    Employee? dropdownValue;
+    final selectedId = selectedEmployee?.id;
+    if (selectedId != null) {
+      final matches = employees.where((e) => e.id == selectedId);
+      if (matches.isNotEmpty) dropdownValue = matches.first;
+    }
+
     return DropdownButtonFormField<Employee>(
-      decoration: InputDecoration(
-          labelText: 'اختر موظفًا', border: OutlineInputBorder()),
-      value: selectedEmployee,
+      decoration: const InputDecoration(
+        labelText: 'اختر موظفًا',
+        border: OutlineInputBorder(),
+      ),
+      value: dropdownValue,
       items: employees
           .map((e) =>
               DropdownMenuItem<Employee>(value: e, child: Text(e.fullName)))

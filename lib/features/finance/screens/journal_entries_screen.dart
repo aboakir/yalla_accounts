@@ -30,7 +30,13 @@ enum SortBy { dateAsc, dateDesc, amountAsc, amountDesc }
 enum ViewMode { transactions, byRepair }
 
 class JournalEntriesScreen extends StatefulWidget {
-  const JournalEntriesScreen({super.key});
+  final String? initialRepairId;
+
+  const JournalEntriesScreen({
+    super.key,
+    this.initialRepairId,
+  });
+
   @override
   State<JournalEntriesScreen> createState() => _JournalEntriesScreenState();
 }
@@ -211,6 +217,13 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
       // (2) قراءة كل أسطر GL مع أسماء الحسابات
       final where = <String>[];
       final args = <dynamic>[];
+
+      // STAGE1_P0_REPAIR_JOURNAL_SCOPE
+      final scopedRepairId = widget.initialRepairId?.trim();
+      if (scopedRepairId != null && scopedRepairId.isNotEmpty) {
+        where.add('gl.repair_id = ?');
+        args.add(scopedRepairId);
+      }
 
       if (_range != null) {
         where.add('ge.date BETWEEN ? AND ?');
@@ -660,7 +673,9 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
           ? null
           : const Drawer(child: YallaSidebar(currentRoute: currentRoute)),
       appBar: AppBar(
-        title: const Text('قيود اليومية'),
+        title: Text(
+          widget.initialRepairId == null ? 'قيود اليومية' : 'قيود ملف الإصلاح',
+        ),
         backgroundColor: AppColors.primary,
         leading: isDesktop
             ? IconButton(

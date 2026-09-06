@@ -1237,13 +1237,44 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            _buildWorkflowCard(),
-            const SizedBox(height: 12),
-            _buildStatusPanel(),
-            const SizedBox(height: 14),
-            RepairProfitabilityCard(
-              repairId: _repair.id,
-              isClosed: _repair.isClosed,
+            // STAGE1_P0_MOBILE_REPAIR_DETAILS_RECOVERY
+            // Keep the phone route on a low-risk, mobile-native summary.
+            // The desktop workflow/status/profitability widgets remain available
+            // on tablet/desktop, but are deliberately not mounted on phone where
+            // one child build failure used to collapse the whole details body.
+            Card(
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: const BorderSide(color: AppColors.lightGrey),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    infoRow(
+                      'حالة الملف',
+                      _repair.status,
+                      Icons.folder_open_outlined,
+                    ),
+                    const Divider(height: 1),
+                    infoRow(
+                      'حالة المركبة',
+                      vehicleStatus,
+                      Icons.car_repair_outlined,
+                    ),
+                    if (_repair.beneficiaryType == 'شركة تأمين') ...[
+                      const Divider(height: 1),
+                      infoRow(
+                        'متابعة التأمين',
+                        insuranceStatus,
+                        Icons.shield_outlined,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 14),
             Row(

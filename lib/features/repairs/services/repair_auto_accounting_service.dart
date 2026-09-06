@@ -583,18 +583,15 @@ class RepairAutoAccountingService {
       );
       if (repairRows.isEmpty) return;
 
-      final paymentCount = Sqflite.firstIntValue(
-            await tx.rawQuery(
-              'SELECT COUNT(*) FROM payments '
-              'WHERE repair_id = ? OR relatedRepairId = ?',
-              [repairId, repairId],
-            ),
-          ) ??
-          0;
-      if (paymentCount > 0) {
+      // STAGE1_P0_REPAIR_DELETE_AFTER_REVERSAL
+      // Payment rows are immutable audit records. A formal reversal leaves the
+      // original row plus a negative reversal row, so COUNT(*) can never become
+      // zero again. Gate deletion on the net economic balance instead.
+      final paymentBalance = await _sumPaymentsOn(tx, repairId);
+      if (paymentBalance.abs() > 0.005) {
         throw StateError(
           'لا يمكن حذف هذا الملف قبل معالجة الدفعات المسجلة عليه. '
-          'اعكس أو انقل الدفعات أولًا ثم أعد الحذف.',
+          'اعكس الدفعات أولًا ثم أعد الحذف.',
         );
       }
 

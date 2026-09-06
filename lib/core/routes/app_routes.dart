@@ -489,11 +489,32 @@ class AppRoutes {
       return _page(settings, const FinanceDashboardScreen());
     }
     if (name == payments) {
-      return _page(settings, const PaymentListScreen());
+      final args = settings.arguments;
+      String? repairId;
+      var allowReverse = false;
+      if (args is Map) {
+        repairId = (args['repairId'] ?? args['relatedRepairId'])?.toString();
+        allowReverse = args['allowReverse'] == true;
+      }
+      return _page(
+        settings,
+        PaymentListScreen(
+          initialRepairId: repairId,
+          allowReverse: allowReverse,
+        ),
+      );
     }
 
     if (name == journalEntries) {
-      return _page(settings, const JournalEntriesScreen());
+      final args = settings.arguments;
+      String? repairId;
+      if (args is Map) {
+        repairId = (args['relatedRepairId'] ?? args['repairId'])?.toString();
+      }
+      return _page(
+        settings,
+        JournalEntriesScreen(initialRepairId: repairId),
+      );
     }
     if (name == incomeStatement) {
       return _page(settings, const IncomeStatementScreen());
@@ -832,7 +853,7 @@ class AppRoutes {
     }
 
     // Settings
-    if (name == settings || name == settingsWorkshop) {
+    if (name == AppRoutes.settings || name == settingsWorkshop) {
       return _page(settings, const WorkshopSettingsScreen());
     }
     if (name == settingsUser) {

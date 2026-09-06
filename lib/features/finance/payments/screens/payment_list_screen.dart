@@ -17,7 +17,14 @@ import 'package:yalla_accounts/shared/widgets/loading.dart';
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class PaymentListScreen extends StatefulWidget {
-  const PaymentListScreen({super.key});
+  final String? initialRepairId;
+  final bool allowReverse;
+
+  const PaymentListScreen({
+    super.key,
+    this.initialRepairId,
+    this.allowReverse = false,
+  });
 
   @override
   State<PaymentListScreen> createState() => _PaymentListScreenState();
@@ -104,6 +111,15 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
         rows = await PaymentService.getAll();
       }
 
+      // STAGE1_P0_REPAIR_PAYMENT_SCOPE
+      final scopedRepairId = widget.initialRepairId?.trim();
+      if (scopedRepairId != null && scopedRepairId.isNotEmpty) {
+        rows = rows.where((p) {
+          return p.repairId == scopedRepairId ||
+              p.relatedRepairId == scopedRepairId;
+        }).toList();
+      }
+
       // بحث نصي شامل
       final q = _searchCtrl.text.trim().toLowerCase();
       if (q.isNotEmpty) {
@@ -131,6 +147,23 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
 
   double get _totalAmount => _items.fold<double>(0, (s, p) => s + p.amount);
 
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'confirmed':
+        return 'مؤكد';
+      case 'pending':
+        return 'قيد الانتظار';
+      case 'cancelled':
+        return 'ملغى';
+      case 'reversed':
+        return 'معكوس';
+      case 'reversal':
+        return 'قيد عكسي';
+      default:
+        return status.isEmpty ? 'غير محدد' : status;
+    }
+  }
+
   // Chip للحالة (status نصّي)
   Widget _statusChip(String status) {
     Color c;
@@ -142,18 +175,103 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
         c = Colors.orange;
         break;
       case 'cancelled':
+      case 'reversed':
         c = Colors.red;
+        break;
+      case 'reversal':
+        c = Colors.blueGrey;
         break;
       default:
         c = Colors.grey;
     }
 
     return Chip(
-      label: Text(status, style: const TextStyle(color: Colors.white)),
+      label: Text(
+        _statusLabel(status),
+        style: const TextStyle(color: Colors.white),
+      ),
       backgroundColor: c,
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
+  }
+
+  bool _canReverse(Payment payment) {
+    return widget.allowReverse &&
+        payment.isIncome &&
+        payment.amount > 0 &&
+        payment.status != 'reversed' &&
+        payment.status != 'reversal' &&
+        payment.reversalOfPaymentId == null;
+  }
+
+  Future<void> _reversePayment(Payment payment) async {
+    final reasonCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AdaptiveAlertDialog(
+        title: const Text('عكس سند القبض'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'لن تُحذف الحركة الأصلية. سيتم إنشاء عكس محاسبي رسمي للسند.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonCtrl,
+              minLines: 2,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'سبب العكس',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (reasonCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('اكتب سبب العكس أولًا')),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('عكس رسمي'),
+          ),
+        ],
+      ),
+    );
+    final reason = reasonCtrl.text.trim();
+    reasonCtrl.dispose();
+    if (confirmed != true) return;
+
+    try {
+      await PaymentService.reverseReceiptByPaymentId(
+        payment.id,
+        reason: reason,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إنشاء العكس الرسمي دون حذف الحركة الأصلية'),
+        ),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر عكس الدفعة: $e')),
+      );
+    }
   }
 
   Future<void> _goAdd() async {
@@ -169,12 +287,18 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
     final totalTxt = _nf.format(_totalAmount);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('الدفعات')),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _goAdd,
-        icon: const Icon(Icons.add),
-        label: const Text('إضافة'),
+      appBar: AppBar(
+        title: Text(
+          widget.initialRepairId == null ? 'الدفعات' : 'دفعات ملف الإصلاح',
+        ),
       ),
+      floatingActionButton: widget.initialRepairId == null
+          ? FloatingActionButton.extended(
+              onPressed: _goAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('إضافة'),
+            )
+          : null,
       body: Column(
         children: [
           // -----------------------------------------------
@@ -329,10 +453,20 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
                                         'Repair: ${p.repairId ?? '-'}  •  Invoice: ${p.invoiceId ?? '-'}'),
                                     if ((p.notes ?? '').isNotEmpty)
                                       Text('ملاحظات: ${p.notes}'),
+                                    Text('الحالة: ${_statusLabel(p.status)}'),
                                   ],
                                 ),
-                                trailing: _statusChip(p.status),
-                                dense: true,
+                                trailing: _canReverse(p)
+                                    ? IconButton(
+                                        tooltip: 'عكس الدفعة رسميًا',
+                                        onPressed: () => _reversePayment(p),
+                                        icon: const Icon(
+                                          Icons.undo_rounded,
+                                          color: Colors.red,
+                                        ),
+                                      )
+                                    : _statusChip(p.status),
+                                isThreeLine: true,
                               );
                             },
                           ),

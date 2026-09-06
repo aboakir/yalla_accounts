@@ -4,8 +4,11 @@
 // بدون أي اعتماد على RTL — تم استخدام محاذاة عربية فقط
 // ============================================================================
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -127,6 +130,52 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   String _short(String? id) {
     if (id == null) return '';
     return id.length <= 8 ? id : id.substring(0, 8);
+  }
+
+  Future<void> _exportPdf() async {
+    if (header == null) return;
+    final h = header!;
+
+    try {
+      final pdfRows = lines.map((r) {
+        return [
+          (r['item_name'] ?? r['item'] ?? '').toString(),
+          _d(r['qty']).toStringAsFixed(2),
+          MoneyFormatter.format(_d(r['unit_price'])),
+          MoneyFormatter.format(_d(r['total'])),
+        ];
+      }).toList();
+
+      final bytes = await YallaPdfService.generateFullInvoicePdf(
+        invoiceNumber: _short(h['id']),
+        date: _fmt(h['date']),
+        supplierName: h['supplier_name'] ?? '',
+        purchaseType: _typeLabel(h['purchase_type']),
+        paymentMethod: h['method'],
+        totalAmount: _d(h['amount_total']),
+        paidAmount: _d(h['paid_total']),
+        remainAmount: _d(h['amount_total']) - _d(h['paid_total']),
+        rows: pdfRows,
+      );
+
+      final fileName = 'purchase_${_short(h['id'])}.pdf';
+      // STAGE1_P0_PURCHASE_PDF_IOS
+      // saveAndOpen is desktop-oriented. On iOS use the native PDF share
+      // sheet so the generated document is actually accessible to the user.
+      if (Platform.isIOS || Platform.isAndroid) {
+        await Printing.sharePdf(bytes: bytes, filename: fileName);
+      } else {
+        await YallaPdfService.saveAndOpen(
+          bytes: bytes,
+          fileName: fileName,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر إنشاء PDF: $e')),
+      );
+    }
   }
 
   // ----------------------------------------------------------------------------
@@ -390,34 +439,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
 
         // ------------------------ PDF ------------------------
         OutlinedButton(
-          onPressed: () async {
-            final h = header!;
-            final pdfRows = lines.map((r) {
-              return [
-                (r['item_name'] ?? r['item'] ?? '').toString(),
-                _d(r['qty']).toStringAsFixed(2),
-                MoneyFormatter.format(_d(r['unit_price'])),
-                MoneyFormatter.format(_d(r['total'])),
-              ];
-            }).toList();
-
-            final bytes = await YallaPdfService.generateFullInvoicePdf(
-              invoiceNumber: _short(h['id']),
-              date: _fmt(h['date']),
-              supplierName: h['supplier_name'] ?? '',
-              purchaseType: _typeLabel(h['purchase_type']),
-              paymentMethod: h['method'],
-              totalAmount: _d(h['amount_total']),
-              paidAmount: _d(h['paid_total']),
-              remainAmount: _d(h['amount_total']) - _d(h['paid_total']),
-              rows: pdfRows,
-            );
-
-            await YallaPdfService.saveAndOpen(
-              bytes: bytes,
-              fileName: 'purchase_${_short(h['id'])}.pdf',
-            );
-          },
+          onPressed: _exportPdf,
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 14),
             side: BorderSide(color: AppColors.primary, width: 1.4),

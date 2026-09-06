@@ -320,9 +320,27 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                 Navigator.pop(context);
                 Navigator.pushNamed(
                   context,
-                  '/finance/journal',
+                  AppRoutes.journalEntries,
                   arguments: {'relatedRepairId': r.id},
                 );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.manage_history_outlined),
+              title: const Text('دفعات الملف / عكس دفعة'),
+              subtitle: const Text('عرض دفعات هذا الملف ومعالجة العكس الرسمي'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.payments,
+                  arguments: {
+                    'repairId': r.id,
+                    'allowReverse': true,
+                  },
+                ).then((_) {
+                  ref.read(repairListProvider.notifier).loadRepairs();
+                });
               },
             ),
             if (r.remainingAmount > 0.005)
