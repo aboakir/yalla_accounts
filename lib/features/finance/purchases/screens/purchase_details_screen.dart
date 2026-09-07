@@ -221,6 +221,11 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     final amount = _d(h['amount_total']);
     final paid = _d(h['paid_total']);
     final remain = amount - paid;
+    final isPhone = MediaQuery.sizeOf(context).width < 600;
+
+    if (isPhone) {
+      return _phoneContent(h, amount, paid, remain);
+    }
 
     return Center(
       child: ConstrainedBox(
@@ -245,6 +250,89 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _phoneContent(Map h, double amount, double paid, double remain) {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        children: [
+          _headerCard(h, amount, paid, remain),
+          const SizedBox(height: 12),
+          _phoneLinesCard(),
+          const SizedBox(height: 12),
+          _phoneActions(remain),
+        ],
+      ),
+    );
+  }
+
+  Widget _phoneLinesCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _box(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'بنود الفاتورة',
+            textAlign: TextAlign.right,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          if (lines.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text('لا توجد بنود', textAlign: TextAlign.center),
+            )
+          else
+            ...lines.asMap().entries.map((entry) {
+              final index = entry.key;
+              final row = entry.value;
+              final item = (row['item_name'] ?? row['item'] ?? '').toString();
+              final qty = _d(row['qty']);
+              final unit = _d(row['unit_price']);
+              final total = _d(row['total']);
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: index == lines.length - 1
+                      ? null
+                      : Border(
+                          bottom: BorderSide(color: Colors.grey.shade200),
+                        ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      item.isEmpty ? 'صنف بدون اسم' : item,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        Text('الكمية: ${qty.toStringAsFixed(2)}'),
+                        Text('الوحدة: ${MoneyFormatter.format(unit)}'),
+                        Text(
+                          'الإجمالي: ${MoneyFormatter.format(total)}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
@@ -385,6 +473,72 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   // ----------------------------------------------------------------------------
   // ACTION BUTTONS
   // ----------------------------------------------------------------------------
+  Widget _phoneActions(double remain) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: _box(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.icon(
+            onPressed: remain <= 0
+                ? null
+                : () async {
+                    final refresh = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PaymentVoucherScreen(),
+                      ),
+                    );
+                    if (refresh == true) _load();
+                  },
+            icon: const Icon(Icons.payments_outlined),
+            label: const Text('سند صرف'),
+          ),
+          if (_editingDate != null) ...[
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: _saveEditedDate,
+              style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('حفظ التاريخ'),
+            ),
+          ],
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _exportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            label: const Text('PDF'),
+          ),
+          const SizedBox(height: 4),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close),
+            label: const Text('إغلاق'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveEditedDate() async {
+    final date = _editingDate;
+    final h = header;
+    if (date == null || h == null) return;
+
+    final db = await DBService.database;
+    await db.update(
+      'purchase_invoices',
+      {'date': date.toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [h['id']],
+    );
+
+    if (!mounted) return;
+    setState(() => _editingDate = null);
+    await _load();
+  }
+
   Widget _actions(double remain) {
     return AdaptiveRow(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -416,22 +570,7 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
         const SizedBox(width: 26),
         if (_editingDate != null) ...[
           ElevatedButton(
-            onPressed: () async {
-              final db = await DBService.database;
-
-              await db.update(
-                'purchase_invoices',
-                {'date': _editingDate!.toIso8601String()},
-                where: 'id = ?',
-                whereArgs: [header!['id']],
-              );
-
-              setState(() {
-                _editingDate = null;
-              });
-
-              _load();
-            },
+            onPressed: _saveEditedDate,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),

@@ -465,6 +465,9 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
           error = 'اختر نوع الملف.';
         } else if (_payer.isEmpty) {
           error = 'اختر جهة الدفع.';
+        } else if (_payer != 'العميل' &&
+            _insuranceCompanyController.text.trim().isEmpty) {
+          error = 'أدخل اسم شركة التأمين حتى تنتقل جهة الدفع مع الملف.';
         } else if ((_repairScope == 'إصلاح فقط' ||
                 _repairScope == 'إصلاح + قطع') &&
             _worksPricingMode == 'detailed' &&
@@ -1784,7 +1787,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
                     inputFormatters: const [YallaDigitNormalizer()],
                     controller: _insuranceCompanyController,
                     decoration: const InputDecoration(
-                      labelText: 'شركة التأمين (اختياري الآن)',
+                      labelText: 'شركة التأمين',
                       border: OutlineInputBorder(),
                     ),
                   ),

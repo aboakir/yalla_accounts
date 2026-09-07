@@ -32,6 +32,117 @@ class EmployeeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final isPhone = width < 600;
+        return isPhone ? _phoneCard(isDark) : _desktopCard(isDark);
+      },
+    );
+  }
+
+  Widget _phoneCard(bool isDark) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 1,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            onTap: onTap,
+            contentPadding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
+            leading: CircleAvatar(
+              backgroundColor: AppColors.primary,
+              child: Text(
+                _getInitial(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            title: Text(
+              employee.fullName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (employee.jobTitle.trim().isNotEmpty)
+                    Text(
+                      employee.jobTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  if (employee.phone.trim().isNotEmpty)
+                    Text(
+                      employee.phone,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey[400] : Colors.grey[700],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            trailing:
+                onTap == null ? null : const Icon(Icons.chevron_right_rounded),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              alignment: WrapAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('تعديل'),
+                ),
+                if (onMonthlyReport != null)
+                  OutlinedButton.icon(
+                    onPressed: onMonthlyReport,
+                    icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                    label: const Text('التقرير الشهري'),
+                  ),
+                if (onSalarySlip != null)
+                  OutlinedButton.icon(
+                    onPressed: onSalarySlip,
+                    icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                    label: const Text('كشف الراتب'),
+                  ),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline,
+                      size: 18, color: Colors.red),
+                  label: const Text(
+                    'حذف',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _desktopCard(bool isDark) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -79,8 +190,6 @@ class EmployeeCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // ✅ أزرار التقارير
           if (onMonthlyReport != null || onSalarySlip != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 10, right: 12, left: 12),

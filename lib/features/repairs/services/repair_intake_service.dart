@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/services/db/tables/repair_tables.dart';
 import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_intake_draft.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_payer_bridge.dart';
 import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
@@ -61,6 +62,25 @@ class RepairIntakeService {
     if (draft.photoPaths.length > 8) {
       throw StateError('الحد الأقصى لصور الاستلام هو 8 صور');
     }
+    var effectiveNotes = draft.notes.trim();
+    final payerKind = RepairPayerBridge.resolve(notes: effectiveNotes);
+    if (payerKind == RepairPayerKind.insurance ||
+        payerKind == RepairPayerKind.mixed) {
+      final insuranceCompany =
+          RepairPayerBridge.insuranceCompanyNameFromNotes(effectiveNotes);
+      if (insuranceCompany != null) {
+        final insuranceClientId = await ClientService.upsertFromRepairOn(
+          db,
+          name: insuranceCompany,
+          type: 'شركة تأمين',
+        );
+        effectiveNotes = RepairPayerBridge.withInsuranceClientId(
+          effectiveNotes,
+          insuranceClientId,
+        );
+      }
+    }
+
     final clientId = draft.clientId ??
         await ClientService.upsertFromRepairOn(
           db,
@@ -106,14 +126,14 @@ class RepairIntakeService {
         'parts': jsonEncode(const <Object>[]),
         'works': jsonEncode(const <Object>[]),
         'fileValue': 0.0,
-        'paymentType': draft.notes.contains('[YALLA_PAYER] شركة تأمين')
+        'paymentType': payerKind == RepairPayerKind.insurance
             ? 'insurance'
-            : draft.notes.contains('[YALLA_PAYER] مختلط')
+            : payerKind == RepairPayerKind.mixed
                 ? 'mixed'
                 : 'cash',
         'paidAmount': 0.0,
         'paymentStatus': 'غير مسدد',
-        'notes': draft.notes.trim(),
+        'notes': effectiveNotes,
         'imagePaths': jsonEncode(photos),
         'isArchived': 0,
         'isLedgerEnabled': 0,

@@ -172,6 +172,69 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     }
   }
 
+  String _receiptLabel(Map<String, Object?> row) {
+    final rawNumber = row["receipt_number"];
+    if (rawNumber == null) return row["id"].toString();
+    return "RC-${rawNumber.toString().padLeft(6, '0')}";
+  }
+
+  String _methodLabel(Object? raw) {
+    switch ((raw ?? '').toString().trim().toLowerCase()) {
+      case 'cash':
+        return 'نقدي';
+      case 'bank_transfer':
+        return 'تحويل بنكي';
+      case 'card':
+        return 'بطاقة';
+      case 'cheque':
+        return 'شيك';
+      default:
+        final value = (raw ?? '').toString().trim();
+        return value.isEmpty ? 'غير محدد' : value;
+    }
+  }
+
+  Future<void> _exportReceiptPdf(Map<String, Object?> row) async {
+    try {
+      final rawNumber = row["receipt_number"];
+      if (rawNumber != null) {
+        final receiptNumber =
+            rawNumber is int ? rawNumber : int.tryParse(rawNumber.toString());
+        if (receiptNumber != null) {
+          final bytes = await P15DocumentService.generateReceiptPdf(
+            receiptNumber,
+          );
+          await YallaPdfService.saveAndOpen(
+            bytes: bytes,
+            fileName:
+                "receipt_RC-${receiptNumber.toString().padLeft(6, '0')}.pdf",
+            module: 'receipts',
+          );
+          return;
+        }
+      }
+
+      final bytes = await YallaPdfService.generateReceiptVoucherPdf(
+        voucherId: row["id"].toString(),
+        amount: (row["amount"] as num).toDouble(),
+        date: row["date"].toString(),
+        clientName: row["clientName"]?.toString() ?? "-",
+        method: row["method"]?.toString().toUpperCase() ?? "-",
+        notes: row["notes"]?.toString(),
+      );
+      await YallaPdfService.saveAndOpen(
+        bytes: bytes,
+        fileName: "receipt_${row["id"]}.pdf",
+        module: 'receipts',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تعذر إنشاء PDF للسند: $e')),
+      );
+    }
+  }
+
   // =============================================================================
   // BUILD UI
   // =============================================================================
@@ -205,6 +268,11 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   // MAIN WRAPPER
   // =============================================================================
   Widget _main() {
+    final isPhone = MediaQuery.sizeOf(context).width < 600;
+    return isPhone ? _phoneMain() : _desktopMain();
+  }
+
+  Widget _desktopMain() {
     return Padding(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -220,6 +288,255 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _phoneMain() {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'سندات القبض',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                ),
+              ),
+              IconButton(
+                tooltip: 'تحديث',
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: .92,
+            children: [
+              _phoneKpi(
+                  'السندات', filtered.length.toString(), Icons.receipt_long),
+              _phoneKpi('اليوم', totalToday.toStringAsFixed(0), Icons.today),
+              _phoneKpi(
+                  'الشهر', totalMonth.toStringAsFixed(0), Icons.calendar_month),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
+            onChanged: (value) {
+              search = value;
+              setState(_applyFilters);
+            },
+            decoration: InputDecoration(
+              hintText: 'ابحث برقم السند أو العميل أو المبلغ',
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: AppColors.inputFill,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: filterMethod,
+                  decoration: const InputDecoration(
+                    labelText: 'طريقة القبض',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    'الكل',
+                    'cash',
+                    'bank_transfer',
+                    'card',
+                    'cheque'
+                  ]
+                      .map((value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(
+                                value == 'الكل' ? value : _methodLabel(value)),
+                          ))
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      filterMethod = value;
+                      _applyFilters();
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                tooltip: 'PDF القائمة',
+                onPressed: filtered.isEmpty ? null : _exportListPdf,
+                icon: const Icon(Icons.picture_as_pdf),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (filtered.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 34, horizontal: 16),
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long_outlined,
+                        size: 42, color: Colors.grey),
+                    SizedBox(height: 10),
+                    Text('لا توجد سندات مطابقة'),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...filtered.map(_phoneReceiptCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _phoneKpi(String title, String value, IconData icon) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 22),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _phoneReceiptCard(Map<String, Object?> row) {
+    final dateText = (row['date'] ?? '').toString();
+    final date = dateText.length >= 10 ? dateText.substring(0, 10) : dateText;
+    final amount = (row['amount'] as num?)?.toDouble() ?? 0;
+    final gl = (row['gl_entry_ids'] ?? '').toString().trim();
+    final reversed = ((row['reversal_lines'] as num?)?.toInt() ?? 0) > 0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _receiptLabel(row),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        row['clientName']?.toString().trim().isNotEmpty == true
+                            ? row['clientName'].toString()
+                            : 'بدون اسم عميل',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      amount.toStringAsFixed(2),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Text(date,
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.black54)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(_methodLabel(row['method'])),
+                ),
+                if (gl.isNotEmpty)
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    avatar:
+                        const Icon(Icons.account_balance_outlined, size: 16),
+                    label: Text('GL $gl'),
+                  ),
+                if (reversed)
+                  const Chip(
+                    visualDensity: VisualDensity.compact,
+                    avatar: Icon(Icons.undo, size: 16),
+                    label: Text('يتضمن عكس'),
+                  ),
+              ],
+            ),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton.icon(
+                onPressed: () => _exportReceiptPdf(row),
+                icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                label: const Text('فتح PDF'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -400,44 +717,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                         child: IconButton(
                           icon: const Icon(Icons.picture_as_pdf,
                               color: Colors.red),
-                          onPressed: () async {
-                            final rawNumber = row["receipt_number"];
-                            if (rawNumber != null) {
-                              final receiptNumber = rawNumber is int
-                                  ? rawNumber
-                                  : int.tryParse(rawNumber.toString());
-                              if (receiptNumber != null) {
-                                final bytes =
-                                    await P15DocumentService.generateReceiptPdf(
-                                  receiptNumber,
-                                );
-                                await YallaPdfService.saveAndOpen(
-                                  bytes: bytes,
-                                  fileName:
-                                      "receipt_RC-${receiptNumber.toString().padLeft(6, '0')}.pdf",
-                                  module: 'receipts',
-                                );
-                                return;
-                              }
-                            }
-
-                            // Legacy rows without a P11 receipt header remain printable.
-                            final bytes =
-                                await YallaPdfService.generateReceiptVoucherPdf(
-                              voucherId: row["id"].toString(),
-                              amount: (row["amount"] as num).toDouble(),
-                              date: row["date"].toString(),
-                              clientName: row["clientName"]?.toString() ?? "-",
-                              method: row["method"]?.toString().toUpperCase() ??
-                                  "-",
-                              notes: row["notes"]?.toString(),
-                            );
-                            await YallaPdfService.saveAndOpen(
-                              bytes: bytes,
-                              fileName: "receipt_${row["id"]}.pdf",
-                              module: 'receipts',
-                            );
-                          },
+                          onPressed: () => _exportReceiptPdf(row),
                         ),
                       ),
 

@@ -285,12 +285,20 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
   @override
   Widget build(BuildContext context) {
     final totalTxt = _nf.format(_totalAmount);
+    final isPhone = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           widget.initialRepairId == null ? 'الدفعات' : 'دفعات ملف الإصلاح',
         ),
+        actions: [
+          IconButton(
+            onPressed: _load,
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
       floatingActionButton: widget.initialRepairId == null
           ? FloatingActionButton.extended(
@@ -299,180 +307,418 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
               label: const Text('إضافة'),
             )
           : null,
-      body: Column(
-        children: [
-          // -----------------------------------------------
-          // فلاتر البحث
-          // -----------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: AdaptiveRow(
-              children: [
-                Expanded(
-                  child: TextField(
-                    inputFormatters: const [YallaDigitNormalizer()],
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'بحث في الملاحظات/الطريقة/الحساب/المعرفات…',
-                      prefixIcon: const Icon(Icons.search),
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      suffixIcon: (_searchCtrl.text.isEmpty)
-                          ? null
-                          : IconButton(
-                              onPressed: () {
-                                _searchCtrl.clear();
-                                _load();
-                              },
-                              icon: const Icon(Icons.close),
-                            ),
+      body: isPhone ? _phoneBody(totalTxt) : _desktopBody(totalTxt),
+    );
+  }
+
+  Widget _phoneBody(String totalTxt) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                inputFormatters: const [YallaDigitNormalizer()],
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'بحث في الدفعات',
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  suffixIcon: _searchCtrl.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'مسح البحث',
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            _load();
+                          },
+                          icon: const Icon(Icons.close),
+                        ),
+                ),
+                onChanged: (_) => _load(),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String?>(
+                value: _status,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'الحالة',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text('كل الحالات')),
+                  DropdownMenuItem(
+                    value: 'confirmed',
+                    child: Text('تم التأكيد'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'pending',
+                    child: Text('قيد الانتظار'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'cancelled',
+                    child: Text('أُلغي'),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() => _status = value);
+                  _load();
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickFrom,
+                      icon: const Icon(Icons.date_range, size: 18),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                            _from == null ? 'من تاريخ' : _df.format(_from!)),
+                      ),
                     ),
-                    onChanged: (_) => _load(),
                   ),
-                ),
-                const SizedBox(width: 8),
-
-                // فلتر الحالة النصّي
-                SizedBox(
-                  width: 160,
-                  child: DropdownButtonFormField<String?>(
-                    value: _status,
-                    isExpanded: true,
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('كل الحالات')),
-                      DropdownMenuItem(
-                          value: 'confirmed', child: Text('تم التأكيد')),
-                      DropdownMenuItem(
-                          value: 'pending', child: Text('قيد الانتظار')),
-                      DropdownMenuItem(
-                          value: 'cancelled', child: Text('أُلغي')),
-                    ],
-                    onChanged: (v) {
-                      setState(() => _status = v);
-                      _load();
-                    },
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickTo,
+                      icon: const Icon(Icons.event, size: 18),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child:
+                            Text(_to == null ? 'إلى تاريخ' : _df.format(_to!)),
+                      ),
                     ),
                   ),
+                  if (_from != null || _to != null) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: 'مسح التواريخ',
+                      onPressed: _clearDates,
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(.35),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.summarize_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    Text('${_items.length} حركة'),
+                    const Spacer(),
+                    Text(
+                      'الإجمالي: $totalTxt',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+        ),
+        const Divider(height: 1),
+        Expanded(child: _phoneList()),
+      ],
+    );
+  }
 
-          // -----------------------------------------------
-          // فلاتر التاريخ
-          // -----------------------------------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: AdaptiveRow(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickFrom,
-                    icon: const Icon(Icons.date_range),
-                    label: Text(_from == null ? 'من' : _df.format(_from!)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickTo,
-                    icon: const Icon(Icons.event),
-                    label: Text(_to == null ? 'إلى' : _df.format(_to!)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: _clearDates,
-                  child: const Text('مسح التواريخ'),
-                ),
-              ],
-            ),
-          ),
+  Widget _phoneList() {
+    if (_loading) {
+      return const LoadingWidget(message: 'جاري تحميل الدفعات...');
+    }
+    if (_loadError != null) {
+      return ErrorDisplay(
+        message: 'تعذر تحميل الدفعات.\n$_loadError',
+        onRetry: _load,
+      );
+    }
+    if (_items.isEmpty) {
+      return const YallaEmptyState(
+        title: 'لا توجد دفعات',
+        message: 'ستظهر سندات الدفعات هنا بعد تسجيلها.',
+        icon: Icons.payments_outlined,
+      );
+    }
 
-          // -----------------------------------------------
-          // الإجمالي + تحديث
-          // -----------------------------------------------
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: AdaptiveRow(
-              children: [
-                Text('الإجمالي: $totalTxt'),
-                const Spacer(),
-                IconButton(
-                  onPressed: _load,
-                  icon: const Icon(Icons.refresh),
-                  tooltip: 'تحديث',
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 1),
-
-          // -----------------------------------------------
-          // القائمة
-          // -----------------------------------------------
-          Expanded(
-            child: _loading
-                ? const LoadingWidget(message: 'جاري تحميل الدفعات...')
-                : _loadError != null
-                    ? ErrorDisplay(
-                        message: 'تعذر تحميل الدفعات.\n$_loadError',
-                        onRetry: _load,
-                      )
-                    : _items.isEmpty
-                        ? const YallaEmptyState(
-                            title: 'لا توجد دفعات',
-                            message: 'ستظهر سندات الدفعات هنا بعد تسجيلها.',
-                            icon: Icons.payments_outlined,
-                          )
-                        : ListView.separated(
-                            itemCount: _items.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (_, i) {
-                              final p = _items[i];
-                              final amt = _nf.format(p.amount);
-                              final dateTxt = _df.format(p.date);
-
-                              return ListTile(
-                                leading: const CircleAvatar(
-                                  child: Icon(Icons.payment, size: 18),
-                                ),
-                                title: Text('المبلغ: $amt'),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('التاريخ: $dateTxt'),
-                                    Text(
-                                        'الطريقة: ${p.method}  •  الحساب: ${p.accountName ?? '-'}'),
-                                    Text(
-                                        'Repair: ${p.repairId ?? '-'}  •  Invoice: ${p.invoiceId ?? '-'}'),
-                                    if ((p.notes ?? '').isNotEmpty)
-                                      Text('ملاحظات: ${p.notes}'),
-                                    Text('الحالة: ${_statusLabel(p.status)}'),
-                                  ],
-                                ),
-                                trailing: _canReverse(p)
-                                    ? IconButton(
-                                        tooltip: 'عكس الدفعة رسميًا',
-                                        onPressed: () => _reversePayment(p),
-                                        icon: const Icon(
-                                          Icons.undo_rounded,
-                                          color: Colors.red,
-                                        ),
-                                      )
-                                    : _statusChip(p.status),
-                                isThreeLine: true,
-                              );
-                            },
-                          ),
-          ),
-        ],
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 90),
+        itemCount: _items.length,
+        itemBuilder: (context, index) => _phonePaymentCard(_items[index]),
       ),
+    );
+  }
+
+  Widget _phonePaymentCard(Payment payment) {
+    final amountText = _nf.format(payment.amount);
+    final repairId = (payment.relatedRepairId ?? payment.repairId ?? '').trim();
+    final invoiceId = (payment.invoiceId ?? '').trim();
+    final account = (payment.accountName ?? '').trim();
+    final notes = (payment.notes ?? '').trim();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        amountText,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _df.format(payment.date),
+                        style: const TextStyle(color: Colors.black54),
+                      ),
+                    ],
+                  ),
+                ),
+                _statusChip(payment.status),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                Chip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: const Icon(Icons.account_balance_wallet_outlined,
+                      size: 16),
+                  label: Text(payment.method),
+                ),
+                if (account.isNotEmpty)
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    avatar:
+                        const Icon(Icons.account_balance_outlined, size: 16),
+                    label: Text(account),
+                  ),
+              ],
+            ),
+            if (repairId.isNotEmpty || invoiceId.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              if (repairId.isNotEmpty)
+                Text(
+                  'ملف الإصلاح: $repairId',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              if (invoiceId.isNotEmpty)
+                Text(
+                  'الفاتورة: $invoiceId',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+            if (notes.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                notes,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.black54),
+              ),
+            ],
+            if (_canReverse(payment)) ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => _reversePayment(payment),
+                icon: const Icon(Icons.undo_rounded, color: Colors.red),
+                label: const Text('عكس الدفعة رسميًا'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _desktopBody(String totalTxt) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: AdaptiveRow(
+            children: [
+              Expanded(
+                child: TextField(
+                  inputFormatters: const [YallaDigitNormalizer()],
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'بحث في الملاحظات/الطريقة/الحساب/المعرفات…',
+                    prefixIcon: const Icon(Icons.search),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    suffixIcon: (_searchCtrl.text.isEmpty)
+                        ? null
+                        : IconButton(
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              _load();
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
+                  ),
+                  onChanged: (_) => _load(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 160,
+                child: DropdownButtonFormField<String?>(
+                  value: _status,
+                  isExpanded: true,
+                  items: const [
+                    DropdownMenuItem(value: null, child: Text('كل الحالات')),
+                    DropdownMenuItem(
+                        value: 'confirmed', child: Text('تم التأكيد')),
+                    DropdownMenuItem(
+                        value: 'pending', child: Text('قيد الانتظار')),
+                    DropdownMenuItem(value: 'cancelled', child: Text('أُلغي')),
+                  ],
+                  onChanged: (v) {
+                    setState(() => _status = v);
+                    _load();
+                  },
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          child: AdaptiveRow(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickFrom,
+                  icon: const Icon(Icons.date_range),
+                  label: Text(_from == null ? 'من' : _df.format(_from!)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickTo,
+                  icon: const Icon(Icons.event),
+                  label: Text(_to == null ? 'إلى' : _df.format(_to!)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: _clearDates,
+                child: const Text('مسح التواريخ'),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: AdaptiveRow(
+            children: [
+              Text('الإجمالي: $totalTxt'),
+              const Spacer(),
+              IconButton(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'تحديث',
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: _loading
+              ? const LoadingWidget(message: 'جاري تحميل الدفعات...')
+              : _loadError != null
+                  ? ErrorDisplay(
+                      message: 'تعذر تحميل الدفعات.\n$_loadError',
+                      onRetry: _load,
+                    )
+                  : _items.isEmpty
+                      ? const YallaEmptyState(
+                          title: 'لا توجد دفعات',
+                          message: 'ستظهر سندات الدفعات هنا بعد تسجيلها.',
+                          icon: Icons.payments_outlined,
+                        )
+                      : ListView.separated(
+                          itemCount: _items.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            final p = _items[i];
+                            final amt = _nf.format(p.amount);
+                            final dateTxt = _df.format(p.date);
+
+                            return ListTile(
+                              leading: const CircleAvatar(
+                                child: Icon(Icons.payment, size: 18),
+                              ),
+                              title: Text('المبلغ: $amt'),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('التاريخ: $dateTxt'),
+                                  Text(
+                                      'الطريقة: ${p.method}  •  الحساب: ${p.accountName ?? '-'}'),
+                                  Text(
+                                      'Repair: ${p.repairId ?? '-'}  •  Invoice: ${p.invoiceId ?? '-'}'),
+                                  if ((p.notes ?? '').isNotEmpty)
+                                    Text('ملاحظات: ${p.notes}'),
+                                  Text('الحالة: ${_statusLabel(p.status)}'),
+                                ],
+                              ),
+                              trailing: _canReverse(p)
+                                  ? IconButton(
+                                      tooltip: 'عكس الدفعة رسميًا',
+                                      onPressed: () => _reversePayment(p),
+                                      icon: const Icon(
+                                        Icons.undo_rounded,
+                                        color: Colors.red,
+                                      ),
+                                    )
+                                  : _statusChip(p.status),
+                              isThreeLine: true,
+                            );
+                          },
+                        ),
+        ),
+      ],
     );
   }
 }
