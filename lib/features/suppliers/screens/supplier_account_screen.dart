@@ -1,31 +1,11 @@
-// -----------------------------------------------------------------------------
-// 📁 lib/features/suppliers/screens/supplier_account_screen.dart
-//
-// SupplierAccountScreen — نسخة Pro Max النهائية
-// -----------------------------------------------------------------------------
-// • كشف حساب مورد كامل من GL.accountStatement
-// • زر فواتير المورد + زر شيكات المورد
-// • الهيدر يعرض (إجمالي ديون الفترة / عدد السطور)
-// • تصدير PDF بخط Cairo + تصدير Excel بدون أي تعارض نهائي
-// • بدون RTL — فقط TextAlign.right
-// -----------------------------------------------------------------------------
-
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-
-// excel (باستخدام alias لتجنب تعارض Border)
-import 'package:excel/excel.dart' as ex;
-
-// pdf
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:flutter/services.dart' show rootBundle;
-
-import 'package:yalla_accounts/core/services/db_service.dart';
-import 'package:yalla_accounts/core/services/accounting_gl.dart';
-import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
+import 'package:yalla_accounts/core/utils/public_text_sanitizer.dart';
+import 'package:yalla_accounts/features/account_statements/suppliers/services/supplier_statement_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class SupplierAccountScreen extends StatefulWidget {
@@ -42,443 +22,264 @@ class SupplierAccountScreen extends StatefulWidget {
     BuildContext context, {
     required String supplierId,
     required String supplierName,
-  }) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SupplierAccountScreen(
-          supplierId: supplierId,
-          supplierName: supplierName,
+  }) =>
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SupplierAccountScreen(
+            supplierId: supplierId,
+            supplierName: supplierName,
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   @override
   State<SupplierAccountScreen> createState() => _SupplierAccountScreenState();
 }
 
 class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
-  DateTime? _from;
-  DateTime? _to;
-  bool _loading = false;
-
-  double _opening = 0.0;
-  double _closing = 0.0;
-  double _totalDebt = 0.0;
-  int _totalRows = 0;
-
-  List<Map<String, Object?>> _lines = [];
-
+  DateTimeRange? _range;
+  late Future<SupplierAccountStatement> _future;
   final _df = DateFormat('yyyy-MM-dd');
-  final _nf = NumberFormat('#,##0.00');
+  final _money = NumberFormat('#,##0.00', 'ar');
 
   @override
   void initState() {
     super.initState();
+    _reload();
+  }
+
+  void _reload() {
+    _future = SupplierStatementService.load(
+      supplierId: widget.supplierId,
+      from: _range?.start,
+      to: _range?.end,
+    );
+  }
+
+  Future<void> _pickRange() async {
     final now = DateTime.now();
-    _to = now;
-    _from = now.subtract(const Duration(days: 90));
-    _load();
-  }
-
-  // ---------------------------------------------------------------------------
-  // DATE PICKERS
-  // ---------------------------------------------------------------------------
-  Future<void> _pickFrom() async {
-    final d = await showDatePicker(
+    final picked = await showDateRangePicker(
       context: context,
-      initialDate: _from ?? DateTime.now(),
-      firstDate: DateTime(2020, 1, 1),
-      lastDate: DateTime(2100, 12, 31),
+      firstDate: DateTime(now.year - 10),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: _range,
     );
-    if (d != null) {
-      setState(() => _from = d);
-      _load();
-    }
-  }
-
-  Future<void> _pickTo() async {
-    final d = await showDatePicker(
-      context: context,
-      initialDate: _to ?? DateTime.now(),
-      firstDate: DateTime(2020, 1, 1),
-      lastDate: DateTime(2100, 12, 31),
-    );
-    if (d != null) {
-      setState(() => _to = d);
-      _load();
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // LOAD STATEMENT
-  // ---------------------------------------------------------------------------
-  Future<void> _load() async {
-    setState(() => _loading = true);
-
-    final accId = await DBService.ensureSupplierAccount(widget.supplierId);
-
-    final stmt = await GL.accountStatement(
-      accId,
-      from: _from,
-      to: _to,
-    );
-
-    final opening = (stmt['opening'] as num).toDouble();
-    final closing = (stmt['closing'] as num).toDouble();
-    final rows = (stmt['rows'] as List).cast<Map<String, Object?>>();
-
-    // إجمالي الديون ضمن الفترة
-    final totalDebt = rows.fold<double>(
-      0.0,
-      (sum, r) => sum + ((r['debit'] as num?)?.toDouble() ?? 0.0),
-    );
-
+    if (picked == null) return;
     setState(() {
-      _opening = opening;
-      _closing = closing;
-      _lines = rows;
-      _totalDebt = totalDebt;
-      _totalRows = rows.length;
-      _loading = false;
+      _range = picked;
+      _reload();
     });
   }
 
-// ---------------------------------------------------------------------------
-// EXPORT TO EXCEL (نسخة صحيحة 100% بدون أخطاء CellValue)
-// ---------------------------------------------------------------------------
-  Future<void> _exportExcel() async {
-    final excel = ex.Excel.createExcel();
-    final sheet = excel['Sheet1'];
+  Future<Uint8List> _pdf(
+    SupplierAccountStatement statement, {
+    required bool detailed,
+  }) async {
+    final doc = await YallaPdfService.createDocument();
+    final header = await YallaPdfService.buildHeader();
+    final footer = await YallaPdfService.buildFooter();
 
-    // الهيدر
-    sheet.appendRow([
-      ex.TextCellValue("التاريخ"),
-      ex.TextCellValue("المرجع"),
-      ex.TextCellValue("المصدر"),
-      ex.TextCellValue("المعرف"),
-      ex.TextCellValue("مدين"),
-      ex.TextCellValue("دائن"),
-      ex.TextCellValue("الرصيد"),
-    ]);
-
-    for (final r in _lines) {
-      final dateStr = (r['date'] ?? '').toString();
-      final d = DateTime.tryParse(dateStr) ?? DateTime(2000, 1, 1);
-
-      sheet.appendRow([
-        ex.TextCellValue(_df.format(d)),
-        ex.TextCellValue((r['ref'] ?? '').toString()),
-        ex.TextCellValue(_labelForSource((r['source'] ?? '').toString())),
-        ex.TextCellValue((r['source_id'] ?? '').toString()),
-        ex.DoubleCellValue((r['debit'] as num?)?.toDouble() ?? 0.0),
-        ex.DoubleCellValue((r['credit'] as num?)?.toDouble() ?? 0.0),
-        ex.DoubleCellValue((r['running'] as num?)?.toDouble() ?? 0.0),
-      ]);
-    }
-
-    final dir = await getDownloadsDirectory();
-    if (dir == null) return;
-
-    final file =
-        File("${dir.path}/supplier_statement_${widget.supplierId}.xlsx");
-
-    await file.writeAsBytes(excel.encode()!);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("تم حفظ Excel في مجلد التنزيلات")),
-      );
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // EXPORT PDF
-  // ---------------------------------------------------------------------------
-  Future<void> _exportPdf() async {
-    final pdf = pw.Document();
-    final arabicFont =
-        pw.Font.ttf(await rootBundle.load('assets/fonts/Cairo-Regular.ttf'));
-
-    pdf.addPage(
+    doc.addPage(
       pw.MultiPage(
-        theme: pw.ThemeData.withFont(base: arabicFont),
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(18),
+        textDirection: pw.TextDirection.rtl,
+        header: (_) => header,
+        footer: (_) => footer,
         build: (_) => [
-          pw.Text("كشف حساب المورد",
-              style:
-                  pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
-          pw.Text(widget.supplierName, style: pw.TextStyle(fontSize: 18)),
-          pw.SizedBox(height: 16),
-          pw.Text("الفترة: ${_df.format(_from!)} → ${_df.format(_to!)}"),
-          pw.Text("الرصيد الافتتاحي: ${_nf.format(_opening)}"),
-          pw.Text("الرصيد الختامي: ${_nf.format(_closing)}"),
-          pw.Text("إجمالي الديون: ${_nf.format(_totalDebt)}"),
-          pw.Text("عدد السطور: $_totalRows"),
-          pw.SizedBox(height: 20),
-          pw.Table.fromTextArray(
-            headers: const [
-              "التاريخ",
-              "المرجع",
-              "المصدر",
-              "المعرف",
-              "مدين",
-              "دائن",
-              "الرصيد"
-            ],
-            data: _lines.map((r) {
-              final dateStr = (r['date'] ?? '').toString();
-              final d = DateTime.tryParse(dateStr);
-
-              return [
-                _df.format(d ?? DateTime(2000, 1, 1)),
-                (r['ref'] ?? '').toString(),
-                _labelForSource((r['source'] ?? '').toString()),
-                (r['source_id'] ?? '').toString(),
-                (r['debit'] ?? 0).toString(),
-                (r['credit'] ?? 0).toString(),
-                (r['running'] ?? 0).toString(),
-              ];
-            }).toList(),
+          pw.Center(
+            child: YallaPdfService.ar(
+              'كشف حساب المورد — ${PublicTextSanitizer.sanitize(statement.supplierName)}',
+              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
           ),
+          if (_range != null) ...[
+            pw.SizedBox(height: 6),
+            pw.Center(
+              child: YallaPdfService.ar(
+                'الفترة: ${_df.format(_range!.start)} → ${_df.format(_range!.end)}',
+              ),
+            ),
+          ],
+          pw.SizedBox(height: 12),
+          YallaPdfService.ar(
+              'الرصيد الافتتاحي: ${_money.format(statement.openingBalance)}'),
+          YallaPdfService.ar(
+              'الرصيد الختامي: ${_money.format(statement.closingBalance)}'),
+          if (detailed) ...[
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey500, width: .45),
+              children: [
+                YallaPdfService.headerRow(
+                  [
+                    'التاريخ',
+                    'البيان',
+                    'رقم المستند',
+                    'مدين',
+                    'دائن',
+                    'الرصيد'
+                  ],
+                ),
+                ...statement.lines.map((line) => pw.TableRow(children: [
+                      YallaPdfService.cell(_df.format(line.date)),
+                      YallaPdfService.cell(
+                          PublicTextSanitizer.sanitize(line.description)),
+                      YallaPdfService.cell(
+                          PublicTextSanitizer.sanitize(line.reference)),
+                      YallaPdfService.cell(_money.format(line.debit)),
+                      YallaPdfService.cell(_money.format(line.credit)),
+                      YallaPdfService.cell(_money.format(line.balance)),
+                    ])),
+              ],
+            ),
+          ],
         ],
       ),
     );
+    return doc.save();
+  }
 
-    final dir = await getDownloadsDirectory();
-    if (dir == null) return;
-
-    final file =
-        File("${dir.path}/supplier_statement_${widget.supplierId}.pdf");
-    await file.writeAsBytes(await pdf.save());
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("تم حفظ PDF في مجلد التنزيلات")),
+  Future<void> _openPdf(
+    SupplierAccountStatement statement, {
+    required bool detailed,
+  }) async {
+    final bytes = await _pdf(statement, detailed: detailed);
+    final fileName = detailed
+        ? 'supplier_statement_${widget.supplierId}_detailed.pdf'
+        : 'supplier_statement_${widget.supplierId}_summary.pdf';
+    await YallaPdfService.saveAndOpen(
+      bytes: bytes,
+      fileName: fileName,
+      module: 'supplier_statements',
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // BUILD TABLE ROW
-  // ---------------------------------------------------------------------------
-  DataRow _buildRow(Map<String, Object?> r) {
-    final dateStr = (r['date'] ?? '').toString();
-    final date = DateTime.tryParse(dateStr);
-
-    return DataRow(
-      cells: [
-        DataCell(Text(_df.format(date ?? DateTime(2000, 1, 1)))),
-        DataCell(Text((r['ref'] ?? '').toString(), textAlign: TextAlign.right)),
-        DataCell(Text(_labelForSource((r['source'] ?? '').toString()),
-            textAlign: TextAlign.right)),
-        DataCell(Text((r['source_id'] ?? '').toString())),
-        DataCell(Text(_nf.format((r['debit'] as num?) ?? 0))),
-        DataCell(Text(_nf.format((r['credit'] as num?) ?? 0))),
-        DataCell(Text(_nf.format((r['running'] as num?) ?? 0))),
-      ],
-    );
-  }
-
-  String _labelForSource(String s) {
-    switch (s) {
-      case 'PURCHASE':
-        return 'مشتريات';
-      case 'PAYMENT':
-        return 'دفعة';
-      case 'INVOICE':
-        return 'فاتورة';
-      case 'EMP_ADV':
-        return 'سلفة موظف';
-      case 'PAYROLL':
-        return 'رواتب';
-      default:
-        return s;
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // UI
-  // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("كشف المورد: ${widget.supplierName}",
-            textAlign: TextAlign.right),
+        title: Text('كشف حساب — ${widget.supplierName}'),
         actions: [
-          // فواتير المورد
-          TextButton.icon(
-            icon: const Icon(Icons.request_quote, color: Colors.white),
-            label: const Text("فواتير المورد",
-                style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.purchasesSupplierLedger,
-                arguments: {
-                  "supplierId": widget.supplierId,
-                  "supplierName": widget.supplierName,
-                },
-              );
-            },
+          IconButton(
+            tooltip: 'الفترة',
+            onPressed: _pickRange,
+            icon: const Icon(Icons.date_range_outlined),
           ),
-
-          // Cheque management is deferred from the first beta navigation.
-          if (ReleaseScopeConfig.chequesEnabled)
-            TextButton.icon(
-              icon: const Icon(Icons.receipt_long, color: Colors.white),
-              label: const Text("شيكات", style: TextStyle(color: Colors.white)),
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.supplierCheques,
-                  arguments: {
-                    'supplierPid': widget.supplierId,
-                    'supplierName': widget.supplierName,
-                  },
-                );
-              },
+          if (_range != null)
+            IconButton(
+              tooltip: 'كل الحركات',
+              onPressed: () => setState(() {
+                _range = null;
+                _reload();
+              }),
+              icon: const Icon(Icons.clear),
             ),
-
-          const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          // ===================== الهيدر الإحصائي =====================
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: AdaptiveRow(
-              children: [
-                Expanded(
-                  child: _StatTile(
-                    title: "إجمالي ديون الفترة",
-                    value: _nf.format(_totalDebt),
-                  ),
-                ),
-                Expanded(
-                  child: _StatTile(
-                    title: "عدد السطور",
-                    value: _totalRows.toString(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ===================== أزرار التصدير =====================
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: AdaptiveRow(
-              children: [
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text("PDF"),
-                  onPressed: _exportPdf,
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.table_chart),
-                  label: const Text("Excel"),
-                  onPressed: _exportExcel,
-                ),
-              ],
-            ),
-          ),
-
-          // -------------------- فلاتر التاريخ --------------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-            child: AdaptiveRow(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.date_range),
-                    label: Text(
-                      _from == null ? 'من' : _df.format(_from!),
-                      textAlign: TextAlign.right,
+      body: FutureBuilder<SupplierAccountStatement>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return Center(child: Text('تعذر تحميل كشف الحساب: ${snap.error}'));
+          }
+          final statement = snap.data!;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Chip(
+                        label: Text(
+                            'افتتاحي: ${_money.format(statement.openingBalance)}')),
+                    Chip(
+                        label: Text(
+                            'المتبقي: ${_money.format(statement.closingBalance)}')),
+                    ActionChip(
+                      avatar:
+                          const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                      label: const Text('PDF مختصر'),
+                      onPressed: () => _openPdf(statement, detailed: false),
                     ),
-                    onPressed: _pickFrom,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.date_range),
-                    label: Text(
-                      _to == null ? 'إلى' : _df.format(_to!),
-                      textAlign: TextAlign.right,
+                    ActionChip(
+                      avatar: const Icon(Icons.receipt_long_outlined, size: 18),
+                      label: const Text('PDF مفصل'),
+                      onPressed: () => _openPdf(statement, detailed: true),
                     ),
-                    onPressed: _pickTo,
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'تحديث',
-                  onPressed: _load,
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(height: 0),
-
-          // -------------------- جدول --------------------
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _lines.isEmpty
-                    ? const Center(child: Text("لا توجد حركات ضمن الفترة"))
-                    : SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: AdaptiveDataTable(
-                          columns: const [
-                            DataColumn(label: Text('التاريخ')),
-                            DataColumn(label: Text('المرجع')),
-                            DataColumn(label: Text('المصدر')),
-                            DataColumn(label: Text('المعرف')),
-                            DataColumn(label: Text('مدين')),
-                            DataColumn(label: Text('دائن')),
-                            DataColumn(label: Text('الرصيد')),
-                          ],
-                          rows: _lines.map(_buildRow).toList(),
-                        ),
+              ),
+              Expanded(
+                child: statement.lines.isEmpty
+                    ? const Center(
+                        child: Text('لا توجد حركات ضمن الفترة المحددة'))
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 700) {
+                            return ListView.separated(
+                              padding: const EdgeInsets.all(12),
+                              itemCount: statement.lines.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (_, index) {
+                                final line = statement.lines[index];
+                                return Card(
+                                  child: ListTile(
+                                    title: Text(line.description),
+                                    subtitle: Text([
+                                      _df.format(line.date),
+                                      if (line.reference.isNotEmpty)
+                                        line.reference,
+                                    ].join(' • ')),
+                                    trailing: Text(
+                                      _money.format(line.balance),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.all(12),
+                            scrollDirection: Axis.horizontal,
+                            child: AdaptiveDataTable(
+                              columns: const [
+                                DataColumn(label: Text('التاريخ')),
+                                DataColumn(label: Text('البيان')),
+                                DataColumn(label: Text('رقم المستند')),
+                                DataColumn(label: Text('مدين')),
+                                DataColumn(label: Text('دائن')),
+                                DataColumn(label: Text('الرصيد')),
+                              ],
+                              rows: statement.lines
+                                  .map((line) => DataRow(cells: [
+                                        DataCell(Text(_df.format(line.date))),
+                                        DataCell(Text(line.description)),
+                                        DataCell(Text(line.reference)),
+                                        DataCell(
+                                            Text(_money.format(line.debit))),
+                                        DataCell(
+                                            Text(_money.format(line.credit))),
+                                        DataCell(
+                                            Text(_money.format(line.balance))),
+                                      ]))
+                                  .toList(),
+                            ),
+                          );
+                        },
                       ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// TILE
-// -----------------------------------------------------------------------------
-class _StatTile extends StatelessWidget {
-  final String title;
-  final String value;
-  const _StatTile({required this.title, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(title, textAlign: TextAlign.right),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.right,
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

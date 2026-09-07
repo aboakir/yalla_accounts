@@ -1,16 +1,6 @@
-// -----------------------------------------------------------------------------
-// 📁 lib/features/suppliers/screens/supplier_payables_screen.dart
-// شاشة ذمم مورد واحد — FINAL VERSION (بدون Directionality)
-// -----------------------------------------------------------------------------
-// تعتمد على Localizations.override لفرض RTL بشكل نظامي ونظيف.
-// -----------------------------------------------------------------------------
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-import 'package:yalla_accounts/core/constants/colors.dart';
-import 'package:yalla_accounts/core/services/db_service.dart';
-import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/features/account_statements/suppliers/services/supplier_statement_service.dart';
 
 class SupplierPayablesScreen extends StatefulWidget {
   final String supplierId;
@@ -27,193 +17,92 @@ class SupplierPayablesScreen extends StatefulWidget {
 }
 
 class _SupplierPayablesScreenState extends State<SupplierPayablesScreen> {
-  bool _loading = false;
-  List<_InvoiceRow> _rows = [];
-
-  final _nf = NumberFormat("#,##0.00");
+  late Future<SupplierAccountStatement> _future;
+  final _money = NumberFormat('#,##0.00', 'ar');
+  final _date = DateFormat('yyyy-MM-dd');
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _reload();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
-
-    final db = await DBService.database;
-
-    // 1) جلب PID
-
-    // 2) جلب الفواتير
-    final invoices = await db.rawQuery("""
-SELECT 
-  id,
-  date,
-  supplier_id,
-  amount_total
-FROM purchase_invoices
-WHERE supplier_id = ?
-ORDER BY date DESC
-""", [widget.supplierId]);
-
-    final List<_InvoiceRow> rows = [];
-
-    for (final inv in invoices) {
-      final String id = inv['id'].toString();
-      final total = (inv['amount_total'] as num?)?.toDouble() ?? 0.0;
-
-      final pays = await db.rawQuery("""
-        SELECT SUM(amount) AS paid
-        FROM purchase_payments
-WHERE invoice_id = ?
-      """, [id]);
-
-      final paid = (pays.first['paid'] as num?)?.toDouble() ?? 0.0;
-      final remain = total - paid;
-
-      rows.add(
-        _InvoiceRow(
-          invoiceId: id,
-          date: inv['date'].toString(),
-          total: total,
-          paid: paid,
-          remain: remain,
-        ),
-      );
-    }
-
-    setState(() {
-      _rows = rows;
-      _loading = false;
-    });
+  void _reload() {
+    _future = SupplierStatementService.load(supplierId: widget.supplierId);
   }
 
   @override
   Widget build(BuildContext context) {
-    // -------------------------------------------------------------------------
-    // بديل Directionality: فرض اللغة العربية + RTL على الشاشة فقط
-    // -------------------------------------------------------------------------
-    return Localizations.override(
-      context: context,
-      locale: const Locale('ar'),
-      child: Builder(
-        builder: (context) {
-          return Scaffold(
-            appBar: AppBar(
-              title: Text("ذمم المورد: ${widget.supplierName}"),
-              backgroundColor: AppColors.primary,
-              centerTitle: true,
-            ),
-            body: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _rows.isEmpty
-                    ? const Center(
-                        child: Text(
-                          "لا توجد ذمم على هذا المورد",
-                          style: TextStyle(fontSize: 15, color: Colors.grey),
-                        ),
-                      )
-                    : ListView.separated(
-                        itemCount: _rows.length,
-                        separatorBuilder: (_, __) =>
-                            Divider(height: 0, color: Colors.grey.shade300),
-                        itemBuilder: (_, i) {
-                          final r = _rows[i];
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('ذمم المورد — ${widget.supplierName}'),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: () => setState(_reload),
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: FutureBuilder<SupplierAccountStatement>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return Center(child: Text('تعذر تحميل الذمم: ${snap.error}'));
+          }
+          final statement = snap.data!;
+          final total = statement.lines.fold<double>(0, (s, l) => s + l.debit);
+          final paid = statement.lines.fold<double>(0, (s, l) => s + l.credit);
+          final remain = statement.closingBalance;
 
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            title: Text(
-                              "فاتورة: ${r.invoiceId}",
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
-                            subtitle: Text(
-                              "التاريخ: ${r.date}\n"
-                              "الإجمالي: ${_nf.format(r.total)}  •  المدفوع: ${_nf.format(r.paid)}",
-                            ),
-                            trailing: Text(
-                              _nf.format(r.remain),
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: r.remain > 0
-                                    ? Colors.red
-                                    : Colors.green.shade700,
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Chip(
+                        label: Text('إجمالي المستحق: ${_money.format(total)}')),
+                    Chip(label: Text('المدفوع: ${_money.format(paid)}')),
+                    Chip(label: Text('المتبقي: ${_money.format(remain)}')),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: statement.lines.isEmpty
+                    ? const Center(child: Text('لا توجد حركات على المورد'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: statement.lines.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (_, index) {
+                          final line = statement.lines[index];
+                          return Card(
+                            child: ListTile(
+                              title: Text(line.description),
+                              subtitle: Text([
+                                _date.format(line.date),
+                                if (line.reference.isNotEmpty) line.reference,
+                              ].join(' • ')),
+                              trailing: Text(
+                                _money.format(line.balance),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700),
                               ),
                             ),
-
-                            // -------------------------------------------------
-                            // قائمة إجراءات الفاتورة
-                            // -------------------------------------------------
-                            onTap: () async {
-                              final action = await showMenu(
-                                context: context,
-                                position:
-                                    const RelativeRect.fromLTRB(200, 200, 0, 0),
-                                items: const [
-                                  PopupMenuItem(
-                                    value: 'view',
-                                    child: Text("عرض الفاتورة"),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'pay',
-                                    child: Text("سند صرف لهذه الفاتورة"),
-                                  ),
-                                ],
-                              );
-
-                              if (action == null) return;
-
-                              switch (action) {
-                                case 'view':
-                                  Navigator.pushNamed(
-                                    context,
-                                    AppRoutes.invoiceView,
-                                    arguments: {
-                                      'invoiceId': r.invoiceId,
-                                    },
-                                  );
-                                  break;
-
-                                case 'pay':
-                                  Navigator.pushNamed(
-                                    context,
-                                    AppRoutes.paymentVoucher,
-                                    arguments: {
-                                      'purchaseId': r.invoiceId,
-                                      'supplierId': widget.supplierId,
-                                      'supplierName': widget.supplierName,
-                                      'presetAmount': r.remain,
-                                    },
-                                  );
-                                  break;
-                              }
-                            },
                           );
                         },
                       ),
+              ),
+            ],
           );
         },
       ),
     );
   }
-}
-
-// نموذج صف للفواتير
-class _InvoiceRow {
-  final String invoiceId;
-  final String date;
-  final double total;
-  final double paid;
-  final double remain;
-
-  _InvoiceRow({
-    required this.invoiceId,
-    required this.date,
-    required this.total,
-    required this.paid,
-    required this.remain,
-  });
 }

@@ -274,6 +274,7 @@ class P15DocumentService {
     CustomerAccountStatement statement, {
     DateTime? from,
     DateTime? to,
+    bool detailed = true,
   }) async {
     final doc = await YallaPdfService.createDocument();
     final header = await YallaPdfService.buildHeader();
@@ -309,24 +310,26 @@ class P15DocumentService {
             YallaPdfService.ar(
                 'الرصيد الختامي: ${_money(statement.closingBalance)}'),
           ]),
-          pw.SizedBox(height: 10),
-          pw.Table(
-            border: pw.TableBorder.all(color: PdfColors.grey500, width: .45),
-            children: [
-              YallaPdfService.headerRow(
-                  ['التاريخ', 'البيان', 'المرجع', 'مدين', 'دائن', 'الرصيد']),
-              ...statement.lines.map((line) => pw.TableRow(children: [
-                    YallaPdfService.cell(df.format(line.date)),
-                    YallaPdfService.cell(
-                        PublicTextSanitizer.sanitize(line.description)),
-                    YallaPdfService.cell(
-                        PublicTextSanitizer.sanitize(line.reference)),
-                    YallaPdfService.cell(_money(line.debit)),
-                    YallaPdfService.cell(_money(line.credit)),
-                    YallaPdfService.cell(_money(line.balance)),
-                  ])),
-            ],
-          ),
+          if (detailed) ...[
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey500, width: .45),
+              children: [
+                YallaPdfService.headerRow(
+                    ['التاريخ', 'البيان', 'المرجع', 'مدين', 'دائن', 'الرصيد']),
+                ...statement.lines.map((line) => pw.TableRow(children: [
+                      YallaPdfService.cell(df.format(line.date)),
+                      YallaPdfService.cell(
+                          PublicTextSanitizer.sanitize(line.description)),
+                      YallaPdfService.cell(
+                          PublicTextSanitizer.sanitize(line.reference)),
+                      YallaPdfService.cell(_money(line.debit)),
+                      YallaPdfService.cell(_money(line.credit)),
+                      YallaPdfService.cell(_money(line.balance)),
+                    ])),
+              ],
+            ),
+          ],
         ],
       ),
     );

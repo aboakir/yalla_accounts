@@ -45,14 +45,18 @@ class _CustomerAccountStatementScreenState
   Future<void> _statementPdf(
     CustomerAccountStatement statement, {
     String action = 'open',
+    bool detailed = true,
   }) async {
     try {
       final bytes = await P15DocumentService.generateCustomerStatementPdf(
         statement,
         from: _range?.start,
         to: _range?.end,
+        detailed: detailed,
       );
-      final fileName = 'customer_statement_${widget.clientId}.pdf';
+      final fileName = detailed
+          ? 'customer_statement_${widget.clientId}_detailed.pdf'
+          : 'customer_statement_${widget.clientId}_summary.pdf';
       if (action == 'print') {
         await Printing.layoutPdf(onLayout: (_) async => bytes);
       } else if (action == 'share') {
@@ -136,8 +140,14 @@ class _CustomerAccountStatementScreenState
                     ActionChip(
                       avatar:
                           const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                      label: const Text('PDF'),
-                      onPressed: () => _statementPdf(statement),
+                      label: const Text('PDF مختصر'),
+                      onPressed: () =>
+                          _statementPdf(statement, detailed: false),
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.receipt_long_outlined, size: 18),
+                      label: const Text('PDF مفصل'),
+                      onPressed: () => _statementPdf(statement, detailed: true),
                     ),
                     ActionChip(
                       avatar: const Icon(Icons.print_outlined, size: 18),

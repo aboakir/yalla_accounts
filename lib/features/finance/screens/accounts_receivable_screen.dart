@@ -25,6 +25,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/features/parties/services/party_financial_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -88,10 +89,6 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
     try {
       final db = await _db();
 
-      // P10: canonical AR comes directly from GL through DBService.
-      final arRows = await DBService.getClientAR();
-
-      // 2) نوع العميل من clients → 'شركة تأمين' | 'أفراد'
       final typesRows = await db.rawQuery('SELECT id, type FROM clients');
       final typeById = <int, String>{};
       for (final m in typesRows) {
@@ -103,60 +100,27 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
             : 'أفراد';
       }
 
-      // 3) لو في نطاق تاريخ → المدفوع ضمن النطاق فقط
-      final paidInRange = <int, double>{};
-      if (_range != null) {
-        final s = _df.format(DateTime(
-            _range!.start.year, _range!.start.month, _range!.start.day));
-        final e = _df.format(
-            DateTime(_range!.end.year, _range!.end.month, _range!.end.day));
-        final rangePay = await db.rawQuery('''
-          SELECT
-            COALESCE(
-              p.client_id,
-              (SELECT r.client_id FROM repairs r WHERE r.id = p.repair_id)
-            ) AS cid,
-            IFNULL(SUM(p.amount),0) AS tot
-          FROM payments p
-          WHERE p.date >= ? AND p.date <= ?
-          GROUP BY 1
-        ''', [s, e]);
-
-        for (final m in rangePay) {
-          final cidVal = m['cid'];
-          if (cidVal == null) continue;
-          final cid = (cidVal is num)
-              ? cidVal.toInt()
-              : int.tryParse(cidVal.toString());
-          if (cid != null) {
-            paidInRange[cid] = (m['tot'] as num?)?.toDouble() ?? 0.0;
-          }
-        }
-      }
+      final balances = await PartyFinancialService.balances(
+        from: _range?.start,
+        to: _range?.end,
+        executor: db,
+      );
 
       _allRows
         ..clear()
-        ..addAll(arRows.map((m) {
-          final cid = (m['client_id'] as num).toInt();
-          final name = (m['client_name'] ?? '').toString();
-          final inv = (m['invoices_total'] as num?)?.toDouble() ?? 0.0;
-          final paid = _range == null
-              ? (m['payments_total'] as num?)?.toDouble() ?? 0.0
-              : (paidInRange[cid] ?? 0.0);
-          // P10: balance_due is canonical GL AR. A date filter changes only
-          // the displayed collections amount; it must not recalculate AR from
-          // historical invoice totals.
-          final balance = (m['balance_due'] as num?)?.toDouble() ?? 0.0;
-          final type = typeById[cid] ?? 'أفراد';
-          return _ClientRow(
-            clientId: cid,
-            name: name,
-            type: type,
-            invoicesTotal: inv,
-            paymentsTotal: paid,
-            balance: balance,
-          );
-        }));
+        ..addAll(
+          balances.where((p) => p.customerLegacyId != null).map((p) {
+            final cid = int.parse(p.customerLegacyId!);
+            return _ClientRow(
+              clientId: cid,
+              name: p.displayName,
+              type: typeById[cid] ?? 'أفراد',
+              invoicesTotal: p.totalReceivable,
+              paymentsTotal: p.received,
+              balance: p.receivableBalance,
+            );
+          }),
+        );
 
       if (!mounted) return;
       setState(() => _loading = false);
