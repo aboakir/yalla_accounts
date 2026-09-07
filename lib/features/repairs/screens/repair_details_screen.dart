@@ -547,7 +547,18 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       final path = '${tempDir.path}/repair_${_repair.id}.pdf';
       final file = File(path);
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles([XFile(path)], text: 'كشف إصلاح المركبة');
+      final screenSize = MediaQuery.sizeOf(context);
+      final shareOrigin = Rect.fromLTWH(
+        screenSize.width / 2,
+        screenSize.height / 2,
+        1,
+        1,
+      );
+      await Share.shareXFiles(
+        [XFile(path)],
+        text: 'كشف إصلاح المركبة',
+        sharePositionOrigin: shareOrigin,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
