@@ -137,39 +137,72 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   Future<void> _markTodayAsPresent() async {
     if (selectedEmployee == null) return;
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final already = records.any((r) => _isSameDate(r.date, today));
-    if (already) {
+    final currentHmm = _fmtHmm(now.hour * 60 + now.minute);
+
+    Attendance? existing;
+    for (final r in records) {
+      if (_isSameDate(r.date, today)) {
+        existing = r;
+        break;
+      }
+    }
+
+    if (existing == null) {
+      final id =
+          '${selectedEmployee!.id}_${DateFormat('yyyyMMdd').format(today)}';
+      final rec = Attendance(
+        id: id,
+        employeeId: selectedEmployee!.id,
+        date: today,
+        status: stPresent,
+        checkIn: currentHmm,
+        checkOut: null,
+        hoursWorked: 0.0,
+        notes: 'تسجيل دخول فعلي',
+      );
+      await AttendanceDatabaseService.insertAttendance(rec);
+      await _loadAttendance();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تسجيل حضور هذا اليوم مسبقًا.')),
+        SnackBar(content: Text('تم تسجيل الدخول الفعلي: $currentHmm')),
       );
       return;
     }
 
-    final inHmm = _fmtHmm(_stdStart());
+    if (existing.status == stPresent &&
+        (existing.checkOut ?? '').trim().isEmpty) {
+      final inHmm = (existing.checkIn ?? '').trim();
+      if (inHmm.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('سجل الحضور لا يحتوي وقت دخول. عدّله يدويًا أولًا.')),
+        );
+        return;
+      }
+      final updated = existing.copyWith(
+        checkOut: currentHmm,
+        hoursWorked: _calcWorkedHours(inHmm, currentHmm),
+      );
+      await AttendanceDatabaseService.updateAttendance(
+        updated,
+        reason: 'تسجيل انصراف فعلي',
+      );
+      await _loadAttendance();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تم تسجيل الانصراف الفعلي: $currentHmm')),
+      );
+      return;
+    }
 
-    final outHmm = _fmtHmm(_stdEnd());
-    final hours = _calcWorkedHours(inHmm, outHmm);
-
-    final id =
-        '${selectedEmployee!.id}_${DateFormat('yyyyMMdd').format(today)}';
-    final rec = Attendance(
-      id: id,
-      employeeId: selectedEmployee!.id,
-      date: today,
-      status: stPresent,
-      checkIn: inHmm,
-      checkOut: outHmm,
-      hoursWorked: hours,
-      notes: null,
-    );
-
-    await AttendanceDatabaseService.insertAttendance(rec);
-    await _loadAttendance();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم تسجيل حضور اليوم')),
+      const SnackBar(
+          content: Text('تم تسجيل الدخول والانصراف لهذا اليوم مسبقًا.')),
     );
   }
 
@@ -947,6 +980,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final ctrlIn = TextEditingController(text: checkIn ?? '');
     final ctrlOut = TextEditingController(text: checkOut ?? '');
     final ctrlNotes = TextEditingController(text: notes ?? '');
+    final ctrlReason = TextEditingController();
 
     final ok = await showDialog<bool>(
       context: context,
@@ -1033,6 +1067,16 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               controller: ctrlNotes,
               decoration: InputDecoration(labelText: 'ملاحظات'),
             ),
+            if (isExisting) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: ctrlReason,
+                decoration: const InputDecoration(
+                  labelText: 'سبب التعديل / الحذف',
+                  helperText: 'إلزامي ويُحفظ في سجل التدقيق',
+                ),
+              ),
+            ],
             const SizedBox(height: 8),
             if (status == stPresent)
               const Align(
@@ -1047,8 +1091,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           if (isExisting)
             TextButton(
               onPressed: () async {
-                await AttendanceDatabaseService.deleteAttendance(record.id);
-                if (mounted) Navigator.pop(context, true);
+                final reason = ctrlReason.text.trim();
+                if (reason.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('سبب الحذف إلزامي.')),
+                  );
+                  return;
+                }
+                await AttendanceDatabaseService.deleteAttendance(
+                  record.id,
+                  reason: reason,
+                );
+                if (mounted) Navigator.pop(context, false);
+                await _loadAttendance();
               },
               child: const Text('حذف', style: TextStyle(color: Colors.red)),
             ),
@@ -1075,7 +1130,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       double? hours;
       if (status == stPresent) {
         hours = (inStr == null || outStr == null)
-            ? workHours
+            ? 0.0
             : _calcWorkedHours(inStr, outStr);
       } else {
         hours = null;
@@ -1095,7 +1150,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       if (record.id.isEmpty) {
         await AttendanceDatabaseService.insertAttendance(updated);
       } else {
-        await AttendanceDatabaseService.updateAttendance(updated);
+        final reason = ctrlReason.text.trim();
+        if (reason.isEmpty) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('سبب التعديل إلزامي.')),
+          );
+          return;
+        }
+        await AttendanceDatabaseService.updateAttendance(
+          updated,
+          reason: reason,
+        );
       }
       await _loadAttendance();
       if (!mounted) return;

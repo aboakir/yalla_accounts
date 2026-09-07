@@ -10,10 +10,7 @@ import 'package:yalla_accounts/features/employees/providers/employee_provider.da
 import 'package:yalla_accounts/features/employees/screens/add_employee_screen.dart';
 import 'package:yalla_accounts/features/employees/screens/employees_list_screen.dart';
 
-import 'package:yalla_accounts/features/employees/services/salary_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
-
-import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class EmployeeDashboardScreen extends ConsumerWidget {
   const EmployeeDashboardScreen({super.key});
@@ -180,21 +177,13 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          OutlinedButton.icon(
-                            icon: const Icon(Icons.receipt_long),
-                            label: const Text('إثبات راتب شهر'),
-                            onPressed: () => _openApproveDialog(context, ref),
+                      const Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Text(
+                            'الاستحقاق يُحتسب من الحضور داخل شاشة رواتب الموظف، والدفع يتم حصراً بسند صرف مرتبط بالاستحقاق.',
                           ),
-                          OutlinedButton.icon(
-                            icon: const Icon(Icons.payments),
-                            label: const Text('صرف راتب'),
-                            onPressed: () => _openPayDialog(context, ref),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -208,191 +197,6 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                 width: 260,
                 child: YallaSidebar(currentRoute: '/employees'),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ===== Dialogs =====
-
-  Future<void> _openApproveDialog(BuildContext context, WidgetRef ref) async {
-    final empId = TextEditingController();
-    final month = TextEditingController(); // YYYY-MM
-    final gross = TextEditingController();
-    final adv = TextEditingController(text: '0');
-    final ded = TextEditingController(text: '0');
-    final note = TextEditingController();
-    DateTime? date;
-
-    await showDialog<void>(
-      context: context,
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AdaptiveAlertDialog(
-          title: const Text('إثبات راتب شهر'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                _tf(empId, 'معرّف الموظف (employee_id)'),
-                const SizedBox(height: 8),
-                _tf(month, 'الشهر (YYYY-MM)'),
-                const SizedBox(height: 8),
-                _tf(gross, 'إجمالي الراتب (gross)',
-                    keyboard: TextInputType.number),
-                const SizedBox(height: 8),
-                _tf(adv, 'سلف مستهلكة (اختياري)',
-                    keyboard: TextInputType.number),
-                const SizedBox(height: 8),
-                _tf(ded, 'خصومات أخرى (اختياري)',
-                    keyboard: TextInputType.number),
-                const SizedBox(height: 8),
-                _tf(note, 'ملاحظة (اختياري)'),
-                const SizedBox(height: 8),
-                AdaptiveRow(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.date_range),
-                        label: Text(date == null ? 'تاريخ القيد' : _fmt(date!)),
-                        onPressed: () async {
-                          final now = DateTime.now();
-                          final d = await showDatePicker(
-                            context: context,
-                            initialDate: date ?? now,
-                            firstDate: DateTime(now.year - 5, 1, 1),
-                            lastDate: DateTime(now.year + 1, 12, 31),
-                          );
-                          if (d != null) {
-                            date = DateTime(d.year, d.month, d.day, 23, 59, 59);
-                            (context as Element).markNeedsBuild();
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('إلغاء')),
-            ElevatedButton(
-              child: const Text('إثبات'),
-              onPressed: () async {
-                try {
-                  final g = double.parse(gross.text.trim());
-                  final a = double.tryParse(adv.text.trim()) ?? 0.0;
-                  final d = double.tryParse(ded.text.trim()) ?? 0.0;
-                  await SalaryService.approveSalary(
-                    employeeId: empId.text.trim(),
-                    month: month.text.trim(),
-                    date: date ?? DateTime.now(),
-                    gross: g,
-                    advancesApplied: a,
-                    deductions: d,
-                    note: note.text.trim().isEmpty ? null : note.text.trim(),
-                  );
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم إثبات الراتب')),
-                    );
-                    ref.invalidate(employeeProvider);
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('فشل الإثبات: $e')),
-                    );
-                  }
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openPayDialog(BuildContext context, WidgetRef ref) async {
-    final salaryId = TextEditingController();
-    final amount = TextEditingController(); // اختياري
-    DateTime? date;
-
-    await showDialog<void>(
-      context: context,
-      builder: (_) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AdaptiveAlertDialog(
-          title: const Text('صرف راتب'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _tf(salaryId, 'Salary ID (من إثبات الراتب)'),
-              const SizedBox(height: 8),
-              _tf(amount, 'المبلغ (اختياري)', keyboard: TextInputType.number),
-              const SizedBox(height: 8),
-              AdaptiveRow(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.date_range),
-                      label: Text(date == null ? 'تاريخ الدفع' : _fmt(date!)),
-                      onPressed: () async {
-                        final now = DateTime.now();
-                        final d = await showDatePicker(
-                          context: context,
-                          initialDate: date ?? now,
-                          firstDate: DateTime(now.year - 5, 1, 1),
-                          lastDate: DateTime(now.year + 1, 12, 31),
-                        );
-                        if (d != null) {
-                          date = DateTime(d.year, d.month, d.day, 12, 0, 0);
-                          (context as Element).markNeedsBuild();
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('إلغاء')),
-            ElevatedButton(
-              child: const Text('صرف'),
-              onPressed: () async {
-                try {
-                  final a = amount.text.trim().isEmpty
-                      ? null
-                      : double.parse(amount.text.trim()); // ← أصلحت القوس
-                  await SalaryService.paySalary(
-                    id: salaryId.text.trim(),
-                    paymentDate: date ?? DateTime.now(),
-                    amount: a,
-                    note: 'صرف راتب',
-                  );
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم صرف الراتب')),
-                    );
-                    ref.invalidate(employeeProvider);
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('فشل الصرف: $e')),
-                    );
-                  }
-                }
-              },
-            ),
           ],
         ),
       ),
@@ -432,21 +236,4 @@ class EmployeeDashboardScreen extends ConsumerWidget {
       ),
     );
   }
-
-  static Widget _tf(TextEditingController c, String label,
-      {TextInputType keyboard = TextInputType.text}) {
-    return TextField(
-      inputFormatters: const [YallaDigitNormalizer()],
-      controller: c,
-      keyboardType: keyboard,
-      textAlign: TextAlign.right,
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        isDense: true,
-      ).copyWith(labelText: label),
-    );
-  }
-
-  static String _fmt(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 }

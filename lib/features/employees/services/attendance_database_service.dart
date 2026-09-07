@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 
 // ربط بإعدادات الورشة
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
@@ -131,6 +132,9 @@ class AttendanceSummary {
   final double payableRegularHours; // ساعات تُحسب كدوام أساسي بعد خصم الاستراحة
   final double overtimeHours; // ساعات إضافية فوق ساعات اليوم القياسية
   final int lateMinutes; // مجموع دقائق التأخير
+  final int earlyExitMinutes; // مجموع دقائق الخروج المبكر
+  final int scheduledWorkDays; // أيام العمل المجدولة من إعدادات الورشة
+  final int missingWorkDays; // أيام عمل بلا سجل حضور وتُعامل كغياب
 
   /// أيام مدفوعة فعليًا ≈ payableRegularHours / hoursPerDay
   final double payableDays;
@@ -148,6 +152,9 @@ class AttendanceSummary {
     required this.payableRegularHours,
     required this.overtimeHours,
     required this.lateMinutes,
+    required this.earlyExitMinutes,
+    required this.scheduledWorkDays,
+    required this.missingWorkDays,
     required this.payableDays,
   });
 
@@ -165,6 +172,9 @@ class AttendanceSummary {
             AttendanceDatabaseService._round2(payableRegularHours),
         'overtimeHours': AttendanceDatabaseService._round2(overtimeHours),
         'lateMinutes': lateMinutes,
+        'earlyExitMinutes': earlyExitMinutes,
+        'scheduledWorkDays': scheduledWorkDays,
+        'missingWorkDays': missingWorkDays,
         'payableDays': AttendanceDatabaseService._round2(payableDays),
       };
 }
@@ -206,28 +216,90 @@ class AttendanceDatabaseService {
   static Future<void> insertAttendance(Attendance record) async {
     final db = await _db;
     await _ensureSchema(db);
-    await db.insert(
-      _table,
-      record.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.transaction((txn) async {
+      await txn.insert(
+        _table,
+        record.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+      await AuditTrailService.log(
+        executor: txn,
+        action: 'ATTENDANCE_CREATED',
+        entityType: 'attendance',
+        entityId: record.id,
+        after: record.toMap(),
+      );
+    });
   }
 
-  static Future<void> updateAttendance(Attendance record) async {
+  static Future<void> updateAttendance(
+    Attendance record, {
+    required String reason,
+  }) async {
+    final trimmedReason = reason.trim();
+    if (trimmedReason.isEmpty) {
+      throw ArgumentError('Attendance edit reason is required.');
+    }
     final db = await _db;
     await _ensureSchema(db);
-    await db.update(
-      _table,
-      record.toMap(),
-      where: 'id = ?',
-      whereArgs: [record.id],
-    );
+    await db.transaction((txn) async {
+      final beforeRows = await txn.query(
+        _table,
+        where: 'id = ?',
+        whereArgs: [record.id],
+        limit: 1,
+      );
+      if (beforeRows.isEmpty) {
+        throw StateError('Attendance record not found: ${record.id}');
+      }
+      final before = Map<String, Object?>.from(beforeRows.first);
+      await txn.update(
+        _table,
+        record.toMap(),
+        where: 'id = ?',
+        whereArgs: [record.id],
+      );
+      await AuditTrailService.log(
+        executor: txn,
+        action: 'ATTENDANCE_UPDATED',
+        entityType: 'attendance',
+        entityId: record.id,
+        before: before,
+        after: record.toMap(),
+        reason: trimmedReason,
+      );
+    });
   }
 
-  static Future<void> deleteAttendance(String id) async {
+  static Future<void> deleteAttendance(
+    String id, {
+    required String reason,
+  }) async {
+    final trimmedReason = reason.trim();
+    if (trimmedReason.isEmpty) {
+      throw ArgumentError('Attendance delete reason is required.');
+    }
     final db = await _db;
     await _ensureSchema(db);
-    await db.delete(_table, where: 'id = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      final beforeRows = await txn.query(
+        _table,
+        where: 'id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (beforeRows.isEmpty) return;
+      final before = Map<String, Object?>.from(beforeRows.first);
+      await AuditTrailService.log(
+        executor: txn,
+        action: 'ATTENDANCE_DELETED',
+        entityType: 'attendance',
+        entityId: id,
+        before: before,
+        reason: trimmedReason,
+      );
+      await txn.delete(_table, where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   static Future<List<Attendance>> getAllAttendance() async {
@@ -333,6 +405,42 @@ class AttendanceDatabaseService {
     return d > 0 ? d : 0;
   }
 
+  static int _earlyExitMinutesFrom(String? checkOut, DateTime shiftEnd) {
+    final outMin = _parseHmmToMin(checkOut);
+    if (outMin == null) return 0;
+    final baseMin = shiftEnd.hour * 60 + shiftEnd.minute;
+    final d = baseMin - outMin;
+    return d > 0 ? d : 0;
+  }
+
+  static Set<int> _configuredWeekdays(AttendancePolicy policy) {
+    final raw = (policy.weekWorkdays ?? '').trim();
+    if (raw.isEmpty) return const {1, 2, 3, 4, 5, 6};
+    final days = raw
+        .split(',')
+        .map((e) => int.tryParse(e.trim()))
+        .whereType<int>()
+        .where((e) => e >= DateTime.monday && e <= DateTime.sunday)
+        .toSet();
+    return days.isEmpty ? const {1, 2, 3, 4, 5, 6} : days;
+  }
+
+  static int _scheduledWorkDays(
+    DateTime from,
+    DateTime to,
+    AttendancePolicy policy,
+  ) {
+    final weekdays = _configuredWeekdays(policy);
+    var cursor = DateTime(from.year, from.month, from.day);
+    final end = DateTime(to.year, to.month, to.day);
+    var count = 0;
+    while (!cursor.isAfter(end)) {
+      if (weekdays.contains(cursor.weekday)) count += 1;
+      cursor = cursor.add(const Duration(days: 1));
+    }
+    return count;
+  }
+
   // ───────────── تلخيص لاستخدام الرواتب ─────────────
 
   /// نسخة مريحة: تبني السياسة تلقائيًا من إعدادات الورشة
@@ -373,6 +481,7 @@ class AttendanceDatabaseService {
     double payableRegularHours = 0.0;
     double overtimeHours = 0.0;
     int lateMinutes = 0;
+    int earlyExitMinutes = 0;
 
     for (final r in rows) {
       final d0 = DateTime(r.date.year, r.date.month, r.date.day);
@@ -400,6 +509,7 @@ class AttendanceDatabaseService {
 
         // تأخير
         lateMinutes += _lateMinutesFrom(r.checkIn, shiftStartDT);
+        earlyExitMinutes += _earlyExitMinutesFrom(r.checkOut, shiftEndDT);
 
         // احتساب الساعات المنتظمة مقابل الإضافي
         final base = policy.hoursPerDay;
@@ -426,6 +536,17 @@ class AttendanceDatabaseService {
       }
     }
 
+    final scheduledWorkDays = _scheduledWorkDays(from, to, policy);
+    final coveredScheduledDates = rows
+        .map((r) => DateTime(r.date.year, r.date.month, r.date.day))
+        .where((d) => _configuredWeekdays(policy).contains(d.weekday))
+        .map((d) => '${d.year}-${d.month}-${d.day}')
+        .toSet()
+        .length;
+    final missingWorkDays =
+        math.max(0, scheduledWorkDays - coveredScheduledDates);
+    absentDays += missingWorkDays;
+
     final payableDays = policy.hoursPerDay > 0
         ? _round2(payableRegularHours / policy.hoursPerDay)
         : 0.0;
@@ -443,6 +564,9 @@ class AttendanceDatabaseService {
       payableRegularHours: payableRegularHours,
       overtimeHours: overtimeHours,
       lateMinutes: lateMinutes,
+      earlyExitMinutes: earlyExitMinutes,
+      scheduledWorkDays: scheduledWorkDays,
+      missingWorkDays: missingWorkDays,
       payableDays: payableDays,
     );
   }

@@ -1,9 +1,9 @@
 // 📁 lib/features/employees/screens/salary_screen.dart
 //
-// SalaryScreen — إدارة رواتب شهرية + GL
+// SalaryScreen — استحقاقات الرواتب من الحضور + سندات الصرف
 // - Snapshot شهري من الحضور.
 // - قفل/فتح شهر الرواتب.
-// - إثبات/صرف/عكس رواتب مع GL.
+// - الاستحقاق من الحضور؛ الدفع بسند صرف فقط.
 // - حماية Dropdown طريقة الدفع من التكرار أو قيمة غير موجودة.
 // - السايدبار يمين دائمًا بدون استخدام RTL أو LTR.
 
@@ -18,13 +18,11 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
-import 'package:yalla_accounts/features/employees/models/salary.dart';
 import 'package:yalla_accounts/features/employees/providers/employee_provider.dart';
-import 'package:yalla_accounts/features/employees/providers/salary_provider.dart';
 
 // Services
-import 'package:yalla_accounts/features/employees/services/attendance_database_service.dart';
-import 'package:yalla_accounts/features/employees/services/salary_database_service.dart';
+import 'package:yalla_accounts/features/employees/services/payroll_database_service.dart';
+import 'package:yalla_accounts/features/employees/services/payroll_entitlement_service.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_periods_service.dart';
 
 // Settings
@@ -128,49 +126,17 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
     });
 
     try {
-      final empState = ref.read(employeeProvider);
-      final employees = empState.employees;
-
+      final employees = ref.read(employeeProvider).employees;
       final from = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-      final to = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
-      final totalDaysInMonth = to.difference(from).inDays + 1;
-      final monthKey = _monthKey();
-
+      final to = DateTime(
+          _selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59);
       for (final employee in employees) {
-        final attendanceRecords =
-            await AttendanceDatabaseService.getAttendanceForEmployee(
-          employeeId: employee.id,
-          from: from,
-          to: to,
+        final calculation = await PayrollEntitlementService.calculate(
+          employee: employee,
+          periodStart: from,
+          periodEnd: to,
         );
-
-        await ref.read(salaryProvider.notifier).calculateSalaryFromAttendance(
-              employeeId: employee.id,
-              baseSalary: employee.baseSalary,
-              totalWorkDaysInMonth: totalDaysInMonth,
-              attendanceRecords: attendanceRecords,
-            );
-
-        final netSalary =
-            ref.read(salaryProvider.notifier).getSalary(employee.id);
-
-        await SalaryDatabaseService.upsertSalary(
-          Salary(
-            id: _snapId(employee.id, monthKey),
-            employeeId: employee.id,
-            month: monthKey,
-            date: _periodDate(),
-            gross: netSalary,
-            advancesApplied: 0.0,
-            deductions: 0.0,
-            net: netSalary,
-            status: 'approved',
-            note: 'Attendance snapshot',
-            employeeName: employee.fullName,
-          ),
-        );
-
-        _netByEmployee[employee.id] = netSalary;
+        _netByEmployee[employee.id] = calculation.netBeforeAdvances;
       }
     } catch (e) {
       _calcError = e.toString();
@@ -179,45 +145,70 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
     }
   }
 
+  Future<PayrollRun?> _runForEmployeeMonth(String employeeId) async {
+    final runs = await PayrollDatabaseService.listByMonth(_monthKey());
+    for (final run in runs) {
+      if (run.employeeId == employeeId && run.status != 'REVERSED') {
+        await PayrollDatabaseService.syncPaymentState(run.id);
+        return PayrollDatabaseService.getById(run.id);
+      }
+    }
+    return null;
+  }
+
   Future<void> _postAccrualForEmployee({
     required String employeeId,
     required String employeeName,
     required double amount,
   }) async {
     try {
-      await SalaryDatabaseService.postMonthlyAccrual(
-        employeeId: employeeId,
-        employeeName: employeeName,
-        month: _monthKey(),
-        amount: amount,
+      final matches = ref
+          .read(employeeProvider)
+          .employees
+          .where((e) => e.id == employeeId)
+          .toList();
+      if (matches.isEmpty) throw StateError('Employee not found');
+      final employee = matches.first;
+      final from = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+      final to = DateTime(
+          _selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59);
+      await PayrollEntitlementService.accrueFromAttendance(
+        employee: employee,
+        periodStart: from,
+        periodEnd: to,
+        accrualDate: DateTime.now(),
+        note: 'استحقاق محسوب من الحضور لشهر ${_monthKey()}',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('تم إثبات راتب $employeeName لشهر ${_monthKey()}')),
+            content: Text(
+                'تم إنشاء استحقاق $employeeName من الحضور لشهر ${_monthKey()}')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل الإثبات: $e')),
+        SnackBar(content: Text('فشل إنشاء الاستحقاق: $e')),
       );
     }
   }
 
   Future<void> _reverseAccrualForEmployee({required String employeeId}) async {
     try {
-      await SalaryDatabaseService.reverseAccrual(
-        employeeId: employeeId,
-        month: _monthKey(),
+      final run = await _runForEmployeeMonth(employeeId);
+      if (run == null) throw StateError('لا يوجد استحقاق مرحل لهذا الشهر');
+      await PayrollDatabaseService.reverseAccrual(
+        run.id,
+        note: 'عكس استحقاق راتب ${_monthKey()}',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم عكس قيد الإثبات')),
+        const SnackBar(content: Text('تم عكس قيد الاستحقاق')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل عكس الإثبات: $e')),
+        SnackBar(content: Text('فشل عكس الاستحقاق: $e')),
       );
     }
   }
@@ -225,36 +216,32 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
   // ===== Payment =====
   String _normalizeMethod(String? v) => (v ?? 'cash').toLowerCase().trim();
 
-  T? _safeValue<T>(T? v, List<DropdownMenuItem<T>> items) {
-    if (v == null) return null;
-    final count = items.where((e) => e.value == v).length;
-    if (count == 1) return v;
-    return null;
-  }
-
   Future<void> _paySalaryForEmployee({
     required String employeeId,
     required String employeeName,
   }) async {
-    final controller = TextEditingController(
-      text: (_netByEmployee[employeeId] ?? 0).toStringAsFixed(2),
-    );
-
-    final raw = <DropdownMenuItem<String>>[
+    final run = await _runForEmployeeMonth(employeeId);
+    if (run == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أنشئ استحقاق الراتب من الحضور أولاً')),
+      );
+      return;
+    }
+    final remaining = (run.net - run.amountPaid).clamp(0.0, double.infinity);
+    final controller =
+        TextEditingController(text: remaining.toStringAsFixed(2));
+    final methodItems = <DropdownMenuItem<String>>[
       const DropdownMenuItem(value: 'cash', child: Text('نقدي')),
       const DropdownMenuItem(value: 'bank', child: Text('بنك')),
-      const DropdownMenuItem(value: 'cheque', child: Text('شيك')),
       const DropdownMenuItem(value: 'transfer', child: Text('تحويل')),
     ];
-    final methodItems =
-        {for (final it in raw) it.value!: it}.values.toList(growable: false);
-
     String method = 'cash';
 
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AdaptiveAlertDialog(
-        title: const Text('صرف راتب'),
+        title: const Text('إنشاء سند صرف راتب'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -265,29 +252,31 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'المبلغ',
+                helperText: 'المتبقي: ${MoneyFormatter.format(remaining)}',
                 prefixText: '${MoneyFormatter.symbol} ',
               ),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _safeValue(method, methodItems),
+              value: method,
               items: methodItems,
               onChanged: (v) => method = _normalizeMethod(v),
-              decoration: InputDecoration(labelText: 'طريقة الدفع'),
+              decoration: const InputDecoration(labelText: 'طريقة الدفع'),
             ),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('إلغاء')),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
           ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('صرف')),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('إنشاء سند صرف'),
+          ),
         ],
       ),
     );
-
     if (ok != true) return;
 
     final amount = double.tryParse(controller.text.trim()) ?? 0.0;
@@ -298,34 +287,22 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
       );
       return;
     }
-
-    await SalaryDatabaseService.paySalary(
-      employeeId: employeeId,
-      employeeName: employeeName,
-      month: _monthKey(),
-      amount: amount,
-      method: _normalizeMethod(method),
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم صرف الراتب وربط GL')),
-    );
-  }
-
-  Future<void> _reversePaymentForEmployee({required String employeeId}) async {
     try {
-      await SalaryDatabaseService.reversePayment(
-        employeeId: employeeId,
-        month: _monthKey(),
+      await PayrollDatabaseService.pay(
+        runId: run.id,
+        amount: amount,
+        date: DateTime.now(),
+        method: method,
+        note: 'سند صرف راتب $employeeName لشهر ${_monthKey()}',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم عكس قيد الصرف')),
+        const SnackBar(content: Text('تم إنشاء سند صرف الراتب')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل عكس الصرف: $e')),
+        SnackBar(content: Text('فشل إنشاء سند الصرف: $e')),
       );
     }
   }
@@ -594,13 +571,10 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
                                   ),
                           icon: const Icon(Icons.payments),
                         ),
-                        IconButton(
-                          tooltip: _isLocked ? 'الشهر مقفول' : 'عكس قيد الصرف',
-                          onPressed: _isLocked
-                              ? null
-                              : () => _reversePaymentForEmployee(
-                                  employeeId: employee.id),
-                          icon: const Icon(Icons.settings_backup_restore),
+                        const IconButton(
+                          tooltip: 'عكس دفعة الراتب يتم من سند الصرف الأصلي',
+                          onPressed: null,
+                          icon: Icon(Icons.settings_backup_restore),
                         ),
                       ],
                     ),

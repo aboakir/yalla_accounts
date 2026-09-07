@@ -5,7 +5,7 @@
 //
 // GL Sources:
 //   PAYROLL_ACCRUAL → source_id = run.id
-//   PAYROLL_PAYMENT → source_id = payment.id
+//   Salary payment: PAYMENT voucher with source=PAYROLL_ENTITLEMENT, source_id=run.id
 //
 // سياسة GL عند الإثبات:
 //   Dr 5100 = gross + allowances + paidHolidayPay + overtimePay
@@ -14,9 +14,9 @@
 //   Apply advances: Dr 2140.E / Cr 1120.E = applied
 //   net = preNet - applied
 //
-// سياسة GL عند الدفع:
-//   Dr 2140.E = amount
-//   Cr 1000/1010 حسب method
+// سياسة الدفع:
+//   VoucherPaymentService posts Dr 2140.E / Cr cash or bank.
+//   No direct payroll-payment GL is created here.
 //
 // الحمايات:
 // - PayrollPeriodsService.assertAccrualAllowed(...)
@@ -38,6 +38,8 @@ import 'package:yalla_accounts/features/employees/services/payroll_periods_servi
 import 'package:yalla_accounts/features/employees/services/advance_database_service.dart';
 import 'package:yalla_accounts/features/employees/services/salary_database_service.dart';
 import 'package:yalla_accounts/features/employees/models/salary.dart';
+import 'package:yalla_accounts/features/vouchers/models/voucher_payment_model.dart';
+import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
 
 class PayrollRun {
   final String id;
@@ -176,6 +178,21 @@ class PayrollDatabaseService {
     ''');
     await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_payroll_payments_run ON $paymentsTable(run_id);');
+    await _ensureColumn(db, table, 'attendance_snapshot', 'TEXT');
+    await _ensureColumn(db, table, 'entitlement_basis', 'TEXT');
+    await _ensureColumn(db, paymentsTable, 'voucher_id', 'TEXT');
+  }
+
+  static Future<void> _ensureColumn(
+    DatabaseExecutor db,
+    String tableName,
+    String column,
+    String type,
+  ) async {
+    final info = await db.rawQuery('PRAGMA table_info($tableName)');
+    if (!info.any((r) => r['name'] == column)) {
+      await db.execute('ALTER TABLE $tableName ADD COLUMN $column $type');
+    }
   }
 
   // ===== Accounts helpers =====
@@ -281,8 +298,10 @@ class PayrollDatabaseService {
     double? advanceApplied, // إن لم يُمرر: يُحسب من GL pending
     String? method,
     String? note,
+    String? attendanceSnapshot,
+    String? entitlementBasis,
 
-    // === NEW: attendance-driven deltas ===
+    // === attendance-driven deltas ===
     double overtimePay = 0, // + إلى المصروف
     double latePenalty = 0, // + إلى الاقتطاعات
     double unpaidAbsencePenalty = 0, // + إلى الاقتطاعات
@@ -352,6 +371,8 @@ class PayrollDatabaseService {
           'accrual_date': _iso(accrualDate),
           'method': method,
           'note': note,
+          'attendance_snapshot': attendanceSnapshot,
+          'entitlement_basis': entitlementBasis,
           'created_at': DateTime.now().toIso8601String(),
         },
         conflictAlgorithm: ConflictAlgorithm.abort,
@@ -459,7 +480,8 @@ class PayrollDatabaseService {
     return runId;
   }
 
-  /// دفع جزئي/كامل + GL.
+  /// دفع جزئي/كامل حصراً من خلال سند صرف رسمي.
+  /// لا يتم إنشاء أي GL مباشر هنا؛ VoucherPaymentService هو بوابة الدفع الوحيدة.
   static Future<void> pay({
     required String runId,
     required double amount,
@@ -478,68 +500,93 @@ class PayrollDatabaseService {
     final run = PayrollRun.fromMap(rows.first);
 
     await PayrollPeriodsService.ensureOpen(
-        run.periodStart.year, run.periodStart.month);
+      run.periodStart.year,
+      run.periodStart.month,
+    );
 
     if (run.status == 'REVERSED') {
       throw StateError('Cannot pay a reversed payroll run');
     }
 
-    final remaining = _fix2(run.net - run.amountPaid);
-    if (remaining <= 0) return;
+    await syncPaymentState(runId);
+    final refreshed = await getById(runId);
+    if (refreshed == null) throw StateError('Payroll run disappeared');
+    final remaining = _fix2(refreshed.net - refreshed.amountPaid);
+    if (remaining <= 0) {
+      throw StateError('Payroll entitlement is already fully paid.');
+    }
+    if (amount - remaining > 0.01) {
+      throw StateError('Payment exceeds payroll entitlement remaining amount.');
+    }
 
-    final payNow = amount > remaining ? remaining : amount;
+    final paymentId = const Uuid().v4();
+    final voucher = VoucherPayment(
+      id: paymentId,
+      voucherType: 'PAYMENT',
+      voucherNumber: null,
+      voucherCode: null,
+      partyType: 'EMPLOYEE',
+      partyId: refreshed.employeeId,
+      amount: _fix2(amount),
+      currency: 'ILS',
+      date: date,
+      method: (method ?? 'cash').toUpperCase(),
+      chequeId: null,
+      reference: runId,
+      source: 'PAYROLL_ENTITLEMENT',
+      sourceId: runId,
+      notes: note ??
+          'دفع راتب ${refreshed.periodStart.year}-${refreshed.periodStart.month.toString().padLeft(2, '0')}',
+      isPosted: false,
+      attachments: null,
+    );
 
-    await db.transaction((txn) async {
-      final payId = const Uuid().v4();
-      await txn.insert(paymentsTable, {
-        'id': payId,
+    final posted = await VoucherPaymentService.insertAndPost(
+      voucher: voucher,
+      partyName: refreshed.employeeId,
+    );
+
+    await db.insert(
+      paymentsTable,
+      {
+        'id': paymentId,
         'run_id': runId,
-        'amount': _fix2(payNow),
+        'amount': _fix2(amount),
         'date': _iso(date),
         'method': method,
         'note': note,
-      });
+        'voucher_id': posted.id,
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
 
-      final drPayable = await _payableSubId(run.employeeId); // 2140.E
-      final crCashBank = await _cashOrBankId(method); // 1000/1010
+    await syncPaymentState(runId);
+  }
 
-      await DBService.postEntryGL(
-        date: date,
-        source: 'PAYROLL_PAYMENT',
-        sourceId: payId,
-        note: note ?? 'دفع راتب',
-        lines: [
-          {
-            'account_id': drPayable,
-            'debit': _fix2(payNow),
-            'credit': 0.0,
-            'party_type': 'EMPLOYEE',
-            'party_id': run.employeeId,
-            'invoice_id': null,
-            'repair_id': null,
-          },
-          {
-            'account_id': crCashBank,
-            'debit': 0.0,
-            'credit': _fix2(payNow),
-            'party_type': null,
-            'party_id': null,
-            'invoice_id': null,
-            'repair_id': null,
-          },
-        ],
-      );
-
-      final newPaid = _fix2(run.amountPaid + payNow);
-      final newStatus = newPaid >= run.net ? 'PAID' : 'ACCRUED';
-      await txn.update(
-        table,
-        {'amount_paid': newPaid, 'status': newStatus},
-        where: 'id=?',
-        whereArgs: [runId],
-        conflictAlgorithm: ConflictAlgorithm.abort,
-      );
-    });
+  /// amount_paid/status are compatibility mirrors derived from posted vouchers.
+  static Future<void> syncPaymentState(String runId) async {
+    await ensureTables();
+    final db = await DBService.database;
+    final runRows =
+        await db.query(table, where: 'id=?', whereArgs: [runId], limit: 1);
+    if (runRows.isEmpty) return;
+    final net = (runRows.first['net'] as num?)?.toDouble() ?? 0.0;
+    final sumRows = await db.rawQuery('''
+      SELECT COALESCE(SUM(amount),0) AS paid
+      FROM vouchers
+      WHERE source = 'PAYROLL_ENTITLEMENT'
+        AND source_id = ?
+        AND UPPER(COALESCE(status,'POSTED')) <> 'REVERSED'
+        AND gl_entry_id IS NOT NULL
+    ''', [runId]);
+    final paid = _fix2((sumRows.first['paid'] as num?)?.toDouble() ?? 0.0);
+    final status = paid + 0.01 >= net ? 'PAID' : 'ACCRUED';
+    await db.update(
+      table,
+      {'amount_paid': paid, 'status': status},
+      where: 'id=?',
+      whereArgs: [runId],
+    );
   }
 
   /// عكس قيد الإثبات فقط. يُمنع إن وُجدت دفعات.
@@ -547,11 +594,18 @@ class PayrollDatabaseService {
     await ensureTables();
     final db = await DBService.database;
 
-    final pays = await db.query(paymentsTable,
-        where: 'run_id=?', whereArgs: [runId], limit: 1);
+    final pays = await db.query(
+      'vouchers',
+      columns: const ['id'],
+      where:
+          "source='PAYROLL_ENTITLEMENT' AND source_id=? AND UPPER(COALESCE(status,'POSTED')) <> 'REVERSED'",
+      whereArgs: [runId],
+      limit: 1,
+    );
     if (pays.isNotEmpty) {
       throw StateError(
-          'Cannot reverse accrual while payments exist for this run');
+        'Cannot reverse accrual while posted salary payment vouchers exist.',
+      );
     }
 
     final head = await db.query(

@@ -17,6 +17,7 @@ import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_database_service.dart'; // PayrollRun
 import 'package:yalla_accounts/features/employees/providers/payroll_provider.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_periods_service.dart';
+import 'package:yalla_accounts/features/employees/services/payroll_entitlement_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -57,6 +58,14 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
   @override
   void initState() {
     super.initState();
+    _grossCtrl.text = widget.employee.baseSalaryForType.toStringAsFixed(2);
+    _allowCtrl.text = widget.employee.allowances.toStringAsFixed(2);
+    _deductCtrl.text = widget.employee.deductions.toStringAsFixed(2);
+    final configuredMethod = widget.employee.paymentMethod.toLowerCase().trim();
+    _suggestedMethod =
+        const {'cash', 'bank', 'transfer'}.contains(configuredMethod)
+            ? configuredMethod
+            : 'cash';
     Future.microtask(() async {
       await ref.read(payrollProvider.notifier).load(widget.employee.id);
       await _ensurePeriodRow();
@@ -162,53 +171,42 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
       _toast('الفترة مقفلة. افتحها من شاشة الرواتب.');
       return;
     }
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    // قراءات الحقول
-    final gross = _parseAmount(_grossCtrl);
-    final baseAllowances = _parseAmount(_allowCtrl);
-    final baseDeductions = _parseAmount(_deductCtrl);
-    final advApplied = _parseAmount(_advApplyCtrl);
-
-    // تعديلات الحضور
-    final overtimePay = _parseAmount(_overtimeCtrl);
-    final latePenalty = _parseAmount(_latePenaltyCtrl);
-    final unpaidAbsencePenalty = _parseAmount(_unpaidAbsPenaltyCtrl);
-    final paidHolidayPay = _parseAmount(_paidHolidayCtrl);
-
-    // تجميع نهائي
-    final allowances = baseAllowances + overtimePay + paidHolidayPay;
-    final deductions = baseDeductions + latePenalty + unpaidAbsencePenalty;
 
     try {
-      await ref.read(payrollProvider.notifier).accrue(
-            employeeId: widget.employee.id,
-            periodStart: _periodStart,
-            periodEnd: _periodEnd,
-            accrualDate: _accrualDate,
-            gross: gross,
-            allowances: allowances,
-            deductions: deductions,
-            advanceApplied: advApplied,
-            method: _suggestedMethod,
-            note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
-          );
+      final calculation = await PayrollEntitlementService.calculate(
+        employee: widget.employee,
+        periodStart: _periodStart,
+        periodEnd: _periodEnd,
+      );
 
-      // تنظيف
-      _grossCtrl.clear();
-      _allowCtrl.text = '0';
-      _deductCtrl.text = '0';
-      _advApplyCtrl.text = '0';
-      _noteCtrl.clear();
-      _overtimeCtrl.text = '0';
-      _latePenaltyCtrl.text = '0';
-      _unpaidAbsPenaltyCtrl.text = '0';
-      _paidHolidayCtrl.text = '0';
+      if (mounted) {
+        setState(() {
+          _grossCtrl.text = calculation.baseEarned.toStringAsFixed(2);
+          _allowCtrl.text = calculation.allowances.toStringAsFixed(2);
+          _deductCtrl.text = calculation.fixedDeductions.toStringAsFixed(2);
+          _overtimeCtrl.text = calculation.overtimePay.toStringAsFixed(2);
+          _latePenaltyCtrl.text = calculation.lateDeduction.toStringAsFixed(2);
+          _unpaidAbsPenaltyCtrl.text =
+              calculation.earlyExitDeduction.toStringAsFixed(2);
+          _paidHolidayCtrl.text =
+              calculation.attendance.payableDays.toStringAsFixed(2);
+        });
+      }
+
+      await PayrollEntitlementService.accrueFromAttendance(
+        employee: widget.employee,
+        periodStart: _periodStart,
+        periodEnd: _periodEnd,
+        accrualDate: _accrualDate,
+        note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      );
 
       await ref.read(payrollProvider.notifier).load(widget.employee.id);
-      _toast('تم إنشاء استحقاق وربطه بالـ GL');
+      _toast(
+        'تم إنشاء استحقاق الراتب من الحضور: ${MoneyFormatter.format(calculation.netBeforeAdvances)}',
+      );
     } catch (e) {
-      _toast('فشل الاستحقاق: $e');
+      _toast('فشل احتساب الاستحقاق: $e');
     }
   }
 
@@ -228,7 +226,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AdaptiveAlertDialog(
-        title: const Text('دفع راتب'),
+        title: const Text('إنشاء سند صرف راتب'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -247,7 +245,6 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
               items: const [
                 DropdownMenuItem(value: 'cash', child: Text('نقدي')),
                 DropdownMenuItem(value: 'bank', child: Text('بنك')),
-                DropdownMenuItem(value: 'cheque', child: Text('شيك')),
                 DropdownMenuItem(value: 'transfer', child: Text('تحويل')),
               ],
               onChanged: (v) => method = v ?? 'cash',
@@ -268,7 +265,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('دفع'),
+            child: const Text('إنشاء سند صرف'),
           ),
         ],
       ),
@@ -290,7 +287,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
               note: note,
             );
         await ref.read(payrollProvider.notifier).load(widget.employee.id);
-        _toast('تم تسجيل الدفع وربط GL');
+        _toast('تم إنشاء سند صرف راتب وربطه بالاستحقاق');
       } catch (e) {
         _toast('فشل الدفع: $e');
       }
@@ -465,11 +462,12 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _grossCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'الراتب الأساسي + إضافي',
+                              labelText: 'الأساس المستحق من الحضور',
                               prefixText: '${MoneyFormatter.symbol} ',
                               border: OutlineInputBorder(),
                             ),
@@ -487,6 +485,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _allowCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
@@ -504,6 +503,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _deductCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
@@ -521,6 +521,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _advApplyCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
@@ -539,11 +540,12 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _overtimeCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'زيادة ساعات إضافية',
+                              labelText: 'إضافي محسوب',
                               prefixText: '${MoneyFormatter.symbol} ',
                               border: OutlineInputBorder(),
                             ),
@@ -556,11 +558,12 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _latePenaltyCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'خصم تأخير',
+                              labelText: 'تأخير محسوب',
                               prefixText: '${MoneyFormatter.symbol} ',
                               border: OutlineInputBorder(),
                             ),
@@ -573,11 +576,12 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _unpaidAbsPenaltyCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'خصم غياب غير مدفوع',
+                              labelText: 'خروج مبكر محسوب',
                               prefixText: '${MoneyFormatter.symbol} ',
                               border: OutlineInputBorder(),
                             ),
@@ -590,11 +594,12 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                           child: TextFormField(
                             inputFormatters: const [YallaDigitNormalizer()],
                             controller: _paidHolidayCtrl,
+                            enabled: false,
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
                             decoration: InputDecoration(
-                              labelText: 'بدل عطلات مدفوعة',
+                              labelText: 'أيام مدفوعة محسوبة',
                               prefixText: '${MoneyFormatter.symbol} ',
                               border: OutlineInputBorder(),
                             ),
@@ -611,8 +616,6 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                                   value: 'cash', child: Text('نقدي')),
                               DropdownMenuItem(
                                   value: 'bank', child: Text('بنك')),
-                              DropdownMenuItem(
-                                  value: 'cheque', child: Text('شيك')),
                               DropdownMenuItem(
                                   value: 'transfer', child: Text('تحويل')),
                             ],
@@ -696,7 +699,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
           trailing: remain > 0
               ? ElevatedButton(
                   onPressed: _isLocked ? null : () => _openPayDialog(r),
-                  child: const Text('دفع'),
+                  child: const Text('إنشاء سند صرف'),
                 )
               : const SizedBox.shrink(),
         );
@@ -722,7 +725,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
             remain > 0
                 ? ElevatedButton(
                     onPressed: _isLocked ? null : () => _openPayDialog(r),
-                    child: const Text('دفع'),
+                    child: const Text('إنشاء سند صرف'),
                   )
                 : const Icon(Icons.check, color: Colors.green),
           ),

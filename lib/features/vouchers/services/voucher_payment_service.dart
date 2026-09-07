@@ -409,6 +409,12 @@ class VoucherPaymentService {
         ),
       );
 
+      if ((postingVoucher.source ?? '').trim().toUpperCase() ==
+              'PAYROLL_ENTITLEMENT' &&
+          (postingVoucher.sourceId ?? '').trim().isNotEmpty) {
+        await _syncPayrollRunFromVouchers(txn, postingVoucher.sourceId!.trim());
+      }
+
       if (postingVoucher.partyType?.toUpperCase() == 'SUPPLIER' &&
           postingVoucher.reference != null &&
           postingVoucher.reference!.trim().isNotEmpty) {
@@ -623,7 +629,9 @@ class VoucherPaymentService {
 
     if (type == "EMPLOYEE") {
       final empId = voucher.partyId ?? "";
-      final code = "1120.E$empId";
+      final isPayroll =
+          (voucher.source ?? '').trim().toUpperCase() == 'PAYROLL_ENTITLEMENT';
+      final code = isPayroll ? "2140.E$empId" : "1120.E$empId";
 
       final existing = await txn.query(
         "accounts",
@@ -636,9 +644,10 @@ class VoucherPaymentService {
 
       return await txn.insert("accounts", {
         "code": code,
-        "name": "سلفة موظف: $partyName",
-        "type": "ASSET",
-        "normal_balance": "DEBIT",
+        "name":
+            isPayroll ? "مستحقات رواتب - $partyName" : "سلفة موظف: $partyName",
+        "type": isPayroll ? "LIABILITY" : "ASSET",
+        "normal_balance": isPayroll ? "CREDIT" : "DEBIT",
       });
     }
 
@@ -777,6 +786,55 @@ class VoucherPaymentService {
       if (employees.isEmpty) {
         throw StateError('Employee does not exist.');
       }
+
+      if ((voucher.source ?? '').trim().toUpperCase() ==
+          'PAYROLL_ENTITLEMENT') {
+        final runId = (voucher.sourceId ?? '').trim();
+        if (runId.isEmpty || (voucher.reference ?? '').trim() != runId) {
+          throw StateError(
+            'Salary payment voucher must reference its payroll entitlement.',
+          );
+        }
+        final runs = await txn.query(
+          'payroll_runs',
+          columns: const ['id', 'employee_id', 'net', 'status'],
+          where: 'id=?',
+          whereArgs: [runId],
+          limit: 1,
+        );
+        if (runs.isEmpty) {
+          throw StateError('Payroll entitlement does not exist.');
+        }
+        final run = runs.first;
+        if ((run['employee_id'] ?? '').toString() != partyId) {
+          throw StateError(
+            'Payroll entitlement belongs to a different employee.',
+          );
+        }
+        if ((run['status'] ?? '').toString().toUpperCase() == 'REVERSED') {
+          throw StateError('Cannot pay a reversed payroll entitlement.');
+        }
+        final paidRows = await txn.rawQuery('''
+          SELECT COALESCE(SUM(amount),0) AS paid
+          FROM vouchers
+          WHERE source='PAYROLL_ENTITLEMENT'
+            AND source_id=?
+            AND id<>?
+            AND UPPER(COALESCE(status,'POSTED')) <> 'REVERSED'
+            AND gl_entry_id IS NOT NULL
+        ''', [runId, voucher.id]);
+        final paid = (paidRows.first['paid'] as num?)?.toDouble() ?? 0.0;
+        final net = (run['net'] as num?)?.toDouble() ?? 0.0;
+        final remaining = net - paid;
+        if (remaining <= 0.01) {
+          throw StateError('Payroll entitlement is already fully paid.');
+        }
+        if (voucher.amount - remaining > 0.01) {
+          throw StateError(
+            'Salary payment exceeds payroll entitlement remaining amount.',
+          );
+        }
+      }
     } else if (partyType == 'CLIENT') {
       final clientId = int.tryParse(partyId);
       if (clientId == null || clientId <= 0) {
@@ -797,6 +855,39 @@ class VoucherPaymentService {
         'Referenced payment voucher requires an explicit party.',
       );
     }
+  }
+
+  static Future<void> _syncPayrollRunFromVouchers(
+    DatabaseExecutor db,
+    String runId,
+  ) async {
+    final runRows = await db.query(
+      'payroll_runs',
+      columns: const ['net'],
+      where: 'id=?',
+      whereArgs: [runId],
+      limit: 1,
+    );
+    if (runRows.isEmpty) return;
+    final net = (runRows.first['net'] as num?)?.toDouble() ?? 0.0;
+    final sums = await db.rawQuery('''
+      SELECT COALESCE(SUM(amount),0) AS paid
+      FROM vouchers
+      WHERE source='PAYROLL_ENTITLEMENT'
+        AND source_id=?
+        AND UPPER(COALESCE(status,'POSTED')) <> 'REVERSED'
+        AND gl_entry_id IS NOT NULL
+    ''', [runId]);
+    final paid = (sums.first['paid'] as num?)?.toDouble() ?? 0.0;
+    await db.update(
+      'payroll_runs',
+      {
+        'amount_paid': double.parse(paid.toStringAsFixed(2)),
+        'status': paid + 0.01 >= net ? 'PAID' : 'ACCRUED',
+      },
+      where: 'id=?',
+      whereArgs: [runId],
+    );
   }
 
   /// Formal cancellation for a posted payment voucher.
@@ -916,6 +1007,15 @@ class VoucherPaymentService {
         where: 'id=?',
         whereArgs: [voucherId],
       );
+
+      if ((row['source'] ?? '').toString().trim().toUpperCase() ==
+              'PAYROLL_ENTITLEMENT' &&
+          (row['source_id'] ?? '').toString().trim().isNotEmpty) {
+        await _syncPayrollRunFromVouchers(
+          txn,
+          (row['source_id'] ?? '').toString().trim(),
+        );
+      }
 
       await AuditTrailService.log(
         executor: txn,

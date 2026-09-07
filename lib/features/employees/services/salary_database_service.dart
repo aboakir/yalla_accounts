@@ -1,17 +1,10 @@
 // 📁 lib/features/employees/services/salary_database_service.dart
 //
-// SalaryDatabaseService — قسائم رواتب شهرية + ربط GL (v30)
+// SalaryDatabaseService — legacy salary snapshot compatibility (financial writes disabled)
 // قفل الفترات عبر PayrollPeriodsService.
 //
-// GL:
-//   • إثبات شهر:   Dr 5100 مصروف رواتب / Cr 2140.E<emp>
-//   • صرف راتب:    Dr 2140.E<emp>        / Cr 1000|1010
-//
-// Sources:
-//   PAYROLL_ACCRUAL  → source_id = "<employeeId>@<YYYY-MM>"
-//   PAYROLL_PAYMENT  → source_id = "<employeeId>@<YYYY-MM>@<epochMicros>"
-//
-// ملاحظة: لا نشر تلقائي. استدعِ postMonthlyAccrual / paySalary عند الحاجة.
+// Stage 4: this table is a compatibility snapshot only.
+// Financial accrual/payment commands are disabled; payroll_runs + vouchers are canonical.
 
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -253,7 +246,6 @@ class SalaryDatabaseService {
   }) async {
     await ensureTable();
     final db = await DBService.database;
-
     final hit = await db.query(
       _table,
       columns: ['gl_accrual_id', 'gl_payment_id'],
@@ -261,24 +253,13 @@ class SalaryDatabaseService {
       whereArgs: [employeeId, month],
       limit: 1,
     );
-
-    if (hit.isNotEmpty) {
-      final accrualId = int.tryParse('${hit.first['gl_accrual_id'] ?? ''}');
-      final paymentId = int.tryParse('${hit.first['gl_payment_id'] ?? ''}');
-      if (accrualId != null) {
-        try {
-          await DBService.reverseEntryGL(accrualId,
-              note: 'Reverse salary accrual');
-        } catch (_) {}
-      }
-      if (paymentId != null) {
-        try {
-          await DBService.reverseEntryGL(paymentId,
-              note: 'Reverse salary payment');
-        } catch (_) {}
-      }
+    if (hit.isNotEmpty &&
+        (hit.first['gl_accrual_id'] != null ||
+            hit.first['gl_payment_id'] != null)) {
+      throw StateError(
+        'Posted legacy salary snapshots cannot be deleted. Use formal payroll/voucher reversal.',
+      );
     }
-
     return db.delete(
       _table,
       where: 'employeeId = ? AND month = ?',
@@ -327,275 +308,52 @@ class SalaryDatabaseService {
     return rows.map(Salary.fromMap).toList();
   }
 
-  // ───────────── GL: Accrual ─────────────
+  // ───────────── Stage 4: legacy financial commands disabled ─────────────
+  @Deprecated('Use PayrollEntitlementService.accrueFromAttendance')
   static Future<void> postMonthlyAccrual({
     required String employeeId,
     required String employeeName,
-    required String month, // YYYY-MM
+    required String month,
     required double amount,
     DateTime? date,
   }) async {
-    await ensureTable();
-    _assertMonthFormat(month);
-
-    final ps = _periodStart(month);
-    final pe = _periodEnd(month);
-    await PayrollPeriodsService.assertAccrualAllowed(
-      employeeId: employeeId,
-      periodStart: ps,
-      periodEnd: pe,
+    throw StateError(
+      'Legacy monthly salary accrual is disabled. Use attendance-driven payroll entitlement.',
     );
-
-    final db = await DBService.database;
-
-    final exist = await db.query(
-      _table,
-      columns: ['gl_accrual_id'],
-      where: 'employeeId = ? AND month = ? AND gl_accrual_id IS NOT NULL',
-      whereArgs: [employeeId, month],
-      limit: 1,
-    );
-    if (exist.isNotEmpty) {
-      throw StateError('تم إثبات راتب $employeeId لشهر $month مسبقًا.');
-    }
-
-    await _ensureSnapshotRowIfMissing(
-      employeeId: employeeId,
-      month: month,
-      employeeName: employeeName,
-    );
-
-    final d = date ?? _periodEnd(month);
-    final accExpense = await _accSalariesExpense(); // 5100
-    final accPayable = await _accPayrollPayableSub(employeeId); // 2140.E<emp>
-
-    int glId;
-    try {
-      glId = await DBService.postEntryGL(
-        date: d,
-        source: 'PAYROLL_ACCRUAL',
-        sourceId: '$employeeId@$month',
-        note: 'إثبات راتب $employeeName لشهر $month',
-        lines: [
-          {
-            'account_id': accExpense,
-            'debit': _r(amount),
-            'credit': 0.0,
-            'party_type': 'EMPLOYEE',
-            'party_id': employeeId,
-          },
-          {
-            'account_id': accPayable,
-            'debit': 0.0,
-            'credit': _r(amount),
-            'party_type': 'EMPLOYEE',
-            'party_id': employeeId,
-          },
-        ],
-      );
-    } on DatabaseException catch (e) {
-      if (!e.isUniqueConstraintError()) rethrow;
-      final existing = await DBService.getGlEntryIdBySource(
-          'PAYROLL_ACCRUAL', '$employeeId@$month');
-      if (existing == null) rethrow;
-      glId = existing;
-    }
-
-    await db.update(
-      _table,
-      {
-        'gl_accrual_id': glId,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      where: 'employeeId = ? AND month = ?',
-      whereArgs: [employeeId, month],
-    );
-
-    await PayrollPeriodsService.ensurePeriodRow(ps.year, ps.month);
   }
 
-  // ───────────── GL: Payment ─────────────
-  // محدث: إدراج صف في payments بعد نشر GL ليتحدث سجل الدفعات ولوحة المالية.
+  @Deprecated(
+      'Use PayrollDatabaseService.pay to create a linked payment voucher')
   static Future<void> paySalary({
     required String employeeId,
     required String employeeName,
-    required String month, // YYYY-MM
+    required String month,
     required double amount,
     String method = 'cash',
     DateTime? date,
   }) async {
-    await ensureTable();
-    _assertMonthFormat(month);
-    if (await _isLocked(month)) {
-      throw StateError('فترة $month مقفلة. افتحها قبل الدفع.');
-    }
-
-    await _ensureSnapshotRowIfMissing(
-      employeeId: employeeId,
-      month: month,
-      employeeName: employeeName,
+    throw StateError(
+      'Legacy direct salary payment is disabled. Use a payment voucher linked to payroll entitlement.',
     );
-
-    final db = await DBService.database;
-    final d = date ?? DateTime.now();
-    final normalizedMethod = _normalizeMethod(method);
-
-    final accPayable = await _accPayrollPayableSub(employeeId); // 2140.E<emp>
-    final accCashBank = await _accCashOrBank(normalizedMethod); // 1000/1010
-
-    int glId;
-    final sourceId = '$employeeId@$month@${d.microsecondsSinceEpoch}';
-    try {
-      glId = await DBService.postEntryGL(
-        date: d,
-        source: 'PAYROLL_PAYMENT',
-        sourceId: sourceId,
-        note: 'صرف راتب $employeeName لشهر $month',
-        lines: [
-          {
-            'account_id': accPayable,
-            'debit': _r(amount),
-            'credit': 0.0,
-            'party_type': 'EMPLOYEE',
-            'party_id': employeeId,
-          },
-          {
-            'account_id': accCashBank,
-            'debit': 0.0,
-            'credit': _r(amount),
-          },
-        ],
-      );
-    } on DatabaseException catch (e) {
-      if (!e.isUniqueConstraintError()) rethrow;
-      final existing =
-          await DBService.getGlEntryIdBySource('PAYROLL_PAYMENT', sourceId);
-      if (existing == null) rethrow;
-      glId = existing;
-    }
-
-    // ◼️ سجل دفعات مرآتي ليستفيد "سجل الدفعات" ولوحة المالية الحالية
-    try {
-      final payId = DBService.newUuid();
-      await db.insert('payments', {
-        'id': payId,
-        'party_id': employeeId,
-        'client_id': null,
-        'repair_id': null,
-        'invoice_id': null,
-        'amount': _r(amount),
-        'date': d.toIso8601String(),
-        'method': normalizedMethod ?? 'cash',
-        'accountName': _accountNameForMethod(normalizedMethod),
-        'status': 'posted',
-        'notes': 'صرف راتب $employeeName لشهر $month',
-        'attachments': null,
-        'relatedRepairId': null,
-        'gl_entry_id': glId,
-      });
-    } catch (_) {
-      // لا تفشل العملية لو تعذّر إدراج payments
-    }
-
-    // تحديث snapshot
-    final row = await db.query(
-      _table,
-      where: 'employeeId = ? AND month = ?',
-      whereArgs: [employeeId, month],
-      limit: 1,
-    );
-    if (row.isNotEmpty) {
-      final paid0 = _d(row.first['paid']);
-      final due0 = _d(row.first['due']);
-      final newPaid = _r(paid0 + amount);
-      final newDue = _r(due0 - amount);
-
-      await db.update(
-        _table,
-        {
-          'paid': newPaid,
-          'due': newDue < 0 ? 0.0 : newDue,
-          'gl_payment_id': glId,
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-        where: 'employeeId = ? AND month = ?',
-        whereArgs: [employeeId, month],
-      );
-    }
   }
 
-  // ───────────── GL: Reverse ─────────────
+  @Deprecated('Use PayrollDatabaseService.reverseAccrual')
   static Future<void> reverseAccrual({
     required String employeeId,
     required String month,
   }) async {
-    await ensureTable();
-    _assertMonthFormat(month);
-    if (await _isLocked(month)) {
-      throw StateError('فترة $month مقفلة. افتحها قبل العكس.');
-    }
-
-    final db = await DBService.database;
-
-    final row = await db.query(
-      _table,
-      columns: ['gl_accrual_id'],
-      where: 'employeeId = ? AND month = ?',
-      whereArgs: [employeeId, month],
-      limit: 1,
-    );
-
-    final id = row.isNotEmpty
-        ? int.tryParse('${row.first['gl_accrual_id'] ?? ''}')
-        : null;
-    if (id == null) return;
-
-    try {
-      await DBService.reverseEntryGL(id, note: 'Reverse salary accrual');
-    } catch (_) {}
-
-    await db.update(
-      _table,
-      {'gl_accrual_id': null, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'employeeId = ? AND month = ?',
-      whereArgs: [employeeId, month],
+    throw StateError(
+      'Legacy salary accrual reversal is disabled. Reverse the payroll entitlement instead.',
     );
   }
 
+  @Deprecated('Reverse the original payment voucher')
   static Future<void> reversePayment({
     required String employeeId,
     required String month,
   }) async {
-    await ensureTable();
-    _assertMonthFormat(month);
-    if (await _isLocked(month)) {
-      throw StateError('فترة $month مقفلة. افتحها قبل العكس.');
-    }
-
-    final db = await DBService.database;
-
-    final row = await db.query(
-      _table,
-      columns: ['gl_payment_id'],
-      where: 'employeeId = ? AND month = ?',
-      whereArgs: [employeeId, month],
-      limit: 1,
-    );
-
-    final id = row.isNotEmpty
-        ? int.tryParse('${row.first['gl_payment_id'] ?? ''}')
-        : null;
-    if (id == null) return;
-
-    try {
-      await DBService.reverseEntryGL(id, note: 'Reverse salary payment');
-    } catch (_) {}
-
-    await db.update(
-      _table,
-      {'gl_payment_id': null, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'employeeId = ? AND month = ?',
-      whereArgs: [employeeId, month],
+    throw StateError(
+      'Legacy salary payment reversal is disabled. Reverse the original payment voucher.',
     );
   }
 }
