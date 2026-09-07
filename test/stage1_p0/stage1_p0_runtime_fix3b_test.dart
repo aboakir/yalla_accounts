@@ -13,42 +13,45 @@ String _between(String source, String start, String end) {
 }
 
 void main() {
-  test('P0-01 phone repair details uses isolated safe body', () {
+  test('P0-01 phone repair details restores desktop functional parity', () {
     final source = _source(
       'lib/features/repairs/screens/repair_details_screen.dart',
     );
 
-    expect(
-      source,
-      contains('STAGE1_RUNTIME_FIX3B_REPAIR_PHONE_SAFE_BODY'),
-    );
-    expect(source, contains('return _buildPhoneDetailsRuntimeSafe('));
+    expect(source, contains('STAGE1_P0_01_FINAL_FIX4C_PHONE_PARITY'));
+    expect(source, contains('return _buildPhoneDetailsParity('));
 
-    final safeBody = _between(
+    final phoneBody = _between(
       source,
+      'STAGE1_P0_01_FINAL_FIX4C_PHONE_PARITY',
       'STAGE1_RUNTIME_FIX3B_REPAIR_PHONE_SAFE_BODY',
-      '@override\n  Widget build(BuildContext context)',
     );
 
-    for (final risky in <String>[
-      'YallaStoredImage(',
-      '_buildImagesStrip(',
-      '_buildDataTable(',
-      '_buildActionsBar(',
+    for (final required in <String>[
+      '_repair.displayPaymentStatus',
+      'RepairThumb(',
+      '_buildWorkflowCard()',
+      '_buildStatusPanel()',
       'RepairProfitabilityCard(',
-      '_buildWorkflowCard(',
-      '_buildStatusPanel(',
+      '_buildActionsBar()',
+      '_buildImagesStrip()',
+      "_buildDataTable('أعمال الإصلاح', _repairWorks)",
+      "_buildDataTable('القطع المطلوبة', _repairParts)",
+      '_buildNotesCard()',
+      '_buildChangeHistoryCard()',
+      'AppRoutes.financeGL',
+      'AppRoutes.financeGLEntry',
+      'AppRoutes.invoiceView',
+      "Text('فتح GL Browser')",
+      "Text('عرض الفاتورة')",
     ]) {
-      expect(safeBody, isNot(contains(risky)),
-          reason: 'Risky phone child: $risky');
+      expect(phoneBody, contains(required),
+          reason: 'Missing phone parity: $required');
     }
 
-    expect(safeBody, contains("linesCard('أعمال الإصلاح', _repairWorks)"));
-    expect(safeBody, contains("linesCard('القطع المطلوبة', _repairParts)"));
-    expect(safeBody, contains('_repair.totalFileValue'));
-    expect(safeBody, contains('_repair.totalPaidAmount'));
-    expect(safeBody, contains('_repair.remainingAmount'));
-    expect(safeBody, contains('_repair.beneficiaryName'));
+    expect(source, contains('width: 120'));
+    expect(source, contains('height: 120'));
+    expect(phoneBody, isNot(contains('double.infinity')));
   });
 
   test('P0-04 phone attendance uses id keyed isolated body', () {

@@ -1331,6 +1331,194 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
+  // STAGE1_P0_01_FINAL_FIX4C_PHONE_PARITY
+  // Mobile Repair Details keeps the desktop screen as the functional source
+  // of truth while using a single-column phone layout. All actions below reuse
+  // the existing services/routes/widgets; no business data is reimplemented.
+  Widget _buildPhoneDetailsParity({
+    required String repairType,
+    required String vehicleStatus,
+    required String insuranceStatus,
+    required bool hasInvoice,
+    required String? thumb,
+  }) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        title: const Text(
+          'تفاصيل إصلاح المركبة',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _reloadRepair,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (value) async {
+              if (value == 'share') {
+                await _sharePdf();
+              } else if (value == 'print') {
+                await _printPdf();
+              } else if (value == 'save') {
+                try {
+                  final file =
+                      await RepairPdfGenerator.saveToFileAndOpen(_repair);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تم إنشاء PDF: ${file.path}')),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('فشل إنشاء PDF: $e')),
+                  );
+                }
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'share',
+                child: ListTile(
+                  leading: Icon(Icons.ios_share_rounded),
+                  title: Text('مشاركة PDF'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'save',
+                child: ListTile(
+                  leading: Icon(Icons.picture_as_pdf_outlined),
+                  title: Text('معاينة / حفظ PDF'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'print',
+                child: ListTile(
+                  leading: Icon(Icons.print_outlined),
+                  title: Text('طباعة'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _reloadRepair,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+          children: [
+            Card(
+              child: ListTile(
+                leading: RepairThumb(
+                  repairId: _repair.id,
+                  fallbackFirstPath: thumb,
+                  size: 64,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                title: const Text('البيانات المالية 💰'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('حالة السداد: ${_repair.displayPaymentStatus}'),
+                    Text(
+                      'قيمة الملف: ${MoneyFormatter.format(_repair.totalFileValue)}',
+                    ),
+                    Text(
+                      'المدفوع: ${MoneyFormatter.format(_repair.totalPaidAmount)}',
+                    ),
+                    Text(
+                      'المتبقي: ${MoneyFormatter.format(_repair.remainingAmount)}',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                title: const Text('بيانات المركبة والمستفيد'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('نوع: ${_repair.vehicleType}'),
+                    Text('الموديل: ${_repair.vehicleModel}'),
+                    Text('رقم: ${_repair.vehicleNumber}'),
+                    Text('تاريخ الاستلام: ${_df.format(_repair.receivedDate)}'),
+                    Text('نوع العمل: $repairType'),
+                    Text('حالة المركبة: $vehicleStatus'),
+                    const SizedBox(height: 8),
+                    Text('نوع المستفيد: ${_repair.beneficiaryType}'),
+                    Text('الاسم: ${_repair.beneficiaryName}'),
+                    if (_repair.beneficiaryType == 'شركة تأمين')
+                      Text('متابعة التأمين: $insuranceStatus'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).pushNamed(
+                            AppRoutes.financeGL,
+                          ),
+                          icon: const Icon(Icons.account_balance_outlined),
+                          label: const Text('فتح GL Browser'),
+                        ),
+                        if (hasInvoice)
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).pushNamed(
+                              AppRoutes.invoiceView,
+                              arguments: _repair.invoiceId!,
+                            ),
+                            icon: const Icon(Icons.receipt_long_outlined),
+                            label: const Text('عرض الفاتورة'),
+                          ),
+                        if (_invoiceGlEntryId != null)
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).pushNamed(
+                              AppRoutes.financeGLEntry,
+                              arguments: _invoiceGlEntryId!,
+                            ),
+                            icon: const Icon(Icons.account_balance),
+                            label: Text('عرض قيد GL #$_invoiceGlEntryId'),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildWorkflowCard(),
+            const SizedBox(height: 12),
+            _buildStatusPanel(),
+            const SizedBox(height: 12),
+            RepairProfitabilityCard(
+              repairId: _repair.id,
+              isClosed: _repair.isClosed,
+            ),
+            _buildActionsBar(),
+            const SizedBox(height: 16),
+            _buildImagesStrip(),
+            const SizedBox(height: 16),
+            _buildDataTable('أعمال الإصلاح', _repairWorks),
+            const SizedBox(height: 16),
+            _buildDataTable('القطع المطلوبة', _repairParts),
+            const SizedBox(height: 16),
+            _buildNotesCard(),
+            const SizedBox(height: 16),
+            _buildChangeHistoryCard(),
+          ],
+        ),
+      ),
+    );
+  }
+
   // STAGE1_RUNTIME_FIX3B_REPAIR_PHONE_SAFE_BODY
   // Runtime evidence showed that the previous phone body could still collapse
   // to Flutter's grey ErrorWidget. Keep the iPhone acceptance path deliberately
@@ -1642,10 +1830,12 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         (_repair.invoiceId != null && _repair.invoiceId!.trim().isNotEmpty);
 
     if (width < YallaBreakpoints.phone) {
-      return _buildPhoneDetailsRuntimeSafe(
+      return _buildPhoneDetailsParity(
         repairType: repairType,
         vehicleStatus: vehicleStatus,
         insuranceStatus: insuranceStatus,
+        hasInvoice: hasInvoice,
+        thumb: thumb,
       );
     }
 
