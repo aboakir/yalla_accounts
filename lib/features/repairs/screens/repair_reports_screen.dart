@@ -10,6 +10,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
@@ -180,14 +181,16 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
             style: TextStyle(color: Colors.white)),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-            onPressed: () => exportRepairsToPdf(filtered),
-          ),
-          IconButton(
-            icon: const Icon(Icons.table_chart, color: Colors.white),
-            onPressed: () => exportRepairsToExcel(filtered),
-          ),
+          if (ReleaseScopeConfig.repairReportExportsEnabled)
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+              onPressed: () => exportRepairsToPdf(filtered),
+            ),
+          if (ReleaseScopeConfig.repairReportExportsEnabled)
+            IconButton(
+              icon: const Icon(Icons.table_chart, color: Colors.white),
+              onPressed: () => exportRepairsToExcel(filtered),
+            ),
           if (unpaidCount > 0)
             IconButton(
               icon: const Icon(Icons.warning_amber, color: Colors.yellow),

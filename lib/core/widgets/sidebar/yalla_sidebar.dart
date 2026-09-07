@@ -7,6 +7,7 @@
 // ——————————————————————————————————————————————
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -377,7 +378,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (Icons.list_alt, 'قائمة الموظفين', rEmpList),
       (Icons.person_add, 'إضافة موظف', rEmpAdd),
       (Icons.receipt_long, 'الرواتب', rEmpSalaries),
-      (Icons.savings, 'السلف والمكافآت', rEmpAdvances),
+      if (ReleaseScopeConfig.employeeAdvancesEnabled)
+        (Icons.savings, 'السلف والمكافآت', rEmpAdvances),
       (Icons.access_time, 'الحضور والانصراف', rEmpAttendance),
     ].where((e) => _matches(e.$2)).toList();
 
@@ -419,20 +421,22 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     // 6) المالية
     final financeItems = [
-      (Icons.dashboard, 'لوحة مالية', rFinanceDashboard),
-      (
-        Icons.collections_bookmark_outlined,
-        'التحصيل والذمم',
-        rCollectionDashboard
-      ),
       (Icons.list_alt, 'قيود اليومية', rJournalEntries),
       (Icons.menu_book, 'دفتر الأستاذ', rFinanceAccountLedger),
-      (Icons.stacked_bar_chart, 'قائمة الدخل', rIncomeStatement),
-      (
-        Icons.account_balance_wallet,
-        'الميزانية العمومية',
-        rReportsBalanceSheet
-      ),
+      if (ReleaseScopeConfig.extendedFinanceEnabled) ...[
+        (Icons.dashboard, 'لوحة مالية', rFinanceDashboard),
+        (
+          Icons.collections_bookmark_outlined,
+          'التحصيل والذمم',
+          rCollectionDashboard
+        ),
+        (Icons.stacked_bar_chart, 'قائمة الدخل', rIncomeStatement),
+        (
+          Icons.account_balance_wallet,
+          'الميزانية العمومية',
+          rReportsBalanceSheet
+        ),
+      ],
     ].where((e) => _matches(e.$2)).toList();
 
     // ===== NEW: سندات مالية =====
@@ -596,7 +600,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                       ),
 
                     // شيكات
-                    if (chequesItems.isNotEmpty || !hasSearch)
+                    if (ReleaseScopeConfig.chequesEnabled &&
+                        (chequesItems.isNotEmpty || !hasSearch))
                       _group(
                         icon: Icons.receipt_long,
                         title: 'الشيكات',
@@ -615,16 +620,17 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                       title: 'إصدار لاحق',
                       isInitiallyExpanded: false,
                       children: [
-                        ListTile(
-                          dense: true,
-                          title: Text(
-                            'إدارة الشيكات',
-                            style: TextStyle(color: Colors.grey),
+                        if (ReleaseScopeConfig.chequesEnabled)
+                          ListTile(
+                            dense: true,
+                            title: Text(
+                              'إدارة الشيكات',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            leading: const Icon(Icons.receipt_long,
+                                color: Colors.grey),
+                            onTap: null, // غير مفعّل
                           ),
-                          leading: const Icon(Icons.receipt_long,
-                              color: Colors.grey),
-                          onTap: null, // غير مفعّل
-                        ),
                         ListTile(
                           dense: true,
                           title: Text(

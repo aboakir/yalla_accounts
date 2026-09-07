@@ -5,6 +5,7 @@
 // -----------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/suppliers/screens/supplier_account_screen.dart';
 
@@ -125,12 +126,13 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                               onTap: () =>
                                   Navigator.pop(sheetContext, 'account'),
                             ),
-                            ListTile(
-                              leading: const Icon(Icons.payments_outlined),
-                              title: const Text('شيكات المورد'),
-                              onTap: () =>
-                                  Navigator.pop(sheetContext, 'cheques'),
-                            ),
+                            if (ReleaseScopeConfig.chequesEnabled)
+                              ListTile(
+                                leading: const Icon(Icons.payments_outlined),
+                                title: const Text('شيكات المورد'),
+                                onTap: () =>
+                                    Navigator.pop(sheetContext, 'cheques'),
+                              ),
                           ],
                         ),
                       ),

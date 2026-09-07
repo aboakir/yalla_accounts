@@ -12,6 +12,7 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -321,21 +322,22 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
             },
           ),
 
-          // شيكات المورد
-          TextButton.icon(
-            icon: const Icon(Icons.receipt_long, color: Colors.white),
-            label: const Text("شيكات", style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.supplierCheques,
-                arguments: {
-                  'supplierPid': widget.supplierId,
-                  'supplierName': widget.supplierName,
-                },
-              );
-            },
-          ),
+          // Cheque management is deferred from the first beta navigation.
+          if (ReleaseScopeConfig.chequesEnabled)
+            TextButton.icon(
+              icon: const Icon(Icons.receipt_long, color: Colors.white),
+              label: const Text("شيكات", style: TextStyle(color: Colors.white)),
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.supplierCheques,
+                  arguments: {
+                    'supplierPid': widget.supplierId,
+                    'supplierName': widget.supplierName,
+                  },
+                );
+              },
+            ),
 
           const SizedBox(width: 8),
         ],

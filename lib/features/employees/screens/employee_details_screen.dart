@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -70,18 +71,19 @@ class EmployeeDetailsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.payments),
                 tooltip: 'الرواتب',
               ),
-              IconButton(
-                onPressed: () {
-                  // فتح شاشة السلف
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.employeeAdvances,
-                    arguments: employee,
-                  );
-                },
-                icon: const Icon(Icons.savings),
-                tooltip: 'السلف والمكافآت',
-              ),
+              if (ReleaseScopeConfig.employeeAdvancesEnabled)
+                IconButton(
+                  onPressed: () {
+                    // Direct advances/rewards UI is deferred in the first beta.
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.employeeAdvances,
+                      arguments: employee,
+                    );
+                  },
+                  icon: const Icon(Icons.savings),
+                  tooltip: 'السلف والمكافآت',
+                ),
             ],
           ),
           bottomNavigationBar: Padding(
