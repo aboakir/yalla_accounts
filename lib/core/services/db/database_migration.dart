@@ -30,6 +30,8 @@ import 'tables/user_authorization_tables.dart';
 import 'tables/p16_security_tables.dart';
 import 'tables/repair_tables.dart';
 import 'tables/accounting_tables.dart';
+import 'tables/party_tables.dart';
+import 'tables/accounting_integrity_tables.dart';
 import 'tables/hr_tables.dart';
 import 'tables/insurance_tables.dart';
 import 'tables/supplier_tables.dart';
@@ -149,6 +151,10 @@ class DatabaseMigration {
       // compatibility columns and must exist on already-upgraded databases.
       await PurchaseInvoicesTable.createAllTables(db);
       await PurchasePaymentsTable.createAllTables(db);
+
+      // Stage 1 keeps v69: unified Party + accounting audit/guards are
+      // additive and idempotent. They must exist before fail-closed validation.
+      await ensureStage1AccountingCoreCompatibilityBeforeValidation(db);
 
       await _validateDatabase(db);
       await encryption?.commit();
@@ -420,6 +426,11 @@ class DatabaseMigration {
     await PaymentsTables.ensurePaymentsSchema(db);
     await ReceiptTables.createAllTables(db);
     await InsuranceTables.ensureInsuranceSchema(db);
+
+    // Stage 1 canonical accounting core. No dbVersion bump: safe additive
+    // compatibility plus read-time Party mapping preserves historical GL.
+    await PartyTables.ensure(db);
+    await AccountingIntegrityTables.ensure(db);
 
     await _ensureVoucherExtraColumns(db);
     await _ensureDataHealthSchema(db);
@@ -794,6 +805,15 @@ class DatabaseMigration {
   ) async {
     await TechnicalTables.createAllTables(db);
     await OfflineOutboxService.resetInterruptedSending(db);
+  }
+
+  /// Stage 1 current-v69 compatibility hook.
+  @visibleForTesting
+  static Future<void> ensureStage1AccountingCoreCompatibilityBeforeValidation(
+    DatabaseExecutor db,
+  ) async {
+    await PartyTables.ensure(db);
+    await AccountingIntegrityTables.ensure(db);
   }
 
   // ============================================================

@@ -15,6 +15,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../core/services/db_service.dart';
 import '../../../core/services/document_number_service.dart';
+import '../../auth/services/audit_trail_service.dart';
 import '../../cheques/models/cheque.dart';
 import '../../cheques/services/cheque_accounting_service.dart';
 import '../models/voucher_payment_model.dart';
@@ -61,6 +62,13 @@ class VoucherPaymentService {
         updated_at TEXT
       );
     ''');
+
+    await _ensureVoucherColumn(db, 'source', 'TEXT');
+    await _ensureVoucherColumn(db, 'source_id', 'TEXT');
+    await _ensureVoucherColumn(db, 'status', "TEXT NOT NULL DEFAULT 'DRAFT'");
+    await _ensureVoucherColumn(db, 'reversal_gl_entry_id', 'INTEGER');
+    await _ensureVoucherColumn(db, 'reversed_at', 'TEXT');
+    await _ensureVoucherColumn(db, 'reversal_reason', 'TEXT');
 
     await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_vouchers_date ON vouchers(date)');
@@ -127,6 +135,10 @@ class VoucherPaymentService {
 
     await db.transaction((txn) async {
       await ensureSchema(txn);
+      await _validateVoucherOnTxn(
+        txn: txn,
+        voucher: voucher,
+      );
 
       final existingRows = await txn.query(
         table,
@@ -294,6 +306,7 @@ class VoucherPaymentService {
           {
             'gl_entry_id': glId,
             'is_posted': 1,
+            'status': 'POSTED',
             'posted_at':
                 postingVoucher.postedAt ?? DateTime.now().toIso8601String(),
             'updated_at': DateTime.now().toIso8601String(),
@@ -380,6 +393,7 @@ class VoucherPaymentService {
         {
           'gl_entry_id': glId,
           'is_posted': 1,
+          'status': 'POSTED',
           'posted_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         },
@@ -430,36 +444,42 @@ class VoucherPaymentService {
     final type = voucher.partyType?.toUpperCase();
 
     if (type == "EMPLOYEE") {
-      await txn.insert("payments", {
-        "id": const Uuid().v4(),
-        "invoice_id": null,
-        "amount": voucher.amount,
-        "date": voucher.date.toIso8601String(),
-        "method": voucher.method.toLowerCase(),
-        "status": "posted",
-        "notes": voucher.notes,
-        "gl_entry_id": voucher.glEntryId,
-        "cheque_id": int.tryParse(voucher.chequeId ?? ''),
-        "isIncome": 0,
-        "party_id": voucher.partyId,
-      });
+      await txn.insert(
+          "payments",
+          {
+            "id": "VOUCHER_LOG:${voucher.id}",
+            "invoice_id": null,
+            "amount": voucher.amount,
+            "date": voucher.date.toIso8601String(),
+            "method": voucher.method.toLowerCase(),
+            "status": "posted",
+            "notes": voucher.notes,
+            "gl_entry_id": voucher.glEntryId,
+            "cheque_id": int.tryParse(voucher.chequeId ?? ''),
+            "isIncome": 0,
+            "party_id": voucher.partyId,
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore);
       return;
     }
 
     if (type == "EXPENSE") {
-      await txn.insert("payments", {
-        "id": const Uuid().v4(),
-        "invoice_id": null,
-        "amount": voucher.amount,
-        "date": voucher.date.toIso8601String(),
-        "method": voucher.method.toLowerCase(),
-        "status": "posted",
-        "notes": voucher.notes,
-        "gl_entry_id": voucher.glEntryId,
-        "cheque_id": int.tryParse(voucher.chequeId ?? ''),
-        "isIncome": 0,
-        "party_id": voucher.partyId,
-      });
+      await txn.insert(
+          "payments",
+          {
+            "id": "VOUCHER_LOG:${voucher.id}",
+            "invoice_id": null,
+            "amount": voucher.amount,
+            "date": voucher.date.toIso8601String(),
+            "method": voucher.method.toLowerCase(),
+            "status": "posted",
+            "notes": voucher.notes,
+            "gl_entry_id": voucher.glEntryId,
+            "cheque_id": int.tryParse(voucher.chequeId ?? ''),
+            "isIncome": 0,
+            "party_id": voucher.partyId,
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore);
       return;
     }
   }
@@ -668,5 +688,253 @@ class VoucherPaymentService {
     if (r.isEmpty) return null;
     final v = r.first["id"];
     return v is int ? v : int.tryParse("$v");
+  }
+
+  static Future<void> _ensureVoucherColumn(
+    DatabaseExecutor db,
+    String column,
+    String type,
+  ) async {
+    final info = await db.rawQuery('PRAGMA table_info(vouchers)');
+    if (!info.any((row) => row['name'] == column)) {
+      await db.execute('ALTER TABLE vouchers ADD COLUMN $column $type');
+    }
+  }
+
+  static Future<void> _validateVoucherOnTxn({
+    required Transaction txn,
+    required VoucherPayment voucher,
+  }) async {
+    final partyType = (voucher.partyType ?? '').trim().toUpperCase();
+    final partyId = (voucher.partyId ?? '').trim();
+    final method = voucher.method.trim().toUpperCase();
+
+    const allowedMethods = {'CASH', 'BANK', 'TRANSFER', 'CHEQUE'};
+    if (!allowedMethods.contains(method)) {
+      throw StateError('Unsupported payment method: ${voucher.method}');
+    }
+
+    if (partyType == 'SUPPLIER') {
+      final supplierId = int.tryParse(partyId);
+      if (supplierId == null || supplierId <= 0) {
+        throw StateError('Supplier payment voucher requires a valid supplier.');
+      }
+      final suppliers = await txn.query(
+        'suppliers',
+        columns: const ['id'],
+        where: 'id=?',
+        whereArgs: [supplierId],
+        limit: 1,
+      );
+      if (suppliers.isEmpty) {
+        throw StateError('Supplier does not exist.');
+      }
+
+      final reference = (voucher.reference ?? '').trim();
+      if (reference.isNotEmpty) {
+        final invoices = await txn.query(
+          'purchase_invoices',
+          columns: const ['id', 'supplier_id', 'amount_total'],
+          where: 'id=? AND supplier_id=?',
+          whereArgs: [reference, supplierId],
+          limit: 1,
+        );
+        if (invoices.isEmpty) {
+          throw StateError(
+            'Referenced purchase invoice does not belong to this supplier.',
+          );
+        }
+
+        final settledRows = await txn.rawQuery(
+          """
+          SELECT COALESCE(SUM(amount_applied),0) AS s
+          FROM invoice_settlements
+          WHERE invoice_id=? AND voucher_id<>?
+          """,
+          [reference, voucher.id],
+        );
+        final settled = (settledRows.first['s'] as num?)?.toDouble() ?? 0.0;
+        final total =
+            (invoices.first['amount_total'] as num?)?.toDouble() ?? 0.0;
+        final remaining = total - settled;
+        if (voucher.amount - remaining > 0.01) {
+          throw StateError(
+            'Supplier payment exceeds the referenced invoice remaining amount.',
+          );
+        }
+      }
+    } else if (partyType == 'EMPLOYEE') {
+      if (partyId.isEmpty) {
+        throw StateError('Employee payment voucher requires an employee.');
+      }
+      final employees = await txn.query(
+        'employees',
+        columns: const ['id'],
+        where: 'id=?',
+        whereArgs: [partyId],
+        limit: 1,
+      );
+      if (employees.isEmpty) {
+        throw StateError('Employee does not exist.');
+      }
+    } else if (partyType == 'CLIENT') {
+      final clientId = int.tryParse(partyId);
+      if (clientId == null || clientId <= 0) {
+        throw StateError('Client-linked voucher requires a valid client.');
+      }
+      final clients = await txn.query(
+        'clients',
+        columns: const ['id'],
+        where: 'id=?',
+        whereArgs: [clientId],
+        limit: 1,
+      );
+      if (clients.isEmpty) {
+        throw StateError('Client does not exist.');
+      }
+    } else if (partyType.isEmpty && (voucher.source ?? '').trim().isNotEmpty) {
+      throw StateError(
+        'Referenced payment voucher requires an explicit party.',
+      );
+    }
+  }
+
+  /// Formal cancellation for a posted payment voucher.
+  /// The original document remains archived. Cash/bank is reversed in GL;
+  /// cheque vouchers use the cheque lifecycle cancellation exactly once.
+  static Future<void> reverseVoucher(
+    String voucherId, {
+    required String reason,
+  }) async {
+    final trimmedReason = reason.trim();
+    if (trimmedReason.isEmpty) {
+      throw ArgumentError('A reversal reason is required.');
+    }
+
+    final db = await DBService.database;
+    await db.transaction((txn) async {
+      await ensureSchema(txn);
+
+      final rows = await txn.query(
+        table,
+        where: 'id=?',
+        whereArgs: [voucherId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('Voucher not found.');
+
+      final row = Map<String, Object?>.from(rows.first);
+      final status = (row['status'] ?? '').toString().toUpperCase();
+      if (status == 'REVERSED') {
+        throw StateError('Voucher is already reversed.');
+      }
+
+      int? glId = row['gl_entry_id'] is num
+          ? (row['gl_entry_id'] as num).toInt()
+          : int.tryParse('${row['gl_entry_id'] ?? ''}');
+      if (glId == null) {
+        final actualGl = await txn.query(
+          'gl_entries',
+          columns: const ['id'],
+          where: 'source=? AND source_id=?',
+          whereArgs: ['VOUCHER', voucherId],
+          orderBy: 'id ASC',
+          limit: 1,
+        );
+        if (actualGl.isNotEmpty) {
+          final raw = actualGl.first['id'];
+          glId = raw is num ? raw.toInt() : int.tryParse('$raw');
+        }
+      }
+
+      if (glId == null) {
+        await AuditTrailService.log(
+          executor: txn,
+          action: 'PAYMENT_VOUCHER_DRAFT_DELETED',
+          entityType: 'voucher',
+          entityId: voucherId,
+          before: row,
+          reason: trimmedReason,
+        );
+        await txn.delete(
+          table,
+          where: 'id=?',
+          whereArgs: [voucherId],
+        );
+        return;
+      }
+
+      int? reversalGlId;
+      final method = (row['method'] ?? '').toString().trim().toUpperCase();
+      if (method == 'CHEQUE') {
+        final chequeId = int.tryParse('${row['cheque_id'] ?? ''}');
+        if (chequeId == null) {
+          throw StateError('Posted cheque voucher has no valid cheque link.');
+        }
+        await ChequeAccountingService.transitionStatusOnTxn(
+          txn: txn,
+          chequeId: chequeId,
+          newStatus: ChequeStatus.cancelled,
+          reason: trimmedReason,
+        );
+        final events = await txn.query(
+          'cheque_events',
+          columns: const ['gl_entry_id'],
+          where: 'cheque_id=? AND event_type=?',
+          whereArgs: [chequeId, 'status:cancelled'],
+          orderBy: 'id DESC',
+          limit: 1,
+        );
+        if (events.isNotEmpty) {
+          final raw = events.first['gl_entry_id'];
+          reversalGlId = raw is num ? raw.toInt() : int.tryParse('$raw');
+        }
+      } else {
+        reversalGlId = await DBService.reverseEntryGLOn(
+          txn,
+          glId,
+          note: 'Payment voucher reversal: $trimmedReason',
+        );
+      }
+
+      await txn.delete(
+        'invoice_settlements',
+        where: 'voucher_id=?',
+        whereArgs: [voucherId],
+      );
+
+      final now = DateTime.now().toIso8601String();
+      await txn.update(
+        table,
+        {
+          'status': 'REVERSED',
+          'reversal_gl_entry_id': reversalGlId,
+          'reversed_at': now,
+          'reversal_reason': trimmedReason,
+          'updated_at': now,
+        },
+        where: 'id=?',
+        whereArgs: [voucherId],
+      );
+
+      await AuditTrailService.log(
+        executor: txn,
+        action: 'PAYMENT_VOUCHER_REVERSED',
+        entityType: 'voucher',
+        entityId: voucherId,
+        before: row,
+        after: {
+          ...row,
+          'status': 'REVERSED',
+          'reversal_gl_entry_id': reversalGlId,
+          'reversed_at': now,
+        },
+        reason: trimmedReason,
+        metadata: {
+          'original_gl_entry_id': glId,
+          'method': method,
+        },
+      );
+    });
   }
 }

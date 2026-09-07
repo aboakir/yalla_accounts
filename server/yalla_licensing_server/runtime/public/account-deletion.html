@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>طلب حذف الحساب والبيانات — Yalla Accounts</title>
+<style>body{font-family:Arial,sans-serif;line-height:1.8;max-width:760px;margin:40px auto;padding:0 20px;color:#1f2937}h1{color:#477f18}label{display:block;margin-top:14px;font-weight:bold}input,textarea{width:100%;box-sizing:border-box;padding:10px;margin-top:5px}button{margin-top:18px;padding:12px 20px;background:#67BC1F;border:0;border-radius:7px;font-weight:bold}</style></head>
+<body>
+<h1>طلب حذف الحساب والبيانات</h1>
+<p>استخدم هذا النموذج لبدء طلب حذف حساب Yalla Accounts والبيانات الشخصية المرتبطة به.</p>
+<form method="post" action="/v1/account-deletion-requests">
+<label>اسم المنشأة أو الحساب</label>
+<input name="organization_or_account" required>
+<label>وسيلة تواصل للتحقق من الطلب</label>
+<input name="contact" required>
+<label>ملاحظة اختيارية</label>
+<textarea name="note" rows="5"></textarea>
+<button type="submit">إرسال طلب الحذف</button>
+</form>
+<p>قد تُحتفظ بعض السجلات إذا كان ذلك مطلوبًا قانونيًا أو محاسبيًا، مع إلغاء الوصول وتقليل البيانات الشخصية قدر الإمكان.</p>
+</body></html>

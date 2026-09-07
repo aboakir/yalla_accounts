@@ -70,7 +70,7 @@ class _SmartCardsState extends State<SmartCards> {
       final ar = await db.rawQuery('''
         SELECT IFNULL(SUM(credit - debit), 0) AS bal
         FROM gl_lines
-        WHERE party_type='CLIENT'
+        WHERE UPPER(COALESCE(party_type,'')) IN ('CLIENT','CUSTOMER')
           AND (credit - debit) > 0
           AND DATE(${hasDueGL ? 'due_date' : 'date'})
               <= ${hasDueGL ? "DATE('now')" : "DATE('now','-7 day')"}

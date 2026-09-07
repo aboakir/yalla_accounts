@@ -20,6 +20,9 @@ import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_invoice_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_read_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_cost_service.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 
 // -----------------------------------------------------------------------------
 // MODEL
@@ -121,12 +124,14 @@ class PurchaseNotifier extends StateNotifier<List<Purchase>> {
   }
 
   // ---------------------------------------------------------------------------
-  // DELETE PURCHASE → Reverse GL → Delete Invoice
+  // CANCEL PURCHASE → formal GL reversal → preserve source document
   // ---------------------------------------------------------------------------
   Future<void> delete(String invoiceId) async {
+    final actor =
+        await AuthorizationGuard.require(PermissionKeys.purchaseManage);
     final db = await _db;
     await RepairCostService.ensureSchema(db);
-    final allocations = await db.rawQuery('''
+    final allocations = await db.rawQuery(r'''
       SELECT COUNT(*) AS c
       FROM repair_cost_entries rc
       JOIN purchase_invoice_lines pl ON pl.id = rc.source_line_id
@@ -137,47 +142,83 @@ class PurchaseNotifier extends StateNotifier<List<Purchase>> {
     final allocatedCount = (allocations.first['c'] as num?)?.toInt() ?? 0;
     if (allocatedCount > 0) {
       throw StateError(
-        'لا يمكن حذف فاتورة شراء مخصصة لملف إصلاح. اعكس تخصيصات التكلفة أولًا.',
+        'لا يمكن إلغاء فاتورة شراء مخصصة لملف إصلاح. اعكس تخصيصات التكلفة أولًا.',
       );
     }
 
+    var wasPosted = false;
     await db.transaction((txn) async {
-      // 1) جلب قيود GL الخاصة بالفاتورة
-      final head = await txn.query(
+      final heads = await txn.query(
         'gl_entries',
-        where: 'source=? AND source_id=?',
-        whereArgs: ['PURCHASE', invoiceId],
-        limit: 1,
+        where:
+            "UPPER(source) IN ('PURCHASE','PURCHASE_INVOICE') AND source_id=?",
+        whereArgs: [invoiceId],
+        orderBy: 'id',
       );
-
-      if (head.isNotEmpty) {
-        final raw = head.first['id'];
-        final entryId = raw is int ? raw : int.tryParse(raw.toString());
-
-        if (entryId != null && entryId > 0) {
-          try {
-            await DBService.reverseEntryGL(
-              entryId,
-              note: 'Reverse PURCHASE $invoiceId',
-            );
-          } catch (_) {}
-        }
+      if (heads.length > 1) {
+        throw StateError(
+          'Duplicate purchase posting detected for $invoiceId. '
+          'Cancellation stopped for accounting audit.',
+        );
       }
 
-      // 2) حذف البنود
-      await txn.delete(
-        'purchase_invoice_lines',
-        where: 'invoice_id=?',
-        whereArgs: [invoiceId],
-      );
+      if (heads.isEmpty) {
+        // A never-posted draft has no accounting effect and may be removed.
+        await txn.delete(
+          'purchase_invoice_lines',
+          where: 'invoice_id=?',
+          whereArgs: [invoiceId],
+        );
+        await txn.delete(
+          'purchase_invoices',
+          where: 'id=?',
+          whereArgs: [invoiceId],
+        );
+        return;
+      }
 
-      // 3) حذف الفاتورة الرئيسية
-      await txn.delete(
+      wasPosted = true;
+      final entryId = (heads.single['id'] as num).toInt();
+      final reversals = await txn.query(
+        'gl_entries',
+        columns: const ['id'],
+        where: 'reversal_of=?',
+        whereArgs: [entryId],
+        limit: 1,
+      );
+      if (reversals.isEmpty) {
+        await DBService.reverseEntryGLOn(
+          txn,
+          entryId,
+          note: 'Cancel PURCHASE $invoiceId',
+        );
+      }
+
+      // Never destroy a posted source document. Its financial rows and lines
+      // remain the immutable trace behind the original posting + reversal.
+      await txn.update(
         'purchase_invoices',
+        {
+          'status': 'CANCELLED',
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        },
         where: 'id=?',
         whereArgs: [invoiceId],
       );
     });
+
+    await AuditTrailService.log(
+      actorUserId: actor?.id,
+      actorRole: actor?.role,
+      action:
+          wasPosted ? 'PURCHASE_INVOICE_CANCELLED' : 'PURCHASE_DRAFT_DELETED',
+      entityType: 'purchase_invoice',
+      entityId: invoiceId,
+      after: {'status': wasPosted ? 'CANCELLED' : 'DELETED_DRAFT'},
+      reason: wasPosted
+          ? 'Formal reversal; source document retained.'
+          : 'Draft had no GL posting.',
+    );
 
     await refresh();
   }

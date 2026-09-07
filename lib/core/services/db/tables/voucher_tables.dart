@@ -21,16 +21,21 @@ class VoucherTables {
     // إذا ما في جدول أصلاً → يبني واحد جديد جاهز
     if (!cols.contains("id")) {
       await _createFresh(db);
+      await _ensurePostedGuards(db);
       return;
     }
 
     // لو فيه client_type (سبب المشكلة)
     if (cols.contains("client_type")) {
+      // Add the canonical columns first so the rebuild can preserve them.
+      await _ensureSchema(db);
       await _rebuild(db);
+      await _ensureSchema(db);
     } else {
       // فقط يكمل فحص الأعمدة الناقصة
       await _ensureSchema(db);
     }
+    await _ensurePostedGuards(db);
   }
 
   // ---------------------------------------------------------------------------
@@ -51,8 +56,14 @@ class VoucherTables {
         method TEXT,
         cheque_id TEXT,
         reference TEXT,
+        source TEXT,
+        source_id TEXT,
         gl_entry_id INTEGER,
         is_posted INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'DRAFT',
+        reversal_gl_entry_id INTEGER,
+        reversed_at TEXT,
+        reversal_reason TEXT,
         posted_by TEXT,
         posted_at TEXT,
         notes TEXT,
@@ -82,8 +93,14 @@ class VoucherTables {
         method TEXT,
         cheque_id TEXT,
         reference TEXT,
+        source TEXT,
+        source_id TEXT,
         gl_entry_id INTEGER,
         is_posted INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'DRAFT',
+        reversal_gl_entry_id INTEGER,
+        reversed_at TEXT,
+        reversal_reason TEXT,
         posted_by TEXT,
         posted_at TEXT,
         notes TEXT,
@@ -109,8 +126,14 @@ class VoucherTables {
         method,
         cheque_id,
         reference,
+        source,
+        source_id,
         gl_entry_id,
         is_posted,
+        status,
+        reversal_gl_entry_id,
+        reversed_at,
+        reversal_reason,
         posted_by,
         posted_at,
         notes,
@@ -142,8 +165,14 @@ class VoucherTables {
     await _ensure(db, 'method', 'TEXT');
     await _ensure(db, 'cheque_id', 'TEXT');
     await _ensure(db, 'reference', 'TEXT');
+    await _ensure(db, 'source', 'TEXT');
+    await _ensure(db, 'source_id', 'TEXT');
     await _ensure(db, 'gl_entry_id', 'INTEGER');
     await _ensure(db, 'is_posted', 'INTEGER NOT NULL DEFAULT 0');
+    await _ensure(db, 'status', "TEXT NOT NULL DEFAULT 'DRAFT'");
+    await _ensure(db, 'reversal_gl_entry_id', 'INTEGER');
+    await _ensure(db, 'reversed_at', 'TEXT');
+    await _ensure(db, 'reversal_reason', 'TEXT');
     await _ensure(db, 'posted_by', 'TEXT');
     await _ensure(db, 'posted_at', 'TEXT');
     await _ensure(db, 'notes', 'TEXT');
@@ -162,6 +191,42 @@ class VoucherTables {
     if (!exists) {
       await db.execute("ALTER TABLE vouchers ADD COLUMN $column $type;");
     }
+  }
+
+  static Future<void> _ensurePostedGuards(DatabaseExecutor db) async {
+    await db.execute(
+      'DROP TRIGGER IF EXISTS trg_vouchers_posted_material_update;',
+    );
+    await db.execute(
+      'DROP TRIGGER IF EXISTS trg_vouchers_posted_delete;',
+    );
+
+    await db.execute(r'''
+      CREATE TRIGGER trg_vouchers_posted_material_update
+      BEFORE UPDATE OF
+        voucher_type, party_type, party_id, amount, currency, date,
+        method, cheque_id, reference, source, source_id
+      ON vouchers
+      WHEN OLD.is_posted = 1 OR OLD.gl_entry_id IS NOT NULL
+      BEGIN
+        SELECT RAISE(
+          ABORT,
+          'Posted voucher is immutable; use formal reversal/correcting voucher'
+        );
+      END;
+    ''');
+
+    await db.execute(r'''
+      CREATE TRIGGER trg_vouchers_posted_delete
+      BEFORE DELETE ON vouchers
+      WHEN OLD.is_posted = 1 OR OLD.gl_entry_id IS NOT NULL
+      BEGIN
+        SELECT RAISE(
+          ABORT,
+          'Posted voucher cannot be deleted; use formal reversal'
+        );
+      END;
+    ''');
   }
 
   // ---------------------------------------------------------------------------

@@ -62,6 +62,7 @@ class PurchaseInvoiceService {
   }
 
   static Future<String> createInvoice({
+    String? id,
     required int supplierId,
     required DateTime date,
     required String? note,
@@ -78,7 +79,8 @@ class PurchaseInvoiceService {
 
     final db = await DBService.database;
     await PurchaseInvoicesTable.createAllTables(db);
-    final invoiceId = const Uuid().v4();
+    final invoiceId =
+        id?.trim().isNotEmpty == true ? id!.trim() : const Uuid().v4();
     final type = purchaseType.trim().isEmpty
         ? 'OTHER'
         : purchaseType.trim().toUpperCase();

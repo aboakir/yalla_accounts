@@ -23,6 +23,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
 
 /// ============================================================================
 /// DESKTOP SCROLL BEHAVIOR — MUST BE OUTSIDE THE CLASS
@@ -85,6 +86,8 @@ class _PaymentVoucherListScreenState extends State<PaymentVoucherListScreen> {
 SELECT
 v.voucher_number,
 v.id,
+  v.status,
+  v.reversal_reason,
   v.amount,
   v.date,
   v.method,
@@ -123,6 +126,7 @@ ORDER BY v.date DESC;
 SELECT SUM(v.amount) AS s
 FROM vouchers v
 WHERE v.voucher_type = 'PAYMENT'
+  AND COALESCE(v.status,'POSTED') <> 'REVERSED'
   AND substr(v.date,1,10)=?
   AND (
     v.party_type = 'EMPLOYEE'
@@ -136,6 +140,7 @@ WHERE v.voucher_type = 'PAYMENT'
 SELECT SUM(v.amount) AS s
 FROM vouchers v
 WHERE v.voucher_type = 'PAYMENT'
+  AND COALESCE(v.status,'POSTED') <> 'REVERSED'
   AND substr(v.date,1,7)=?
   AND (
     v.party_type = 'EMPLOYEE'
@@ -158,7 +163,7 @@ WHERE v.voucher_type = 'PAYMENT'
   void _applyFilters() {
     filtered = all.where((row) {
       final text =
-          "${row["id"]} ${row["amount"]} ${row["notes"]} ${row["party_name"]}"
+          "${row["voucher_number"]} ${row["amount"]} ${row["notes"]} ${row["party_name"]}"
               .toLowerCase();
 
       if (!text.contains(search.toLowerCase())) return false;
@@ -178,21 +183,20 @@ WHERE v.voucher_type = 'PAYMENT'
   Future<void> _generatePdf(Map row) async {
     try {
       final pdfBytes = await YallaPdfService.generatePaymentVoucherPdf(
-        voucherId: row["id"].toString(),
+        voucherId: row["voucher_number"]?.toString() ?? "P-UNNUMBERED",
         date: DateTime.parse(row["date"]),
         amount: (row["amount"] as num).toDouble(),
         method: row["method"].toString(),
         partyName: row["party_name"]?.toString() ?? "—",
         notes: row["notes"]?.toString() ?? "",
-        glEntryId: row["gl_entry_id"] == null
-            ? null
-            : (row["gl_entry_id"] as num).toInt(),
+        glEntryId: null,
       );
 
       // فتح PDF مباشرة بدون نافذة طباعة Windows
       await YallaPdfService.saveAndOpen(
         bytes: pdfBytes,
-        fileName: "payment_voucher_${row["id"]}.pdf",
+        fileName:
+            "payment_voucher_${row["voucher_number"] ?? "P-UNNUMBERED"}.pdf",
       );
     } catch (e) {
       if (!mounted) return;
@@ -255,84 +259,76 @@ WHERE v.voucher_type = 'PAYMENT'
   }
 
   Future<void> _confirmDelete(Map row) async {
+    final controller = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AdaptiveAlertDialog(
-          title: const Text("تأكيد الحذف"),
-          content: const Text(
-            "يمكن حذف السند غير المرحّل فقط. السند المرحّل لا يُحذف؛ "
-            "يجب استخدام مسار العكس المحاسبي.",
+          title: const Text("إلغاء سند الصرف"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "السند المرحّل لا يُحذف. سيتم إنشاء عكس محاسبي رسمي "
+                "مع إبقاء المستند الأصلي محفوظًا.",
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: "سبب الإلغاء",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("إلغاء"),
+              child: const Text("رجوع"),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("حذف"),
+              child: const Text("تأكيد الإلغاء"),
             ),
           ],
         );
       },
     );
 
-    if (ok == true) {
-      await _deleteVoucher(row);
-    }
-  }
-
-  Future<void> _deleteVoucher(Map row) async {
-    final db = await DBService.database;
-    final voucherId = row["id"].toString();
-
-    final glId = await DBService.getGlEntryIdBySource('VOUCHER', voucherId);
-    if (glId != null) {
+    if (ok != true) return;
+    final reason = controller.text.trim();
+    if (reason.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "السند مرحّل محاسبيًا ولا يمكن حذفه. استخدم العكس/الإلغاء الموثق.",
-          ),
-          backgroundColor: Colors.orange,
-        ),
+        const SnackBar(content: Text("يجب كتابة سبب الإلغاء")),
       );
       return;
     }
 
-    final amount = (row["amount"] as num).toDouble();
-    final sourceId = row["source_id"];
-
-    await db.transaction((txn) async {
-      if (sourceId != null) {
-        await txn.rawUpdate(
-          '''
-          UPDATE purchase_invoices
-          SET paid_total = MAX(COALESCE(paid_total, 0) - ?, 0)
-          WHERE id = ?
-          ''',
-          [amount, sourceId],
-        );
-      }
-
-      await txn.delete(
-        'vouchers',
-        where: 'id = ?',
-        whereArgs: [voucherId],
+    try {
+      await VoucherPaymentService.reverseVoucher(
+        row["id"].toString(),
+        reason: reason,
       );
-    });
-
-    await _load();
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("تم حذف السند غير المرحّل"),
-        backgroundColor: Colors.green,
-      ),
-    );
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("تم إلغاء السند وتسجيل العكس المحاسبي"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("تعذر إلغاء السند: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // =============================================================================
@@ -524,7 +520,7 @@ WHERE v.voucher_type = 'PAYMENT'
                         style: TextStyle(fontWeight: FontWeight.bold))),
                 Expanded(
                     flex: 2,
-                    child: Text("GL",
+                    child: Text("الحالة",
                         textAlign: TextAlign.center,
                         style: TextStyle(fontWeight: FontWeight.bold))),
               ],
@@ -564,7 +560,8 @@ WHERE v.voucher_type = 'PAYMENT'
                         Expanded(
                           flex: 1,
                           child: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon: const Icon(Icons.cancel_outlined,
+                                color: Colors.red),
                             onPressed: () => _confirmDelete(row),
                           ),
                         ),
@@ -641,7 +638,10 @@ WHERE v.voucher_type = 'PAYMENT'
                         Expanded(
                           flex: 2,
                           child: Text(
-                            row["gl_entry_id"]?.toString() ?? "-",
+                            (row["status"]?.toString().toUpperCase() ==
+                                    "REVERSED")
+                                ? "ملغي"
+                                : "مرحّل",
                             textAlign: TextAlign.center,
                           ),
                         ),

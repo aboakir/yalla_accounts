@@ -373,3 +373,17 @@
 - Added owner username/password recovery flow using one-time recovery code or previously configured security answers; ordinary-user password recovery remains owner-controlled.
 - Added show/hide controls to login, owner setup, add-user, temporary-reset, and password-change fields.
 - No plaintext password persistence and no password-visibility capability for Yalla administrators.
+
+## YALLA OFFICIAL CHECKPOINT — P08-P18 ALL PASS
+- Checkpoint: 2026-09-06 12:59:36
+- P08 through P18: PASS / CLOSED.
+- P18 live database integrity contract: PASS.
+- APK release build: PASS.
+- AAB release build: PASS.
+- Android release blocker: CLOSED.
+- No DB reset.
+- No migration.
+- No Codemagic action.
+- Analyzer: 46 non-blocking warnings/info remain for separate cleanup.
+- Project currently has no Git repository.
+- Do not infer or create P19 without an explicit official phase definition.

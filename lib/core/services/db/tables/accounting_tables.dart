@@ -2,6 +2,9 @@
 import 'package:sqflite/sqflite.dart';
 import 'payments_tables.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
+import 'package:yalla_accounts/core/services/accounting_source_policy.dart';
+import 'accounting_integrity_tables.dart';
+import 'party_tables.dart';
 
 // أضف هذه الاستيرادات:
 
@@ -1179,17 +1182,42 @@ class AccountingTables {
     if (reversalOf != null && reversalOf <= 0) {
       throw ArgumentError('reversalOf must reference a positive GL entry id');
     }
-    // P0.001 — posting must be idempotent by (source, source_id).
-    //
-    // Old behavior reused an existing GL header after a UNIQUE collision,
-    // then appended the lines again. That created balanced but duplicated GL.
-    //
-    // New behavior:
-    // 1) same key + same lines => return existing entry unchanged.
-    // 2) same key + different lines => fail closed.
-    // 3) existing header without lines => fail closed.
 
-    final total = lines.fold<double>(0, (sum, line) {
+    final canonicalSource = AccountingSourcePolicy.canonical(source);
+    if (canonicalSource.isEmpty) {
+      throw ArgumentError('Accounting source is required.');
+    }
+    final cleanSourceId = sourceId.trim();
+    if (cleanSourceId.isEmpty) {
+      throw ArgumentError('Accounting sourceId is required.');
+    }
+
+    // Stage 1: all new Party metadata is canonicalized at the GL gateway.
+    // Historical CLIENT/S0001 rows remain readable through Party views.
+    final normalizedLines = <Map<String, Object?>>[];
+    for (final raw in lines) {
+      final line = Map<String, Object?>.from(raw);
+      final rawRole = line['party_type']?.toString().trim();
+      final rawPartyId = line['party_id'];
+      final hasRole = rawRole != null && rawRole.isNotEmpty;
+      final hasParty =
+          rawPartyId != null && rawPartyId.toString().trim().isNotEmpty;
+      if (hasRole != hasParty) {
+        throw StateError(
+          'GL Party identity is incomplete for $canonicalSource:$cleanSourceId.',
+        );
+      }
+      if (hasRole) {
+        final role = PartyTables.canonicalRole(rawRole);
+        if (PartyTables.supportedRoles.contains(role)) {
+          line['party_type'] = role;
+          line['party_id'] = PartyTables.canonicalLegacyId(role, rawPartyId);
+        }
+      }
+      normalizedLines.add(line);
+    }
+
+    final total = normalizedLines.fold<double>(0, (sum, line) {
       final debit = (line['debit'] as num?)?.toDouble() ?? 0.0;
       final credit = (line['credit'] as num?)?.toDouble() ?? 0.0;
       return sum + debit - credit;
@@ -1206,7 +1234,14 @@ class AccountingTables {
 
     String nullableValue(Object? value) => value?.toString() ?? '';
 
-    String lineSignature(Map<String, Object?> line) {
+    String lineSignature(Map<String, Object?> rawLine) {
+      final line = Map<String, Object?>.from(rawLine);
+      final role = PartyTables.canonicalRole(line['party_type']);
+      if (PartyTables.supportedRoles.contains(role)) {
+        line['party_type'] = role;
+        line['party_id'] =
+            PartyTables.canonicalLegacyId(role, line['party_id']);
+      }
       return <String>[
         nullableValue(line['account_id']),
         numberValue(line['debit']).toStringAsFixed(6),
@@ -1224,124 +1259,115 @@ class AccountingTables {
       List<Map<String, Object?>> requested,
     ) {
       if (existing.length != requested.length) return false;
-
       final left = existing.map(lineSignature).toList()..sort();
       final right = requested.map(lineSignature).toList()..sort();
-
       for (var i = 0; i < left.length; i++) {
         if (left[i] != right[i]) return false;
       }
       return true;
     }
 
-    Future<Map<String, Object?>?> findExistingEntry() async {
-      final columns = <String>['id'];
+    Future<List<Map<String, Object?>>> findExistingEntries() async {
+      final columns = <String>['id', 'source'];
       if (sourceNumber != null || postingVersion != 1 || reversalOf != null) {
-        columns.addAll([
-          'source_number',
-          'posting_version',
-          'reversal_of',
-        ]);
+        columns.addAll(['source_number', 'posting_version', 'reversal_of']);
       }
-
-      final rows = await db.query(
+      final aliases = AccountingSourcePolicy.aliasesFor(canonicalSource);
+      final placeholders = List.filled(aliases.length, '?').join(',');
+      return db.query(
         'gl_entries',
         columns: columns,
-        where: 'source = ? AND source_id = ?',
-        whereArgs: [source, sourceId],
-        limit: 1,
+        where: 'UPPER(source) IN ($placeholders) AND source_id = ?',
+        whereArgs: <Object?>[...aliases, cleanSourceId],
+        orderBy: 'id ASC',
       );
-      return rows.isEmpty ? null : rows.first;
     }
 
     Future<int> validateAndReturnExisting(
       Map<String, Object?> existingHead,
     ) async {
-      final entryId = existingHead['id'] as int;
+      final entryId = (existingHead['id'] as num).toInt();
 
       if (sourceNumber != null &&
           existingHead.containsKey('source_number') &&
           existingHead['source_number'] != null &&
           existingHead['source_number'].toString() != sourceNumber) {
         throw StateError(
-          'GL posting conflict for $source:$sourceId — '
+          'GL posting conflict for $canonicalSource:$cleanSourceId — '
           'source_number differs from the immutable existing entry.',
         );
       }
-
       if (existingHead.containsKey('posting_version')) {
         final existingVersion =
             (existingHead['posting_version'] as num?)?.toInt() ?? 1;
         if (existingVersion != postingVersion) {
           throw StateError(
-            'GL posting conflict for $source:$sourceId — '
+            'GL posting conflict for $canonicalSource:$cleanSourceId — '
             'posting_version differs from the immutable existing entry.',
           );
         }
       }
-
       if (reversalOf != null &&
           existingHead.containsKey('reversal_of') &&
           existingHead['reversal_of'] != reversalOf) {
         throw StateError(
-          'GL posting conflict for $source:$sourceId — '
+          'GL posting conflict for $canonicalSource:$cleanSourceId — '
           'reversal linkage differs from the immutable existing entry.',
         );
       }
+
       final existingLines = await db.query(
         'gl_lines',
         where: 'entry_id = ?',
         whereArgs: [entryId],
         orderBy: 'id ASC',
       );
-
       if (existingLines.isEmpty) {
         throw StateError(
-          'GL posting conflict for $source:$sourceId — '
+          'GL posting conflict for $canonicalSource:$cleanSourceId — '
           'entry $entryId exists without lines. Posting stopped.',
         );
       }
-
-      if (!sameFinancialLines(existingLines, lines)) {
+      if (!sameFinancialLines(existingLines, normalizedLines)) {
         throw StateError(
-          'GL posting conflict for $source:$sourceId — '
+          'GL posting conflict for $canonicalSource:$cleanSourceId — '
           'entry $entryId already exists with different financial lines. '
           'Posting stopped to prevent duplication/corruption.',
         );
       }
-
       return entryId;
     }
 
-    final existingBeforeInsert = await findExistingEntry();
-    if (existingBeforeInsert != null) {
-      return validateAndReturnExisting(existingBeforeInsert);
+    final existingBeforeInsert = await findExistingEntries();
+    if (existingBeforeInsert.length > 1) {
+      throw StateError(
+        'Duplicate legacy GL identity for $canonicalSource:$cleanSourceId — '
+        'multiple source aliases already exist. Resolve by formal audit/reversal.',
+      );
+    }
+    if (existingBeforeInsert.isNotEmpty) {
+      return validateAndReturnExisting(existingBeforeInsert.single);
     }
 
     await _validatePostingAccounts(
       db,
-      lines,
+      normalizedLines,
       allowRetiredForReversal: reversalOf != null,
     );
 
     final header = <String, Object?>{
       'date': date.toIso8601String(),
       'ref': ref,
-      'source': source,
-      'source_id': sourceId,
+      'source': canonicalSource,
+      'source_id': cleanSourceId,
       'note': note,
       'created_at': DateTime.now().toIso8601String(),
     };
-
     if (sourceNumber != null && sourceNumber.trim().isNotEmpty) {
       header['source_number'] = sourceNumber.trim();
     }
-    if (postingVersion != 1) {
-      header['posting_version'] = postingVersion;
-    }
-    if (reversalOf != null) {
-      header['reversal_of'] = reversalOf;
-    }
+    if (postingVersion != 1) header['posting_version'] = postingVersion;
+    if (reversalOf != null) header['reversal_of'] = reversalOf;
     if (createdBy != null && createdBy.trim().isNotEmpty) {
       header['created_by'] = createdBy.trim();
     }
@@ -1351,14 +1377,12 @@ class AccountingTables {
       entryId = await db.insert('gl_entries', header);
     } on DatabaseException catch (e) {
       if (!e.toString().contains('UNIQUE')) rethrow;
-
-      final existingAfterCollision = await findExistingEntry();
-      if (existingAfterCollision == null) rethrow;
-
-      return validateAndReturnExisting(existingAfterCollision);
+      final collision = await findExistingEntries();
+      if (collision.length != 1) rethrow;
+      return validateAndReturnExisting(collision.single);
     }
 
-    for (final line in lines) {
+    for (final line in normalizedLines) {
       await db.insert(
         'gl_lines',
         {
@@ -1375,6 +1399,16 @@ class AccountingTables {
         },
       );
     }
+
+    await AccountingIntegrityTables.recordPostingEvent(
+      db,
+      glEntryId: entryId,
+      source: canonicalSource,
+      sourceId: cleanSourceId,
+      canonicalSource: canonicalSource,
+      reversalOf: reversalOf,
+      actorUserId: createdBy,
+    );
 
     return entryId;
   }

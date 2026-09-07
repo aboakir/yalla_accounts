@@ -19,7 +19,6 @@ void main() {
     test('finance posting services do not redeclare raw core account codes',
         () {
       final targets = <String>[
-        'lib/features/finance/purchases/services/purchase_service.dart',
         'lib/features/finance/purchases/services/purchase_payment_service.dart',
         'lib/features/finance/purchases/services/supplier_payment_service.dart',
         'lib/features/finance/payments/services/payment_service.dart',
@@ -43,6 +42,15 @@ void main() {
           reason: '$path should reference canonical GL account codes.',
         );
       }
+
+      final legacyPurchaseFacade = _read(
+        'lib/features/finance/purchases/services/purchase_service.dart',
+      );
+      expect(
+        legacyPurchaseFacade,
+        contains('PurchaseInvoiceService.createInvoice('),
+      );
+      expect(legacyPurchaseFacade, isNot(contains('DBService.postEntryGL')));
     });
 
     test('runtime source never suppresses async BuildContext safety lint', () {

@@ -1,0 +1,14 @@
+{
+  "name": "yalla-c06-licensing-test-authority",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "init": "node init_c06.mjs",
+    "start": "node server.mjs",
+    "selftest": "node selftest.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

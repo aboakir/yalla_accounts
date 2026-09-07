@@ -1,4 +1,4 @@
-package com.example.yalla_accounts
+package ps.yalla.accounts
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
