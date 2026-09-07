@@ -20,12 +20,12 @@ class DatabasePlatformPolicy {
     // PRAGMAs during database open. Do not force those PRAGMAs on iOS.
     if (isIOS) return;
 
-    await db.execute('PRAGMA journal_mode = WAL;');
+    await db.rawQuery('PRAGMA journal_mode = WAL;');
     await db.execute('PRAGMA synchronous = NORMAL;');
 
     // main.dart historically applied 8000 after DatabaseMigration's 5000,
     // so 8000 is the effective Desktop/Android behavior being preserved.
-    await db.execute('PRAGMA busy_timeout = 8000;');
+    await db.rawQuery('PRAGMA busy_timeout = 8000;');
   }
 
   static Future<void> checkpoint(
