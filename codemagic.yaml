@@ -1,0 +1,85 @@
+workflows:
+  ios_unsigned:
+    name: Yalla Accounts Unsigned iPhone
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Verify Yalla Accounts source
+        script: |
+          set -euo pipefail
+          test -f pubspec.yaml
+          grep -Eq '^name:[[:space:]]*yalla_accounts[[:space:]]*$' pubspec.yaml
+          test -d ios
+          echo "Yalla Accounts source verified."
+
+      - name: Disable Flutter Swift Package Manager
+        script: |
+          set -euo pipefail
+          flutter config --no-enable-swift-package-manager
+          flutter config --list | grep -i swift || true
+
+      - name: Get Flutter packages cleanly
+        script: |
+          set -euo pipefail
+          flutter clean
+          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
+          flutter pub get
+
+      - name: Install iOS pods
+        script: |
+          set -euo pipefail
+          test -f ci/Podfile
+          rm -f ios/Podfile
+          cp ci/Podfile ios/Podfile
+
+          cd ios
+          pod deintegrate || true
+          rm -rf Pods Podfile.lock .symlinks
+          cd ..
+
+          flutter pub get
+
+          cd ios
+          pod install --repo-update
+
+
+
+      - name: Build unsigned iPhone release
+        script: |
+          set -euo pipefail
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --dart-define=YALLA_LICENSING_BASE_URL=https://b563e2490e02a2.lhr.life \
+            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=256da347315a3b53df365fa431fd4b77fad4d0a1bae8f102b6815523173bb25a
+
+      - name: Package unsigned IPA
+        script: |
+          set -euo pipefail
+          APP="build/ios/iphoneos/Runner.app"
+          OUT="build/ios/ipa"
+
+          test -d "$APP"
+
+          rm -rf "$OUT"
+          mkdir -p "$OUT/Payload"
+          cp -R "$APP" "$OUT/Payload/Runner.app"
+
+          (
+            cd "$OUT"
+            zip -qry "Yalla_Accounts_Unsigned_iPhone.ipa" Payload
+          )
+
+          test -f "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
+          ls -lh "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
+
+    artifacts:
+      - build/ios/ipa/Yalla_Accounts_Unsigned_iPhone.ipa
+      - build/ios/iphoneos/Runner.app
+      - /tmp/xcodebuild_logs/*.log
