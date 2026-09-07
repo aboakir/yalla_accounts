@@ -137,12 +137,19 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     final h = header!;
 
     try {
+      final purchaseCategory = _typeLabel(h['purchase_type']?.toString());
+
       final pdfRows = lines.map((r) {
         return [
           (r['item_name'] ?? r['item'] ?? '').toString(),
           _d(r['qty']).toStringAsFixed(2),
           MoneyFormatter.format(_d(r['unit_price'])),
           MoneyFormatter.format(_d(r['total'])),
+          // STAGE1_RUNTIME_FIX3_PURCHASE_PDF_COLUMNS
+          // generateFullInvoicePdf renders five columns, including
+          // "التصنيف". The old mobile handoff supplied only four cells and
+          // crashed with RangeError 0..3:4 before the iOS share sheet opened.
+          purchaseCategory,
         ];
       }).toList();
 

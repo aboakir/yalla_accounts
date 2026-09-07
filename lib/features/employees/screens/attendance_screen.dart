@@ -176,9 +176,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     const currentRoute = '/employees/attendance';
-    final user = ref.watch(currentUserProvider); // ← تم التصحيح
     final empState = ref.watch(employeeProvider);
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final width = MediaQuery.sizeOf(context).width;
+    final isPhone = width < YallaBreakpoints.phone;
+    final isDesktop = width >= 900;
 
     // STAGE1_P0_ATTENDANCE_SELECTION_RECOVERY
     // Riverpod can refresh the employee list with new Employee instances.
@@ -201,6 +202,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         await _loadAttendance();
       });
     }
+
+    // STAGE1_RUNTIME_FIX3_ATTENDANCE_PHONE_RECOVERY
+    // The desktop attendance screen is intentionally preserved. On phones use
+    // a compact mobile body with an id-based employee dropdown and no nested
+    // desktop Flex/table composition. This prevents a child build failure from
+    // replacing the whole attendance body with the release-mode grey
+    // ErrorWidget while keeping the same provider/database services.
+    if (isPhone) {
+      return _buildPhoneAttendanceRuntimeSafe(empState: empState);
+    }
+
+    final user = ref.watch(currentUserProvider);
 
     return Scaffold(
       drawer: isDesktop
@@ -372,6 +385,345 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // STAGE1_RUNTIME_FIX3B_ATTENDANCE_PHONE_SAFE_BODY
+  // Keep iPhone attendance independent from the desktop header/table/flex tree.
+  // Selection is keyed by the stable employee id and the same database service
+  // remains authoritative for attendance records.
+  Widget _buildPhoneAttendanceRuntimeSafe({required EmployeeState empState}) {
+    final byId = <String, Employee>{
+      for (final employee in empState.employees) employee.id: employee,
+    };
+    final employees = byId.values.toList(growable: false);
+    final selectedId = selectedEmployee?.id;
+    final dropdownValue =
+        selectedId != null && byId.containsKey(selectedId) ? selectedId : null;
+
+    Widget recordsBody() {
+      if (selectedEmployee == null) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 28),
+          child: Text(
+            'اختر موظفًا لعرض سجل الحضور',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54),
+          ),
+        );
+      }
+      if (loadError != null) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Text(
+            'تعذر تحميل الحضور: $loadError',
+            textAlign: TextAlign.center,
+          ),
+        );
+      }
+      if (isLoading) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 36),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+      if (records.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            'لا توجد سجلات حضور لهذا الشهر',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.black54),
+          ),
+        );
+      }
+
+      final sorted = [...records]..sort((a, b) => b.date.compareTo(a.date));
+      return Column(
+        children: sorted.map((record) {
+          final details = <String>[
+            if (record.checkIn?.isNotEmpty == true) 'دخول ${record.checkIn}',
+            if (record.checkOut?.isNotEmpty == true) 'خروج ${record.checkOut}',
+            if (record.hoursWorked != null)
+              '${record.hoursWorked!.toStringAsFixed(2)} ساعة',
+          ].join(' • ');
+          return Card(
+            elevation: 0,
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: Icon(
+                _iconForStatus(record.status),
+                color: _colorForStatus(record.status),
+              ),
+              title: Text(DateFormat('yyyy-MM-dd').format(record.date)),
+              subtitle: details.isEmpty ? null : Text(details),
+              trailing: Text(
+                record.status,
+                style: TextStyle(
+                  color: _colorForStatus(record.status),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              onTap: () => _openEditDialog(record),
+            ),
+          );
+        }).toList(growable: false),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        title: const Text(
+          'الحضور والانصراف',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+      body: empState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : empState.error != null
+              ? Center(child: Text('تعذر تحميل الموظفين: ${empState.error}'))
+              : employees.isEmpty
+                  ? const Center(child: Text('لا يوجد موظفون مسجلون'))
+                  : ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: dropdownValue,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'اختر موظفًا',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: employees
+                              .map(
+                                (employee) => DropdownMenuItem<String>(
+                                  value: employee.id,
+                                  child: Text(
+                                    employee.fullName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (id) async {
+                            setState(() {
+                              selectedEmployee = id == null ? null : byId[id];
+                              records = [];
+                              loadError = null;
+                            });
+                            await _loadAttendance();
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _pickMonth,
+                          icon: const Icon(Icons.calendar_month_outlined),
+                          label: Text(
+                            DateFormat('yyyy-MM').format(selectedMonth),
+                          ),
+                        ),
+                        if (selectedEmployee != null) ...[
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: _markTodayAsPresent,
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: const Text('تسجيل حضور اليوم'),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        recordsBody(),
+                      ],
+                    ),
+    );
+  }
+
+  Widget _buildPhoneAttendance({
+    required dynamic user,
+    required EmployeeState empState,
+    required String currentRoute,
+  }) {
+    // Deduplicate by stable database id. DropdownButton<String> then works
+    // across Riverpod refreshes without depending on Employee object identity.
+    final byId = <String, Employee>{};
+    for (final employee in empState.employees) {
+      byId[employee.id] = employee;
+    }
+    final employees = byId.values.toList(growable: false);
+
+    final selectedId = selectedEmployee?.id;
+    final dropdownValue =
+        selectedId != null && byId.containsKey(selectedId) ? selectedId : null;
+
+    Widget bodyState() {
+      if (empState.isLoading) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 48),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+      if (empState.error != null) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Center(child: Text('خطأ الموظفين: ${empState.error}')),
+        );
+      }
+      if (employees.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Center(child: Text('لا يوجد موظفون')),
+        );
+      }
+      if (selectedEmployee == null) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Center(child: Text('اختر موظفًا')),
+        );
+      }
+      if (loadError != null) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Center(child: Text('خطأ: $loadError')),
+        );
+      }
+      if (isLoading) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 48),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildKPIsBar(),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.check),
+            label: const Text('تسجيل حضور اليوم'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(48),
+            ),
+            onPressed: _markTodayAsPresent,
+          ),
+          const SizedBox(height: 14),
+          _buildPhoneAttendanceRecords(),
+        ],
+      );
+    }
+
+    return Scaffold(
+      drawer: Drawer(child: YallaSidebar(currentRoute: currentRoute)),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildAppBar(user),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'اختر موظفًا',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: dropdownValue,
+                    isExpanded: true,
+                    items: employees
+                        .map(
+                          (employee) => DropdownMenuItem<String>(
+                            value: employee.id,
+                            child: Text(
+                              employee.fullName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (id) async {
+                      final employee = id == null ? null : byId[id];
+                      setState(() {
+                        selectedEmployee = employee;
+                        records = [];
+                        loadError = null;
+                      });
+                      await _loadAttendance();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.calendar_month),
+                    label: Text(DateFormat('yyyy-MM').format(selectedMonth)),
+                    onPressed: _pickMonth,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildWorkshopTimes(),
+                  const SizedBox(height: 16),
+                  bodyState(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhoneAttendanceRecords() {
+    if (records.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: const Text(
+          'لا توجد سجلات حضور لهذا الشهر',
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    final sorted = [...records]..sort((a, b) => b.date.compareTo(a.date));
+    return Column(
+      children: sorted.map((record) {
+        final details = <String>[
+          if (record.checkIn?.isNotEmpty == true) 'دخول ${record.checkIn}',
+          if (record.checkOut?.isNotEmpty == true) 'خروج ${record.checkOut}',
+          if (record.hoursWorked != null)
+            '${record.hoursWorked!.toStringAsFixed(2)} ساعة',
+        ].join(' • ');
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            leading: Icon(
+              _iconForStatus(record.status),
+              color: _colorForStatus(record.status),
+            ),
+            title: Text(DateFormat('yyyy-MM-dd').format(record.date)),
+            subtitle: details.isEmpty ? null : Text(details),
+            trailing: Text(
+              record.status,
+              style: TextStyle(
+                color: _colorForStatus(record.status),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onTap: () => _openEditDialog(record),
+          ),
+        );
+      }).toList(growable: false),
     );
   }
 

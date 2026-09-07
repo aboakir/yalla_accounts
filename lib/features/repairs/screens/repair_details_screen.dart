@@ -1168,6 +1168,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 storedPath: thumb,
                 height: 185,
                 width: double.infinity,
+                // STAGE1_RUNTIME_FIX3_REPAIR_IMAGE_CACHE
+                // YallaStoredImage derives cacheWidth from `width` when no
+                // cache size is provided. `double.infinity` is valid for
+                // layout but cannot be converted to an integer cache width,
+                // which produced the grey ErrorWidget on iPhone.
+                cacheWidth: 1400,
+                cacheHeight: 700,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -1324,6 +1331,286 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
+  // STAGE1_RUNTIME_FIX3B_REPAIR_PHONE_SAFE_BODY
+  // Runtime evidence showed that the previous phone body could still collapse
+  // to Flutter's grey ErrorWidget. Keep the iPhone acceptance path deliberately
+  // small and self-contained: core Repair fields plus persisted works/parts,
+  // using only stock Material widgets and existing data already loaded by this
+  // screen. Desktop/tablet behavior remains unchanged.
+  Widget _buildPhoneDetailsRuntimeSafe({
+    required String repairType,
+    required String vehicleStatus,
+    required String insuranceStatus,
+  }) {
+    final remaining = _repair.remainingAmount;
+
+    Widget infoRow(String label, String value, {IconData? icon}) {
+      final shown = value.trim().isEmpty ? '—' : value;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 19, color: AppColors.primary),
+              const SizedBox(width: 9),
+            ],
+            Expanded(
+              child: Text(
+                shown,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(label, style: const TextStyle(color: Colors.black54)),
+          ],
+        ),
+      );
+    }
+
+    Widget moneyCard(String label, double value, IconData icon) {
+      return Expanded(
+        child: Card(
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Icon(icon, color: AppColors.primary),
+                const SizedBox(height: 8),
+                Text(
+                  MoneyFormatter.format(value),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: ui.TextDirection.ltr,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(label, style: const TextStyle(color: Colors.black54)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget linesCard(String title, List<Map<String, dynamic>> source) {
+      final normalized = source.map(_normalizeRow).toList(growable: false);
+      return Card(
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (normalized.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Text(
+                    'لا توجد بنود مسجلة',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                )
+              else
+                ...normalized.map(
+                  (row) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    child: Row(
+                      children: [
+                        Text(
+                          MoneyFormatter.format(row['price'] as double),
+                          textDirection: ui.TextDirection.ltr,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            (row['name'] ?? '').toString().trim().isEmpty
+                                ? '—'
+                                : (row['name'] ?? '').toString(),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        title: Text(
+          _repair.vehicleNumber.trim().isEmpty
+              ? 'تفاصيل ملف الإصلاح'
+              : _repair.vehicleNumber,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _loadRepairDetails,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _loadRepairDetails,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+          children: [
+            Row(
+              children: [
+                moneyCard(
+                  'قيمة الملف',
+                  _repair.totalFileValue,
+                  Icons.receipt_long_outlined,
+                ),
+                const SizedBox(width: 8),
+                moneyCard(
+                  'المدفوع',
+                  _repair.totalPaidAmount,
+                  Icons.payments_outlined,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                moneyCard(
+                  'المتبقي',
+                  remaining,
+                  Icons.account_balance_wallet_outlined,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Card(
+                    elevation: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Icon(
+                            Icons.folder_open_outlined,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _repair.status.trim().isEmpty
+                                ? '—'
+                                : _repair.status,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 17,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'حالة الملف',
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Card(
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    infoRow(
+                      'المركبة',
+                      '${_repair.vehicleType} ${_repair.vehicleModel}'.trim(),
+                      icon: Icons.directions_car_outlined,
+                    ),
+                    const Divider(height: 1),
+                    infoRow(
+                      'رقم المركبة',
+                      _repair.vehicleNumber,
+                      icon: Icons.tag,
+                    ),
+                    const Divider(height: 1),
+                    infoRow(
+                      'المستفيد',
+                      _repair.beneficiaryName,
+                      icon: Icons.person_outline,
+                    ),
+                    const Divider(height: 1),
+                    infoRow(
+                      'نوع المستفيد',
+                      _repair.beneficiaryType,
+                      icon: Icons.account_circle_outlined,
+                    ),
+                    const Divider(height: 1),
+                    infoRow(
+                      'نوع الإصلاح',
+                      repairType,
+                      icon: Icons.build_outlined,
+                    ),
+                    const Divider(height: 1),
+                    infoRow(
+                      'حالة المركبة',
+                      vehicleStatus,
+                      icon: Icons.car_repair_outlined,
+                    ),
+                    if (_repair.beneficiaryType == 'شركة تأمين') ...[
+                      const Divider(height: 1),
+                      infoRow(
+                        'متابعة التأمين',
+                        insuranceStatus,
+                        icon: Icons.shield_outlined,
+                      ),
+                    ],
+                    const Divider(height: 1),
+                    infoRow(
+                      'تاريخ الاستلام',
+                      _df.format(_repair.receivedDate),
+                      icon: Icons.calendar_today_outlined,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            linesCard('أعمال الإصلاح', _repairWorks),
+            const SizedBox(height: 10),
+            linesCard('القطع المطلوبة', _repairParts),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
@@ -1355,12 +1642,10 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         (_repair.invoiceId != null && _repair.invoiceId!.trim().isNotEmpty);
 
     if (width < YallaBreakpoints.phone) {
-      return _buildPhoneDetails(
+      return _buildPhoneDetailsRuntimeSafe(
         repairType: repairType,
         vehicleStatus: vehicleStatus,
         insuranceStatus: insuranceStatus,
-        hasInvoice: hasInvoice,
-        thumb: thumb,
       );
     }
 
