@@ -1023,254 +1023,34 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   }) async {
     final list = isPart ? _parts : _works;
     final mode = isPart ? _partsPricingMode : _worksPricingMode;
-    final requirePrice = mode == 'detailed';
     final existing = index == null ? null : list[index];
-    final name = TextEditingController(text: existing?.name ?? '');
-    final qty = TextEditingController(text: existing?.qty.toString() ?? '1');
-    final price = TextEditingController(
-      text: existing == null || !requirePrice
-          ? ''
-          : existing.price.toStringAsFixed(2),
+
+    final result = await showModalBottomSheet<_RepairLineDraft>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _RepairLineEditorSheet(
+        isPart: isPart,
+        isEdit: index != null,
+        existing: existing,
+        mode: mode,
+        modeLabel: _pricingModeLabel(mode),
+        currencySymbol: _currencySymbol,
+        parseMoney: _parseMoney,
+        money: _money,
+      ),
     );
-    final formKey = GlobalKey<FormState>();
-
-    _RepairLineDraft? result;
-    try {
-      result = await showModalBottomSheet<_RepairLineDraft>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        builder: (sheetContext) {
-          return StatefulBuilder(
-            builder: (context, setSheetState) {
-              double previewTotal() {
-                final q = _parseMoney(qty.text);
-                final p = requirePrice ? _parseMoney(price.text) : 0.0;
-                return q * p;
-              }
-
-              return Padding(
-                padding: EdgeInsets.fromLTRB(
-                  18,
-                  18,
-                  18,
-                  MediaQuery.viewInsetsOf(sheetContext).bottom + 18,
-                ),
-                child: SingleChildScrollView(
-                  child: Form(
-                    key: formKey,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: AppColors.lightGreen,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                isPart
-                                    ? Icons.settings_outlined
-                                    : Icons.car_repair_outlined,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    index == null
-                                        ? (isPart
-                                            ? 'إضافة قطعة'
-                                            : 'إضافة عمل إصلاح')
-                                        : (isPart
-                                            ? 'تعديل قطعة'
-                                            : 'تعديل عمل إصلاح'),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.copyWith(fontWeight: FontWeight.w900),
-                                  ),
-                                  Text(
-                                    _pricingModeLabel(mode),
-                                    style:
-                                        const TextStyle(color: Colors.black54),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        TextFormField(
-                          inputFormatters: const [YallaDigitNormalizer()],
-                          controller: name,
-                          autofocus: true,
-                          textInputAction: TextInputAction.next,
-                          decoration: InputDecoration(
-                            labelText:
-                                isPart ? 'اسم / وصف القطعة *' : 'وصف العمل *',
-                            prefixIcon: const Icon(Icons.description_outlined),
-                          ),
-                          validator: (value) => (value ?? '').trim().isEmpty
-                              ? 'أدخل الوصف.'
-                              : null,
-                        ),
-                        const SizedBox(height: 12),
-                        if (requirePrice)
-                          Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: TextFormField(
-                                  inputFormatters: const [
-                                    YallaDigitNormalizer()
-                                  ],
-                                  controller: qty,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                                  textInputAction: TextInputAction.next,
-                                  decoration: const InputDecoration(
-                                    labelText: 'الكمية *',
-                                  ),
-                                  onChanged: (_) => setSheetState(() {}),
-                                  validator: (value) {
-                                    final parsed = _parseMoney(value ?? '');
-                                    return parsed <= 0
-                                        ? 'كمية غير صحيحة.'
-                                        : null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextFormField(
-                                  inputFormatters: const [
-                                    YallaDigitNormalizer()
-                                  ],
-                                  controller: price,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                                  textInputAction: TextInputAction.done,
-                                  decoration: InputDecoration(
-                                    labelText: 'سعر الوحدة *',
-                                    suffixText: MoneyFormatter.symbol,
-                                  ),
-                                  onChanged: (_) => setSheetState(() {}),
-                                  validator: (value) {
-                                    final parsed = _parseMoney(value ?? '');
-                                    return parsed < 0 ||
-                                            (value ?? '').trim().isEmpty
-                                        ? 'سعر غير صحيح.'
-                                        : null;
-                                  },
-                                ),
-                              ),
-                            ],
-                          )
-                        else
-                          TextFormField(
-                            inputFormatters: const [YallaDigitNormalizer()],
-                            controller: qty,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'الكمية *',
-                              helperText:
-                                  'لا يلزم سعر لهذا البند في هذا النمط.',
-                            ),
-                            validator: (value) => _parseMoney(value ?? '') <= 0
-                                ? 'كمية غير صحيحة.'
-                                : null,
-                          ),
-                        if (requirePrice) ...<Widget>[
-                          const SizedBox(height: 14),
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: AppColors.lightGreen.withOpacity(.38),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: <Widget>[
-                                const Expanded(
-                                  child: Text(
-                                    'الإجمالي',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.w800),
-                                  ),
-                                ),
-                                Text(
-                                  '${_money(previewTotal())} $_currencySymbol',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 18),
-                        FilledButton.icon(
-                          onPressed: () {
-                            if (!(formKey.currentState?.validate() ?? false))
-                              return;
-                            final q = _parseMoney(qty.text);
-                            final p =
-                                requirePrice ? _parseMoney(price.text) : 0.0;
-                            Navigator.pop(
-                              sheetContext,
-                              _RepairLineDraft(
-                                name: name.text.trim(),
-                                qty: q,
-                                price: p,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.check_rounded),
-                          label: Text(index == null ? 'إضافة' : 'حفظ التعديل'),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () => Navigator.pop(sheetContext),
-                          child: const Text('إلغاء'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      );
-    } finally {
-      name.dispose();
-      qty.dispose();
-      price.dispose();
-    }
 
     if (result == null || !mounted) return;
     setState(() {
       if (index == null) {
-        list.add(result!);
+        list.add(result);
       } else {
-        list[index] = result!;
+        list[index] = result;
       }
     });
   }
@@ -2581,6 +2361,261 @@ class _BinaryChoice extends StatelessWidget {
               Icon(
                 selected ? Icons.check_circle : Icons.circle_outlined,
                 color: selected ? AppColors.primary : Colors.black45,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RepairLineEditorSheet extends StatefulWidget {
+  const _RepairLineEditorSheet({
+    required this.isPart,
+    required this.isEdit,
+    required this.existing,
+    required this.mode,
+    required this.modeLabel,
+    required this.currencySymbol,
+    required this.parseMoney,
+    required this.money,
+  });
+
+  final bool isPart;
+  final bool isEdit;
+  final _RepairLineDraft? existing;
+  final String mode;
+  final String modeLabel;
+  final String currencySymbol;
+  final double Function(String) parseMoney;
+  final String Function(double) money;
+
+  @override
+  State<_RepairLineEditorSheet> createState() => _RepairLineEditorSheetState();
+}
+
+class _RepairLineEditorSheetState extends State<_RepairLineEditorSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _qtyController;
+  late final TextEditingController _priceController;
+
+  bool get _requirePrice => widget.mode == 'detailed';
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.existing?.name ?? '');
+    _qtyController = TextEditingController(
+      text: widget.existing?.qty.toString() ?? '1',
+    );
+    _priceController = TextEditingController(
+      text: widget.existing == null || !_requirePrice
+          ? ''
+          : widget.existing!.price.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _qtyController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  double _previewTotal() {
+    final qty = widget.parseMoney(_qtyController.text);
+    final price =
+        _requirePrice ? widget.parseMoney(_priceController.text) : 0.0;
+    return qty * price;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        18,
+        18,
+        18,
+        MediaQuery.viewInsetsOf(context).bottom + 18,
+      ),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.lightGreen,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      widget.isPart
+                          ? Icons.settings_outlined
+                          : Icons.car_repair_outlined,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          widget.isEdit
+                              ? (widget.isPart
+                                  ? 'تعديل قطعة'
+                                  : 'تعديل عمل إصلاح')
+                              : (widget.isPart
+                                  ? 'إضافة قطعة'
+                                  : 'إضافة عمل إصلاح'),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          widget.modeLabel,
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                inputFormatters: const [YallaDigitNormalizer()],
+                controller: _nameController,
+                autofocus: true,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText:
+                      widget.isPart ? 'اسم / وصف القطعة *' : 'وصف العمل *',
+                  prefixIcon: const Icon(Icons.description_outlined),
+                ),
+                validator: (value) =>
+                    (value ?? '').trim().isEmpty ? 'أدخل الوصف.' : null,
+              ),
+              const SizedBox(height: 12),
+              if (_requirePrice)
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        controller: _qtyController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.next,
+                        decoration:
+                            const InputDecoration(labelText: 'الكمية *'),
+                        onChanged: (_) => setState(() {}),
+                        validator: (value) =>
+                            widget.parseMoney(value ?? '') <= 0
+                                ? 'كمية غير صحيحة.'
+                                : null,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        controller: _priceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          labelText: 'سعر الوحدة *',
+                          suffixText: MoneyFormatter.symbol,
+                        ),
+                        onChanged: (_) => setState(() {}),
+                        validator: (value) {
+                          final parsed = widget.parseMoney(value ?? '');
+                          return parsed < 0 || (value ?? '').trim().isEmpty
+                              ? 'سعر غير صحيح.'
+                              : null;
+                        },
+                      ),
+                    ),
+                  ],
+                )
+              else
+                TextFormField(
+                  inputFormatters: const [YallaDigitNormalizer()],
+                  controller: _qtyController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'الكمية *',
+                    helperText: 'لا يلزم سعر لهذا البند في هذا النمط.',
+                  ),
+                  validator: (value) => widget.parseMoney(value ?? '') <= 0
+                      ? 'كمية غير صحيحة.'
+                      : null,
+                ),
+              if (_requirePrice) ...<Widget>[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightGreen.withOpacity(.38),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      const Expanded(
+                        child: Text(
+                          'الإجمالي',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      Text(
+                        '${widget.money(_previewTotal())} ${widget.currencySymbol}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: () {
+                  if (!(_formKey.currentState?.validate() ?? false)) return;
+                  final qty = widget.parseMoney(_qtyController.text);
+                  final price = _requirePrice
+                      ? widget.parseMoney(_priceController.text)
+                      : 0.0;
+                  Navigator.pop(
+                    context,
+                    _RepairLineDraft(
+                      name: _nameController.text.trim(),
+                      qty: qty,
+                      price: price,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.check_rounded),
+                label: Text(widget.isEdit ? 'حفظ التعديل' : 'إضافة'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('إلغاء'),
               ),
             ],
           ),

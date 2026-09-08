@@ -482,8 +482,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 // إخفاء مربع البحث بدون حذفه
               Visibility(
                 visible: false,
-                maintainState: true,
-                maintainAnimation: true,
+                maintainState: false,
+                maintainAnimation: false,
                 maintainSize: false,
                 child: (!_isCollapsed)
                     ? Padding(
