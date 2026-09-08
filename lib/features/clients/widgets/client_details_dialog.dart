@@ -30,7 +30,7 @@ class ClientDetailsDialog extends StatelessWidget {
       if (value.trim().isEmpty) return const SizedBox.shrink();
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
-        child: AdaptiveRow(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, size: 18, color: Colors.black54),
@@ -49,7 +49,7 @@ class ClientDetailsDialog extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: AdaptiveAlertDialog(
-        title: AdaptiveRow(
+        title: Row(
           children: [
             Icon(
               isInsurance ? Icons.business : Icons.person,
@@ -122,7 +122,7 @@ class ClientDetailsDialog extends StatelessWidget {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          AdaptiveRow(
+                          Row(
                             children: [
                               Expanded(
                                 child: _StatTile(
