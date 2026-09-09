@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // 📁 lib/core/services/db/tables/report_tables.dart
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
@@ -78,6 +79,11 @@ class ReportTables {
   }
 
   static Future<int> updateMonthlyExpenses(
+          DatabaseExecutor db, Map<String, dynamic> data) =>
+      SyncFoundationService.writeOn(
+          db, (txn) => _updateMonthlyExpensesOn(txn, data));
+
+  static Future<int> _updateMonthlyExpensesOn(
       DatabaseExecutor db, Map<String, dynamic> data) async {
     final existing = await db.query(
       'monthly_expenses',

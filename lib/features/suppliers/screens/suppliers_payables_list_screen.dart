@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/features/parties/services/party_financial_service.dart';
+import 'package:yalla_accounts/features/parties/screens/parties_screen.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/suppliers/screens/suppliers_payables_list_screen.dart
 // ذمم الموردين — تصميم احترافي + بحث + PDF
@@ -6,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
-import 'package:yalla_accounts/core/services/db_service.dart';
+
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -52,32 +54,18 @@ class _SupplierPayablesListScreenState
   // ---------------------------------------------------------------------------
   Future<void> _load() async {
     setState(() => _loading = true);
-    final db = await DBService.database;
-
-    final data = await db.rawQuery("""
-      SELECT 
-        s.id AS supplier_id,
-        s.name AS name,
-        IFNULL(SUM(p.amount_total), 0) AS total_purchases,
-        IFNULL(SUM(p.paid_total), 0) AS total_paid,
-        IFNULL(SUM(p.remaining), 0) AS total_remaining
-      FROM suppliers s
-      LEFT JOIN purchase_invoices p
-        ON p.supplier_id = s.id
-      GROUP BY s.id, s.name
-      ORDER BY s.name ASC;
-    """);
-
-    _rows = data.map((r) {
-      return _SupplierRow(
-        id: r['supplier_id'].toString(),
-        name: r['name']?.toString() ?? '',
-        total: (r['total_purchases'] as num?)?.toDouble() ?? 0.0,
-        paid: (r['total_paid'] as num?)?.toDouble() ?? 0.0,
-        remain: (r['total_remaining'] as num?)?.toDouble() ?? 0.0,
-      );
-    }).toList();
-
+    final balances = await PartyFinancialService.balances();
+    if (!mounted) return;
+    _rows = balances
+        .where((p) => p.isSupplier)
+        .map((p) => _SupplierRow(
+              id: p.supplierLegacyId!,
+              name: p.displayName,
+              total: p.totalPayable,
+              paid: p.paid,
+              remain: p.payableBalance,
+            ))
+        .toList();
     // إجماليات KPIs
     totalAll = _rows.fold(0, (sum, r) => sum + r.total);
     totalPaid = _rows.fold(0, (sum, r) => sum + r.paid);
@@ -145,6 +133,20 @@ class _SupplierPayablesListScreenState
             iconTheme: const IconThemeData(color: Colors.white),
             actions: [
               IconButton(
+                  tooltip: 'تحديث',
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _load),
+              IconButton(
+                  tooltip: 'الجهات وكشف الحساب الشامل',
+                  icon: const Icon(Icons.people_alt_outlined),
+                  onPressed: () async {
+                    await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PartiesScreen()));
+                    if (mounted) await _load();
+                  }),
+              IconButton(
                 icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
                 tooltip: "تصدير PDF",
                 onPressed: _exportPdf,
@@ -170,15 +172,18 @@ class _SupplierPayablesListScreenState
   // المحتوى الكامل
   // ---------------------------------------------------------------------------
   Widget _buildContent() {
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        _buildKPIs(),
-        const SizedBox(height: 20),
-        _buildSearchBox(),
-        const SizedBox(height: 10),
-        Expanded(child: _buildTable()),
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) => [
+        SliverToBoxAdapter(
+            child: Column(children: [
+          const SizedBox(height: 20),
+          _buildKPIs(),
+          const SizedBox(height: 20),
+          _buildSearchBox(),
+          const SizedBox(height: 10),
+        ])),
       ],
+      body: _buildTable(),
     );
   }
 

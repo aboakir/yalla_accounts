@@ -32,20 +32,11 @@ void main() {
     );
   });
 
-  test('P0.005 purchase payment debits AP and credits payment account', () {
+  test('P0.005 purchase payment delegates to the central voucher pipeline', () {
     final source = _read(
-      'lib/features/finance/purchases/services/purchase_payment_service.dart',
-    );
-    expect(
-      source.contains('Supplier payment reduces Accounts Payable.'),
-      isTrue,
-    );
-    expect(
-      source.contains('Cash/bank/cheques leave the business.'),
-      isTrue,
-    );
-    expect(source.contains('"isIncome": 0'), isTrue);
-    expect(
-        source.contains('_ensureSupplierApAccount(txn, supplierId)'), isTrue);
+        'lib/features/finance/purchases/services/purchase_payment_service.dart');
+    expect(source.contains('VoucherPaymentService.insertAndPost('), isTrue);
+    expect(source.contains("partyType: 'SUPPLIER'"), isTrue);
+    expect(source.contains('postEntryGL'), isFalse);
   });
 }

@@ -98,6 +98,10 @@
           "type": "string",
           "enum": [
             "ACTIVE",
+            "TRIAL",
+            "FROZEN",
+            "EXCEPTION",
+            "DEMO",
             "GRACE",
             "SUSPENDED",
             "EXPIRED",

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/db/tables/accounting_tables.dart';
 // 📁 lib/features/clients/services/client_service.dart
 //
 // ClientService — ربط العملاء مع GL تلقائيًا (AR account) عبر DBService.
@@ -90,6 +91,8 @@ class ClientService {
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
 
+      await AccountingTables.ensureClientAccountOn(txn, id);
+
       await OfflineOutboxService.enqueue(
         txn,
         channel: OfflineOutboxService.channelSync,
@@ -112,12 +115,6 @@ class ClientService {
 
       return id;
     });
-
-    // Preserve the established accounting behavior: the AR account remains a
-    // separate accounting concern and is not changed by P05.
-    try {
-      await DBService.ensureClientAccount(id);
-    } catch (_) {}
 
     return id;
   }
@@ -154,6 +151,11 @@ class ClientService {
       );
 
       if (changed > 0) {
+        final rows = await txn.query(tableName,
+            columns: ['account_id'], where: 'id=?', whereArgs: [clientId]);
+        if (rows.single['account_id'] == null) {
+          await AccountingTables.ensureClientAccountOn(txn, clientId);
+        }
         final now = DateTime.now().toUtc().toIso8601String();
         await OfflineOutboxService.enqueue(
           txn,
@@ -178,13 +180,6 @@ class ClientService {
 
       return changed;
     });
-
-    try {
-      final accId = await _getClientAccountId(clientId);
-      if (accId == null) {
-        await DBService.ensureClientAccount(clientId);
-      }
-    } catch (_) {}
 
     return count;
   }
@@ -223,6 +218,16 @@ class ClientService {
         limit: 1,
       );
       if (row.isEmpty) return 0;
+      final linked = await txn.rawQuery("""
+        SELECT 1 FROM repairs WHERE client_id=?
+        UNION ALL SELECT 1 FROM vehicles WHERE client_id=?
+        UNION ALL SELECT 1 FROM invoices WHERE client_id=?
+        UNION ALL SELECT 1 FROM gl_lines WHERE account_id=?
+        LIMIT 1
+      """, [id, id, id, row.first['account_id']]);
+      if (linked.isNotEmpty) {
+        throw StateError('لا يمكن حذف عميل له مستندات أو قيود محفوظة.');
+      }
 
       final changed = await txn.delete(
         tableName,
@@ -294,55 +299,23 @@ class ClientService {
     int? excludeId,
   }) async {
     final exact = normalizeNameForIdentity(name);
+    if (exact.isEmpty) throw StateError('اسم العميل مطلوب');
     final legacy = _legacyNormalizedName(name);
 
-    String identityWhere;
-    final args = <Object?>[exact];
-
-    if (type != null && type.trim().isNotEmpty) {
-      // Exact duplicate names are blocked globally because the existing DB
-      // contract has UNIQUE(name). Legacy-normalized matching remains type-aware.
-      identityWhere = '''
-        (
-          LOWER(TRIM(name)) = ?
-          OR (
-            LOWER(REPLACE(REPLACE(REPLACE(TRIM(name),'شركة',''),'تأمين',''),' ','')) = ?
-            AND type = ?
-          )
-        )
-      ''';
-      args
-        ..add(legacy)
-        ..add(type.trim());
-    } else {
-      identityWhere = '''
-        (
-          LOWER(TRIM(name)) = ?
-          OR LOWER(REPLACE(REPLACE(REPLACE(TRIM(name),'شركة',''),'تأمين',''),' ','')) = ?
-        )
-      ''';
-      args.add(legacy);
+    final rows = await db.query(tableName, columns: ['id', 'name', 'type']);
+    for (final row in rows) {
+      final id = int.tryParse('${row['id']}');
+      if (id == null || id == excludeId) continue;
+      final existing = '${row['name'] ?? ''}';
+      final sameType = type == null ||
+          type.trim().isEmpty ||
+          '${row['type']}'.trim() == type.trim();
+      if (normalizeNameForIdentity(existing) == exact ||
+          (sameType && _legacyNormalizedName(existing) == legacy)) {
+        return id;
+      }
     }
-
-    var where = identityWhere;
-    if (excludeId != null) {
-      where = '($where) AND id <> ?';
-      args.add(excludeId);
-    }
-
-    final rows = await db.query(
-      tableName,
-      columns: const ['id'],
-      where: where,
-      whereArgs: args,
-      limit: 1,
-    );
-
-    if (rows.isEmpty) return null;
-    final value = rows.first['id'];
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.tryParse(value.toString());
+    return null;
   }
 
   static Future<bool> clientExists(

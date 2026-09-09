@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'dart:convert';
 // 📁 lib/features/finance/payments/services/payment_service.dart
 //
 // PaymentService — دفعات + نشر GL بلا معاملات متداخلة.
@@ -258,20 +260,26 @@ CREATE TABLE IF NOT EXISTS payments (
 
   static Future<void> insert(Payment payment) async {
     final db = await DBService.database;
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
       final map = payment.toMap();
       map['id'] ??= const Uuid().v4();
       final statusStr = '${map['status'] ?? ''}'.trim();
       map['status'] = statusStr.isEmpty ? _K_STATUS_CONFIRMED : statusStr;
       await txn.insert(table, map, conflictAlgorithm: ConflictAlgorithm.abort);
+      await AuditTrailService.log(
+          executor: txn,
+          action: 'PAYMENT_CREATED',
+          entityType: 'PAYMENT',
+          entityId: '${map['id']}',
+          after: map);
     });
   }
 
   static Future<int> update(Payment payment) async {
     final db = await DBService.database;
     String? repairForPost;
-    final updated = await db.transaction((txn) async {
+    final updated = await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
 
       final prevRows = await txn.query(table,
@@ -298,6 +306,14 @@ CREATE TABLE IF NOT EXISTS payments (
           );
           await _refreshRepairSnapshot(txn, rid);
         }
+        await AuditTrailService.log(
+            executor: txn,
+            action: 'PAYMENT_CREATED',
+            entityType: 'PAYMENT',
+            entityId: '${map['id']}',
+            after:
+                (await txn.query(table, where: 'id=?', whereArgs: [map['id']]))
+                    .single);
         return 1;
       }
 
@@ -343,6 +359,15 @@ CREATE TABLE IF NOT EXISTS payments (
       if (repairForPost != null) {
         await _refreshRepairSnapshot(txn, repairForPost!);
       }
+      await AuditTrailService.log(
+          executor: txn,
+          action: 'PAYMENT_UPDATED',
+          entityType: 'PAYMENT',
+          entityId: payment.id,
+          before: prevRows.single,
+          after:
+              (await txn.query(table, where: 'id=?', whereArgs: [payment.id]))
+                  .single);
       return count;
     });
 
@@ -355,40 +380,37 @@ CREATE TABLE IF NOT EXISTS payments (
     return updated;
   }
 
-  static Future<int> delete(String id) async {
+  static Future<int> delete(String id,
+      {String reason = 'Payment cancelled'}) async {
+    if (reason.trim().isEmpty)
+      throw ArgumentError('Cancellation reason required');
     final db = await DBService.database;
-    String? repairForPost;
-    final count = await db.transaction((txn) async {
-      await _ensureTableAndSchema(txn);
-      final rows =
-          await txn.query(table, where: 'id=?', whereArgs: [id], limit: 1);
-      if (rows.isEmpty) return 0;
-      final p = Payment.fromMap(rows.first);
-      repairForPost = _pickRepairId(p);
-
-      if (await _glExists(txn, id)) {
-        throw StateError(
-          'Posted receipt $id cannot be deleted. '
-          'Use a formal reversal/correcting receipt workflow.',
-        );
-      }
-
+    final rows = await db.query(table, where: 'id=?', whereArgs: [id]);
+    if (rows.isEmpty) return 0;
+    final payment = Payment.fromMap(rows.single);
+    if (['void', 'reversed', 'reversal'].contains(payment.status.toLowerCase()))
+      return 0;
+    if (payment.isIncome && await _glExists(db, id)) {
+      await reverseReceiptByPaymentId(id, reason: reason);
+      return 1;
+    }
+    return SyncFoundationService.transaction(db, (txn) async {
+      final before =
+          (await txn.query(table, where: 'id=?', whereArgs: [id])).single;
       await _reverseIfExists(txn, id);
       await _reverseAdjustsIfAny(txn, id);
-      final c = await txn.delete(table, where: 'id = ?', whereArgs: [id]);
-
-      if (repairForPost != null && repairForPost!.isNotEmpty) {
-        await _refreshRepairSnapshot(txn, repairForPost!);
-      }
-      return c;
+      final count = await txn.update(table, {'status': 'void'},
+          where: 'id=?', whereArgs: [id]);
+      await AuditTrailService.log(
+          executor: txn,
+          action: 'PAYMENT_VOIDED',
+          entityType: 'PAYMENT',
+          entityId: id,
+          before: before,
+          after: {...before, 'status': 'void'},
+          reason: reason);
+      return count;
     });
-
-    try {
-      if (repairForPost != null && repairForPost!.isNotEmpty) {
-        await InvoiceService.I.recomputeForRepair(repairForPost!);
-      }
-    } catch (_) {}
-    return count;
   }
 
   static Future<List<Payment>> getAll() async {
@@ -586,8 +608,11 @@ CREATE TABLE IF NOT EXISTS payments (
     );
     if (existing.isNotEmpty) {
       final persisted = Payment.fromMap(existing.first);
+      if (['void', 'reversed', 'reversal']
+          .contains(persisted.status.toLowerCase()))
+        throw StateError('Cancelled receipt cannot be posted.');
       final sameMaterialDocument =
-          (persisted.amount - payment.amount).abs() <= 0.01 &&
+          (persisted.amount * 100).round() == (payment.amount * 100).round() &&
               _canonicalReceiptMethod(persisted.method) == canonicalMethod &&
               (persisted.clientId ?? 0) == (payment.clientId ?? 0) &&
               _pickRepairId(persisted) == _pickRepairId(payment);
@@ -670,6 +695,8 @@ CREATE TABLE IF NOT EXISTS payments (
   /// any surplus becomes an unallocated customer credit line on the same
   /// receipt. A physical cheque remains one payment/one linked cheque.
   static Future<CanonicalReceiptResult> insertCanonicalReceipt({
+    required String operationId,
+    Database? database,
     required int clientId,
     required String customerName,
     required String method,
@@ -706,11 +733,51 @@ CREATE TABLE IF NOT EXISTS payments (
       );
     }
 
-    final db = await DBService.database;
+    if (operationId.trim().isEmpty)
+      throw ArgumentError('Receipt operation id required');
+    if (!requestedTotal.isFinite ||
+        !unallocatedAmount.isFinite ||
+        allocations.any((a) => !a.amount.isFinite)) {
+      throw ArgumentError('Receipt amounts must be finite');
+    }
+    final request = jsonEncode({
+      'client': clientId,
+      'method': canonicalMethod,
+      'date': date.toIso8601String(),
+      'allocations': [
+        for (final a in allocations) [a.repairId, a.amount]
+      ],
+      'unallocated': unallocatedAmount,
+      'notes': notes,
+      'cheque': chequeDraft
+    });
+    final db = database ?? await DBService.database;
     final affectedRepairs = <String>{};
-    final result = await db.transaction<CanonicalReceiptResult>((txn) async {
+    final result =
+        await SyncFoundationService.transaction<CanonicalReceiptResult>(db,
+            (txn) async {
       await _ensureTableAndSchema(txn);
       await ReceiptTables.createAllTables(txn);
+      final prior = await txn.query('receipt_requests',
+          where: 'operation_id=?', whereArgs: [operationId]);
+      if (prior.isNotEmpty) {
+        if (prior.single['request_json'] != request)
+          throw StateError('Receipt retry differs from original request');
+        final number = (prior.single['receipt_number'] as num).toInt();
+        final header = (await txn.query('receipt_headers',
+                where: 'receipt_number=?', whereArgs: [number]))
+            .single;
+        if (header['status'] != 'posted')
+          throw StateError('Receipt is no longer active');
+        final stored = await txn.query('receipt_allocations',
+            where: 'receipt_number=?', whereArgs: [number]);
+        return CanonicalReceiptResult(
+            receiptNumber: number,
+            paymentIds: stored.map((r) => r['payment_id'].toString()).toList(),
+            allocatedAmount: (header['allocated_amount'] as num).toDouble(),
+            customerCredit: (header['credit_amount'] as num).toDouble());
+      }
+
       final receiptNumber = await _nextReceiptNumberOnTxn(txn);
       final paymentIds = <String>[];
       var allocatedAmount = 0.0;
@@ -856,6 +923,19 @@ CREATE TABLE IF NOT EXISTS payments (
         notes: notes,
       );
 
+      await txn.insert('receipt_requests', {
+        'operation_id': operationId,
+        'request_json': request,
+        'receipt_number': receiptNumber
+      });
+      await AuditTrailService.log(
+          executor: txn,
+          actorUserId: p16Actor?.id,
+          actorRole: p16Actor?.role,
+          action: 'RECEIPT_POSTED',
+          entityType: 'RECEIPT',
+          entityId: 'RC-${receiptNumber.toString().padLeft(6, '0')}',
+          after: await _receiptSnapshot(txn, receiptNumber));
       return CanonicalReceiptResult(
         receiptNumber: receiptNumber,
         paymentIds: paymentIds,
@@ -864,25 +944,11 @@ CREATE TABLE IF NOT EXISTS payments (
       );
     });
 
-    for (final repairId in affectedRepairs) {
+    for (final repairId in database == null ? affectedRepairs : <String>{}) {
       try {
         await InvoiceService.I.recomputeForRepair(repairId);
       } catch (_) {}
     }
-    await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
-      actorRole: p16Actor?.role,
-      action: 'RECEIPT_POSTED',
-      entityType: 'RECEIPT',
-      entityId: 'RC-${result.receiptNumber.toString().padLeft(6, '0')}',
-      after: {
-        'client_id': clientId,
-        'method': canonicalMethod,
-        'allocated': result.allocatedAmount,
-        'credit': result.customerCredit,
-        'payment_ids': result.paymentIds,
-      },
-    );
     return result;
   }
 
@@ -913,12 +979,21 @@ CREATE TABLE IF NOT EXISTS payments (
       await _ensureTableAndSchema(db);
       final existing = await db.query(
         table,
-        columns: const ['id'],
         where: 'id=?',
         whereArgs: [payment.id.trim()],
         limit: 1,
       );
       if (existing.isNotEmpty) {
+        final previous = Payment.fromMap(existing.first);
+        if ((previous.amount * 100).round() != (payment.amount * 100).round() ||
+            previous.clientId != clientId ||
+            _pickRepairId(previous) != _pickRepairId(payment) ||
+            _canonicalReceiptMethod(previous.method) !=
+                _canonicalReceiptMethod(method) ||
+            !previous.isIncome) {
+          throw StateError(
+              'Payment identifier already belongs to a different receipt.');
+        }
         await postPaymentFromDbId(payment.id.trim());
         return;
       }
@@ -926,6 +1001,9 @@ CREATE TABLE IF NOT EXISTS payments (
 
     final repairId = _pickRepairId(payment);
     await insertCanonicalReceipt(
+      operationId: payment.id.trim().isEmpty
+          ? const Uuid().v4()
+          : 'payment:${payment.id}',
       clientId: clientId,
       customerName: customerName,
       method: method,
@@ -956,18 +1034,14 @@ CREATE TABLE IF NOT EXISTS payments (
     final db = executor ?? await DBService.database;
     await _ensureTableAndSchema(db);
     final rows = await db.rawQuery('''
-      SELECT
-        COALESCE(SUM(CASE
-          WHEN COALESCE(repair_id,'')='' AND COALESCE(relatedRepairId,'')=''
-            AND LOWER(COALESCE(method,'')) <> 'customer_credit'
-          THEN amount ELSE 0 END),0)
-        -
-        COALESCE(SUM(CASE
-          WHEN LOWER(COALESCE(method,''))='customer_credit'
-            AND (COALESCE(repair_id,'')<>'' OR COALESCE(relatedRepairId,'')<>'')
-          THEN amount ELSE 0 END),0) AS available
-      FROM payments
-      WHERE client_id=? AND COALESCE(isIncome,1)=1
+      SELECT COALESCE(SUM(l.credit-l.debit),0) AS available
+      FROM gl_lines l JOIN gl_entries e ON e.id=l.entry_id
+      JOIN accounts a ON a.id=l.account_id
+      LEFT JOIN gl_entries original ON original.id=e.reversal_of
+      WHERE l.party_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
+        AND COALESCE(l.repair_id,'')=''
+        AND COALESCE(original.source,e.source) IN
+          ('PAYMENT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE')
     ''', [clientId]);
     final raw = rows.first['available'];
     final value = raw is num ? raw.toDouble() : double.tryParse('$raw') ?? 0.0;
@@ -991,7 +1065,7 @@ CREATE TABLE IF NOT EXISTS payments (
     final db = await DBService.database;
     final paymentId = const Uuid().v4();
     late double applied;
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
       await ReceiptTables.createAllTables(txn);
       final repairs = await txn.query(
@@ -1101,22 +1175,40 @@ CREATE TABLE IF NOT EXISTS payments (
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
       await _refreshRepairSnapshot(txn, repairId);
+      await AuditTrailService.log(
+        executor: txn,
+        actorUserId: p16Actor?.id,
+        actorRole: p16Actor?.role,
+        action: 'CUSTOMER_CREDIT_ALLOCATED',
+        entityType: 'REPAIR',
+        entityId: repairId,
+        before: {'available_credit': available, 'paid': paid},
+        after: {
+          'available_credit': available - applied,
+          'paid': paid + applied,
+          'payment': payment.toMap(),
+          'gl_entry_id': glId
+        },
+        reason: notes,
+      );
     });
 
     try {
       await InvoiceService.I.recomputeForRepair(repairId);
     } catch (_) {}
-    await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
-      actorRole: p16Actor?.role,
-      action: 'CUSTOMER_CREDIT_ALLOCATED',
-      entityType: 'REPAIR',
-      entityId: repairId,
-      after: {'client_id': clientId, 'amount': applied},
-      reason: notes,
-    );
     return applied;
   }
+
+  static Future<Map<String, Object?>> _receiptSnapshot(
+          DatabaseExecutor db, int number) async =>
+      {
+        'header': await db.query('receipt_headers',
+            where: 'receipt_number=?', whereArgs: [number]),
+        'payments': await db
+            .query(table, where: 'receipt_number=?', whereArgs: [number]),
+        'allocations': await db.query('receipt_allocations',
+            where: 'receipt_number=?', whereArgs: [number]),
+      };
 
   static Future<void> reverseReceiptByPaymentId(
     String paymentId, {
@@ -1168,7 +1260,7 @@ CREATE TABLE IF NOT EXISTS payments (
         await AuthorizationGuard.require(PermissionKeys.receiptReverse);
     final db = await DBService.database;
     final affectedRepairs = <String>{};
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
       await ReceiptTables.createAllTables(txn);
       final rows = await txn.query(
@@ -1215,33 +1307,43 @@ CREATE TABLE IF NOT EXISTS payments (
       );
       final repairId = _pickRepairId(original);
       if (repairId.isNotEmpty) affectedRepairs.add(repairId);
+      await AuditTrailService.log(
+        executor: txn,
+        before: rows.first,
+        after: {
+          'original':
+              (await txn.query(table, where: 'id=?', whereArgs: [paymentId]))
+                  .single,
+          'reversal': reversal.toMap()
+        },
+        actorUserId: p16Actor?.id,
+        actorRole: p16Actor?.role,
+        action: 'LEGACY_PAYMENT_REVERSED',
+        entityType: 'PAYMENT',
+        entityId: paymentId,
+        reason: reason,
+      );
     });
     for (final repairId in affectedRepairs) {
       try {
         await InvoiceService.I.recomputeForRepair(repairId);
       } catch (_) {}
     }
-    await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
-      actorRole: p16Actor?.role,
-      action: 'LEGACY_PAYMENT_REVERSED',
-      entityType: 'PAYMENT',
-      entityId: paymentId,
-      reason: reason,
-    );
   }
 
   static Future<void> reverseReceipt(
     int receiptNumber, {
     String? reason,
+    Database? database,
   }) async {
     final p16Actor =
         await AuthorizationGuard.require(PermissionKeys.receiptReverse);
-    final db = await DBService.database;
+    final db = database ?? await DBService.database;
     final affectedRepairs = <String>{};
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
       await ReceiptTables.createAllTables(txn);
+      final beforeSnapshot = await _receiptSnapshot(txn, receiptNumber);
       final header = await txn.query(
         'receipt_headers',
         where: 'receipt_number=?',
@@ -1335,21 +1437,27 @@ CREATE TABLE IF NOT EXISTS payments (
           whereArgs: [receiptNumber],
         );
       }
+      await AuditTrailService.log(
+        executor: txn,
+        before: beforeSnapshot,
+        after: {
+          'original': await _receiptSnapshot(txn, receiptNumber),
+          'reversal': await _receiptSnapshot(txn, reversalReceiptNumber)
+        },
+        actorUserId: p16Actor?.id,
+        actorRole: p16Actor?.role,
+        action: 'RECEIPT_REVERSED',
+        entityType: 'RECEIPT',
+        entityId: 'RC-${receiptNumber.toString().padLeft(6, '0')}',
+        reason: reason,
+      );
     });
 
-    for (final repairId in affectedRepairs) {
+    for (final repairId in database == null ? affectedRepairs : <String>{}) {
       try {
         await InvoiceService.I.recomputeForRepair(repairId);
       } catch (_) {}
     }
-    await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
-      actorRole: p16Actor?.role,
-      action: 'RECEIPT_REVERSED',
-      entityType: 'RECEIPT',
-      entityId: 'RC-${receiptNumber.toString().padLeft(6, '0')}',
-      reason: reason,
-    );
   }
 
   static Future<Payment> _reversePaymentLineOnTxn({
@@ -1459,6 +1567,14 @@ CREATE TABLE IF NOT EXISTS payments (
   static Future<int> postPaymentFromDbId(String paymentId) async {
     final db = await DBService.database;
 
+    final document =
+        await db.query(table, where: 'id=?', whereArgs: [paymentId], limit: 1);
+    if (document.isEmpty) throw StateError('Payment not found.');
+    if (['void', 'reversed', 'reversal']
+        .contains('${document.first['status']}'.toLowerCase())) {
+      throw StateError('A cancelled payment cannot be posted again.');
+    }
+
     // موجود مسبقًا؟
     final existed = await db.query(
       'gl_entries',
@@ -1469,14 +1585,16 @@ CREATE TABLE IF NOT EXISTS payments (
     );
     if (existed.isNotEmpty) {
       final glId = (existed.first['id'] as num).toInt();
-      await db.update(table, {'gl_entry_id': glId},
-          where: 'id=?', whereArgs: [paymentId]);
+      await SyncFoundationService.writeOn(
+          db,
+          (txn) => txn.update(table, {'gl_entry_id': glId},
+              where: 'id=?', whereArgs: [paymentId]));
       return glId;
     }
 
     String? repairForPost;
 
-    final glId = await db.transaction((txn) async {
+    final glId = await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
 
       final row = await txn.query(table,
@@ -1539,17 +1657,16 @@ CREATE TABLE IF NOT EXISTS payments (
 
   static Future<void> _reverseIfExists(
       Transaction txn, String paymentId) async {
-    final r = await txn.query(
-      'gl_entries',
-      columns: ['id'],
-      where: 'source=? AND source_id=?',
-      whereArgs: ['PAYMENT', paymentId],
-      limit: 1,
-    );
-    if (r.isEmpty) return;
-    final glId = (r.first['id'] as num).toInt();
-    await DBService.reverseEntryGLOn(txn, glId,
-        note: 'Reverse on payment edit/delete');
+    final rows = await txn.rawQuery('''
+      SELECT e.id FROM gl_entries e
+      WHERE e.source IN ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION')
+        AND e.source_id=? AND e.reversal_of IS NULL
+        AND NOT EXISTS (SELECT 1 FROM gl_entries r WHERE r.reversal_of=e.id)
+    ''', [paymentId]);
+    for (final row in rows) {
+      await DBService.reverseEntryGLOn(txn, (row['id'] as num).toInt(),
+          note: 'Payment cancelled');
+    }
   }
 
   static Future<void> _reverseAdjustsIfAny(
@@ -1915,7 +2032,7 @@ CREATE TABLE IF NOT EXISTS payments (
         ? _K_STATUS_CONFIRMED
         : payment.status.trim();
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
 
       // إدخال السند إذا لم يكن موجودًا

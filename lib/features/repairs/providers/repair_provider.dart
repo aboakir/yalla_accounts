@@ -20,6 +20,7 @@ class RepairListNotifier extends StateNotifier<List<Repair>> {
 
   Future<void> loadRepairs() async {
     final repairs = await RepairDatabaseService.getAllRepairs();
+    if (!mounted) return;
     state = repairs.reversed.toList();
   }
 

@@ -1,3 +1,4 @@
+import 'account_ledger_pdf.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/core/pdf/yalla_pdf_service.dart
 // FINAL VERSION — Arabic + Workshop Header/Footer (No Logo Errors)
@@ -1190,116 +1191,24 @@ class YallaPdfService {
     required DateTime from,
     required DateTime to,
     required List<Map<String, dynamic>> rows,
+    double openingBalance = 0,
   }) async {
-    await ensureFontsLoaded();
-
-    final pdf = await createDocument();
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
-        theme: pw.ThemeData.withFont(
-          base: _fonts.base,
-          bold: _fonts.bold,
-        ),
-        build: (context) => [
-          pw.Text(
-            'دفتر الأستاذ العام',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-            textDirection: pw.TextDirection.rtl,
-          ),
-          pw.SizedBox(height: 6),
-          pw.Text(
-            'الحساب: $accountName',
-            textDirection: pw.TextDirection.rtl,
-          ),
-          pw.Text(
-            'الفترة: ${DateFormat('yyyy-MM-dd').format(from)} → ${DateFormat('yyyy-MM-dd').format(to)}',
-            textDirection: pw.TextDirection.rtl,
-          ),
-          pw.SizedBox(height: 12),
-          pw.Table(
-            border: pw.TableBorder.all(width: .5),
-            columnWidths: {
-              0: const pw.FlexColumnWidth(2),
-              1: const pw.FlexColumnWidth(5),
-              2: const pw.FlexColumnWidth(2),
-              3: const pw.FlexColumnWidth(2),
-              4: const pw.FlexColumnWidth(2),
-            },
-            children: [
-              pw.TableRow(
-                decoration: const pw.BoxDecoration(color: PdfColors.grey300),
-                children: [
-                  _th('التاريخ'),
-                  _th('الوصف'),
-                  _th('مدين'),
-                  _th('دائن'),
-                  _th('الرصيد'),
-                ],
-              ),
-              ...rows.map((r) => pw.TableRow(
-                    children: [
-                      _td(r['date']),
-                      _td(r['description']),
-                      _td(r['debit']),
-                      _td(r['credit']),
-                      _td(r['balance']),
-                    ],
-                  )),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/general_ledger.pdf');
-    await file.writeAsBytes(await pdf.save());
-    await OpenFile.open(file.path);
+    final bytes = await AccountLedgerPdf.generate(
+        workshop: await _getWorkshop(),
+        accountName: accountName,
+        from: from,
+        to: to,
+        opening: openingBalance,
+        rows: rows
+            .map((r) => <String, Object?>{
+                  ...r,
+                  'debit': num.parse(r['debit'].toString()),
+                  'credit': num.parse(r['credit'].toString()),
+                })
+            .toList());
+    await saveAndOpen(bytes: bytes, fileName: 'general_ledger.pdf');
   }
 
-  static pw.Widget _th(String t) {
-    final clean = normalizePdfText(t);
-    return pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text(
-        clean,
-        textDirection: pw.TextDirection.rtl,
-        textAlign: pw.TextAlign.right,
-        style: pw.TextStyle(
-          font: _fonts.bold,
-          fontSize: 12,
-          fontFallback: _fonts.fallbacks,
-        ),
-      ),
-    );
-  }
-
-  static pw.Widget _td(dynamic t) {
-    final text = normalizePdfText(t?.toString() ?? '');
-    final isAscii = RegExp(r'^[\x00-\x7F]+$').hasMatch(text);
-
-    return pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Text(
-        text,
-        textDirection: isAscii ? pw.TextDirection.ltr : pw.TextDirection.rtl,
-        textAlign: isAscii ? pw.TextAlign.left : pw.TextAlign.right,
-        style: pw.TextStyle(
-          font: isAscii
-              ? _fonts.fallbacks.first // Tahoma للأرقام/EN
-              : _fonts.base, // عربي
-          fontSize: 11,
-          fontFallback: _fonts.fallbacks,
-        ),
-      ),
-    );
-  }
-
-  // -----------------------------------------------------------------------------
-// PDF — Smart Image Grid (NO EMPTY SPACES EVER)
-// -----------------------------------------------------------------------------
   static pw.Widget buildSmartImageGrid(
     List<Uint8List> images, {
     double spacing = 6,

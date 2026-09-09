@@ -128,6 +128,25 @@ class PartyTables {
   }
 
   static Future<void> _installMasterDataTriggers(DatabaseExecutor db) async {
+    for (final entry
+        in {'clients': 'CUSTOMER', 'suppliers': 'SUPPLIER'}.entries) {
+      if (!await _tableExists(db, entry.key)) continue;
+      await db
+          .execute("""CREATE TRIGGER IF NOT EXISTS trg_party_${entry.key}_rename
+        AFTER UPDATE OF name ON ${entry.key}
+        BEGIN
+          UPDATE parties SET display_name=NEW.name,updated_at=datetime('now')
+          WHERE display_name=OLD.name AND id IN
+            (SELECT party_id FROM party_roles WHERE role='${entry.value}' AND legacy_id=CAST(NEW.id AS TEXT));
+        END;""");
+      await db
+          .execute("""CREATE TRIGGER IF NOT EXISTS trg_party_${entry.key}_delete
+        AFTER DELETE ON ${entry.key}
+        BEGIN
+          DELETE FROM party_roles WHERE role='${entry.value}' AND legacy_id=CAST(OLD.id AS TEXT);
+        END;""");
+    }
+
     if (await _tableExists(db, 'clients')) {
       await db.execute('''
         CREATE TRIGGER IF NOT EXISTS trg_party_customer_insert

@@ -82,13 +82,22 @@ class YallaStorageService {
   YallaStorageService._();
 
   static Directory? _rootCache;
+  static Directory? _testRoot;
+
+  @visibleForTesting
+  static void useRootDirectoryForTesting(Directory? directory) {
+    _testRoot = directory;
+    _rootCache = null;
+  }
 
   static Future<Directory> rootDirectory() async {
     final cached = _rootCache;
     if (cached != null && await cached.exists()) return cached;
 
     Directory root;
-    if (Platform.isWindows) {
+    if (_testRoot != null) {
+      root = _testRoot!;
+    } else if (Platform.isWindows) {
       final d = Directory(r'D:\');
       root = Directory(
           await d.exists() ? r'D:\YallaAccounts' : r'C:\YallaAccounts');

@@ -203,16 +203,17 @@ class SalaryDatabaseService {
   }
 
   // ───────────── UPSERT/CRUD ─────────────
-  static Future<void> upsertSalary(Salary s) async {
-    await ensureTable();
-    final db = await DBService.database;
+  static Future<void> upsertSalary(Salary s,
+      {DatabaseExecutor? executor}) async {
+    if (executor == null) await ensureTable();
+    final db = executor ?? await DBService.database;
     final nowIso = DateTime.now().toIso8601String();
 
     final base = s.gross;
     final adv = s.advancesApplied;
     final total = s.net;
-    final paid = s.status == 'paid' ? s.net : 0.0;
-    final due = s.status == 'paid' ? 0.0 : s.net;
+    final paid = s.paid;
+    final due = s.due;
 
     final map = <String, Object?>{
       'employeeId': s.employeeId,
@@ -267,46 +268,66 @@ class SalaryDatabaseService {
     );
   }
 
-  static Future<Salary?> getSalary({
-    required String employeeId,
-    required String month,
-  }) async {
-    await ensureTable();
-    final db = await DBService.database;
-
-    final rows = await db.query(
-      _table,
-      where: 'employeeId = ? AND month = ?',
-      whereArgs: [employeeId, month],
-      limit: 1,
-    );
-    if (rows.isEmpty) return null;
-    return Salary.fromMap(rows.first);
-  }
-
+  /// Legacy rows remain readable, but a canonical payroll run always wins.
+  /// Paid amounts come from posted vouchers, never the legacy snapshot.
   static Future<List<Salary>> getSalaries() async {
     await ensureTable();
     final db = await DBService.database;
-
-    final rows = await db.query(
-      _table,
-      orderBy: 'month DESC, employeeName COLLATE NOCASE ASC',
-    );
-    return rows.map(Salary.fromMap).toList();
+    final legacy = await db.query(_table);
+    final result = <String, Salary>{
+      for (final row in legacy)
+        '${row['employeeId']}@${row['month']}': Salary.fromMap(row),
+    };
+    final runs = await db.rawQuery("""
+      SELECT p.*, e.full_name AS employee_name,
+        (SELECT COALESCE(SUM(v.amount),0) FROM vouchers v
+         WHERE v.source='PAYROLL_ENTITLEMENT' AND v.source_id=p.id
+           AND v.gl_entry_id IS NOT NULL
+           AND UPPER(COALESCE(v.status,'POSTED')) NOT IN ('REVERSED','VOID','VOIDED')) AS posted_paid
+      FROM payroll_runs p LEFT JOIN employees e ON e.id=p.employee_id
+      ORDER BY p.period_start
+    """);
+    String key(Map<String, Object?> row) =>
+        '${row['employee_id']}@${row['period_start'].toString().substring(0, 7)}';
+    for (final row in runs) {
+      result.remove(key(row));
+    }
+    for (final row in runs) {
+      if (row['status'].toString().toUpperCase() == 'REVERSED') continue;
+      final net = _d(row['net']);
+      final paid = _d(row['posted_paid']);
+      final salary = Salary.fromMap({
+        ...row,
+        'month': row['period_start'].toString().substring(0, 7),
+        'date': row['accrual_date'],
+        'gross': net + _d(row['advance_applied']) + _d(row['deductions']),
+        'advances_applied': row['advance_applied'],
+        'amount_paid': paid,
+        'status': paid + 0.01 >= net ? 'paid' : 'approved',
+      });
+      result[key(row)] = salary;
+    }
+    final salaries = result.values.toList();
+    salaries.sort((a, b) {
+      final month = (b.month ?? '').compareTo(a.month ?? '');
+      return month != 0
+          ? month
+          : (a.employeeName ?? '').compareTo(b.employeeName ?? '');
+    });
+    return salaries;
   }
 
-  static Future<List<Salary>> getSalariesByMonth(String month) async {
-    await ensureTable();
-    final db = await DBService.database;
-
-    final rows = await db.query(
-      _table,
-      where: 'month = ?',
-      whereArgs: [month],
-      orderBy: 'employeeName COLLATE NOCASE ASC',
-    );
-    return rows.map(Salary.fromMap).toList();
+  static Future<Salary?> getSalary(
+      {required String employeeId, required String month}) async {
+    for (final salary in await getSalaries()) {
+      if (salary.employeeId == employeeId && salary.month == month)
+        return salary;
+    }
+    return null;
   }
+
+  static Future<List<Salary>> getSalariesByMonth(String month) async =>
+      (await getSalaries()).where((salary) => salary.month == month).toList();
 
   // ───────────── Stage 4: legacy financial commands disabled ─────────────
   @Deprecated('Use PayrollEntitlementService.accrueFromAttendance')

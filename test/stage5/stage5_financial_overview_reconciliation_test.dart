@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/parties/services/party_financial_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/tables/party_tables.dart';
@@ -279,6 +280,131 @@ Future<void> _seed(Database db) async {
 }
 
 void main() {
+  test(
+      'customer and supplier statements retain opening and include whole end date',
+      () async {
+    final db = await _openDb();
+    addTearDown(db.close);
+    await _seed(db);
+    final customer = await PartyFinancialService.statement(
+        role: 'CUSTOMER',
+        legacyId: 1,
+        from: DateTime(2026, 9, 3),
+        to: DateTime(2026, 9, 30),
+        executor: db);
+    final supplier = await PartyFinancialService.statement(
+        role: 'SUPPLIER',
+        legacyId: 2,
+        from: DateTime(2026, 9, 4),
+        to: DateTime(2026, 9, 30),
+        executor: db);
+    final overview = await FinancialOverviewService.loadOn(db,
+        from: DateTime(2026, 9, 3), to: DateTime(2026, 9, 30));
+    expect(customer.closingBalance, overview.customerReceivables);
+    expect(supplier.closingBalance, overview.supplierPayables);
+    final active = await PartyFinancialService.balances(
+        from: DateTime(2026, 9, 1), to: DateTime(2026, 9, 30), executor: db);
+    expect(active, isNotEmpty);
+    final e = await _entry(db,
+        date: '2026-09-30T23:59:59.999999',
+        source: 'PAYMENT',
+        sourceId: 'end-day');
+    await _line(db, e, accountId: 1, debit: 25, credit: 0);
+    await _line(db, e,
+        accountId: 3,
+        debit: 0,
+        credit: 25,
+        partyType: 'CUSTOMER',
+        partyId: '1');
+    final last = await PartyFinancialService.statement(
+        role: 'CUSTOMER',
+        legacyId: 1,
+        from: DateTime(2026, 9, 30),
+        to: DateTime(2026, 9, 30),
+        executor: db);
+    expect(last.openingBalance, 600);
+    expect(last.closingBalance, 575);
+  });
+  test('cash account filters preserve transfer direction and reversals',
+      () async {
+    final db = await _openDb();
+    addTearDown(db.close);
+    final e = await _entry(db,
+        date: '2026-09-01', source: 'TRANSFER', sourceId: 'cash-bank');
+    await _line(db, e, accountId: 1, debit: 0, credit: 200);
+    await _line(db, e, accountId: 2, debit: 200, credit: 0);
+    final all = await FinancialOverviewService.cashFlowsOn(db,
+        to: DateTime(2026, 9, 30));
+    final cash = await FinancialOverviewService.cashFlowsOn(db,
+        to: DateTime(2026, 9, 30), liquidityCode: '1000');
+    final bank = await FinancialOverviewService.cashFlowsOn(db,
+        to: DateTime(2026, 9, 30), liquidityCode: '1010');
+    expect(all, (0.0, 0.0));
+    expect(cash, (0.0, 200.0));
+    expect(bank, (200.0, 0.0));
+  });
+
+  test(
+      'period boundaries include legacy dates and fractional end of day, exclude outside lines',
+      () async {
+    final db = await _openDb();
+    addTearDown(db.close);
+    final dates = [
+      '2026-08-31T23:59:59',
+      '2026-09-01',
+      '2026-09-01 12:30:00',
+      '2026-09-30T23:59:59.999999',
+      '2026-10-01'
+    ];
+    for (var i = 0; i < dates.length; i++) {
+      final e = await _entry(db,
+          date: dates[i], source: 'SALE', sourceId: 'boundary-$i');
+      await _line(db, e, accountId: 1, debit: 100, credit: 0);
+      await _line(db, e, accountId: 7, debit: 0, credit: 100);
+    }
+    final s = await FinancialOverviewService.loadOn(db,
+        from: DateTime(2026, 9, 1), to: DateTime(2026, 9, 30));
+    expect(s.revenue, 300);
+    expect(s.receipts, 300);
+    expect(s.cashBalance, 400);
+    final totals = await FinancialOverviewService.accountTotalsOn(db,
+        from: DateTime(2026, 9, 1), to: DateTime(2026, 9, 30));
+    expect(totals.singleWhere((r) => r['code'] == '4000')['credit'], 300);
+    final later = await FinancialOverviewService.loadOn(db,
+        from: DateTime(2026, 9, 30), to: DateTime(2026, 9, 30));
+    expect(later.revenue, 100);
+    expect(later.cashBalance, 400);
+  });
+
+  test(
+      'cash flows exclude opening and internal transfers and net formal reversals',
+      () async {
+    final db = await _openDb();
+    addTearDown(db.close);
+    Future<int> post(
+        String source, String id, int debit, int credit, double amount,
+        {int? reversal}) async {
+      final e = await _entry(db,
+          date: '2026-09-01',
+          source: source,
+          sourceId: id,
+          reversalOf: reversal);
+      await _line(db, e, accountId: debit, debit: amount, credit: 0);
+      await _line(db, e, accountId: credit, debit: 0, credit: amount);
+      return e;
+    }
+
+    await post('OPENING', 'opening', 1, 6, 1000);
+    final receipt = await post('RECEIPT', 'r', 1, 3, 500);
+    await post('TRANSFER', 'transfer', 2, 1, 200);
+    await post('PAYMENT', 'p', 4, 2, 50);
+    await post('REVERSAL', 'rv', 3, 1, 100, reversal: receipt);
+    final flow = await FinancialOverviewService.cashFlowsOn(db,
+        from: DateTime(2026, 9, 1), to: DateTime(2026, 9, 30));
+    expect(flow.$1, 400);
+    expect(flow.$2, 50);
+  });
+
   test('Stage 5 overview reconciles balances and period activity from GL',
       () async {
     final db = await _openDb();

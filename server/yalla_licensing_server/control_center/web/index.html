@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,33 +11,33 @@
   <section id="authGate" class="auth-gate">
     <div class="auth-card">
       <div class="auth-brand">YALLA <span>CONTROL CENTER</span></div>
-      <h1>Secure admin access</h1>
-      <p id="authMessage">Sign in with your Yalla administrator identity.</p>
+      <h1>دخول إدارة يلا</h1>
+      <p id="authMessage">سجّل الدخول بحساب إدارة يلا.</p>
       <div id="loginView">
-        <label>Email<input id="loginEmail" type="email" autocomplete="username"></label>
-        <label>Password<input id="loginPassword" type="password" autocomplete="current-password"></label>
-        <button id="loginButton" type="button">Continue</button>
-        <button id="recoveryButton" type="button" class="link-button">Account recovery</button>
+        <label>البريد الإلكتروني<input id="loginEmail" type="email" autocomplete="username"></label>
+        <label>كلمة المرور<input id="loginPassword" type="password" autocomplete="current-password"></label>
+        <button id="loginButton" type="button">متابعة</button>
+        <button id="recoveryButton" type="button" class="link-button">استعادة حساب الإدارة</button>
       </div>
       <div id="mfaView" class="hidden">
-        <label>MFA method<select id="mfaMethod"><option value="TOTP">Authenticator code</option><option value="WEBAUTHN">Security key / passkey</option></select></label>
-        <label id="totpLabel">Authenticator code<input id="mfaCode" inputmode="numeric" autocomplete="one-time-code"></label>
-        <button id="mfaButton" type="button">Verify MFA</button>
-        <button id="backToLogin" type="button" class="secondary">Back</button>
+        <label>طريقة التحقق الإضافي<select id="mfaMethod"><option value="TOTP">رمز تطبيق المصادقة</option></select></label>
+        <label id="totpLabel">رمز تطبيق المصادقة<input id="mfaCode" inputmode="numeric" autocomplete="one-time-code"></label>
+        <button id="mfaButton" type="button">تأكيد رمز الأمان</button>
+        <button id="backToLogin" type="button" class="secondary">رجوع</button>
       </div>
       <div id="recoveryView" class="hidden">
-        <label>Email<input id="recoveryEmail" type="email" autocomplete="email"></label>
-        <button id="startRecovery" type="button">Start recovery</button>
+        <label>البريد الإلكتروني<input id="recoveryEmail" type="email" autocomplete="email"></label>
+        <button id="startRecovery" type="button">بدء الاستعادة</button>
         <div id="recoveryComplete" class="hidden">
-          <label>Recovery challenge ID<input id="recoveryChallengeId" autocomplete="off"></label>
-          <label>Recovery secret<input id="recoverySecret" type="password" autocomplete="off"></label>
-          <label>Single-use recovery code<input id="recoveryCode" type="password" autocomplete="off"></label>
-          <label>New password<input id="recoveryNewPassword" type="password" autocomplete="new-password"></label>
-          <button id="completeRecovery" type="button">Complete recovery</button>
+          <label>رقم طلب الاستعادة<input id="recoveryChallengeId" autocomplete="off"></label>
+          <label>مفتاح الاستعادة<input id="recoverySecret" type="password" autocomplete="off"></label>
+          <label>رمز استعادة لمرة واحدة<input id="recoveryCode" type="password" autocomplete="off"></label>
+          <label>كلمة المرور الجديدة<input id="recoveryNewPassword" type="password" autocomplete="new-password"></label>
+          <button id="completeRecovery" type="button">إكمال الاستعادة</button>
         </div>
-        <button id="cancelRecovery" type="button" class="secondary">Back to login</button>
+        <button id="cancelRecovery" type="button" class="secondary">العودة إلى الدخول</button>
       </div>
-      <small>No master password, no customer password access, and no browser-stored session token.</small>
+      <small>هذه لوحة إدارة يلا، منفصلة عن حساب صاحب الورشة وبياناته المالية.</small>
     </div>
   </section>
 
@@ -45,20 +45,44 @@
     <aside class="sidebar">
       <div class="brand">YALLA <span>CONTROL CENTER</span></div>
       <nav id="nav"></nav>
-      <div class="stage">SEC.015 · MFA / secure sessions / audit</div>
+      <div class="stage">تحقق إضافي · جلسات محمية · سجل تدقيق</div>
     </aside>
     <main>
       <header>
-        <div><h1 id="title">Dashboard</h1><p id="subtitle">Server-side commercial and licensing control plane</p></div>
+        <div><h1 id="title">ملخص الإدارة</h1><p id="subtitle">إدارة المشتركين والورش والتراخيص</p></div>
         <div class="connection">
-          <span id="actorState" class="pill">No actor</span>
-          <span id="sessionState" class="pill">No session</span>
-          <button id="actionsButton" type="button" class="secondary">Privileged action</button>
-          <button id="breakGlassButton" type="button" class="danger">Break Glass</button>
-          <button id="sessionsButton" type="button" class="secondary">Sessions</button>
-          <button id="logoutButton" type="button">Logout</button>
+          <span id="actorState" class="pill">لم يتم التحقق</span>
+          <span id="sessionState" class="pill">لا توجد جلسة</span>
+          <button id="managedOperationsButton" type="button" class="secondary">إدارة الاشتراكات والأجهزة</button><button id="actionsButton" type="button" class="secondary hidden">إجراء متقدم</button>
+          <button id="breakGlassButton" type="button" class="danger hidden">Break Glass</button>
+          <button id="sessionsButton" type="button" class="secondary">الجلسات</button>
+          <button id="logoutButton" type="button">تسجيل الخروج</button>
         </div>
       </header>
+
+      <section id="managedOperations" class="panel connect-panel">
+  <h2>إدارة الاشتراكات والأجهزة</h2>
+  <p>اختر الإجراء والسجل. ينفّذ الخادم الطلب بعد التحقق من الصلاحية ويسجّل أثره.</p>
+  <div id="operationsAvailability" role="status"></div>
+  <form id="operationsForm" class="hidden">
+    <label>الإجراء<select id="managedAction"></select></label>
+    <label>الورشة<select id="managedOrganization" required></select></label>
+    <label>السجل<select id="managedTarget" required></select></label>
+    <label id="managedDaysLabel">المدة بالأيام<input id="managedDays" type="number" min="1" max="3650" value="30"></label>
+    <label id="managedExpiryLabel">تاريخ الانتهاء<input id="managedExpiry" type="datetime-local"></label>
+    <label id="managedPlanLabel">الخطة<select id="managedPlan"></select></label>
+    <label id="managedReplacementLabel">الجهاز البديل المسجّل<select id="managedReplacement"></select></label>
+    <label>سبب الإجراء<textarea id="managedReason" minlength="8" maxlength="1000" required></textarea></label>
+    <button id="managedSubmit" type="submit">مراجعة الطلب</button>
+  </form>
+  <div id="managedReview" class="hidden">
+    <p id="managedReviewText"></p>
+    <button id="managedConfirm" type="button">تأكيد وإرسال</button>
+    <button id="managedCancel" type="button" class="secondary">رجوع</button>
+  </div>
+  <p id="managedResult" role="status"></p>
+  <button id="managedClose" type="button" class="secondary">إغلاق</button>
+</section>
 
       <section id="actionPanel" class="panel connect-panel">
         <h2>Privileged action</h2>
@@ -79,7 +103,7 @@
         <h2>Break Glass</h2>
         <p>Emergency access requires fresh password + MFA reauthentication and expires in 5-60 minutes.</p>
         <div class="stepup-box">
-          <label>Password<input id="reauthPassword" type="password" autocomplete="current-password"></label>
+          <label>كلمة المرور<input id="reauthPassword" type="password" autocomplete="current-password"></label>
           <label>MFA code<input id="reauthMfa" inputmode="numeric" autocomplete="one-time-code"></label>
           <button id="reauthButton" type="button">Step-up reauthenticate</button>
           <span id="reauthState">Required</span>
@@ -92,14 +116,16 @@
       </section>
 
       <section id="sessionsPanel" class="panel connect-panel">
-        <h2>My admin sessions</h2>
-        <div class="actions"><button id="refreshSessions" type="button">Refresh</button><button id="logoutAll" type="button" class="danger">Revoke all my sessions</button><button id="closeSessions" type="button" class="secondary">Close</button></div>
+        <h2>جلسات الإدارة</h2>
+        <div class="actions"><button id="refreshSessions" type="button">تحديث</button><button id="logoutAll" type="button" class="danger">إنهاء جميع جلساتي</button><button id="closeSessions" type="button" class="secondary">إغلاق</button></div>
         <div id="sessionsResult" class="inline-result"></div>
       </section>
 
-      <section id="content" class="panel"><div class="empty"><strong>Yalla Control Center is ready.</strong><span>Authenticated server data will appear here.</span></div></section>
+      <section id="content" class="panel"><div class="empty"><strong>لوحة إدارة يلا</strong><span>تظهر البيانات بعد التحقق من جلسة الإدارة.</span></div></section>
     </main>
   </div>
+  <script src="operations.js"></script>
+  <script src="managed_operations.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

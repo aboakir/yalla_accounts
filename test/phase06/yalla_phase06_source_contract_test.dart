@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('P06 canonical list route and shell ownership are wired', () {
-    final routes = File('lib/core/routes/app_routes.dart').readAsStringSync();
+    final routes = File('lib/core/routes/app_routes.dart')
+        .readAsStringSync()
+        .replaceAll('\r\n', '\n');
     final shell = File(
       'lib/core/widgets/mobile/yalla_mobile_route_frame.dart',
     ).readAsStringSync();

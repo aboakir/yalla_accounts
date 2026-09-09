@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/licensing/lifecycle/subscription_access_policy.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -278,6 +279,48 @@ void main() {
 
       final originalEnvelope =
           activationRow['signed_license_envelope_json']!.toString();
+      // Every Stage 46 state is accepted only with a fresh Ed25519 signature.
+      final signedBase = jsonDecode(originalEnvelope) as Map<String, dynamic>;
+      final keyset = Map<String, Object?>.from(
+          jsonDecode(activationRow['verification_keyset_json']!.toString())
+              as Map);
+      for (final status in SubscriptionAccessPolicy.statuses) {
+        final payload = Map<String, Object?>.from(signedBase['payload'] as Map)
+          ..['operational_status'] = status;
+        final bytes = utf8.encode(_canonicalize(payload));
+        final signature = await algorithm.sign(bytes, keyPair: signingKey);
+        final envelope = <String, Object?>{
+          ...signedBase,
+          'payload': payload,
+          'payload_sha256': sha256.convert(bytes).toString(),
+          'signature': _b64(signature.bytes)
+        };
+        final checked = await verifier.verify(
+            envelope: envelope,
+            verificationKeyset: keyset,
+            identity: await deviceService.ensureCurrent(),
+            requireCurrentValidity: false);
+        expect(checked.operationalStatus, status);
+        final forgedPayload = {
+          ...payload,
+          'operational_status': 'ACTIVE',
+          'entitlement_revision': 99
+        };
+        final forged = {
+          ...envelope,
+          'payload': forgedPayload,
+          'payload_sha256': sha256
+              .convert(utf8.encode(_canonicalize(forgedPayload)))
+              .toString()
+        };
+        await expectLater(
+            verifier.verify(
+                envelope: forged,
+                verificationKeyset: keyset,
+                identity: await deviceService.ensureCurrent(),
+                requireCurrentValidity: false),
+            throwsA(isA<LicenseVerificationException>()));
+      }
       final tampered = jsonDecode(originalEnvelope) as Map<String, dynamic>;
       final tamperedPayload =
           Map<String, dynamic>.from(tampered['payload'] as Map);

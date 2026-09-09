@@ -1,3 +1,4 @@
+import '../support/accounting_session.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -23,13 +24,12 @@ void main() {
 
   test('P1.006 fresh current DB posts metadata and creates linked reversal',
       () async {
-    SharedPreferences.setMockInitialValues({
-      'yalla_auth_session_user_v2': 'audit-user',
-    });
+    SharedPreferences.setMockInitialValues({});
 
     final temp = await Directory.systemTemp.createTemp('yalla_p1_006_');
     final path = '${temp.path}${Platform.pathSeparator}fresh.db';
     final db = await DatabaseMigration.initDatabase(pathOverride: path);
+    final session = await startAccountingSession(db, 'audit-user');
 
     try {
       expect(firstInt(await db.rawQuery('PRAGMA user_version')),
@@ -130,6 +130,7 @@ void main() {
         throwsA(isA<DatabaseException>()),
       );
     } finally {
+      await session.endEphemeralPreviewSession();
       await db.close();
       await temp.delete(recursive: true);
     }

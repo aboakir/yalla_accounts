@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 // 📁 lib/features/finance/services/invoice_database_service.dart
 //
 // FINAL — الإصدار المستقر بالكامل
@@ -306,17 +307,8 @@ class InvoiceDatabaseService {
   }) async {
     await _ensureTable(txn);
 
-    final res = await txn.rawQuery(
-      'SELECT IFNULL(SUM(amount),0) AS s FROM payments '
-      'WHERE repair_id=? OR relatedRepairId=?',
-      [repairId, repairId],
-    );
-
-    final paid = _round(
-      (res.first['s'] is num)
-          ? (res.first['s'] as num).toDouble()
-          : double.tryParse('${res.first['s']}') ?? 0.0,
-    );
+    final paid = await RepairFinancialTruthService.paidForRepair(repairId,
+        executor: txn);
 
     final cur = await txn.query(
       _table,

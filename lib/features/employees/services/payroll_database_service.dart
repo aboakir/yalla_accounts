@@ -1,3 +1,6 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/core/services/db/tables/accounting_tables.dart';
+import 'package:yalla_accounts/core/services/db/tables/hr_tables.dart';
 // 📁 lib/features/employees/services/payroll_database_service.dart
 //
 // PayrollDatabaseService — إدارة استحقاق وصرف الرواتب وربطها بالـ GL (v30)
@@ -35,7 +38,6 @@ import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_periods_service.dart';
-import 'package:yalla_accounts/features/employees/services/advance_database_service.dart';
 import 'package:yalla_accounts/features/employees/services/salary_database_service.dart';
 import 'package:yalla_accounts/features/employees/models/salary.dart';
 import 'package:yalla_accounts/features/vouchers/models/voucher_payment_model.dart';
@@ -178,6 +180,7 @@ class PayrollDatabaseService {
     ''');
     await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_payroll_payments_run ON $paymentsTable(run_id);');
+    await _ensureColumn(db, table, 'created_at', 'TEXT');
     await _ensureColumn(db, table, 'attendance_snapshot', 'TEXT');
     await _ensureColumn(db, table, 'entitlement_basis', 'TEXT');
     await _ensureColumn(db, paymentsTable, 'voucher_id', 'TEXT');
@@ -338,52 +341,6 @@ class PayrollDatabaseService {
       throw ArgumentError('preNet cannot be negative');
     }
 
-    // سلف معلّقة
-    final pendingAdv =
-        _fix2(await AdvanceDatabaseService.pendingBalance(employeeId));
-    final applied = _fix2(
-      advanceApplied == null
-          ? (pendingAdv <= 0 ? 0 : (pendingAdv > preNet ? preNet : pendingAdv))
-          : (advanceApplied < 0
-              ? 0
-              : (advanceApplied > preNet ? preNet : advanceApplied)),
-    );
-    final net = _fix2(preNet - applied);
-
-    final runId = const Uuid().v4();
-
-    // 1) سجل التشغيل
-    try {
-      await db.insert(
-        table,
-        {
-          'id': runId,
-          'employee_id': employeeId,
-          'period_start': periodStart.toIso8601String(),
-          'period_end': periodEnd.toIso8601String(),
-          'gross': _fix2(gross),
-          'allowances': _fix2(allowances),
-          'deductions': _fix2(deductions + latePenalty + unpaidAbsencePenalty),
-          'advance_applied': applied,
-          'net': net,
-          'amount_paid': 0.0,
-          'status': 'ACCRUED',
-          'accrual_date': _iso(accrualDate),
-          'method': method,
-          'note': note,
-          'attendance_snapshot': attendanceSnapshot,
-          'entitlement_basis': entitlementBasis,
-          'created_at': DateTime.now().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.abort,
-      );
-    } on DatabaseException catch (e) {
-      if (e.isUniqueConstraintError()) {
-        throw StateError('تم إثبات راتب هذا الموظف لنفس الفترة مسبقًا.');
-      }
-      rethrow;
-    }
-
     // 2) GL
     final drExpense = await _salariesExpenseId(); // 5100
     final crWithhold = await _withholdingsPayableId(); // 2145
@@ -391,93 +348,155 @@ class PayrollDatabaseService {
     final drPayable = crPayable; // 2140.E
     final crAdvance = await _advanceSubId(employeeId); // 1120.E
 
-    final lines = <Map<String, Object?>>[
-      // Dr: Expense for base + allowances + paidHoliday + overtime
-      {
-        'account_id': drExpense,
-        'debit': totalExpenseSide,
-        'credit': 0.0,
-        'party_type': 'EMPLOYEE',
-        'party_id': employeeId,
-        'invoice_id': null,
-        'repair_id': null,
-      },
-      // Cr: Withholdings for statutory + lateness + unpaid absence
-      if (totalDeductSide > 0)
+    await SalaryDatabaseService.ensureTable();
+    await PayrollPeriodsService.ensurePeriodRow(
+        periodStart.year, periodStart.month);
+    return SyncFoundationService.transaction(db, (txn) async {
+      final duplicate = await txn.rawQuery(
+          "SELECT id FROM payroll_runs WHERE employee_id=? AND status<>'REVERSED' AND substr(period_start,1,10)<=? AND substr(period_end,1,10)>=? LIMIT 1",
+          [
+            employeeId,
+            periodEnd.toIso8601String().substring(0, 10),
+            periodStart.toIso8601String().substring(0, 10)
+          ]);
+      if (duplicate.isNotEmpty)
+        throw StateError('يوجد استحقاق مسجل لهذه الفترة.');
+      // سلف معلّقة
+      final pendingAdv =
+          _fix2(await HRTables.getEmployeeAdvancesTotal(txn, employeeId));
+      final applied = _fix2(
+        advanceApplied == null
+            ? (pendingAdv <= 0
+                ? 0
+                : (pendingAdv > preNet ? preNet : pendingAdv))
+            : (advanceApplied < 0
+                ? 0
+                : (advanceApplied > preNet ? preNet : advanceApplied)),
+      );
+      final net = _fix2(preNet - applied);
+
+      final runId = const Uuid().v4();
+
+      // 1) سجل التشغيل
+      try {
+        await txn.insert(
+          table,
+          {
+            'id': runId,
+            'employee_id': employeeId,
+            'period_start': periodStart.toIso8601String(),
+            'period_end': periodEnd.toIso8601String(),
+            'gross': _fix2(gross),
+            'allowances': _fix2(allowances),
+            'deductions':
+                _fix2(deductions + latePenalty + unpaidAbsencePenalty),
+            'advance_applied': applied,
+            'net': net,
+            'amount_paid': 0.0,
+            'status': 'ACCRUED',
+            'accrual_date': _iso(accrualDate),
+            'method': method,
+            'note': note,
+            'attendance_snapshot': attendanceSnapshot,
+            'entitlement_basis': entitlementBasis,
+            'created_at': DateTime.now().toIso8601String(),
+          },
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      } on DatabaseException catch (e) {
+        if (e.isUniqueConstraintError()) {
+          throw StateError('تم إثبات راتب هذا الموظف لنفس الفترة مسبقًا.');
+        }
+        rethrow;
+      }
+
+      final lines = <Map<String, Object?>>[
+        // Dr: Expense for base + allowances + paidHoliday + overtime
         {
-          'account_id': crWithhold,
-          'debit': 0.0,
-          'credit': totalDeductSide,
-          'party_type': 'EMPLOYEE',
-          'party_id': employeeId,
-          'invoice_id': null,
-          'repair_id': null,
-        },
-      // Cr: Payable before advances
-      if (preNet > 0)
-        {
-          'account_id': crPayable,
-          'debit': 0.0,
-          'credit': preNet,
-          'party_type': 'EMPLOYEE',
-          'party_id': employeeId,
-          'invoice_id': null,
-          'repair_id': null,
-        },
-      // Apply advances: Dr 2140 / Cr 1120
-      if (applied > 0)
-        {
-          'account_id': drPayable,
-          'debit': applied,
+          'account_id': drExpense,
+          'debit': totalExpenseSide,
           'credit': 0.0,
           'party_type': 'EMPLOYEE',
           'party_id': employeeId,
           'invoice_id': null,
           'repair_id': null,
         },
-      if (applied > 0)
-        {
-          'account_id': crAdvance,
-          'debit': 0.0,
-          'credit': applied,
-          'party_type': 'EMPLOYEE',
-          'party_id': employeeId,
-          'invoice_id': null,
-          'repair_id': null,
-        },
-    ];
+        // Cr: Withholdings for statutory + lateness + unpaid absence
+        if (totalDeductSide > 0)
+          {
+            'account_id': crWithhold,
+            'debit': 0.0,
+            'credit': totalDeductSide,
+            'party_type': 'EMPLOYEE',
+            'party_id': employeeId,
+            'invoice_id': null,
+            'repair_id': null,
+          },
+        // Cr: Payable before advances
+        if (preNet > 0)
+          {
+            'account_id': crPayable,
+            'debit': 0.0,
+            'credit': preNet,
+            'party_type': 'EMPLOYEE',
+            'party_id': employeeId,
+            'invoice_id': null,
+            'repair_id': null,
+          },
+        // Apply advances: Dr 2140 / Cr 1120
+        if (applied > 0)
+          {
+            'account_id': drPayable,
+            'debit': applied,
+            'credit': 0.0,
+            'party_type': 'EMPLOYEE',
+            'party_id': employeeId,
+            'invoice_id': null,
+            'repair_id': null,
+          },
+        if (applied > 0)
+          {
+            'account_id': crAdvance,
+            'debit': 0.0,
+            'credit': applied,
+            'party_type': 'EMPLOYEE',
+            'party_id': employeeId,
+            'invoice_id': null,
+            'repair_id': null,
+          },
+      ];
 
-    await DBService.postEntryGL(
-      date: accrualDate,
-      source: 'PAYROLL_ACCRUAL',
-      sourceId: runId,
-      note: note ?? 'استحقاق راتب',
-      lines: lines,
-    );
-    // ================================
-    // ربط الاستحقاق بسجل الرواتب (Salary)
-    // ================================
-    final monthKey =
-        '${periodStart.year.toString().padLeft(4, '0')}-${periodStart.month.toString().padLeft(2, '0')}';
+      await AccountingTables.postEntryGLOn(
+        ex: txn,
+        date: accrualDate,
+        source: 'PAYROLL_ACCRUAL',
+        sourceId: runId,
+        note: note ?? 'استحقاق راتب',
+        lines: lines,
+      );
+      // ================================
+      // ربط الاستحقاق بسجل الرواتب (Salary)
+      // ================================
+      final monthKey =
+          '${periodStart.year.toString().padLeft(4, '0')}-${periodStart.month.toString().padLeft(2, '0')}';
 
-    await SalaryDatabaseService.upsertSalary(
-      Salary(
-        id: 'SAL-$employeeId-$monthKey',
-        employeeId: employeeId,
-        month: monthKey,
-        date: DateTime(periodStart.year, periodStart.month, 1),
-        gross: totalExpenseSide,
-        advancesApplied: applied,
-        deductions: totalDeductSide,
-        net: net,
-        status: 'ACCRUED',
-        note: note,
-      ),
-    );
-
-    await PayrollPeriodsService.ensurePeriodRow(
-        periodStart.year, periodStart.month);
-    return runId;
+      await SalaryDatabaseService.upsertSalary(
+        Salary(
+          id: 'SAL-$employeeId-$monthKey',
+          employeeId: employeeId,
+          month: monthKey,
+          date: DateTime(periodStart.year, periodStart.month, 1),
+          gross: totalExpenseSide,
+          advancesApplied: applied,
+          deductions: totalDeductSide,
+          net: net,
+          status: 'ACCRUED',
+          note: note,
+        ),
+        executor: txn,
+      );
+      return runId;
+    });
   }
 
   /// دفع جزئي/كامل حصراً من خلال سند صرف رسمي.
@@ -546,19 +565,21 @@ class PayrollDatabaseService {
       partyName: refreshed.employeeId,
     );
 
-    await db.insert(
-      paymentsTable,
-      {
-        'id': paymentId,
-        'run_id': runId,
-        'amount': _fix2(amount),
-        'date': _iso(date),
-        'method': method,
-        'note': note,
-        'voucher_id': posted.id,
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              paymentsTable,
+              {
+                'id': paymentId,
+                'run_id': runId,
+                'amount': _fix2(amount),
+                'date': _iso(date),
+                'method': method,
+                'note': note,
+                'voucher_id': posted.id,
+              },
+              conflictAlgorithm: ConflictAlgorithm.ignore,
+            ));
 
     await syncPaymentState(runId);
   }
@@ -581,12 +602,14 @@ class PayrollDatabaseService {
     ''', [runId]);
     final paid = _fix2((sumRows.first['paid'] as num?)?.toDouble() ?? 0.0);
     final status = paid + 0.01 >= net ? 'PAID' : 'ACCRUED';
-    await db.update(
-      table,
-      {'amount_paid': paid, 'status': status},
-      where: 'id=?',
-      whereArgs: [runId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              table,
+              {'amount_paid': paid, 'status': status},
+              where: 'id=?',
+              whereArgs: [runId],
+            ));
   }
 
   /// عكس قيد الإثبات فقط. يُمنع إن وُجدت دفعات.
@@ -624,12 +647,14 @@ class PayrollDatabaseService {
       } catch (_) {}
     }
 
-    await db.update(
-      table,
-      {'status': 'REVERSED'},
-      where: 'id=?',
-      whereArgs: [runId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              table,
+              {'status': 'REVERSED'},
+              where: 'id=?',
+              whereArgs: [runId],
+            ));
   }
 
   // ===== Queries =====

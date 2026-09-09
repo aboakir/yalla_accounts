@@ -22,7 +22,7 @@ class _LogoutScreenState extends ConsumerState<LogoutScreen> {
   Future<void> _logout() async {
     await ref.read(authSessionServiceProvider).logout();
     ref.read(currentUserProvider.notifier).state = null;
-    AuthorizationGuard.disableInteractiveEnforcement();
+    AuthorizationGuard.enableInteractiveEnforcement();
 
     if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil(

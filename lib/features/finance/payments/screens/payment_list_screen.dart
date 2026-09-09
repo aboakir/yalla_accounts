@@ -91,7 +91,11 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
     await _load();
   }
 
+  int _loadVersion = 0;
   Future<void> _load() async {
+    if (!mounted) return;
+    final version = ++_loadVersion;
+    final query = _searchCtrl.text.trim().toLowerCase();
     setState(() {
       _loading = true;
       _loadError = null;
@@ -121,7 +125,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
       }
 
       // بحث نصي شامل
-      final q = _searchCtrl.text.trim().toLowerCase();
+      final q = query;
       if (q.isNotEmpty) {
         rows = rows.where((p) {
           final hay = [
@@ -136,12 +140,13 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
         }).toList();
       }
 
+      if (!mounted || version != _loadVersion) return;
       setState(() => _items = rows);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || version != _loadVersion) return;
       setState(() => _loadError = e.toString());
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && version == _loadVersion) setState(() => _loading = false);
     }
   }
 

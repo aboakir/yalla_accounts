@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/employees/services/employee_database_service.dart';
 // 📁 lib/features/employees/services/employee_service.dart
 //
 // EmployeeService — موحّد على DBService (بدون أي بيانات وهمية)
@@ -60,16 +62,11 @@ class EmployeeService {
   // -------- CRUD موظفين --------
   static Future<void> addEmployee(Employee employee) async {
     await ensureTable();
-    final db = await _db;
     final emp = employee.id.isEmpty
         ? employee.copyWith(id: const Uuid().v4())
         : employee;
 
-    await db.insert(
-      'employees',
-      emp.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await EmployeeDatabaseService.insert(emp);
   }
 
   static Future<List<Employee>> getAllEmployees() async {
@@ -90,22 +87,21 @@ class EmployeeService {
 
   static Future<void> updateEmployee(Employee employee) async {
     await ensureTable();
-    final db = await _db;
-    await db.update('employees', employee.toMap(),
-        where: 'id = ?', whereArgs: [employee.id]);
+    await EmployeeDatabaseService.update(employee);
   }
 
   static Future<void> deleteEmployee(String id) async {
     await ensureTable();
-    final db = await _db;
-    await db.delete('employees', where: 'id = ?', whereArgs: [id]);
+    await EmployeeDatabaseService.delete(id);
   }
 
   static Future<void> updateStatus(String employeeId, String newStatus) async {
     await ensureTable();
     final db = await _db;
-    await db.update('employees', {'status': newStatus},
-        where: 'id = ?', whereArgs: [employeeId]);
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update('employees', {'status': newStatus},
+            where: 'id = ?', whereArgs: [employeeId]));
   }
 
   // -------- حضور --------
@@ -130,8 +126,12 @@ class EmployeeService {
       employeeId: employeeId,
       date: date, // ✅ DateTime
       status: isPresent ? 'حضور' : 'غياب',
-      checkIn: checkIn?.toIso8601String(), // ✅ String?
-      checkOut: checkOut?.toIso8601String(), // ✅ String?
+      checkIn: checkIn == null
+          ? null
+          : '${checkIn.hour.toString().padLeft(2, '0')}:${checkIn.minute.toString().padLeft(2, '0')}', // ✅ String?
+      checkOut: checkOut == null
+          ? null
+          : '${checkOut.hour.toString().padLeft(2, '0')}:${checkOut.minute.toString().padLeft(2, '0')}', // ✅ String?
       hoursWorked: hoursWorked ?? 0.0,
       notes: [
         if (isLate) 'تأخير',
@@ -150,29 +150,8 @@ class EmployeeService {
     String? method,
     String? note,
   }) async {
-    await salary_pay_db.SalaryPaymentDatabaseService.ensureTable();
-    final db = await _db;
-
-    await db.insert(
-      'salary_payments',
-      {
-        'id': const Uuid().v4(),
-        'employeeId': employeeId,
-        'totalPaid': amount,
-        'method': method,
-        'paymentDate': payDate.toIso8601String(),
-        'note': note,
-        // باقي الأعمدة (الفترة/البدلات/الاستقطاعات) تظل NULL إن ما تم تزويدها
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-
-    await db.update(
-      'employees',
-      {'last_salary_paid_date': payDate.toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [employeeId],
-    );
+    throw StateError(
+        'صرف الرواتب حصراً من شاشة سند الصرف وربطه باستحقاق راتب.');
   }
 
   static Future<List<Map<String, dynamic>>> getSalaryPayments(

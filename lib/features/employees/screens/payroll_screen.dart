@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
 // 📁 lib/features/employees/screens/payroll_screen.dart
 //
 // PayrollScreen — شاشة إدارة استحقاق وصرف راتب موظف واحد
@@ -155,12 +156,6 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     if (picked != null) setState(() => _accrualDate = picked);
   }
 
-  double _parseAmount(TextEditingController c) {
-    final s = c.text.trim();
-    final x = double.tryParse(s);
-    return x == null ? 0.0 : double.parse(x.toStringAsFixed(2));
-  }
-
   bool _nonNegValidator(String? v) {
     final x = double.tryParse((v ?? '').trim());
     return x != null && x >= 0;
@@ -219,79 +214,14 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
     final remain = (run.net - run.amountPaid);
     if (remain <= 0) return;
 
-    final ctrl = TextEditingController(text: remain.toStringAsFixed(2));
-    String method = 'cash';
-    String? note;
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AdaptiveAlertDialog(
-        title: const Text('إنشاء سند صرف راتب'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('المتبقي: ${MoneyFormatter.format(remain)}'),
-            const SizedBox(height: 12),
-            TextField(
-              inputFormatters: const [YallaDigitNormalizer()],
-              controller: ctrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(labelText: 'المبلغ'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: method,
-              items: const [
-                DropdownMenuItem(value: 'cash', child: Text('نقدي')),
-                DropdownMenuItem(value: 'bank', child: Text('بنك')),
-                DropdownMenuItem(value: 'transfer', child: Text('تحويل')),
-              ],
-              onChanged: (v) => method = v ?? 'cash',
-              decoration: InputDecoration(labelText: 'طريقة الدفع'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              inputFormatters: const [YallaDigitNormalizer()],
-              decoration: InputDecoration(labelText: 'ملاحظة (اختياري)'),
-              onChanged: (v) => note = v.trim().isEmpty ? null : v.trim(),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('إنشاء سند صرف'),
-          ),
-        ],
-      ),
-    );
-
-    if (ok == true) {
-      final amount = double.tryParse(ctrl.text.trim());
-      if (amount == null || amount <= 0) {
-        _toast('المبلغ غير صالح');
-        return;
-      }
-      try {
-        await ref.read(payrollProvider.notifier).pay(
-              employeeId: run.employeeId,
-              runId: run.id,
-              amount: double.parse(amount.toStringAsFixed(2)),
-              date: DateTime.now(),
-              method: method,
-              note: note,
-            );
-        await ref.read(payrollProvider.notifier).load(widget.employee.id);
-        _toast('تم إنشاء سند صرف راتب وربطه بالاستحقاق');
-      } catch (e) {
-        _toast('فشل الدفع: $e');
-      }
-    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => PaymentVoucherScreen(
+            employeeId: run.employeeId,
+            employeeName: widget.employee.fullName,
+            payrollRun: run,
+            presetAmount: remain)));
+    if (mounted)
+      await ref.read(payrollProvider.notifier).load(widget.employee.id);
   }
 
   void _toast(String msg) {

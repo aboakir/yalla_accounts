@@ -54,6 +54,7 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
   // ===== الحالة (تبقى عربية) =====
   static const List<String> _statusOptions = ['نشط', 'مجمّد', 'موقوف'];
   String status = 'نشط';
+  late EmployeeContractType contractType;
 
   // ===== طريقة الدفع — كود موحّد + تسمية عربية =====
   static const Map<String, String> _payMethodLabels = {
@@ -101,7 +102,8 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
     jobTitleController = TextEditingController(text: e.jobTitle);
     phoneController = TextEditingController(text: e.phone);
     emailController = TextEditingController(text: e.email);
-    salaryController = TextEditingController(text: e.baseSalary.toString());
+    salaryController =
+        TextEditingController(text: e.baseSalaryForType.toString());
     advanceController = TextEditingController(text: e.advances.toString());
     workDaysController =
         TextEditingController(text: e.workDaysPerWeek.toString());
@@ -110,7 +112,14 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
     notesController = TextEditingController(text: e.notes);
     hireDate = e.hireDate;
 
-    status = _statusOptions.contains(e.status) ? e.status : 'نشط';
+    contractType = e.contractType;
+    status = e.status == 'inactive'
+        ? 'مجمّد'
+        : e.status == 'terminated'
+            ? 'موقوف'
+            : _statusOptions.contains(e.status)
+                ? e.status
+                : 'نشط';
     paymentMethod = _normalizeMethodOrNull(e.paymentMethod) ?? 'cash';
   }
 
@@ -144,6 +153,7 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
   int _toInt(String s) => int.tryParse(s.trim()) ?? 0;
 
   Future<void> _submitForm() async {
+    if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
 
@@ -155,11 +165,24 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
       phone: phoneController.text.trim(),
       email: emailController.text.trim(),
       // الراتب الأساسي غير إجباري: إن تُرك فارغًا نعيد قيمته الحالية
-      baseSalary: salaryController.text.trim().isEmpty
-          ? widget.employee.baseSalary
-          : _toDouble(salaryController.text),
-      advances: _toDouble(advanceController.text),
-      status: status, // عربي كما هو
+      contractType: contractType,
+      baseSalary: contractType == EmployeeContractType.monthly
+          ? _toDouble(salaryController.text)
+          : widget.employee.baseSalary,
+      dailyRate: contractType == EmployeeContractType.daily
+          ? _toDouble(salaryController.text)
+          : widget.employee.dailyRate,
+      weeklyRate: contractType == EmployeeContractType.weekly
+          ? _toDouble(salaryController.text)
+          : widget.employee.weeklyRate,
+      contractAmount: contractType == EmployeeContractType.contract
+          ? _toDouble(salaryController.text)
+          : widget.employee.contractAmount,
+      status: status == 'نشط'
+          ? 'active'
+          : status == 'مجمّد'
+              ? 'inactive'
+              : 'terminated', // عربي كما هو
       paymentMethod: paymentMethod, // كود موحّد
       workDaysPerWeek: _toInt(workDaysController.text),
       hoursPerDay: _toInt(dailyHoursController.text),
@@ -376,18 +399,37 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
                                     requiredField: false,
                                     isEmail: true,
                                   ),
-                                  // غير إجباري في شاشة التعديل
+                                  DropdownButtonFormField<EmployeeContractType>(
+                                      initialValue: contractType,
+                                      decoration: const InputDecoration(
+                                          labelText: 'نوع الراتب'),
+                                      items: const [
+                                        DropdownMenuItem(
+                                            value: EmployeeContractType.monthly,
+                                            child: Text('شهري')),
+                                        DropdownMenuItem(
+                                            value: EmployeeContractType.weekly,
+                                            child: Text('أسبوعي')),
+                                        DropdownMenuItem(
+                                            value: EmployeeContractType.daily,
+                                            child: Text('مياومة')),
+                                        DropdownMenuItem(
+                                            value:
+                                                EmployeeContractType.contract,
+                                            child: Text('مقاولة'))
+                                      ],
+                                      onChanged: (v) {
+                                        if (v != null)
+                                          setState(() => contractType = v);
+                                      }),
                                   _buildNumberField(
                                     salaryController,
                                     'الراتب الأساسي',
                                     requiredField: false,
                                   ),
                                   // سلفة حالية — تبقى مطلوبة رقمًا صالحًا
-                                  _buildNumberField(
-                                    advanceController,
-                                    'السلفة الحالية',
-                                    requiredField: true,
-                                  ),
+                                  const Text(
+                                      'صرف السلف والمكافآت والراتب من شاشة سند الصرف فقط.'),
                                 ],
                               ),
                             ),

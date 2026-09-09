@@ -80,6 +80,7 @@ class RepairFilterBar extends StatelessWidget {
                 SizedBox(
                   width: fieldWidth,
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedOrAll(
                       selectedPaymentStatus,
                       const ['الكل', ...kPaymentStatuses],
@@ -105,6 +106,7 @@ class RepairFilterBar extends StatelessWidget {
                 SizedBox(
                   width: fieldWidth,
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedOrAll(
                       selectedVehicleStatus,
                       const ['الكل', ...kVehicleStatuses],
@@ -130,6 +132,7 @@ class RepairFilterBar extends StatelessWidget {
                 SizedBox(
                   width: fieldWidth,
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedOrAll(
                       selectedType,
                       const ['الكل', 'أفراد', 'شركة تأمين'],
@@ -155,6 +158,7 @@ class RepairFilterBar extends StatelessWidget {
                 SizedBox(
                   width: fieldWidth,
                   child: DropdownButtonFormField<RepairArchiveScope>(
+                    isExpanded: true,
                     value: selectedArchiveScope,
                     decoration: _decoration(
                       context,

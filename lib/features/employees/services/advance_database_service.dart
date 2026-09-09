@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // 📁 lib/features/employees/services/advance_database_service.dart
 //
 // AdvanceDatabaseService — Employee Advances / Bonuses / Repayments → GL (DB v30)
@@ -179,17 +180,19 @@ class AdvanceDatabaseService {
     final normalizedMethod = _normalizeMethod(method ?? adv.method);
 
     // 1) كتابة السجل
-    await db.insert(
-      _table,
-      {
-        ...adv.toMap(),
-        'type': t,
-        'date': iso,
-        'method': normalizedMethod,
-        'gl_entry_id': null,
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              _table,
+              {
+                ...adv.toMap(),
+                'type': t,
+                'date': iso,
+                'method': normalizedMethod,
+                'gl_entry_id': null,
+              },
+              conflictAlgorithm: ConflictAlgorithm.abort,
+            ));
 // 2) إنشاء سند صرف رسمي للسلفة / المكافأة
     final voucher = VoucherPayment(
       id: '',
@@ -212,12 +215,14 @@ class AdvanceDatabaseService {
     );
 
 // ربط gl_entry_id مع سجل السلفة
-    await db.update(
-      _table,
-      {'gl_entry_id': savedVoucher.glEntryId},
-      where: 'id = ?',
-      whereArgs: [adv.id],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              _table,
+              {'gl_entry_id': savedVoucher.glEntryId},
+              where: 'id = ?',
+              whereArgs: [adv.id],
+            ));
 
     return id;
   }
@@ -249,7 +254,7 @@ class AdvanceDatabaseService {
     final iso = _isoString(advance.date);
 
     // 1) اعكس القديم وحدّث الصف
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       final old = await txn.query(
         _table,
         where: 'id=?',
@@ -319,12 +324,14 @@ class AdvanceDatabaseService {
     }
 
     // 3) أربط gl_entry_id
-    await db.update(
-      _table,
-      {'gl_entry_id': entryId},
-      where: 'id=?',
-      whereArgs: [advance.id],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              _table,
+              {'gl_entry_id': entryId},
+              where: 'id=?',
+              whereArgs: [advance.id],
+            ));
   }
 
   /// عكس القيد فقط بدون حذف السجل. يبقي السجل ويصفر gl_entry_id.
@@ -349,12 +356,14 @@ class AdvanceDatabaseService {
       await DBService.reverseEntryGL(entryId, note: 'Reverse EMP_ADV $id');
     } catch (_) {}
 
-    await db.update(
-      _table,
-      {'gl_entry_id': null},
-      where: 'id=?',
-      whereArgs: [id],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              _table,
+              {'gl_entry_id': null},
+              where: 'id=?',
+              whereArgs: [id],
+            ));
   }
 
   /// حذف سجل + عكس قيده إن وجد.
@@ -362,7 +371,7 @@ class AdvanceDatabaseService {
     await ensureTable();
     final db = await DBService.database;
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       final head = await txn.query(
         'gl_entries',
         where: 'source=? AND source_id=?',
@@ -386,7 +395,7 @@ class AdvanceDatabaseService {
     await ensureTable();
     final db = await DBService.database;
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       final rows = await txn.query(
         _table,
         columns: ['id'],
@@ -437,20 +446,22 @@ class AdvanceDatabaseService {
     final iso = _isoString(date);
     final normalizedMethod = _normalizeMethod(method);
 
-    await db.insert(
-      _table,
-      {
-        'id': id,
-        'employee_id': employeeId,
-        'amount': _fix2(amount),
-        'type': 'repayment',
-        'date': iso,
-        'method': normalizedMethod,
-        'note': note,
-        'gl_entry_id': null,
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              _table,
+              {
+                'id': id,
+                'employee_id': employeeId,
+                'amount': _fix2(amount),
+                'type': 'repayment',
+                'date': iso,
+                'method': normalizedMethod,
+                'note': note,
+                'gl_entry_id': null,
+              },
+              conflictAlgorithm: ConflictAlgorithm.abort,
+            ));
 
     // 2) GL
     final drCashBank =
@@ -487,12 +498,14 @@ class AdvanceDatabaseService {
     }
 
     // 3) اربط gl_entry_id
-    await db.update(
-      _table,
-      {'gl_entry_id': glId},
-      where: 'id=?',
-      whereArgs: [id],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              _table,
+              {'gl_entry_id': glId},
+              where: 'id=?',
+              whereArgs: [id],
+            ));
 
     return id;
   }

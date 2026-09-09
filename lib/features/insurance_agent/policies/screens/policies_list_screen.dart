@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // 📁 lib/features/insurance_agent/policies/screens/policies_list_screen.dart
 //
 // PoliciesListScreen — UPDATED (Hamburger Sidebar Overlay for ALL screens)
@@ -322,8 +323,10 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
       if (r.containsKey('policy_id')) whereCol = 'policy_id';
       if (r.containsKey('uuid')) whereCol = 'uuid';
 
-      await db.delete('insurance_policies',
-          where: '$whereCol = ?', whereArgs: [id]);
+      await SyncFoundationService.writeOn(
+          db,
+          (syncTxn) => syncTxn.delete('insurance_policies',
+              where: '$whereCol = ?', whereArgs: [id]));
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

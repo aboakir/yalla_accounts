@@ -111,7 +111,7 @@ class AttendancePolicy {
       shiftStart: s.workStart ?? '09:00',
       shiftEnd: s.workEnd ?? '17:00',
       breakMinutes: s.breakMinutes ?? 0,
-      weekWorkdays: s.weekWorkdays,
+      weekWorkdays: s.weekWorkdays ?? '1,2,3,4,5,6',
     );
   }
 }
@@ -213,10 +213,35 @@ class AttendanceDatabaseService {
 
   // ───────────── CRUD ─────────────
 
+  static Future<void> _validateRecord(
+      DatabaseExecutor db, Attendance record) async {
+    final day = record.date.toIso8601String().substring(0, 10);
+    final duplicates = await db.rawQuery(
+        'SELECT id FROM attendance WHERE employeeId=? AND substr(date,1,10)=? AND id<>? LIMIT 1',
+        [record.employeeId, day, record.id]);
+    if (duplicates.isNotEmpty)
+      throw StateError(
+          'يوجد سجل حضور لهذا الموظف في اليوم نفسه؛ عدّل السجل الموجود.');
+    final employee = await db.query('employees',
+        where: 'id=?', whereArgs: [record.employeeId], limit: 1);
+    if (employee.isEmpty) throw StateError('الموظف غير موجود.');
+    if (record.hoursWorked != null &&
+        (!record.hoursWorked!.isFinite ||
+            record.hoursWorked! < 0 ||
+            record.hoursWorked! > 24)) {
+      throw ArgumentError('ساعات الحضور يجب أن تكون بين صفر و24.');
+    }
+    for (final time in [record.checkIn, record.checkOut]) {
+      if (time != null && time.isNotEmpty && _parseHmmToMin(time) == null)
+        throw ArgumentError('وقت الحضور أو الانصراف غير صالح.');
+    }
+  }
+
   static Future<void> insertAttendance(Attendance record) async {
     final db = await _db;
     await _ensureSchema(db);
     await db.transaction((txn) async {
+      await _validateRecord(txn, record);
       await txn.insert(
         _table,
         record.toMap(),
@@ -243,6 +268,7 @@ class AttendanceDatabaseService {
     final db = await _db;
     await _ensureSchema(db);
     await db.transaction((txn) async {
+      await _validateRecord(txn, record);
       final beforeRows = await txn.query(
         _table,
         where: 'id = ?',
@@ -366,6 +392,9 @@ class AttendanceDatabaseService {
   /// يحوّل 'HH:mm' إلى دقائق منذ منتصف الليل
   static int? _parseHmmToMin(String? hhmm) {
     if (hhmm == null || hhmm.trim().isEmpty) return null;
+    final legacy = DateTime.tryParse(hhmm);
+    if (legacy != null)
+      return legacy.toLocal().hour * 60 + legacy.toLocal().minute;
     final parts = hhmm.trim().split(':');
     if (parts.length < 2) return null;
     final h = int.tryParse(parts[0]);
@@ -397,22 +426,6 @@ class AttendanceDatabaseService {
     return _round2(diffMin / 60.0);
   }
 
-  static int _lateMinutesFrom(String? checkIn, DateTime shiftStart) {
-    final inMin = _parseHmmToMin(checkIn);
-    if (inMin == null) return 0;
-    final baseMin = shiftStart.hour * 60 + shiftStart.minute;
-    final d = inMin - baseMin;
-    return d > 0 ? d : 0;
-  }
-
-  static int _earlyExitMinutesFrom(String? checkOut, DateTime shiftEnd) {
-    final outMin = _parseHmmToMin(checkOut);
-    if (outMin == null) return 0;
-    final baseMin = shiftEnd.hour * 60 + shiftEnd.minute;
-    final d = baseMin - outMin;
-    return d > 0 ? d : 0;
-  }
-
   static Set<int> _configuredWeekdays(AttendancePolicy policy) {
     final raw = (policy.weekWorkdays ?? '').trim();
     if (raw.isEmpty) return const {1, 2, 3, 4, 5, 6};
@@ -425,7 +438,7 @@ class AttendanceDatabaseService {
     return days.isEmpty ? const {1, 2, 3, 4, 5, 6} : days;
   }
 
-  static int _scheduledWorkDays(
+  static int scheduledWorkDays(
     DateTime from,
     DateTime to,
     AttendancePolicy policy,
@@ -471,6 +484,14 @@ class AttendanceDatabaseService {
       to: to,
     );
 
+    if (to.isBefore(from)) throw ArgumentError('نهاية الفترة تسبق بدايتها.');
+    final dates = <String>{};
+    for (final row in rows) {
+      if (!dates.add(row.date.toIso8601String().substring(0, 10))) {
+        throw StateError(
+            'توجد سجلات حضور مكررة؛ راجع الحضور قبل احتساب الراتب.');
+      }
+    }
     int presentDays = 0;
     int paidLeaveDays = 0;
     int unpaidLeaveDays = 0;
@@ -495,6 +516,20 @@ class AttendanceDatabaseService {
       }
 
       final st = AttendanceStatus.normalize(r.status);
+      if (!_configuredWeekdays(policy).contains(d0.weekday)) {
+        if (st == AttendanceStatus.present) {
+          final hours = _workedHoursFrom(r);
+          workedHours += hours;
+          overtimeHours += math.max(0.0, hours - policy.breakMinutes / 60.0);
+        }
+        continue;
+      }
+      if (st == AttendanceStatus.present &&
+          r.checkIn != null &&
+          r.checkOut == null &&
+          (r.hoursWorked ?? 0) <= 0) {
+        throw StateError('يوجد حضور بلا انصراف؛ أكمل السجل قبل احتساب الراتب.');
+      }
 
       if (st == AttendanceStatus.present) {
         presentDays += 1;
@@ -507,9 +542,20 @@ class AttendanceDatabaseService {
         final whAfterBreak =
             math.max(0.0, wh - (policy.breakMinutes.toDouble() / 60.0));
 
-        // تأخير
-        lateMinutes += _lateMinutesFrom(r.checkIn, shiftStartDT);
-        earlyExitMinutes += _earlyExitMinutesFrom(r.checkOut, shiftEndDT);
+        final startMinute = shiftStartDT.hour * 60 + shiftStartDT.minute;
+        final endMinute =
+            startMinute + shiftEndDT.difference(shiftStartDT).inMinutes;
+        var inMinute = _parseHmmToMin(r.checkIn);
+        var outMinute = _parseHmmToMin(r.checkOut);
+        if (endMinute > 1440 &&
+            inMinute != null &&
+            inMinute < startMinute - 720) inMinute += 1440;
+        if (outMinute != null && inMinute != null && outMinute < inMinute)
+          outMinute += 1440;
+        if (inMinute != null)
+          lateMinutes += math.max(0, inMinute - startMinute);
+        if (outMinute != null)
+          earlyExitMinutes += math.max(0, endMinute - outMinute);
 
         // احتساب الساعات المنتظمة مقابل الإضافي
         final base = policy.hoursPerDay;
@@ -536,7 +582,8 @@ class AttendanceDatabaseService {
       }
     }
 
-    final scheduledWorkDays = _scheduledWorkDays(from, to, policy);
+    final scheduledWorkDays =
+        AttendanceDatabaseService.scheduledWorkDays(from, to, policy);
     final coveredScheduledDates = rows
         .map((r) => DateTime(r.date.year, r.date.month, r.date.day))
         .where((d) => _configuredWeekdays(policy).contains(d.weekday))

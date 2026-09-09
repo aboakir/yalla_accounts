@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/finance/reports/screens/balance_sheet_screen.dart
 //
 // الميزانية العمومية — Balance Sheet (GL v29)
@@ -91,6 +92,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _from = d);
       _load();
@@ -106,6 +108,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _to = d);
       _load();
@@ -135,6 +138,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
 
   // ─────────────── Load ───────────────
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -147,6 +151,9 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
     });
 
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
 
       // نحسب حدود التاريخ وفق الوضع المختار
@@ -174,12 +181,12 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
       final args = <Object?>[];
 
       if (_periodMode) {
-        joinConds.add('e.date >= ?');
-        joinConds.add('e.date <= ?');
+        joinConds.add('substr(e.date,1,10) >= substr(?,1,10)');
+        joinConds.add('substr(e.date,1,10) <= substr(?,1,10)');
         args.add(fromIso!.toIso8601String());
         args.add(toIso.toIso8601String());
       } else {
-        joinConds.add('e.date <= ?');
+        joinConds.add('substr(e.date,1,10) <= substr(?,1,10)');
         args.add(toIso.toIso8601String());
       }
       final joinDateSql =
@@ -194,8 +201,8 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
           IFNULL(a.code,'')       AS code,
           a.name                  AS name,
           a.type                  AS type,   -- ASSET / LIABILITY / EQUITY / REVENUE / EXPENSE
-          IFNULL(SUM(l.debit),0)  AS sdebit,
-          IFNULL(SUM(l.credit),0) AS scredit
+          IFNULL(SUM(CASE WHEN e.id IS NOT NULL THEN l.debit ELSE 0 END),0)  AS sdebit,
+          IFNULL(SUM(CASE WHEN e.id IS NOT NULL THEN l.credit ELSE 0 END),0) AS scredit
         FROM accounts a
         LEFT JOIN gl_lines   l ON l.account_id = a.id
         LEFT JOIN gl_entries e ON e.id = l.entry_id $joinDateSql
@@ -262,8 +269,8 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
       // === 2) أرباح الفترة (REVENUE/EXPENSE) ===
       final sqlProfit = '''
         SELECT
-          SUM(CASE WHEN a.type='REVENUE' THEN (IFNULL(l.credit,0) - IFNULL(l.debit,0)) ELSE 0 END) AS rev_net,
-          SUM(CASE WHEN a.type='EXPENSE' THEN (IFNULL(l.debit,0) - IFNULL(l.credit,0)) ELSE 0 END) AS exp_net
+          SUM(CASE WHEN e.id IS NOT NULL AND a.type='REVENUE' THEN (IFNULL(l.credit,0) - IFNULL(l.debit,0)) ELSE 0 END) AS rev_net,
+          SUM(CASE WHEN e.id IS NOT NULL AND a.type='EXPENSE' THEN (IFNULL(l.debit,0) - IFNULL(l.credit,0)) ELSE 0 END) AS exp_net
         FROM accounts a
         LEFT JOIN gl_lines   l ON l.account_id = a.id
         LEFT JOIN gl_entries e ON e.id = l.entry_id $joinDateSql
@@ -323,7 +330,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
   // ─────────────── UI ───────────────
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isMobile = !Responsive.isDesktop(context);
     final diff = (_sumAssets - (_sumLiab + _sumEquity)).abs();
     final balanced = diff < 0.005;
 
@@ -339,7 +346,10 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
           )
         ],
       ),
-      child: AdaptiveRow(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (isMobile)
             IconButton(
@@ -351,9 +361,18 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
             style: TextStyle(
                 color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          const Spacer(),
           AdaptiveRow(
             children: [
+              FinancialPeriodFilter(
+                  from: _from,
+                  to: _to,
+                  onChanged: (range) {
+                    setState(() {
+                      _from = range.start;
+                      _to = range.end;
+                    });
+                    _load();
+                  }),
               const Text('As-Of', style: TextStyle(color: Colors.white)),
               Switch(
                 value: _periodMode,
@@ -477,12 +496,12 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
             const YallaSidebar(currentRoute: '/reports/balance-sheet'),
           Expanded(
             child: SafeArea(
-              child: Column(
-                children: [
-                  header,
-                  totals,
-                  Expanded(child: body),
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerScrolled) => [
+                  SliverToBoxAdapter(child: header),
+                  SliverToBoxAdapter(child: totals),
                 ],
+                body: body,
               ),
             ),
           ),

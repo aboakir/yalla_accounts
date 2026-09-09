@@ -137,7 +137,9 @@ class AdaptiveRow extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
             runSpacing: 8,
-            children: children,
+            children: children
+                .where((child) => child is! Spacer)
+                .toList(growable: false),
           );
         }
 

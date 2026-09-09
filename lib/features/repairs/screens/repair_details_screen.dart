@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'dart:ui' as ui;
 // 📁 lib/features/repairs/screens/repair_details_screen.dart
 // - حالة التأمين + حالة المركبة جنب بعض داخل البطاقة اليسرى.
@@ -68,7 +69,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     _repair = widget.repair;
     _loadRepairDetails();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       await _reloadRepair();
+      if (!mounted) return;
       final svc = await RepairsService.instance();
       await svc.autoSelectCoverAndSave(repairId: _repair.id);
       await _reloadRepair();
@@ -186,8 +189,10 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         throw 'لم يُعثر على عمود مناسب (${candidates.join(", ")}) في جدول repairs';
       }
       final db = await DBService.database;
-      await db.update('repairs', {col: value},
-          where: 'id = ?', whereArgs: [_repair.id]);
+      await SyncFoundationService.writeOn(
+          db,
+          (txn) => txn.update('repairs', {col: value},
+              where: 'id = ?', whereArgs: [_repair.id]));
       await _reloadRepair();
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -228,6 +233,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
   // ===== GL helpers =====
   Future<void> _refreshInvoiceGl() async {
+    if (!mounted) return;
     final invId = _repair.invoiceId;
     if (invId == null || invId.isEmpty) {
       setState(() => _invoiceGlEntryId = null);
@@ -244,11 +250,13 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         ''',
         [invId],
       );
+      if (!mounted) return;
       setState(() {
         _invoiceGlEntryId =
             row.isNotEmpty ? int.tryParse('${row.first['id']}') : null;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _invoiceGlEntryId = null);
     }
   }

@@ -37,8 +37,11 @@ class SupplierNotifier extends StateNotifier<AsyncValue<List<Supplier>>> {
   Future<void> _load() async {
     try {
       final list = await SupplierService.getAllSuppliers();
+      if (!mounted) return;
       state = AsyncValue.data(list);
+      ref.invalidate(suppliersProvider);
     } catch (e, st) {
+      if (!mounted) return;
       state = AsyncValue.error(e, st);
     }
   }

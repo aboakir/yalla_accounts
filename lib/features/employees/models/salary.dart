@@ -18,6 +18,7 @@ class Salary {
   final double deductions; // خصومات أخرى
   final double net; // الصافي
 
+  final double? amountPaid;
   final String status; // 'approved' | 'paid' | 'void'
   final String? note;
   final int? glEntryIdApproval; // قيد الاعتماد
@@ -39,6 +40,7 @@ class Salary {
     required this.deductions,
     required this.net,
     required this.status,
+    this.amountPaid,
     this.note,
     this.glEntryIdApproval,
     this.glEntryIdPayment,
@@ -52,8 +54,8 @@ class Salary {
   double get base => gross;
   double get advance => advancesApplied;
   double get total => net;
-  double get paid => status == 'paid' ? net : 0.0;
-  double get due => status == 'paid' ? 0.0 : net;
+  double get paid => amountPaid ?? (status.toLowerCase() == 'paid' ? net : 0.0);
+  double get due => (net - paid).clamp(0.0, double.infinity);
 
   // ===== Utils =====
   static double _fix2(num x) => double.parse(x.toStringAsFixed(2));
@@ -74,6 +76,7 @@ class Salary {
     double? deductions,
     double? net,
     String? status,
+    double? amountPaid,
     String? note,
     int? glEntryIdApproval,
     int? glEntryIdPayment,
@@ -92,6 +95,7 @@ class Salary {
       deductions: deductions ?? this.deductions,
       net: net ?? this.net,
       status: status ?? this.status,
+      amountPaid: amountPaid ?? this.amountPaid,
       note: note ?? this.note,
       glEntryIdApproval: glEntryIdApproval ?? this.glEntryIdApproval,
       glEntryIdPayment: glEntryIdPayment ?? this.glEntryIdPayment,
@@ -113,6 +117,7 @@ class Salary {
       'deductions': _fix2(deductions),
       'net': _fix2(net),
       'status': status,
+      'amount_paid': paid,
       'note': note,
       'gl_entry_id_approval': glEntryIdApproval,
       'gl_entry_id_payment': glEntryIdPayment,
@@ -186,6 +191,9 @@ class Salary {
       advancesApplied: advancesApplied,
       deductions: rd('deductions'),
       net: net,
+      amountPaid: m['amount_paid'] != null
+          ? rd('amount_paid')
+          : (m['paid'] != null ? rd('paid') : null),
       status: rs('status').isEmpty ? 'approved' : rs('status'),
       note: m['note']?.toString(),
       glEntryIdApproval: glApproval,

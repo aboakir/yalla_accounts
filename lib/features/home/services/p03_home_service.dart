@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/finance/services/financial_overview_service.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/features/settings/services/commercial_settings_service.dart';
@@ -68,9 +69,14 @@ class P03HomeSnapshot {
 class P03HomeService {
   P03HomeService._();
 
-  static Future<P03HomeSnapshot> load() async {
+  static Future<P03HomeSnapshot> load({DateTime? from, DateTime? to}) async {
     final db = await DBService.database;
-    final today = _dateOnly(DateTime.now());
+    final now = DateTime.now();
+    final today = _dateOnly(now);
+    final monthStart = _dateOnly(from ?? DateTime(now.year, now.month, 1));
+    final periodEnd = to ?? now;
+    final nextMonthStart =
+        _dateOnly(DateTime(periodEnd.year, periodEnd.month, periodEnd.day + 1));
 
     var workshopName = 'ورشتي';
     var currencySymbol = MoneyFormatter.symbol;
@@ -91,41 +97,41 @@ class P03HomeService {
       // Currency fallback is presentation-only; no financial value is changed.
     }
 
-    final repairsTodayRows = await _safeRawQuery(
+    // The Home card is a current-calendar-month summary. The snapshot keeps
+    // its legacy `...Today` property names for source compatibility with the
+    // existing phone dashboard; the values below are month-scoped.
+    final repairsCurrentMonthRows = await _safeRawQuery(
       db,
       '''
         SELECT COUNT(*) AS c
         FROM repairs
-        WHERE DATE(receivedDate) = DATE(?)
+        WHERE DATE(receivedDate) >= DATE(?)
+          AND DATE(receivedDate) < DATE(?)
       ''',
-      [today],
+      [monthStart, nextMonthStart],
     );
-    final repairsReceivedToday = _intValue(repairsTodayRows, 'c');
+    final repairsReceivedCurrentMonth = _intValue(repairsCurrentMonthRows, 'c');
 
-    final receiptRows = await _safeRawQuery(
+    final flows = await FinancialOverviewService.cashFlowsOn(db,
+        from: from ?? DateTime(now.year, now.month, 1), to: periodEnd);
+    final receiptsCurrentMonth = flows.$1;
+    final paymentsCurrentMonth = flows.$2;
+
+    final dueCurrentMonthRows = await _safeRawQuery(
       db,
       '''
-        SELECT COALESCE(SUM(amount), 0) AS total
-        FROM payments
-        WHERE DATE(date) = DATE(?)
-          AND COALESCE(isIncome, 1) = 1
+        SELECT COUNT(*) AS c
+        FROM cheques
+        WHERE LOWER(COALESCE(status, 'pending')) IN ('pending','deposited')
+          AND DATE(COALESCE(NULLIF(due_date,''), NULLIF(date,''))) >= DATE(?)
+          AND DATE(COALESCE(NULLIF(due_date,''), NULLIF(date,''))) < DATE(?)
       ''',
-      [today],
+      [monthStart, nextMonthStart],
     );
-    final receiptsToday = _doubleValue(receiptRows, 'total');
+    final chequesDueCurrentMonth = _intValue(dueCurrentMonthRows, 'c');
 
-    final paymentRows = await _safeRawQuery(
-      db,
-      '''
-        SELECT COALESCE(SUM(amount), 0) AS total
-        FROM payments
-        WHERE DATE(date) = DATE(?)
-          AND COALESCE(isIncome, 1) = 0
-      ''',
-      [today],
-    );
-    final paymentsToday = _doubleValue(paymentRows, 'total');
-
+    // Attention remains day-sensitive: only cheques actually due today should
+    // contribute to the notification badge and the "needs attention" list.
     final dueTodayRows = await _safeRawQuery(
       db,
       '''
@@ -136,7 +142,7 @@ class P03HomeService {
       ''',
       [today],
     );
-    final chequesDueToday = _intValue(dueTodayRows, 'c');
+    final chequesDueTodayForAttention = _intValue(dueTodayRows, 'c');
 
     final overdueChequeCountRows = await _safeRawQuery(
       db,
@@ -325,11 +331,12 @@ class P03HomeService {
     return P03HomeSnapshot(
       workshopName: workshopName,
       currencySymbol: currencySymbol,
-      repairsReceivedToday: repairsReceivedToday,
-      receiptsToday: receiptsToday,
-      paymentsToday: paymentsToday,
-      chequesDueToday: chequesDueToday,
-      attentionCount: overdueChequeCount + chequesDueToday + staleRepairCount,
+      repairsReceivedToday: repairsReceivedCurrentMonth,
+      receiptsToday: receiptsCurrentMonth,
+      paymentsToday: paymentsCurrentMonth,
+      chequesDueToday: chequesDueCurrentMonth,
+      attentionCount:
+          overdueChequeCount + chequesDueTodayForAttention + staleRepairCount,
       attention: List<P03AttentionItem>.unmodifiable(attention),
       recentRepairs: List<P03RecentRepair>.unmodifiable(recentRepairs),
     );
@@ -353,11 +360,6 @@ class P03HomeService {
     final value = rows.first[key];
     if (value is num) return value.toInt();
     return int.tryParse('$value') ?? 0;
-  }
-
-  static double _doubleValue(List<Map<String, Object?>> rows, String key) {
-    if (rows.isEmpty) return 0;
-    return _asDouble(rows.first[key]);
   }
 
   static double _asDouble(Object? value) {

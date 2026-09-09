@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/settings/providers/workshop_settings_provider.dart';
 // 📁 lib/core/widgets/yalla_appbar.dart
 //
 // YallaAppBar — نسخة ثابتة 100% بدون أي أخطاء Assets
@@ -60,7 +61,7 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
     if (path == null || path.trim().isEmpty) return null;
 
     // إذا كان مسار جهاز Windows
-    if (path.contains(':')) {
+    if (!path.startsWith('assets/')) {
       final f = File(path);
       if (f.existsSync()) return FileImage(f);
     }
@@ -102,7 +103,12 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resolvedImage = _resolveLogo(logoPath);
+    final identity = ref.watch(workshopSettingsProvider).valueOrNull;
+    final resolvedImage =
+        _resolveLogo(identity?.logoPath) ?? _resolveLogo(logoPath);
+    final displayName = (identity?.workshopName?.trim().isNotEmpty ?? false)
+        ? identity!.workshopName!
+        : workshopName;
 
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
           fontSize: 16,
@@ -133,6 +139,8 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
                   : ClipOval(
                       child: Image(
                         image: resolvedImage,
+                        errorBuilder: (_, __, ___) =>
+                            const Icon(Icons.store, color: AppColors.primary),
                         fit: BoxFit.cover,
                         width: 40,
                         height: 40,
@@ -144,7 +152,7 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
 
           Expanded(
             child: Text(
-              'أهلاً بعودتك، $workshopName',
+              'أهلاً بعودتك، $displayName',
               style: titleStyle,
             ),
           ),

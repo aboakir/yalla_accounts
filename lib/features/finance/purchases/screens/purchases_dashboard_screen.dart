@@ -50,7 +50,7 @@ class _PurchasesDashboardScreenState
   @override
   void initState() {
     super.initState();
-    ref.listen(purchaseProvider, (_, __) {
+    ref.listenManual(purchaseProvider, (_, __) {
       _recalcFromProvider();
       if (mounted) setState(() {});
     });
@@ -314,7 +314,7 @@ class _KpiCard extends StatelessWidget {
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
-          height: 120,
+          constraints: const BoxConstraints(minHeight: 120),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),

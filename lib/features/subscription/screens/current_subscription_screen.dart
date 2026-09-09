@@ -1,94 +1,111 @@
 import 'package:flutter/material.dart';
-
-import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
-import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
+import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
+import 'package:yalla_accounts/core/licensing/lifecycle/subscription_access_policy.dart';
 
 class CurrentSubscriptionScreen extends StatefulWidget {
-  const CurrentSubscriptionScreen({super.key});
-
+  const CurrentSubscriptionScreen({super.key, this.load});
+  final Future<LicenseRuntimeDecision> Function()? load;
   @override
   State<CurrentSubscriptionScreen> createState() =>
       _CurrentSubscriptionScreenState();
 }
 
 class _CurrentSubscriptionScreenState extends State<CurrentSubscriptionScreen> {
-  VerifiedLicense? _license;
-  bool _isLoading = true;
-
+  late Future<LicenseRuntimeDecision> _decision;
   @override
   void initState() {
     super.initState();
-    _load();
+    _reload();
   }
 
-  Future<void> _load() async {
-    final license = await ActivationStateRepository()
-        .loadAuthenticLicenseForCurrentInstallation(allowExpired: true);
-    if (!mounted) return;
-    setState(() {
-      _license = license;
-      _isLoading = false;
-    });
+  void _reload() {
+    _decision = widget.load?.call() ??
+        LicenseRuntimeService().refreshFromStoredLicense();
   }
 
   String _date(DateTime value) {
-    final local = value.toLocal();
-    return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
-        '${local.day.toString().padLeft(2, '0')}';
+    final d = value.toLocal();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
   @override
-  Widget build(BuildContext context) {
-    final license = _license;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الاشتراك الحالي'),
-        centerTitle: true,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : license == null
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'لا يوجد اشتراك موثّق مرتبط بهذا الجهاز والتثبيت.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
-              : Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 620),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'الحالة: ${license.operationalStatus}',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                  'Subscription ID: ${license.subscriptionId}'),
-                              Text('License ID: ${license.licenseId}'),
-                              Text('ينتهي: ${_date(license.expiresAt)}'),
-                              Text(
-                                'Entitlement revision: '
-                                '${license.entitlementRevision}',
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-    );
-  }
+  Widget build(BuildContext context) => Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+          appBar: AppBar(title: const Text('الاشتراك الحالي')),
+          body: FutureBuilder<LicenseRuntimeDecision>(
+              future: _decision,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Text('تعذر التحقق من الاشتراك.'),
+                    TextButton(
+                        onPressed: () => setState(_reload),
+                        child: const Text('إعادة المحاولة')),
+                  ]));
+                }
+                final decision = snapshot.data!;
+                final license = decision.license;
+                return SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Center(
+                        child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 620),
+                            child: Card(
+                                child: Padding(
+                                    padding: const EdgeInsets.all(20),
+                                    child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Text(
+                                              license == null
+                                                  ? 'التفعيل مطلوب'
+                                                  : 'حالة الاشتراك: ${SubscriptionAccessPolicy.label(license.operationalStatus)}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge),
+                                          const SizedBox(height: 16),
+                                          if (license != null) ...[
+                                            Text(
+                                                'تاريخ الانتهاء: ${_date(license.expiresAt)}'),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                                decision.isWritable
+                                                    ? 'العمل متاح'
+                                                    : 'القراءة فقط',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium),
+                                            const SizedBox(height: 8),
+                                            Text(SubscriptionAccessPolicy
+                                                .message(decision.mode)),
+                                            if (SubscriptionAccessPolicy
+                                                    .normalize(license
+                                                        .operationalStatus) ==
+                                                'EXCEPTION')
+                                              const Text(
+                                                  'الاستثناء معتمد بالترخيص الموقّع وينتهي في التاريخ الموضح.'),
+                                            if (SubscriptionAccessPolicy
+                                                    .normalize(license
+                                                        .operationalStatus) ==
+                                                'DEMO')
+                                              const Text(
+                                                  'العرض التوضيحي لا يسمح بتعديل بيانات الورشة الحقيقية.'),
+                                          ] else
+                                            const Text(
+                                                'لا يوجد ترخيص موثّق لهذا الجهاز. يمكن للمالك تصدير بياناته من شاشة الدخول.'),
+                                          const SizedBox(height: 16),
+                                          OutlinedButton.icon(
+                                              onPressed: () =>
+                                                  setState(_reload),
+                                              icon: const Icon(Icons.refresh),
+                                              label: const Text(
+                                                  'تحديث حالة الاشتراك')),
+                                        ]))))));
+              })));
 }

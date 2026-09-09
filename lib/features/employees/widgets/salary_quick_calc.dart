@@ -34,13 +34,16 @@ Future<void> showMonthlySalaryQuickCalc({
         baseSalary: employee.baseSalary,
         totalWorkDaysInMonth: totalDaysInMonth,
         attendanceRecords: records,
+        periodStart: from,
+        periodEnd: to,
         payOfficialHolidays: payOfficialHolidays,
       );
 
+  if (!context.mounted) return;
+
   // عرض النتيجة
-  final formatted = net.toStringAsFixed(2);
   // تجاهل إن كان الراتب الأساسي صفر
-  final warnBase = employee.baseSalary <= 0;
+  final warnBase = employee.baseSalaryForType <= 0;
 
   await showDialog<void>(
     context: context,

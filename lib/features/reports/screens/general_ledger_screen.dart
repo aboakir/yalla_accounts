@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
+import 'gl_entry_details_dialog.dart';
 // 📁 lib/features/reports/screens/general_ledger_screen.dart
 //
 // الأستاذ العام — General Ledger (GL v28)
@@ -13,7 +15,8 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
-import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
+import 'package:yalla_accounts/core/pdf/account_ledger_pdf.dart';
+import 'package:printing/printing.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -41,6 +44,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
   int? _selectedAccountId;
 
   List<_GLEntry> _rows = [];
+  double _opening = 0;
   double _sumDebit = 0;
   double _sumCredit = 0;
 
@@ -51,29 +55,18 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
   }
 
   Future<void> _exportPdf() async {
-    if (_rows.isEmpty || _selectedAccountId == null) return;
-
-    final account = _accounts.firstWhere(
-      (a) => a.id == _selectedAccountId,
-      orElse: () => _accounts.first,
-    );
-
-    final rowsForPdf = _rows.map((e) {
-      return {
-        'date': DateFormat('yyyy-MM-dd').format(e.date),
-        'description': e.description,
-        'debit': e.debit.toStringAsFixed(2),
-        'credit': e.credit.toStringAsFixed(2),
-        'balance': e.runningBalance.toStringAsFixed(2),
-      };
-    }).toList();
-
-    await YallaPdfService.exportGeneralLedgerPdf(
-      accountName: '${account.code} — ${account.name}',
-      from: _from ?? DateTime.now(),
-      to: _to ?? DateTime.now(),
-      rows: rowsForPdf,
-    );
+    if (_selectedAccountId == null || _loading) return;
+    try {
+      final bytes = await AccountLedgerPdf.generateForAccount(
+          _selectedAccountId!,
+          from: _from,
+          to: _to);
+      await Printing.sharePdf(bytes: bytes, filename: 'general_ledger.pdf');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('تعذر إنشاء كشف PDF صالح: $e')));
+    }
   }
 
   Future<void> _boot() async {
@@ -82,6 +75,9 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
       _error = null;
     });
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
       final accMaps = await db
           .rawQuery('SELECT id, code, name FROM accounts ORDER BY code ASC');
@@ -97,6 +93,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
       _selectedAccountId = _accounts.isNotEmpty ? _accounts.first.id : null;
       await _load();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -113,6 +110,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
       lastDate: DateTime(now.year + 1),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _from = d);
       _load();
@@ -128,6 +126,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
       lastDate: DateTime(now.year + 1),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _to = d);
       _load();
@@ -135,6 +134,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     if (_selectedAccountId == null || _accounts.isEmpty) {
       setState(() {
         _rows = [];
@@ -165,27 +165,24 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
     });
 
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
 
       final where = <String>['l.account_id = ?'];
       final args = <dynamic>[_selectedAccountId];
 
       if (_from != null) {
-        where.add('e.date >= ?');
+        where.add('substr(e.date,1,10) >= substr(?,1,10)');
         args.add(_from!.toIso8601String());
       }
       if (_to != null) {
         final toInclusive =
             DateTime(_to!.year, _to!.month, _to!.day, 23, 59, 59);
-        where.add('e.date <= ?');
+        where.add('substr(e.date,1,10) <= substr(?,1,10)');
         args.add(toInclusive.toIso8601String());
       }
-      if (_query.trim().isNotEmpty) {
-        final s = '%${_query.trim()}%';
-        where.add('(e.ref LIKE ? OR e.note LIKE ? OR e.source LIKE ?)');
-        args.addAll([s, s, s]);
-      }
-
       final sql = '''
         SELECT 
           e.id        AS entry_id,
@@ -204,7 +201,14 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
 
       final maps = await db.rawQuery(sql, args);
 
-      double running = 0, sD = 0, sC = 0;
+      double opening = 0;
+      if (_from != null) {
+        final result = await db.rawQuery(
+            'SELECT COALESCE(SUM(l.debit-l.credit),0) AS balance FROM gl_lines l JOIN gl_entries e ON e.id=l.entry_id WHERE l.account_id=? AND substr(e.date,1,10)<substr(?,1,10)',
+            [_selectedAccountId, _from!.toIso8601String()]);
+        opening = (result.first['balance'] as num).toDouble();
+      }
+      double running = opening, sD = 0, sC = 0;
       final rows = <_GLEntry>[];
 
       for (final m in maps) {
@@ -214,6 +218,13 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
         running += d - c;
         sD += d;
         sC += c;
+        if (_query.trim().isNotEmpty &&
+            !m.values
+                .join(' ')
+                .toLowerCase()
+                .contains(_query.trim().toLowerCase())) {
+          continue;
+        }
 
         final ref = (m['ref'] ?? '').toString();
         final note = (m['note'] ?? '').toString();
@@ -236,12 +247,15 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
         ));
       }
 
+      if (!mounted) return;
       setState(() {
+        _opening = opening;
         _rows = rows;
         _sumDebit = sD;
         _sumCredit = sC;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -283,6 +297,16 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
                   fontSize: 20,
                   fontWeight: FontWeight.bold)),
           const SizedBox(width: 12),
+          FinancialPeriodFilter(
+              from: _from,
+              to: _to,
+              onChanged: (range) {
+                setState(() {
+                  _from = range.start;
+                  _to = range.end;
+                });
+                _load();
+              }),
           DropdownButton<int>(
             value: _selectedAccountId,
             dropdownColor: Colors.white,
@@ -364,8 +388,10 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
               color: Colors.red),
           _Stat(
             label: 'الرصيد',
-            value: _money.format(_sumDebit - _sumCredit),
-            color: (_sumDebit - _sumCredit) >= 0 ? Colors.green : Colors.red,
+            value: _money.format(_opening + _sumDebit - _sumCredit),
+            color: (_opening + _sumDebit - _sumCredit) >= 0
+                ? Colors.green
+                : Colors.red,
             bold: true,
           ),
         ],
@@ -476,6 +502,7 @@ class _GLTable extends StatelessWidget {
             columns: const [
               DataColumn(label: Text('التاريخ')),
               DataColumn(label: Text('الوصف')),
+              DataColumn(label: Text('التتبع')),
               DataColumn(label: Text('مدين')),
               DataColumn(label: Text('دائن')),
               DataColumn(label: Text('الرصيد')),
@@ -484,7 +511,7 @@ class _GLTable extends StatelessWidget {
               return DataRow(
                 cells: [
                   DataCell(
-                    Text(DateFormat('yyyy-MM-dd').format(e.date)),
+                    Text(DateFormat('yyyy-MM-dd HH:mm').format(e.date)),
                   ),
                   DataCell(
                     Tooltip(
@@ -502,6 +529,10 @@ class _GLTable extends StatelessWidget {
                       ),
                     ),
                   ),
+                  DataCell(TextButton.icon(
+                      onPressed: () => showGlEntryDetails(context, e.id),
+                      icon: const Icon(Icons.receipt_long),
+                      label: const Text('القيد والمستند'))),
                   DataCell(
                     Text(
                       money.format(e.debit),

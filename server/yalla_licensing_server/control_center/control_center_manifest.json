@@ -1,9 +1,9 @@
 {
-  "stage": "SEC.015C1",
+  "stage": "STAGE51",
   "name": "Yalla Control Center",
   "mode": "OPERATIONAL_LIFECYCLE_BILLING_DEVICE_ADMIN",
   "server_model_version": 10,
-  "client_database_version": 69,
+  "client_database_version": 74,
   "sections": [
     {
       "id": "dashboard",
@@ -109,7 +109,10 @@
     "enabled": true,
     "endpoint": "/actions",
     "requires_reason": true,
-    "force_actions_require_break_glass": true
+    "force_actions_require_break_glass": true,
+    "capabilities_endpoint": "/capabilities",
+    "requires_server_audit_acknowledgement": true,
+    "requires_idempotency": true
   },
   "master_password": false,
   "customer_password_visibility": false,
@@ -154,7 +157,9 @@
       "YALLA_ADMIN_SERVER",
       "CUSTOMER_ORGANIZATION"
     ],
-    "customer_sqlite_control_plane_exposure": false
+    "customer_sqlite_control_plane_exposure": false,
+    "web_language": "ar",
+    "web_direction": "rtl"
   },
   "operational_controls": {
     "subscription_actions": [
@@ -174,5 +179,10 @@
     ],
     "remaining_period_server_derived": true,
     "customer_sqlite_mutation": false
+  },
+  "release_readiness": {
+    "web_client": "READY_FOR_BACKEND_INTEGRATION",
+    "production_backend_verified": false,
+    "live_mutations_verified": false
   }
 }

@@ -58,6 +58,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            if ((project.findProperty("target")?.toString() ?: "").endsWith("reliability_probe.dart")) {
+                applicationIdSuffix = ".reliabilitytest"
+            }
+        }
         release {
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")

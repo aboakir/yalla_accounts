@@ -21,6 +21,23 @@ void main() {
   }
 
   for (final width in <double>[320, 375, 430, 600, 768, 1024, 1440]) {
+    testWidgets('Toolbar spacer remains valid at width $width', (tester) async {
+      await pumpAt(
+          tester,
+          width,
+          AdaptiveRow(children: [
+            const Text('التقرير'),
+            const Spacer(),
+            OutlinedButton(
+                onPressed: () {}, child: const Text('تصدير التقرير')),
+            OutlinedButton(
+                onPressed: () {}, child: const Text('تحديث النتائج')),
+          ]));
+      expect(tester.takeException(), isNull);
+      expect(find.text('تصدير التقرير'), findsOneWidget);
+      expect(find.text('تحديث النتائج'), findsOneWidget);
+    });
+
     testWidgets('AdaptiveRow stays usable at width $width', (tester) async {
       await pumpAt(
         tester,

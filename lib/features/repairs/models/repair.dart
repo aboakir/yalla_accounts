@@ -517,9 +517,9 @@ class Repair {
       vehicleModel: asString(map['vehicleModel'] ?? map['vehicle_model']),
       vehicleType: asString(map['vehicleType'] ?? map['vehicle_type']),
       vehicleNumber: asString(map['vehicleNumber'] ?? map['vehicle_number']),
-      receivedDate:
-          parseDateTime(map['receivedDate'] ?? map['received_date']) ??
-              DateTime.fromMillisecondsSinceEpoch(0),
+      receivedDate: parseDateTime(map['receivedDate'] ?? map['received_date'])
+              ?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
 
       beneficiaryType:
           asString(map['beneficiary_type'] ?? map['beneficiaryType']),

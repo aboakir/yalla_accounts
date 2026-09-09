@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 
 /// Stage 1 database-level accounting integrity guards.
@@ -30,6 +31,62 @@ class AccountingIntegrityTables {
   static Future<void> ensure(DatabaseExecutor db) async {
     await _ensureAuditEvents(db);
     await _ensureSourceDocumentGuards(db);
+    await _ensurePostingGuards(db);
+  }
+
+  static Future<void> _ensurePostingGuards(DatabaseExecutor db) async {
+    if (!await _tableExists(db, 'gl_entries') ||
+        !await _tableExists(db, 'gl_lines')) {
+      return;
+    }
+    await db.execute('''
+      CREATE TRIGGER IF NOT EXISTS trg_gl_source_identity_insert
+      BEFORE INSERT ON gl_entries
+      BEGIN
+        SELECT CASE WHEN LENGTH(TRIM(COALESCE(NEW.source,'')))=0
+          OR LENGTH(TRIM(COALESCE(NEW.source_id,'')))=0
+          THEN RAISE(ABORT,'GL_SOURCE_IDENTITY_REQUIRED') END;
+        SELECT CASE WHEN EXISTS (SELECT 1 FROM gl_entries e
+          WHERE TRIM(e.source_id)=TRIM(NEW.source_id)
+            AND (CASE WHEN UPPER(TRIM(e.source))='PURCHASE_INVOICE' THEN 'PURCHASE'
+              WHEN UPPER(TRIM(e.source))='PURCHASE_INVOICE_REV' THEN 'PURCHASE_REV'
+              ELSE UPPER(TRIM(e.source)) END)
+            = (CASE WHEN UPPER(TRIM(NEW.source))='PURCHASE_INVOICE' THEN 'PURCHASE'
+              WHEN UPPER(TRIM(NEW.source))='PURCHASE_INVOICE_REV' THEN 'PURCHASE_REV'
+              ELSE UPPER(TRIM(NEW.source)) END))
+          THEN RAISE(ABORT,'GL_DUPLICATE_SOURCE_IDENTITY') END;
+      END;
+    ''');
+    await db.execute('''
+      CREATE TRIGGER IF NOT EXISTS trg_gl_line_values_guard
+      BEFORE INSERT ON gl_lines
+      BEGIN
+        SELECT CASE WHEN NEW.debit IS NULL OR NEW.credit IS NULL
+          OR typeof(NEW.debit) NOT IN ('real','integer') OR typeof(NEW.credit) NOT IN ('real','integer')
+          OR NEW.debit<0 OR NEW.credit<0 OR (NEW.debit>0 AND NEW.credit>0)
+          OR NEW.debit>90071992547409 OR NEW.credit>90071992547409
+          OR ABS(NEW.debit*100-ROUND(NEW.debit*100))>0.000001
+          OR ABS(NEW.credit*100-ROUND(NEW.credit*100))>0.000001
+          THEN RAISE(ABORT,'GL_INVALID_LINE_AMOUNT') END;
+      END;
+    ''');
+    await db.execute('''
+      CREATE TRIGGER IF NOT EXISTS trg_gl_line_closed_entry
+      BEFORE INSERT ON gl_lines
+      WHEN EXISTS (SELECT 1 FROM accounting_audit_events WHERE gl_entry_id=NEW.entry_id)
+      BEGIN SELECT RAISE(ABORT,'POSTED_GL_LINES_IMMUTABLE'); END;
+    ''');
+    await db.execute('''
+      CREATE TRIGGER IF NOT EXISTS trg_gl_audit_balance_guard
+      BEFORE INSERT ON accounting_audit_events
+      WHEN NOT EXISTS (SELECT 1 FROM accounting_audit_events WHERE gl_entry_id=NEW.gl_entry_id)
+      BEGIN
+        SELECT CASE WHEN (SELECT COUNT(*) FROM gl_lines WHERE entry_id=NEW.gl_entry_id)<2
+          OR (SELECT COALESCE(SUM(ROUND(debit*100)),0) FROM gl_lines WHERE entry_id=NEW.gl_entry_id)<=0
+          OR (SELECT COALESCE(SUM(ROUND(debit*100)-ROUND(credit*100)),0) FROM gl_lines WHERE entry_id=NEW.gl_entry_id)<>0
+          THEN RAISE(ABORT,'GL_UNBALANCED_ENTRY') END;
+      END;
+    ''');
   }
 
   static Future<void> _ensureAuditEvents(DatabaseExecutor db) async {
@@ -48,6 +105,13 @@ class AccountingIntegrityTables {
         created_at TEXT NOT NULL
       );
     ''');
+    final auditColumns = await _columns(db, 'accounting_audit_events');
+    for (final column in ['before_json', 'after_json']) {
+      if (!auditColumns.contains(column)) {
+        await db.execute(
+            'ALTER TABLE accounting_audit_events ADD COLUMN $column TEXT');
+      }
+    }
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_accounting_audit_source '
       'ON accounting_audit_events(canonical_source, source_id);',
@@ -110,6 +174,13 @@ class AccountingIntegrityTables {
     required String? actorUserId,
   }) async {
     if (!await _tableExists(db, 'accounting_audit_events')) return;
+    Future<Map<String, Object?>> snapshot(int id) async => {
+          'entry': await db.query('gl_entries', where: 'id=?', whereArgs: [id]),
+          'lines':
+              await db.query('gl_lines', where: 'entry_id=?', whereArgs: [id]),
+        };
+    final before = reversalOf == null ? null : await snapshot(reversalOf);
+    final after = await snapshot(glEntryId);
     await db.insert(
       'accounting_audit_events',
       {
@@ -120,6 +191,8 @@ class AccountingIntegrityTables {
         'canonical_source': canonicalSource,
         'reversal_of': reversalOf,
         'actor_user_id': actorUserId,
+        'before_json': before == null ? null : jsonEncode(before),
+        'after_json': jsonEncode(after),
         'created_at': DateTime.now().toUtc().toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.ignore,

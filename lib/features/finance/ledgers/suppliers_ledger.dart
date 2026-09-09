@@ -20,6 +20,7 @@ class _SuppliersLedgerScreenState extends State<SuppliersLedgerScreen> {
 
   Future<void> _loadSuppliers() async {
     final data = await SupplierService.getAllSuppliers();
+    if (!mounted) return;
     setState(() => suppliers = data);
   }
 

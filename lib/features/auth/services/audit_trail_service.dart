@@ -5,7 +5,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/current_user_context.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/p16_security_tables.dart';
-import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 
 class AuditTrailService {
   AuditTrailService._();

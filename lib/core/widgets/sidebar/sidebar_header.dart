@@ -33,6 +33,7 @@ class _SidebarHeaderState extends ConsumerState<SidebarHeader> {
 
   Future<void> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() => _appVersion = info.version);
   }
 

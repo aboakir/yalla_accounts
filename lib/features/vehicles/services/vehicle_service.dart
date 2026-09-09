@@ -53,15 +53,20 @@ class VehicleService {
       );
     }
 
-    final q = query?.trim().toLowerCase() ?? '';
-    if (q.isEmpty) return vehicles;
+    return vehicles
+        .where((vehicle) => matchesQuery(vehicle, query ?? ''))
+        .toList(growable: false);
+  }
 
-    return vehicles.where((vehicle) {
-      return vehicle.number.toLowerCase().contains(q) ||
-          vehicle.type.toLowerCase().contains(q) ||
-          vehicle.model.toLowerCase().contains(q) ||
-          vehicle.clientName.toLowerCase().contains(q);
-    }).toList(growable: false);
+  static bool matchesQuery(Vehicle vehicle, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    final plate = VehicleTables.normalizeNumber(q);
+    return (plate.isNotEmpty &&
+            VehicleTables.normalizeNumber(vehicle.number).contains(plate)) ||
+        vehicle.type.toLowerCase().contains(q) ||
+        vehicle.model.toLowerCase().contains(q) ||
+        vehicle.clientName.toLowerCase().contains(q);
   }
 
   static Future<List<Vehicle>> getByClientId(int clientId) async {

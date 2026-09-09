@@ -23,6 +23,7 @@ class ClientListNotifier extends StateNotifier<List<Client>> {
   /// تحميل كل العملاء من القاعدة
   Future<void> loadClients() async {
     final clients = await ClientService.getAllClients();
+    if (!mounted) return;
     _all = clients;
     _applyFilters();
   }

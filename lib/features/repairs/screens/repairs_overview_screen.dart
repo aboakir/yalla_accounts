@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/responsive.dart';
 // 📁 lib/features/repairs/screens/repairs_overview_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -108,10 +109,16 @@ class RepairsOverviewScreen extends ConsumerWidget {
       body: AdaptiveRow(
         children: [
           // قائمة جانبية ثابتة
-          const YallaSidebar(currentRoute: '/repairs/list'),
+          if (Responsive.isDesktop(context))
+            const SizedBox(
+                width: 260, child: YallaSidebar(currentRoute: '/repairs/list')),
           // المحتوى الرئيسي
           Expanded(
             child: Scaffold(
+              drawer: Responsive.isDesktop(context)
+                  ? null
+                  : const Drawer(
+                      child: YallaSidebar(currentRoute: '/repairs/list')),
               appBar: AppBar(
                 title: const Text('إصلاح المركبات'),
                 actions: [

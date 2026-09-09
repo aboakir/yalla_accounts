@@ -1,3 +1,4 @@
+import 'gl_posting_policy.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'current_user_context.dart';
@@ -23,34 +24,17 @@ class PostingEngine {
   }
 
   static void _validateLines(List<Map<String, Object?>> lines) {
-    if (lines.isEmpty) {
-      throw ArgumentError('Posting requires at least one GL line');
-    }
-
-    for (var i = 0; i < lines.length; i++) {
-      final line = lines[i];
-      if (line['account_id'] == null) {
-        throw ArgumentError('GL line $i has no account_id');
-      }
-
-      final debit = (line['debit'] as num?)?.toDouble() ?? 0.0;
-      final credit = (line['credit'] as num?)?.toDouble() ?? 0.0;
-
-      if (debit < 0 || credit < 0) {
-        throw ArgumentError('GL line $i contains negative debit/credit');
-      }
-      if (debit > 0 && credit > 0) {
-        throw ArgumentError(
-          'GL line $i cannot contain both debit and credit',
-        );
-      }
-    }
+    GlPostingPolicy.normalize(lines);
   }
 
   static Future<String?> _resolveActor(String? explicit) async {
     final value = explicit?.trim();
     if (value != null && value.isNotEmpty) return value;
-    return CurrentUserContext.userId();
+    final actor = await CurrentUserContext.userId();
+    if (actor == null || actor.isEmpty) {
+      throw StateError('Authenticated posting user required');
+    }
+    return actor;
   }
 
   static Future<int> postEntry({

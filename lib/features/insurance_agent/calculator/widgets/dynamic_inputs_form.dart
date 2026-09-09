@@ -294,6 +294,7 @@ class DynamicInputsForm extends StatelessWidget {
 
         return [
           DropdownButtonFormField<String>(
+            isExpanded: true,
             value: input?.fixedOption,
             decoration: InputDecoration(labelText: 'نوع الآلية'),
             items: options
@@ -326,6 +327,7 @@ class DynamicInputsForm extends StatelessWidget {
     required ValueChanged<T> onChanged,
   }) {
     return DropdownButtonFormField<T>(
+      isExpanded: true,
       value: value,
       decoration: InputDecoration(labelText: label),
       items: items

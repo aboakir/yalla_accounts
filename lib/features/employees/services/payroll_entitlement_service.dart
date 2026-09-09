@@ -57,6 +57,11 @@ class PayrollEntitlementService {
     required DateTime periodStart,
     required DateTime periodEnd,
   }) async {
+    if (periodEnd.isBefore(periodStart) ||
+        periodStart.year != periodEnd.year ||
+        periodStart.month != periodEnd.month) {
+      throw ArgumentError('اختر فترة صحيحة ضمن شهر واحد للاستحقاق.');
+    }
     final attendance = await AttendanceDatabaseService
         .summarizeForPayrollUsingWorkshopSettings(
       employeeId: employee.id,
@@ -64,6 +69,7 @@ class PayrollEntitlementService {
       to: periodEnd,
     );
     final settings = await WorkshopSettingsService.instance.getOrDefaults();
+    WorkshopSettingsService.validateSchedule(settings);
     final policy = await AttendancePolicy.fromWorkshopSettings();
 
     if (attendance.scheduledWorkDays <= 0 || policy.hoursPerDay <= 0) {
@@ -73,14 +79,18 @@ class PayrollEntitlementService {
     final eligibleDays = attendance.presentDays +
         attendance.paidLeaveDays +
         attendance.holidayDays;
-    final scheduledDays = attendance.scheduledWorkDays.toDouble();
+    final scheduledDays = AttendanceDatabaseService.scheduledWorkDays(
+            DateTime(periodStart.year, periodStart.month, 1),
+            DateTime(periodStart.year, periodStart.month + 1, 0),
+            policy)
+        .toDouble();
+    final workshopWeekDays = policy.weekWorkdays!.split(',').toSet().length;
 
     double baseEarned;
     if (employee.isDaily) {
       baseEarned = (employee.dailyRate ?? 0) * eligibleDays;
     } else if (employee.isWeekly) {
-      final workDaysPerWeek =
-          employee.workDaysPerWeek <= 0 ? 6 : employee.workDaysPerWeek;
+      final workDaysPerWeek = workshopWeekDays;
       final dailyEquivalent = (employee.weeklyRate ?? 0) / workDaysPerWeek;
       baseEarned = dailyEquivalent * eligibleDays;
     } else {
@@ -97,23 +107,23 @@ class PayrollEntitlementService {
             ? (employee.dailyRate ?? 0) / policy.hoursPerDay
             : employee.isWeekly
                 ? ((employee.weeklyRate ?? 0) /
-                    (employee.workDaysPerWeek <= 0
-                        ? 6
-                        : employee.workDaysPerWeek) /
+                    workshopWeekDays /
                     policy.hoursPerDay)
                 : employee.baseSalary / scheduledHours);
     final hourlyRate =
         (settings.hourlyRate ?? 0) > 0 ? settings.hourlyRate! : fallbackHourly;
 
     final configuredOvertime = settings.overtimeRate ?? 0;
-    final overtimePay = configuredOvertime > 5
-        ? attendance.overtimeHours * configuredOvertime
-        : AttendanceDatabaseService.computeOvertimeAddition(
-            overtimeHours: attendance.overtimeHours,
-            hourlyRate: hourlyRate,
-            overtimeMultiplier:
-                configuredOvertime > 0 ? configuredOvertime : 1.25,
-          );
+    final overtimePay = settings.overtimeRate == 0
+        ? 0.0
+        : configuredOvertime > 5
+            ? attendance.overtimeHours * configuredOvertime
+            : AttendanceDatabaseService.computeOvertimeAddition(
+                overtimeHours: attendance.overtimeHours,
+                hourlyRate: hourlyRate,
+                overtimeMultiplier:
+                    configuredOvertime > 0 ? configuredOvertime : 1.25,
+              );
     final lateDeduction = AttendanceDatabaseService.computeLateDeduction(
       lateMinutes: attendance.lateMinutes,
       hourlyRate: hourlyRate,
@@ -123,8 +133,9 @@ class PayrollEntitlementService {
       hourlyRate: hourlyRate,
     );
 
-    final allowances = _r(employee.allowances);
-    final fixedDeductions = _r(employee.deductions);
+    final fraction = attendance.scheduledWorkDays / scheduledDays;
+    final allowances = _r(employee.allowances * fraction);
+    final fixedDeductions = _r(employee.deductions * fraction);
     final netBeforeAdvances = _r(
       baseEarned +
           allowances +

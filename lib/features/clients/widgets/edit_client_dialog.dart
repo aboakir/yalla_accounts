@@ -18,6 +18,7 @@ class EditClientDialog extends StatefulWidget {
 
 class _EditClientDialogState extends State<EditClientDialog> {
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
 
   late TextEditingController _nameController; // لاسم الأفراد
   late TextEditingController _phoneController;
@@ -75,41 +76,49 @@ class _EditClientDialogState extends State<EditClientDialog> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      // الاسم بحسب النوع
+      final String finalName = _clientTypeUi == 'شركة تأمين'
+          ? (_selectedInsuranceCompany ?? '').trim()
+          : _nameController.text.trim();
 
-    // الاسم بحسب النوع
-    final String finalName = _clientTypeUi == 'شركة تأمين'
-        ? (_selectedInsuranceCompany ?? '').trim()
-        : _nameController.text.trim();
+      // نبني الكائن المحدث — النوع عربي فقط
+      final updated = Client(
+        id: widget.client.id,
+        name: finalName,
+        type: _clientTypeUi, // عربي: 'أفراد' | 'شركة تأمين'
+        phone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
+        address: _addressController.text.trim(),
+        notes: _notesController.text.trim(),
+      );
 
-    // نبني الكائن المحدث — النوع عربي فقط
-    final updated = Client(
-      id: widget.client.id,
-      name: finalName,
-      type: _clientTypeUi, // عربي: 'أفراد' | 'شركة تأمين'
-      phone: _phoneController.text.trim(),
-      email: _emailController.text.trim(),
-      address: _addressController.text.trim(),
-      notes: _notesController.text.trim(),
-    );
-
-    // منع التكرار في حال تغير الاسم أو النوع (اختياري – خفيف)
-    final changedName = updated.name != widget.client.name;
-    final changedType = updated.type != _normalizeUiType(widget.client.type);
-    if (changedName || changedType) {
-      final exists =
-          await ClientService.clientExists(updated.name, type: updated.type);
-      if (exists) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❗ يوجد عميل بنفس الاسم والنوع')),
-        );
-        return;
+      // منع التكرار في حال تغير الاسم أو النوع (اختياري – خفيف)
+      final changedName = updated.name != widget.client.name;
+      final changedType = updated.type != _normalizeUiType(widget.client.type);
+      if (changedName || changedType) {
+        final exists = await ClientService.clientExists(updated.name,
+            type: updated.type, excludeId: updated.id);
+        if (exists) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('❗ يوجد عميل بنفس الاسم والنوع')),
+          );
+          return;
+        }
       }
-    }
 
-    await ClientService.updateClient(updated);
-    if (mounted) Navigator.pop(context, true);
+      await ClientService.updateClient(updated);
+      if (mounted) Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('تعذر حفظ العميل: $error')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   InputDecoration _inputDecoration(String label) {
@@ -243,7 +252,7 @@ class _EditClientDialogState extends State<EditClientDialog> {
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
-            onPressed: _save,
+            onPressed: _saving ? null : _save,
             child: const Text('حفظ التعديل'),
           ),
         ],

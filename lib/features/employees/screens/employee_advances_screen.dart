@@ -1,8 +1,8 @@
+import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
 // 📁 lib/features/employees/screens/employee_advances_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
@@ -112,22 +112,19 @@ class _EmployeeAdvancesScreenState
               note: note,
             );
       } else {
-        final id = const Uuid().v4();
-        final adv = Advance(
-          id: id,
-          employeeId: widget.employee.id,
-          amount: amount,
-          type: submittedType,
-          date: _date,
-          note: note,
-          method: _method,
-        );
-        await ref
-            .read(advanceProvider.notifier)
-            .addAdvance(adv, method: _method);
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => PaymentVoucherScreen(
+                employeeId: widget.employee.id,
+                employeeName: widget.employee.fullName,
+                employeePaymentKind: submittedType,
+                presetAmount: amount)));
+        if (!mounted) return;
+        await _reloadAll();
+        return;
       }
 
       await _reloadAll();
+      if (!mounted) return;
 
       _amountController.clear();
       _notesController.clear();

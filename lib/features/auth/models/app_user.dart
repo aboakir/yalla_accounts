@@ -1,5 +1,7 @@
 // lib/features/auth/models/app_user.dart
 
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
+
 class AppUser {
   final String id;
   final String name;
@@ -8,8 +10,9 @@ class AppUser {
   final String status;
   final DateTime createdAt;
   final String? organizationId;
+  final String? identityAccountId;
 
-  final bool isOwner;
+  bool get isOwner => role == RoleKeys.owner;
   final bool mustChangePassword;
   final DateTime? lastLoginAt;
   final String? securityQuestion;
@@ -36,11 +39,12 @@ class AppUser {
     required this.id,
     required this.name,
     required this.email,
-    required this.role,
+    required String role,
     required this.status,
     required this.createdAt,
     this.organizationId,
-    this.isOwner = false,
+    this.identityAccountId,
+    bool isOwner = false,
     this.mustChangePassword = false,
     this.lastLoginAt,
     this.securityQuestion,
@@ -60,7 +64,8 @@ class AppUser {
     this.city,
     this.street,
     this.phoneNumbers,
-  });
+  }) : role = RoleKeys.normalize(
+            role); // Role is authoritative; legacy flag is serialized for compatibility.
 
   String? get logoPath => workshopLogoPath;
   String? get workshopName => workshopAddress;
@@ -95,6 +100,7 @@ class AppUser {
       createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.now(),
       organizationId: map['organization_id']?.toString(),
+      identityAccountId: map['identity_account_id']?.toString(),
       isOwner: map['is_owner'] == 1 || map['is_owner'] == true,
       mustChangePassword: map['must_change_password'] == 1 ||
           map['must_change_password'] == true,
@@ -141,6 +147,7 @@ class AppUser {
       'status': status,
       'created_at': createdAt.toIso8601String(),
       if (organizationId != null) 'organization_id': organizationId,
+      if (identityAccountId != null) 'identity_account_id': identityAccountId,
       'is_owner': isOwner ? 1 : 0,
       'must_change_password': mustChangePassword ? 1 : 0,
       'last_login_at': lastLoginAt?.toIso8601String(),
@@ -179,6 +186,7 @@ class AppUser {
     String? status,
     DateTime? createdAt,
     String? organizationId,
+    String? identityAccountId,
     bool? isOwner,
     bool? mustChangePassword,
     DateTime? lastLoginAt,
@@ -208,6 +216,7 @@ class AppUser {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       organizationId: organizationId ?? this.organizationId,
+      identityAccountId: identityAccountId ?? this.identityAccountId,
       isOwner: isOwner ?? this.isOwner,
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,

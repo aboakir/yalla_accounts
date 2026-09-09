@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -10,14 +11,7 @@ class RepairReportService {
     final db = await _db;
 
     final results = await db.rawQuery('''
-      WITH paid AS (
-        SELECT
-          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
-          SUM(amount) AS paid
-        FROM payments
-        WHERE COALESCE(isIncome,1)=1
-        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
-      )
+      WITH paid AS (${RepairFinancialTruthService.paidByRepairSql})
       SELECT
         r.beneficiaryName,
         SUM(MAX(r.fileValue-COALESCE(p.paid,0),0)) AS outstanding

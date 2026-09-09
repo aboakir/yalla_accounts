@@ -67,6 +67,8 @@ class _MonthlyReportScreenState extends ConsumerState<MonthlyReportScreen> {
           baseSalary: widget.employee.baseSalary,
           totalWorkDaysInMonth: totalWorkDays,
           attendanceRecords: records,
+          periodStart: from,
+          periodEnd: to,
         );
     final netSalary =
         ref.read(salaryProvider.notifier).getSalary(widget.employee.id);

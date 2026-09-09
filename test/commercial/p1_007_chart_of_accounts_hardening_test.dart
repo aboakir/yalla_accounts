@@ -1,3 +1,4 @@
+import '../support/accounting_session.dart';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -49,13 +50,12 @@ void main() {
 
   test('P1.007 fresh current DB COA metadata and posting policy are enforced',
       () async {
-    SharedPreferences.setMockInitialValues({
-      'yalla_auth_session_user_v2': 'coa-test-user',
-    });
+    SharedPreferences.setMockInitialValues({});
 
     final temp = await Directory.systemTemp.createTemp('yalla_p1_007_');
     final path = '${temp.path}${Platform.pathSeparator}fresh.db';
     final db = await DatabaseMigration.initDatabase(pathOverride: path);
+    final session = await startAccountingSession(db, 'coa-test-user');
 
     try {
       expect(
@@ -242,6 +242,7 @@ void main() {
 
       expect(_int(reversal['reversal_of']), customEntry);
     } finally {
+      await session.endEphemeralPreviewSession();
       await db.close();
       await temp.delete(recursive: true);
     }
@@ -267,7 +268,7 @@ void main() {
       'lib/features/vouchers/services/voucher_payment_service.dart',
     ).readAsStringSync();
     expect(vouchers.contains(r'final code = "1200.E$empId"'), isFalse);
-    expect(vouchers.contains(r'final code = "1120.E$empId"'), isTrue);
+    expect(vouchers.contains(r'"1120.E$empId"'), isTrue);
 
     final purchaseCreate = File(
       'lib/features/finance/purchases/screens/purchase_create_screen.dart',
@@ -298,7 +299,7 @@ void main() {
       'lib/features/employees/services/salary_payment_database_service.dart',
     ).readAsStringSync();
     expect(
-      salaryPayment.contains(r"'${GL.empAdvances}.E${p.employeeId}'"),
+      salaryPayment.contains('Legacy salary_payments writes are disabled.'),
       isTrue,
     );
 

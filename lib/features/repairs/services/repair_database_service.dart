@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 // ---------------------------------------------------------------------------
 // 📁 lib/features/repairs/services/repair_database_service.dart
 //
@@ -143,14 +144,8 @@ class RepairDatabaseService {
   }
 
   static Future<double> _sumPaymentsForRepair(
-      DatabaseExecutor db, String repairId) async {
-    final rows = await db.rawQuery(
-      'SELECT IFNULL(SUM(amount),0) AS tot FROM payments WHERE repair_id = ? OR relatedRepairId = ?',
-      [repairId, repairId],
-    );
-    if (rows.isEmpty) return 0.0;
-    return _toD(rows.first['tot']);
-  }
+          DatabaseExecutor db, String repairId) async =>
+      RepairFinancialTruthService.paidForRepair(repairId, executor: db);
 
   static String _statusFor(double file, double paid) {
     if (paid >= file) return 'مسدد';

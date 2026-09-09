@@ -38,6 +38,10 @@ class FinancialOverviewEntry {
 
 class FinancialOverviewSnapshot {
   const FinancialOverviewSnapshot({
+    this.receipts = 0,
+    this.payments = 0,
+    this.salaryExpenses = 0,
+    this.purchaseExpenses = 0,
     required this.from,
     required this.to,
     required this.cashBalance,
@@ -70,6 +74,8 @@ class FinancialOverviewSnapshot {
   final double supplierPayables;
   final double supplierAdvances;
   final double payrollPayables;
+
+  final double receipts, payments, salaryExpenses, purchaseExpenses;
 
   // Period activity.
   final double revenue;
@@ -116,10 +122,10 @@ class FinancialOverviewService {
   }) {
     final where = <String>[];
     if (from != null) {
-      where.add('$alias.date >= ?');
+      where.add('substr($alias.date,1,10) >= substr(?,1,10)');
       args.add(_dayStart(from).toIso8601String());
     }
-    where.add('$alias.date <= ?');
+    where.add('substr($alias.date,1,10) <= substr(?,1,10)');
     args.add(_dayEnd(to).toIso8601String());
     return where.join(' AND ');
   }
@@ -130,12 +136,8 @@ class FinancialOverviewService {
     String query = '',
   }) async {
     final db = await DBService.database;
-    return loadOn(
-      db,
-      from: from,
-      to: to,
-      query: query,
-    );
+    return db
+        .transaction((txn) => loadOn(txn, from: from, to: to, query: query));
   }
 
   static Future<FinancialOverviewSnapshot> loadOn(
@@ -145,6 +147,9 @@ class FinancialOverviewService {
     String query = '',
   }) async {
     final asOf = _dayEnd(to ?? DateTime.now());
+    if (from != null && _dayStart(from).isAfter(asOf)) {
+      throw ArgumentError('بداية الفترة بعد نهايتها');
+    }
 
     final cashBalance = await _accountBalanceAsOf(
       db,
@@ -163,6 +168,12 @@ class FinancialOverviewService {
     final partyBalances = await _partyBalancesAsOf(db, asOf);
     final period = await _periodTotals(db, from: from, to: asOf);
     final moneyFlows = await _periodMoneyFlows(db, from: from, to: asOf);
+    final cashFlows = await cashFlowsOn(db, from: from, to: asOf);
+    final expenseRows = await accountTotalsOn(db, from: from, to: asOf);
+    double expenseFor(String code) => expenseRows
+        .where((r) =>
+            r['code'] == code || r['code'].toString().startsWith('$code.'))
+        .fold(0.0, (n, r) => n + _d(r['debit']) - _d(r['credit']));
     final topAccounts = await _topAccounts(
       db,
       from: from,
@@ -189,6 +200,10 @@ class FinancialOverviewService {
     }
 
     return FinancialOverviewSnapshot(
+      receipts: cashFlows.$1,
+      payments: cashFlows.$2,
+      salaryExpenses: expenseFor('5100'),
+      purchaseExpenses: expenseFor('5005'),
       from: from == null ? null : _dayStart(from),
       to: asOf,
       cashBalance: _money(cashBalance),
@@ -211,6 +226,63 @@ class FinancialOverviewService {
     );
   }
 
+  /// Common trial balance source. LEFT JOIN never sums out-of-period lines.
+  static Future<List<Map<String, Object?>>> accountTotalsOn(DatabaseExecutor db,
+      {DateTime? from, DateTime? to}) async {
+    if (from != null &&
+        _dayStart(from).isAfter(_dayStart(to ?? DateTime.now()))) {
+      throw ArgumentError('بداية الفترة بعد نهايتها');
+    }
+    final args = <Object?>[];
+    final where = _periodWhere(args, from: from, to: to ?? DateTime.now());
+    return db.rawQuery("""
+      SELECT a.id,a.code,a.name,a.type,
+        COALESCE(SUM(CASE WHEN e.id IS NOT NULL THEN l.debit ELSE 0 END),0) debit,
+        COALESCE(SUM(CASE WHEN e.id IS NOT NULL THEN l.credit ELSE 0 END),0) credit
+      FROM accounts a LEFT JOIN gl_lines l ON l.account_id=a.id
+      LEFT JOIN gl_entries e ON e.id=l.entry_id AND $where
+      GROUP BY a.id,a.code,a.name,a.type ORDER BY a.code
+    """, args);
+  }
+
+  /// Cash/bank flows are separate from revenue. Reversals reduce their original
+  /// direction; opening balances and transfers within liquidity are excluded.
+  static Future<(double, double)> cashFlowsOn(DatabaseExecutor db,
+      {DateTime? from, DateTime? to, String? liquidityCode}) async {
+    if (from != null &&
+        _dayStart(from).isAfter(_dayStart(to ?? DateTime.now()))) {
+      throw ArgumentError('بداية الفترة بعد نهايتها');
+    }
+    if (liquidityCode != null &&
+        !const ['1000', '1010'].contains(liquidityCode)) {
+      throw ArgumentError('حساب النقدية غير صالح');
+    }
+    String accountFilter(String alias) => liquidityCode == null
+        ? "($alias.code IN ('1000','1010') OR $alias.code LIKE '1000.%' OR $alias.code LIKE '1010.%')"
+        : "($alias.code='$liquidityCode' OR $alias.code LIKE '$liquidityCode.%')";
+    final args = <Object?>[];
+    final where = _periodWhere(args, from: from, to: to ?? DateTime.now());
+    final rows = await db.rawQuery("""
+      SELECT e.id, COALESCE(o.source,e.source) source,
+        SUM(CASE WHEN ${accountFilter('a')} THEN l.debit-l.credit ELSE 0 END) net,
+        (SELECT SUM(ol.debit-ol.credit) FROM gl_lines ol JOIN accounts oa ON oa.id=ol.account_id
+          WHERE ol.entry_id=e.reversal_of AND ${accountFilter('oa')}) original_net
+      FROM gl_entries e JOIN gl_lines l ON l.entry_id=e.id JOIN accounts a ON a.id=l.account_id
+      LEFT JOIN gl_entries o ON o.id=e.reversal_of WHERE $where GROUP BY e.id
+    """, args);
+    double receipts = 0, payments = 0;
+    for (final r in rows) {
+      if (r['source'].toString().toUpperCase().startsWith('OPENING')) continue;
+      final net = _d(r['net']), direction = _d(r['original_net'] ?? r['net']);
+      if (direction > 0) {
+        receipts += net;
+      } else if (direction < 0) {
+        payments -= net;
+      }
+    }
+    return (_money(receipts), _money(payments));
+  }
+
   static Future<double> _accountBalanceAsOf(
     DatabaseExecutor db, {
     required List<String> codes,
@@ -225,9 +297,13 @@ class FinancialOverviewService {
       FROM gl_lines l
       JOIN gl_entries e ON e.id=l.entry_id
       JOIN accounts a ON a.id=l.account_id
-      WHERE a.code IN ($placeholders)
-        AND e.date <= ?
-    ''', <Object?>[...codes, asOf.toIso8601String()]);
+      WHERE (a.code IN ($placeholders) ${codes.map((_) => 'OR a.code LIKE ?').join(' ')})
+        AND substr(e.date,1,10) <= substr(?,1,10)
+    ''', <Object?>[
+      ...codes,
+      ...codes.map((c) => '$c.%'),
+      asOf.toIso8601String()
+    ]);
     if (rows.isEmpty) return 0.0;
     final debit = _d(rows.first['debit']);
     final credit = _d(rows.first['credit']);
@@ -244,7 +320,7 @@ class FinancialOverviewService {
       JOIN gl_entries e ON e.id=l.entry_id
       JOIN accounts a ON a.id=l.account_id
       WHERE (a.code='2140' OR a.code LIKE '2140.%')
-        AND e.date <= ?
+        AND substr(e.date,1,10) <= substr(?,1,10)
     ''', [asOf.toIso8601String()]);
     return rows.isEmpty ? 0.0 : _d(rows.first['balance']);
   }
@@ -266,7 +342,7 @@ class FinancialOverviewService {
       JOIN gl_entries e ON e.id=v.entry_id
       WHERE v.party_role IN ('CUSTOMER','SUPPLIER')
         AND v.canonical_party_id IS NOT NULL
-        AND e.date <= ?
+        AND substr(e.date,1,10) <= substr(?,1,10)
       GROUP BY v.party_role, v.canonical_party_id
     ''', [asOf.toIso8601String()]);
 

@@ -31,6 +31,7 @@ class CategorySelector extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<InsuranceCategory>(
+              isExpanded: true,
               value: selected,
               decoration: const InputDecoration(
                 labelText: 'اختر الفئة',

@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
+import 'package:yalla_accounts/features/finance/services/liquidity_ledger_service.dart';
 // 📁 lib/features/finance/screens/bank_account_screen.dart
 //
 // شاشة البنك — Bank Account (GL v29)
@@ -63,6 +65,7 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
       }
       await _load();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '$e';
         _loading = false;
@@ -70,7 +73,11 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
     }
   }
 
+  int _loadVersion = 0;
   Future<void> _load() async {
+    if (!mounted) return;
+    if (!mounted) return;
+    final version = ++_loadVersion;
     if (_bankAccountId == null) return;
 
     setState(() {
@@ -79,80 +86,22 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
     });
 
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
 
-      final where = <String>['l.account_id = ?'];
-      final args = <dynamic>[_bankAccountId];
-
-      // فلترة التاريخ على e.date (ISO8601)
-      DateTime? toInclusive;
-      if (_from != null) {
-        where.add('e.date >= ?');
-        args.add(_from!.toIso8601String());
-      }
-      if (_to != null) {
-        toInclusive = DateTime(_to!.year, _to!.month, _to!.day, 23, 59, 59);
-        where.add('e.date <= ?');
-        args.add(toInclusive.toIso8601String());
-      }
-
-      // بحث بالنص شامل
-      if (_query.trim().isNotEmpty) {
-        final s = '%${_query.trim()}%';
-        where.add(
-          '(e.ref LIKE ? OR e.note LIKE ? OR e.source LIKE ? OR e.source_id LIKE ? OR '
-          'a.name LIKE ? OR a.code LIKE ? OR l.invoice_id LIKE ? OR l.repair_id LIKE ?)',
-        );
-        args.addAll([s, s, s, s, s, s, s, s]);
-      }
-
-      // Opening balance قبل from
-      double opening = 0.0;
-      if (_from != null) {
-        final ob = await db.rawQuery('''
-          SELECT IFNULL(SUM(l.debit) - SUM(l.credit),0) AS bal
-          FROM gl_lines l
-          JOIN gl_entries e ON e.id = l.entry_id
-          WHERE l.account_id = ? AND e.date < ?
-        ''', [_bankAccountId, _from!.toIso8601String()]);
-        final v = ob.first['bal'];
-        opening = (v is num) ? v.toDouble() : double.tryParse('$v') ?? 0.0;
-      }
-
-      final sql = StringBuffer('''
-        SELECT 
-          e.id         AS entry_id,
-          e.date       AS date,
-          e.ref        AS ref,
-          e.source     AS source,
-          e.source_id  AS source_id,
-          e.note       AS note,
-          a.code       AS account_code,
-          a.name       AS account_name,
-          l.debit      AS debit,
-          l.credit     AS credit,
-          l.invoice_id AS invoice_id,
-          l.repair_id  AS repair_id
-        FROM gl_lines l
-        JOIN gl_entries e ON e.id = l.entry_id
-        JOIN accounts  a ON a.id = l.account_id
-        WHERE ${where.join(' AND ')}
-        ORDER BY e.date ASC, e.id ASC, l.id ASC
-      ''');
-
-      final maps = await db.rawQuery(sql.toString(), args);
-
-      // تحويل + رصيد تراكمي يبدأ من opening
+      final statement = await LiquidityLedgerService.load(db, _bankAccountId!,
+          from: _from, to: _to, query: _query);
+      final opening = statement.opening;
+      final maps = statement.rows;
       double running = opening;
       final rows = <_Entry>[];
-      double sumD = 0, sumC = 0;
 
       for (final m in maps) {
         final d = (m['debit'] is num) ? (m['debit'] as num).toDouble() : 0.0;
         final c = (m['credit'] is num) ? (m['credit'] as num).toDouble() : 0.0;
-        running += d - c;
-        sumD += d;
-        sumC += c;
+        running = (m['running_balance'] as num).toDouble();
 
         rows.add(
           _Entry(
@@ -179,16 +128,18 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
         );
       }
 
+      if (!mounted || version != _loadVersion) return;
       setState(() {
         _rows = rows;
-        _sumDebit = sumD;
-        _sumCredit = sumC;
+        _sumDebit = statement.debit;
+        _sumCredit = statement.credit;
         _openingBalance = opening; // ✅ تخزين الافتتاحي للواجهة
       });
     } catch (e) {
+      if (!mounted || version != _loadVersion) return;
       setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && version == _loadVersion) setState(() => _loading = false);
     }
   }
 
@@ -201,7 +152,7 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
       lastDate: DateTime(now.year + 1),
       locale: const Locale('ar'),
     );
-    if (d != null) {
+    if (d != null && mounted) {
       setState(() => _from = d);
       _load();
     }
@@ -216,7 +167,7 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
       lastDate: DateTime(now.year + 1),
       locale: const Locale('ar'),
     );
-    if (d != null) {
+    if (d != null && mounted) {
       setState(() => _to = d);
       _load();
     }
@@ -233,7 +184,7 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isMobile = !Responsive.isDesktop(context);
 
     final header = Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -247,8 +198,21 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
           )
         ],
       ),
-      child: AdaptiveRow(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          FinancialPeriodFilter(
+              from: _from,
+              to: _to,
+              onChanged: (range) {
+                setState(() {
+                  _from = range.start;
+                  _to = range.end;
+                });
+                _load();
+              }),
           if (isMobile)
             IconButton(
               icon: const Icon(Icons.menu, color: Colors.white),
@@ -259,7 +223,6 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
             style: TextStyle(
                 color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          const Spacer(),
           _ChipButton(
               label: _from == null ? 'من' : _df.format(_from!),
               icon: Icons.date_range,
@@ -369,12 +332,12 @@ class _BankAccountScreenState extends State<BankAccountScreen> {
           if (!isMobile) const YallaSidebar(currentRoute: '/finance/bank'),
           Expanded(
             child: SafeArea(
-              child: Column(
-                children: [
-                  header,
-                  totalsBar,
-                  Expanded(child: content),
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerScrolled) => [
+                  SliverToBoxAdapter(child: header),
+                  SliverToBoxAdapter(child: totalsBar),
                 ],
+                body: content,
               ),
             ),
           ),
@@ -606,7 +569,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(

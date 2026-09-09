@@ -10,6 +10,12 @@ class ReceiptTables {
 
   static Future<void> createAllTables(DatabaseExecutor db) async {
     await db.execute('''
+      CREATE TABLE IF NOT EXISTS receipt_requests(
+        operation_id TEXT PRIMARY KEY, request_json TEXT NOT NULL,
+        receipt_number INTEGER NOT NULL UNIQUE)
+    ''');
+
+    await db.execute('''
       CREATE TABLE IF NOT EXISTS receipt_headers (
         receipt_number INTEGER PRIMARY KEY,
         client_id INTEGER NOT NULL,
@@ -50,6 +56,28 @@ class ReceiptTables {
         created_at TEXT NOT NULL
       )
     ''');
+
+    // Financial document history is append-only; reversal changes only status.
+    for (final table in [
+      'receipt_headers',
+      'receipt_allocations',
+      'customer_credit_allocations',
+      'receipt_requests'
+    ]) {
+      await db.execute('''CREATE TRIGGER IF NOT EXISTS ${table}_no_delete
+        BEFORE DELETE ON $table BEGIN
+        SELECT RAISE(ABORT, 'Financial receipt history cannot be deleted'); END''');
+      if (table != 'receipt_headers') {
+        await db.execute('''CREATE TRIGGER IF NOT EXISTS ${table}_no_update
+          BEFORE UPDATE ON $table BEGIN
+          SELECT RAISE(ABORT, 'Financial receipt history is immutable'); END''');
+      }
+    }
+    await db
+        .execute('''CREATE TRIGGER IF NOT EXISTS receipt_header_values_immutable
+      BEFORE UPDATE OF client_id,date,method,total_amount,allocated_amount,
+        credit_amount,reversal_of_receipt_number,created_at ON receipt_headers
+      BEGIN SELECT RAISE(ABORT, 'Receipt values are immutable; reverse the receipt'); END''');
 
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_receipt_headers_client ON receipt_headers(client_id)',

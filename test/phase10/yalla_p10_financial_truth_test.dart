@@ -39,11 +39,11 @@ void main() {
       expect(source, isNot(contains("'isArchived': paidSum >= fileValue")));
     });
 
-    test('Dashboard separates recognized revenue from collections', () {
-      final source = _read('lib/features/home/screens/dashboard_screen.dart');
-      expect(source, contains("a.code='4000'"));
-      expect(source, contains("e.source='PAYMENT'"));
-      expect(source, contains('monthlyIncomeTotal = monthlyIncomeFiles;'));
+    test('Dashboard uses canonical financial services', () {
+      final source =
+          _read('lib/features/home/services/daily_dashboard_service.dart');
+      expect(source, contains('FinancialOverviewService.loadOn'));
+      expect(source, contains('RepairFinancialTruthService.paidByRepairSql'));
       expect(source, isNot(contains('SUM(fileValue + incomeAmount)')));
     });
 
@@ -60,9 +60,9 @@ void main() {
       expect(ledger, isNot(contains('fileValue - paidAmount')));
       expect(report, isNot(contains('fileValue - paidAmount')));
       expect(ledger, contains("a.code='4000'"));
-      expect(ledger, contains('SUM(amount) AS paid'));
-      expect(report, contains('SUM(amount) AS paid'));
-      expect(stats, contains('FROM payments'));
+      expect(ledger, contains('RepairFinancialTruthService.paidByRepairSql'));
+      expect(report, contains('RepairFinancialTruthService.paidByRepairSql'));
+      expect(stats, contains('RepairFinancialTruthService.paidByRepairSql'));
     });
 
     test('Customer AR view is GL-based', () {
@@ -75,7 +75,7 @@ void main() {
       expect(views, contains("('CLIENT','CUSTOMER')"));
       expect(views, contains('COALESCE(gl_ar.balance_due,0) AS balance_due'));
       expect(screen, contains('DBService.getClientAR()'));
-      expect(screen, contains("m['balance_due']"));
+      expect(screen, contains('p.receivableBalance'));
       expect(
         screen,
         contains('_filtered.fold(0.0, (s, r) => s + r.balance)'),
@@ -193,9 +193,12 @@ void main() {
           code TEXT
         )
       ''');
+      await db.execute(
+          'CREATE TABLE gl_entries(id INTEGER PRIMARY KEY, source TEXT, reversal_of INTEGER)');
       await db.execute('''
         CREATE TABLE gl_lines(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          entry_id INTEGER,
           account_id INTEGER,
           debit REAL,
           credit REAL,
@@ -218,6 +221,8 @@ void main() {
     });
     await db.insert('accounts', {'id': 1, 'code': '1200.C1'});
     await db.insert('accounts', {'id': 2, 'code': '4000'});
+    await db.insert('gl_entries', {'id': 1, 'source': 'INVOICE'});
+    await db.insert('gl_entries', {'id': 2, 'source': 'PAYMENT'});
 
     await db.insert('payments', {
       'id': 'P1',
@@ -228,6 +233,7 @@ void main() {
     });
 
     await db.insert('gl_lines', {
+      'entry_id': 1,
       'account_id': 1,
       'debit': 1000.0,
       'credit': 0.0,
@@ -236,12 +242,14 @@ void main() {
       'party_id': '1',
     });
     await db.insert('gl_lines', {
+      'entry_id': 1,
       'account_id': 2,
       'debit': 0.0,
       'credit': 1000.0,
       'repair_id': 'R1',
     });
     await db.insert('gl_lines', {
+      'entry_id': 2,
       'account_id': 1,
       'debit': 0.0,
       'credit': 400.0,
@@ -273,6 +281,7 @@ void main() {
       'isIncome': 1,
     });
     await db.insert('gl_lines', {
+      'entry_id': 2,
       'account_id': 1,
       'debit': 0.0,
       'credit': 800.0,

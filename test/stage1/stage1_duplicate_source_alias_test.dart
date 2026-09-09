@@ -74,6 +74,7 @@ void main() {
     try {
       final first = await AccountingTables.postEntryGLOn(
         ex: db,
+        createdBy: 'test-accountant',
         date: DateTime(2026, 9, 7),
         source: 'PURCHASE_INVOICE',
         sourceId: 'P-1',
@@ -81,6 +82,7 @@ void main() {
       );
       final second = await AccountingTables.postEntryGLOn(
         ex: db,
+        createdBy: 'test-accountant',
         date: DateTime(2026, 9, 7),
         source: 'PURCHASE',
         sourceId: 'P-1',
@@ -110,6 +112,7 @@ void main() {
     try {
       await AccountingTables.postEntryGLOn(
         ex: db,
+        createdBy: 'test-accountant',
         date: DateTime(2026, 9, 7),
         source: 'PURCHASE_INVOICE',
         sourceId: 'P-2',
@@ -118,6 +121,7 @@ void main() {
       await expectLater(
         AccountingTables.postEntryGLOn(
           ex: db,
+          createdBy: 'test-accountant',
           date: DateTime(2026, 9, 7),
           source: 'PURCHASE',
           sourceId: 'P-2',

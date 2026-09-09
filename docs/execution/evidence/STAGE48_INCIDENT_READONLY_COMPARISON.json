@@ -1,0 +1,82 @@
+[
+  {
+    "path": "D:\\YallaAccounts\\yalla_accounts.db",
+    "mtime_utc": "2026-09-09T12:36:33.037084+00:00",
+    "version": 72,
+    "counts": {
+      "clients": 26,
+      "repairs": 115,
+      "accounts": 97,
+      "gl_entries": 445,
+      "gl_lines": 1040,
+      "payments": 79,
+      "vouchers": 55,
+      "receipt_headers": 0,
+      "receipt_allocations": 0,
+      "customer_credit_allocations": 0,
+      "purchase_invoices": 61,
+      "purchase_invoice_lines": 209,
+      "purchase_payments": 0,
+      "cheques": 1,
+      "invoices": 113,
+      "invoice_settlements": 0
+    },
+    "totals": {
+      "repairs": {
+        "paidAmount": 63800.0,
+        "fileValue": 372110.0,
+        "finalApprovedAmount": 372110.0
+      },
+      "gl_lines": {
+        "debit": 1305517.93555,
+        "credit": 1305517.93555
+      },
+      "payments": {
+        "amount": 121130.0
+      },
+      "vouchers": {
+        "amount": 61202.98
+      },
+      "receipt_headers": {
+        "total_amount": 0
+      },
+      "receipt_allocations": {
+        "amount": 0
+      },
+      "customer_credit_allocations": {
+        "amount": 0
+      },
+      "purchase_invoices": {
+        "total": 0.0
+      },
+      "purchase_invoice_lines": {
+        "total": 75816.97555
+      },
+      "purchase_payments": {
+        "amount": 0
+      },
+      "cheques": {
+        "amount": 2000.0
+      },
+      "invoices": {
+        "total": 337560.0
+      }
+    }
+  },
+  {
+    "path": "E:\\flutter_projects\\yalla_accounts\\_commercial_audit\\AUDIT_C_20260909_005442\\db_copies\\REAL_DB_AUDIT_COPY.db",
+    "mtime_utc": "2026-09-08T21:54:32.950680+00:00",
+    "version": 0,
+    "counts": {},
+    "totals": {},
+    "comparison_to_live": {}
+  },
+  {
+    "path": "E:\\flutter_projects\\yalla_accounts\\_commercial_audit\\AUDIT_C_20260909_005018\\db_copies\\REAL_DB_AUDIT_COPY.db",
+    "mtime_utc": "2026-09-08T21:50:32.950795+00:00",
+    "version": 0,
+    "counts": {},
+    "totals": {},
+    "comparison_to_live": {}
+  }
+]

@@ -216,9 +216,10 @@ class HRTables {
   static Future<double> getEmployeeAdvancesTotal(
       DatabaseExecutor db, String employeeId) async {
     final result = await db.rawQuery('''
-      SELECT SUM(amount) as total FROM employee_advances 
-      WHERE employee_id = ? AND type = 'ADVANCE'
-    ''', [employeeId]);
+      SELECT COALESCE(SUM(l.debit-l.credit),0) as total
+      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
+      WHERE a.code = ?
+    ''', ['1120.E$employeeId']);
 
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }

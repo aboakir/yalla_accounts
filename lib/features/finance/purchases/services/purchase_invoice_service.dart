@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
@@ -150,7 +151,7 @@ class PurchaseInvoiceService {
     }
 
     final now = DateTime.now().toIso8601String();
-    await db.transaction((tx) async {
+    await SyncFoundationService.transaction(db, (tx) async {
       await tx.insert(_tableHeader, {
         'id': invoiceId,
         'supplier_id': supplierId,
@@ -204,24 +205,25 @@ class PurchaseInvoiceService {
         where: 'id = ?',
         whereArgs: [invoiceId],
       );
+      await AuditTrailService.log(
+        executor: tx,
+        actorUserId: p16Actor?.id,
+        actorRole: p16Actor?.role,
+        action: 'PURCHASE_INVOICE_CREATED',
+        entityType: 'purchase_invoice',
+        entityId: invoiceId,
+        after: {
+          'supplier_id': supplierId,
+          'date': date.toIso8601String(),
+          'total': total,
+          'method': m,
+          'purchase_type': type,
+          'line_count': normalized.length,
+        },
+        reason: note,
+      );
     });
 
-    await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
-      actorRole: p16Actor?.role,
-      action: 'PURCHASE_INVOICE_CREATED',
-      entityType: 'purchase_invoice',
-      entityId: invoiceId,
-      after: {
-        'supplier_id': supplierId,
-        'date': date.toIso8601String(),
-        'total': total,
-        'method': m,
-        'purchase_type': type,
-        'line_count': normalized.length,
-      },
-      reason: note,
-    );
     return invoiceId;
   }
 

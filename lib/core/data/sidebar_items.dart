@@ -114,6 +114,11 @@ final List<MenuItem> sidebarItems = [
     icon: Icons.group,
     children: [
       MenuItem(
+        title: 'الجهات وكشف الحساب الشامل',
+        route: '/parties',
+        icon: Icons.contact_page,
+      ),
+      MenuItem(
         title: 'قائمة العملاء',
         route: AppRoutes.clients,
         icon: Icons.people,

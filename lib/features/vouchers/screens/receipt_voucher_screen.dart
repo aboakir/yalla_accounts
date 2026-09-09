@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 // ---------------------------------------------------------------------------
 // 📁 lib/features/finance/vouchers/receipt_voucher_screen.dart
 // ReceiptVoucherScreen — FINAL 2025 CLEAN VERSION
@@ -468,6 +469,8 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
 // ★★★ النسخة المصححة من _saveVoucher — لا تحتوي partyId وتضيف isIncome ★★★
 // ============================================================================
 
+  final String _operationId = const Uuid().v4();
+
   Future<void> _saveVoucher() async {
     if (_isSaving) return;
     if (selectedClientId == null) return _snack("اختر العميل");
@@ -496,6 +499,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     if (mounted) setState(() => _isSaving = true);
     try {
       final result = await PaymentService.insertCanonicalReceipt(
+        operationId: _operationId,
         clientId: clientId,
         customerName: _selectedClientName(),
         method: payMethod,

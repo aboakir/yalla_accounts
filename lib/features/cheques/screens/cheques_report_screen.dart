@@ -913,6 +913,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
                   SizedBox(
                     width: 200,
                     child: DropdownButtonFormField<String?>(
+                      isExpanded: true,
                       decoration: const InputDecoration(labelText: "نوع الشيك"),
                       value: typeFilter,
                       items: const [
@@ -935,6 +936,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
                   SizedBox(
                     width: 200,
                     child: DropdownButtonFormField<String?>(
+                      isExpanded: true,
                       decoration:
                           const InputDecoration(labelText: "حالة الشيك"),
                       value: statusFilter,
@@ -1111,8 +1113,9 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
 
   // فلاتر ذكية (زر واحد)
   Widget _quickFiltersRow() {
-    return AdaptiveRow(
-      mainAxisAlignment: MainAxisAlignment.end,
+    return Wrap(
+      alignment: WrapAlignment.end,
+      runSpacing: 8,
       children: [
         _quickBtn("3 أيام", Colors.orange, () {
           final now = DateTime.now();
@@ -1310,8 +1313,9 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
 
   // أزرار التصدير
   Widget _exports() {
-    return AdaptiveRow(
-      mainAxisAlignment: MainAxisAlignment.end,
+    return Wrap(
+      alignment: WrapAlignment.end,
+      runSpacing: 8,
       children: [
         ElevatedButton.icon(
           icon: const Icon(Icons.picture_as_pdf),

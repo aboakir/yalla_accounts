@@ -26,9 +26,12 @@ void main() {
     ''');
     await db
         .execute('CREATE TABLE accounts(id INTEGER PRIMARY KEY, code TEXT)');
+    await db.execute(
+        'CREATE TABLE gl_entries(id INTEGER PRIMARY KEY, source TEXT, reversal_of INTEGER)');
     await db.execute('''
       CREATE TABLE gl_lines(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entry_id INTEGER,
         account_id INTEGER,
         debit REAL,
         credit REAL,
@@ -235,7 +238,8 @@ void main() {
     expect(card, contains('تكلفة وربحية الملف'));
     expect(card, contains('تخصيص مشتريات'));
     expect(card, contains('الهدر ضمن التكلفة'));
-    expect(purchase, contains('await db.transaction((tx) async'));
+    expect(purchase,
+        contains('await SyncFoundationService.transaction(db, (tx) async'));
     expect(purchase, contains('DBService.postEntryGLOn'));
     expect(
       purchase,
@@ -245,7 +249,11 @@ void main() {
     expect(tables, contains('category TEXT'));
     expect(paint, contains("purchaseType: 'PAINT'"));
     expect(paint, isNot(contains('supplierId: 9999')));
-    expect(provider, contains('repair_cost_entries rc'));
-    expect(provider, contains('اعكس تخصيصات التكلفة أولًا'));
+    expect(provider, contains('FinancialVoidService.voidInvoice'));
+    final cancellation =
+        File('lib/features/finance/services/financial_void_service.dart')
+            .readAsStringSync();
+    expect(cancellation, contains('repair_cost_entries rc'));
+    expect(cancellation, contains('Reverse repair cost allocations'));
   });
 }

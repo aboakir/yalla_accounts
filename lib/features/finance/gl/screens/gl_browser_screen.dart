@@ -347,22 +347,28 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
                 setState(() => _source = (v == null || v.isEmpty) ? null : v),
           ),
           // الحساب
-          DropdownButton<int>(
-            value: accountValue,
-            hint: const Text('All accounts'),
-            items: <DropdownMenuItem<int>>[
-              const DropdownMenuItem<int>(
-                  value: -1, child: Text('All accounts')),
-              ..._accounts.map(
-                (a) => DropdownMenuItem<int>(
-                    value: a.id, child: Text('${a.code} — ${a.name}')),
-              ),
-            ],
-            onChanged: (v) {
-              setState(() => _accountId = (v == null || v == -1) ? null : v);
-              _linesCache.clear();
-            },
-          ),
+          SizedBox(
+              width: MediaQuery.sizeOf(context).width < 430
+                  ? MediaQuery.sizeOf(context).width - 56
+                  : 360,
+              child: DropdownButton<int>(
+                isExpanded: true,
+                value: accountValue,
+                hint: const Text('All accounts'),
+                items: <DropdownMenuItem<int>>[
+                  const DropdownMenuItem<int>(
+                      value: -1, child: Text('All accounts')),
+                  ..._accounts.map(
+                    (a) => DropdownMenuItem<int>(
+                        value: a.id, child: Text('${a.code} — ${a.name}')),
+                  ),
+                ],
+                onChanged: (v) {
+                  setState(
+                      () => _accountId = (v == null || v == -1) ? null : v);
+                  _linesCache.clear();
+                },
+              )),
           // تطبيق/تصفير
           ElevatedButton.icon(
               icon: const Icon(Icons.search),

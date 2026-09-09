@@ -224,9 +224,15 @@ class LicenseEnvelopeVerifier {
     }
 
     final operationalStatus =
-        (payload['operational_status']?.toString() ?? 'ACTIVE').toUpperCase();
+        (payload['operational_status']?.toString() ?? 'ACTIVE')
+            .trim()
+            .toUpperCase();
     const allowedOperationalStatuses = <String>{
       'ACTIVE',
+      'TRIAL',
+      'FROZEN',
+      'EXCEPTION',
+      'DEMO',
       'GRACE',
       'SUSPENDED',
       'EXPIRED',

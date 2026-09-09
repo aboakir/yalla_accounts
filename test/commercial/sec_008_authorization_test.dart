@@ -126,7 +126,7 @@ void main() {
           id: '',
           name: 'manager008',
           email: 'manager008@example.test',
-          role: RoleKeys.manager,
+          role: RoleKeys.admin,
           status: 'active',
           createdAt: DateTime.now(),
         ),
@@ -139,7 +139,7 @@ void main() {
         whereArgs: ['manager008'],
       ))
           .single;
-      expect(managerRow['role'], RoleKeys.manager);
+      expect(managerRow['role'], RoleKeys.admin);
       expect(managerRow['is_owner'], 0);
       expect(managerRow['must_change_password'], 1);
       expect(
@@ -175,7 +175,7 @@ void main() {
             id: '',
             name: 'forbidden008',
             email: '',
-            role: RoleKeys.manager,
+            role: RoleKeys.admin,
             status: 'active',
             createdAt: DateTime.now(),
           ),

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/reports/screens/trial_balance_screen.dart
 //
 // ميزان المراجعة — Trial Balance (GL v30)
@@ -66,6 +67,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _from = DateTime(d.year, d.month, d.day));
       _load();
@@ -81,6 +83,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _to = DateTime(d.year, d.month, d.day, 23, 59, 59));
       _load();
@@ -148,6 +151,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -157,6 +161,9 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
     });
 
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
 
       // شروط التاريخ داخل JOIN للحفاظ على LEFT JOIN
@@ -164,11 +171,11 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       final joinArgs = <Object?>[];
 
       if (_from != null) {
-        joinDateConds.add('e.date >= ?');
+        joinDateConds.add('substr(e.date,1,10) >= substr(?,1,10)');
         joinArgs.add(_from!.toIso8601String());
       }
       if (_to != null) {
-        joinDateConds.add('e.date <= ?');
+        joinDateConds.add('substr(e.date,1,10) <= substr(?,1,10)');
         joinArgs.add(_to!.toIso8601String());
       }
       final joinDateSql =
@@ -179,8 +186,8 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           a.id       AS account_id,
           a.code     AS code,
           a.name     AS name,
-          IFNULL(SUM(l.debit), 0)  AS sdebit,
-          IFNULL(SUM(l.credit), 0) AS scredit
+          IFNULL(SUM(CASE WHEN e.id IS NOT NULL THEN l.debit ELSE 0 END), 0)  AS sdebit,
+          IFNULL(SUM(CASE WHEN e.id IS NOT NULL THEN l.credit ELSE 0 END), 0) AS scredit
         FROM accounts a
         LEFT JOIN gl_lines   l ON l.account_id = a.id
         LEFT JOIN gl_entries e ON e.id = l.entry_id $joinDateSql
@@ -250,7 +257,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isMobile = !Responsive.isDesktop(context);
 
     final header = Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -264,7 +271,10 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           )
         ],
       ),
-      child: AdaptiveRow(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (isMobile)
             IconButton(
@@ -279,7 +289,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const Spacer(),
+
           // الرصيد الصافي
           AdaptiveRow(
             children: [
@@ -294,8 +304,21 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           ),
           const SizedBox(width: 8),
           // إخفاء الحسابات الصفرية
-          AdaptiveRow(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              FinancialPeriodFilter(
+                  from: _from,
+                  to: _to,
+                  onChanged: (range) {
+                    setState(() {
+                      _from = range.start;
+                      _to = range.end;
+                    });
+                    _load();
+                  }),
               const Text('إخفاء الصفوف الصفرية',
                   style: TextStyle(color: Colors.white)),
               Switch(
@@ -419,25 +442,24 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
                     subtitle:
                         'عدّل نطاق التاريخ أو أزل البحث لإظهار جميع الحسابات.',
                   )
-                : (Responsive.isMobile(context) ? _cards() : _table());
+                : (!Responsive.isDesktop(context) ? _cards() : _table());
 
     return Scaffold(
-      drawer: Responsive.isMobile(context)
+      drawer: !Responsive.isDesktop(context)
           ? const Drawer(child: YallaSidebar())
           : null,
       body: AdaptiveRow(
         children: [
-          if (!Responsive.isMobile(context))
+          if (Responsive.isDesktop(context))
             const YallaSidebar(currentRoute: '/reports/trial-balance'),
           Expanded(
             child: SafeArea(
-              child: Column(
-                children: [
-                  header,
-                  totals,
-                  Expanded(child: content),
-                ],
-              ),
+              child: NestedScrollView(
+                  headerSliverBuilder: (_, __) => [
+                        SliverToBoxAdapter(child: header),
+                        SliverToBoxAdapter(child: totals)
+                      ],
+                  body: content),
             ),
           ),
         ],

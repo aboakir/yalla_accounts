@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:flutter/material.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -6,14 +8,15 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
-class ActivationScreen extends StatefulWidget {
-  const ActivationScreen({super.key});
+class ActivationScreen extends ConsumerStatefulWidget {
+  const ActivationScreen({super.key, this.service});
+  final ActivationService? service;
 
   @override
-  State<ActivationScreen> createState() => _ActivationScreenState();
+  ConsumerState<ActivationScreen> createState() => _ActivationScreenState();
 }
 
-class _ActivationScreenState extends State<ActivationScreen> {
+class _ActivationScreenState extends ConsumerState<ActivationScreen> {
   final _codeController = TextEditingController();
   late final ActivationService _activationService;
   bool _busy = false;
@@ -22,7 +25,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
   @override
   void initState() {
     super.initState();
-    _activationService = ActivationService();
+    _activationService = widget.service ?? ActivationService();
   }
 
   Future<void> _activate() async {
@@ -38,12 +41,13 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
     try {
       final license = await _activationService.activateFirstInstallation(code);
+      final existing = await ref.read(userServiceProvider).hasAnyUsers();
       if (!mounted) return;
       setState(() {
         _message = 'تم التفعيل بنجاح حتى ${_date(license.expiresAt)}.';
       });
-      AppRoutes.navigatorKey.currentState?.pushReplacementNamed(
-        AppRoutes.register,
+      Navigator.of(context).pushReplacementNamed(
+        existing ? AppRoutes.login : AppRoutes.register,
       );
     } catch (error) {
       if (!mounted) return;
@@ -56,8 +60,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
   String _friendlyMessage(Object error) {
     final text = error.toString();
     if (text.contains('not configured')) {
-      return 'إعدادات التفعيل الآمن غير مكتملة في هذه النسخة. '
-          'يجب بناء التطبيق بعنوان خادم Yalla وبصمة مفتاح التحقق المعتمد.';
+      return 'التفعيل غير متاح في هذه النسخة. اطلب نسخة مهيّأة من فريق Yalla.';
     }
     if (text.contains('Internet connection') || text.contains('timed out')) {
       return 'تعذر الاتصال بخادم Yalla. تحقق من الإنترنت ثم أعد المحاولة.';
@@ -143,7 +146,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
-                      onPressed: _busy ? null : _activate,
+                      onPressed: _busy || !configured ? null : _activate,
                       icon: _busy
                           ? const SizedBox(
                               width: 18,
@@ -153,6 +156,13 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           : const Icon(Icons.lock_open_outlined),
                       label: Text(_busy ? 'جارٍ التحقق...' : 'تفعيل الجهاز'),
                     ),
+                    TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context)
+                                .pushNamedAndRemoveUntil(
+                                    AppRoutes.login, (_) => false),
+                        child: const Text('العودة إلى تسجيل الدخول')),
                     if (_message != null) ...[
                       const SizedBox(height: 16),
                       Text(
@@ -164,7 +174,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     if (!configured) ...[
                       const SizedBox(height: 18),
                       const Text(
-                        'ملاحظة للمطور: يلزم YALLA_LICENSING_BASE_URL عبر --dart-define عند بناء النسخة التجارية.',
+                        'التفعيل غير متاح في هذه النسخة. تواصل مع فريق Yalla للحصول على نسخة مهيّأة.',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 12, color: Colors.black45),
                       ),

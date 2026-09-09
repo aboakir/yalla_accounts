@@ -21,6 +21,9 @@ class DeviceUnlockService {
 
   static const _userKey = 'yalla_device_unlock_user_v1';
   static const _pinHashKey = 'yalla_device_unlock_pin_hash_v1';
+  static const _failedPinKey = 'yalla_device_unlock_failed_pin_v1';
+  static const _pinLockedUntilKey = 'yalla_device_unlock_pin_locked_until_v1';
+
   static const _biometricKey = 'yalla_device_unlock_biometric_v1';
 
   Future<bool> isConfiguredFor(String userId) async {
@@ -44,6 +47,8 @@ class DeviceUnlockService {
           'Biometric authentication is not available on this device.');
     }
 
+    await _delete(_failedPinKey);
+    await _delete(_pinLockedUntilKey);
     await _write(_userKey, userId);
     await _write(_pinHashKey, PasswordHasher.hash(normalized));
     await _write(_biometricKey, enableBiometric ? '1' : '0');
@@ -56,7 +61,29 @@ class DeviceUnlockService {
     if (!await isConfiguredFor(userId)) return false;
     final hash = await _read(_pinHashKey);
     if (hash == null) return false;
-    return PasswordHasher.verify(pin.trim(), hash).isValid;
+    final lockedUntil =
+        DateTime.tryParse(await _read(_pinLockedUntilKey) ?? '');
+    if (lockedUntil != null && lockedUntil.isAfter(DateTime.now().toUtc())) {
+      return false;
+    }
+    final valid = PasswordHasher.verify(pin.trim(), hash).isValid;
+    if (valid) {
+      await _delete(_failedPinKey);
+      await _delete(_pinLockedUntilKey);
+    } else {
+      final attempts =
+          (int.tryParse(await _read(_failedPinKey) ?? '') ?? 0) + 1;
+      await _write(_failedPinKey, attempts.toString());
+      if (attempts >= 5) {
+        await _write(
+            _pinLockedUntilKey,
+            DateTime.now()
+                .toUtc()
+                .add(const Duration(minutes: 15))
+                .toIso8601String());
+      }
+    }
+    return valid;
   }
 
   Future<bool> biometricEnabledFor(String userId) async {
@@ -92,6 +119,8 @@ class DeviceUnlockService {
   }
 
   Future<void> clear() async {
+    await _delete(_failedPinKey);
+    await _delete(_pinLockedUntilKey);
     await _delete(_userKey);
     await _delete(_pinHashKey);
     await _delete(_biometricKey);

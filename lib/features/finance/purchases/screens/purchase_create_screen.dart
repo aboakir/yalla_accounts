@@ -505,14 +505,16 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                         const Divider(height: 1),
                         Padding(
                           padding: const EdgeInsets.all(8),
-                          child: AdaptiveRow(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.spaceBetween,
                             children: [
                               OutlinedButton.icon(
                                 icon: const Icon(Icons.add),
                                 label: const Text("إضافة بند"),
                                 onPressed: _addLine,
                               ),
-                              const Spacer(),
                               Text(
                                 "الإجمالي: ${_amountCtrl.text} ${MoneyFormatter.symbol}",
                                 style: const TextStyle(

@@ -189,6 +189,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
                       SizedBox(
                         width: 180,
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           value: _type,
                           items: const [
                             DropdownMenuItem(value: 'all', child: Text('الكل')),
@@ -209,6 +210,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
                       SizedBox(
                         width: 180,
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           value: _method,
                           items: const [
                             DropdownMenuItem(value: 'all', child: Text('الكل')),
@@ -242,6 +244,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
                       SizedBox(
                         width: 140,
                         child: DropdownButtonFormField<int>(
+                          isExpanded: true,
                           value: _limit,
                           items: const [
                             DropdownMenuItem(value: 100, child: Text('100')),

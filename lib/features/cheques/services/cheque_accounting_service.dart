@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // -----------------------------------------------------------------------------
 // lib/features/cheques/services/cheque_accounting_service.dart
 // P0.008 — one canonical cheque lifecycle / accounting service
@@ -221,7 +222,8 @@ class ChequeAccountingService {
     );
     final beforeStatus =
         beforeRows.isEmpty ? null : beforeRows.first['status']?.toString();
-    final result = await db.transaction<Cheque>(
+    final result = await SyncFoundationService.transaction<Cheque>(
+      db,
       (txn) => transitionStatusOnTxn(
         txn: txn,
         chequeId: chequeId,
@@ -332,7 +334,8 @@ class ChequeAccountingService {
         await AuthorizationGuard.require(PermissionKeys.chequeManage);
     final db = await DBService.database;
 
-    final result = await db.transaction<Cheque>((txn) async {
+    final result =
+        await SyncFoundationService.transaction<Cheque>(db, (txn) async {
       await ChequeTables.ensureChequesSchema(txn);
 
       final rows = await txn.query(
@@ -454,6 +457,14 @@ class ChequeAccountingService {
     DatabaseExecutor db,
     Cheque cheque,
   ) async {
+    if ((cheque.sourceType ?? '').toUpperCase() == 'VOUCHER') {
+      final rows = await db.query('vouchers',
+          columns: ['reference'],
+          where: 'id=?',
+          whereArgs: [cheque.sourceId],
+          limit: 1);
+      return {'invoice_id': rows.isEmpty ? null : rows.first['reference']};
+    }
     if ((cheque.sourceType ?? '').toUpperCase() != 'PAYMENT' ||
         (cheque.sourceId ?? '').trim().isEmpty) {
       return const <String, Object?>{};
@@ -617,6 +628,7 @@ class ChequeAccountingService {
             'credit': cheque.amount,
             'party_type': cheque.supplierPid != null ? 'SUPPLIER' : null,
             'party_id': cheque.supplierPid,
+            'invoice_id': paymentDimensions['invoice_id'],
             'cheque_id': cheque.id,
           },
         ];
@@ -768,17 +780,20 @@ class ChequeAccountingService {
     );
     if (existing.isNotEmpty) return _asInt(existing.first['id']);
 
-    return db.insert(
-      'accounts',
-      {
-        'code': code,
-        'name': supplier.first['name']?.toString() ?? 'Supplier $supplierId',
-        'type': 'LIABILITY',
-        'normal_balance': 'CREDIT',
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    return SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              'accounts',
+              {
+                'code': code,
+                'name': supplier.first['name']?.toString() ??
+                    'Supplier $supplierId',
+                'type': 'LIABILITY',
+                'normal_balance': 'CREDIT',
+                'created_at': DateTime.now().toIso8601String(),
+              },
+              conflictAlgorithm: ConflictAlgorithm.abort,
+            ));
   }
 
   static Future<int> _ensureClientAr(
@@ -804,17 +819,19 @@ class ChequeAccountingService {
     );
     if (existing.isNotEmpty) return _asInt(existing.first['id']);
 
-    return db.insert(
-      'accounts',
-      {
-        'code': code,
-        'name': 'عميل: ${client.first['name']}',
-        'type': 'ASSET',
-        'normal_balance': 'DEBIT',
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    return SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              'accounts',
+              {
+                'code': code,
+                'name': 'عميل: ${client.first['name']}',
+                'type': 'ASSET',
+                'normal_balance': 'DEBIT',
+                'created_at': DateTime.now().toIso8601String(),
+              },
+              conflictAlgorithm: ConflictAlgorithm.abort,
+            ));
   }
 
   static Future<void> _event(
@@ -827,18 +844,20 @@ class ChequeAccountingService {
     String? note,
     DateTime? eventDate,
   }) async {
-    await db.insert(
-      'cheque_events',
-      {
-        'cheque_id': chequeId,
-        'event_type': type,
-        'from_status': fromStatus,
-        'to_status': toStatus,
-        'event_date': (eventDate ?? DateTime.now()).toIso8601String(),
-        'gl_entry_id': glEntryId,
-        'note': note,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              'cheque_events',
+              {
+                'cheque_id': chequeId,
+                'event_type': type,
+                'from_status': fromStatus,
+                'to_status': toStatus,
+                'event_date': (eventDate ?? DateTime.now()).toIso8601String(),
+                'gl_entry_id': glEntryId,
+                'note': note,
+                'created_at': DateTime.now().toIso8601String(),
+              },
+            ));
   }
 }

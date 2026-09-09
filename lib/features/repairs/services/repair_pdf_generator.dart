@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/pdf/arabic_pdf_text.dart';
 // 📁 lib/features/repairs/services/repair_pdf_generator.dart
 //
 // النسخة الجديدة — مرتبطة مباشرة بإعدادات الورشة (WorkshopSettings)
@@ -16,7 +17,6 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -47,7 +47,7 @@ class RepairPdfGenerator {
     );
 
     final pdf = pw.Document(theme: theme);
-    final dateFmt = DateFormat('yyyy-MM-dd');
+    final dateFmt = DateFormat('yyyy-MM-dd', 'en');
 
     // ============================
     // Load Workshop Settings
@@ -80,7 +80,9 @@ class RepairPdfGenerator {
     pw.MemoryImage? workshopLogo;
     try {
       if (ws.logoPath != null && ws.logoPath!.isNotEmpty) {
-        final file = File(ws.logoPath!);
+        final resolved =
+            await YallaStorageService.resolveExistingPath(ws.logoPath!);
+        final file = File(resolved ?? ws.logoPath!);
         if (file.existsSync()) {
           workshopLogo = pw.MemoryImage(file.readAsBytesSync());
         }
@@ -90,30 +92,22 @@ class RepairPdfGenerator {
     // ============================
     // P15 document truth
     // ============================
-    RepairLineSnapshot? canonicalLines;
-    try {
-      canonicalLines = await RepairLineBridge.load(repair.id);
-    } catch (_) {}
-
-    final works = (canonicalLines?.works.isNotEmpty ?? false)
-        ? canonicalLines!.works
+    final canonicalLines = await RepairLineBridge.load(repair.id);
+    final works = canonicalLines.count > 0
+        ? canonicalLines.works
         : _normalizeLegacyLines(repair.works);
-    final parts = (canonicalLines?.parts.isNotEmpty ?? false)
-        ? canonicalLines!.parts
+    final parts = canonicalLines.count > 0
+        ? canonicalLines.parts
         : _normalizeLegacyLines(repair.parts);
-
-    RepairFinancialTruth? truth;
-    try {
-      truth = await RepairFinancialTruthService.load(repair.id);
-    } catch (_) {}
+    // Never turn a database failure into a document with cached balances.
+    final truth = await RepairFinancialTruthService.load(repair.id);
 
     final partsTotal = _sumLineTotals(parts);
     final worksTotal = _sumLineTotals(works);
-    final grandTotal = truth?.fileValue ?? repair.fileValue;
-    final paid = truth?.paid ?? repair.totalPaidAmount;
-    final remaining = truth?.remaining ??
-        ((grandTotal - paid) < 0 ? 0.0 : (grandTotal - paid));
-    final credit = truth?.credit ?? repair.customerCredit;
+    final grandTotal = truth.fileValue;
+    final paid = truth.paid;
+    final remaining = truth.remaining;
+    final credit = truth.credit;
     final isQuote =
         repair.invoiceId == null || repair.invoiceId!.trim().isEmpty;
     final publicNotes = PublicTextSanitizer.sanitize(repair.notes);
@@ -124,27 +118,36 @@ class RepairPdfGenerator {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(20),
+        margin: const pw.EdgeInsets.all(30),
         textDirection: pw.TextDirection.rtl,
+        maxPages: 1000,
+        header: (context) => context.pageNumber == 1
+            ? pw.SizedBox()
+            : pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                    _ar('$workshopName - ملف إصلاح مركبة',
+                        style: pw.TextStyle(
+                            fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                    _ar('رقم الملف: ${repair.invoiceNumber.isEmpty ? repair.id : repair.invoiceNumber} - المركبة: ${repair.vehicleNumber}',
+                        style: const pw.TextStyle(fontSize: 9)),
+                    pw.Divider(color: PdfColors.grey400),
+                  ]),
 
         // ======================
         //  FOOTER ثابت أسفل الصفحة
         // ======================
-        footer: (context) => pw.Container(
-          alignment: pw.Alignment.center,
-          margin: const pw.EdgeInsets.only(top: 12),
-          child: pw.Text(
-            [
-              if (workshopCity.isNotEmpty) "المدينة: $workshopCity",
-              if (workshopAddress.isNotEmpty) "العنوان: $workshopAddress",
-              if (phone1.isNotEmpty) "هاتف: $phone1",
-              if (phone2.isNotEmpty) "هاتف إضافي: $phone2",
-              if (email.isNotEmpty) "Email: $email",
-            ].where((e) => e.trim().isNotEmpty).join(" • "),
-            style: pw.TextStyle(fontSize: 10, font: _gFonts.bold),
-            textAlign: pw.TextAlign.center,
-          ),
-        ),
+        footer: (context) => pw.Column(children: [
+          pw.Divider(color: PdfColors.grey400),
+          pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _ltrText('${context.pageNumber} / ${context.pagesCount}',
+                    style: const pw.TextStyle(fontSize: 9)),
+                _ltrText(phone1, style: const pw.TextStyle(fontSize: 9)),
+                _ar(workshopName, style: const pw.TextStyle(fontSize: 9)),
+              ]),
+        ]),
 
         // ======================
         //   محتوى الصفحة
@@ -162,6 +165,9 @@ class RepairPdfGenerator {
 
           pw.SizedBox(height: 10),
           _buildTitle(isQuote),
+          pw.SizedBox(height: 6),
+          _ar('رقم الملف: ${repair.invoiceNumber.isEmpty ? repair.id : repair.invoiceNumber}',
+              style: const pw.TextStyle(fontSize: 10)),
           if (isQuote &&
               ((repair.quoteNumber ?? '').trim().isNotEmpty ||
                   repair.quoteValidUntil != null)) ...[
@@ -260,7 +266,7 @@ class RepairPdfGenerator {
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(20),
+          margin: const pw.EdgeInsets.all(30),
           textDirection: pw.TextDirection.rtl,
           build: (context) {
             return pw.Column(
@@ -359,7 +365,7 @@ class RepairPdfGenerator {
               width: 70,
               height: 70,
               margin: const pw.EdgeInsets.only(left: 12),
-              child: pw.Image(logo),
+              child: pw.Image(logo, fit: pw.BoxFit.contain),
             ),
           pw.Expanded(
             child: pw.Column(
@@ -442,13 +448,13 @@ class RepairPdfGenerator {
           3: pw.FlexColumnWidth(1.4),
         },
         children: [
-          _headerRow(["نوع المركبة", "موديل", "رقم المركبة", "تاريخ الاستلام"]),
+          _headerRow(["تاريخ الاستلام", "رقم المركبة", "موديل", "نوع المركبة"]),
           pw.TableRow(
             children: [
-              _cell(repair.vehicleType, arabic: true),
-              _cell(repair.vehicleModel, arabic: true),
-              _cell(repair.vehicleNumber, arabic: true),
               _cellWidget(_ltrText(df.format(repair.receivedDate))),
+              _cell(repair.vehicleNumber, arabic: true),
+              _cell(repair.vehicleModel, arabic: true),
+              _cell(repair.vehicleType, arabic: true),
             ],
           ),
         ],
@@ -483,7 +489,7 @@ class RepairPdfGenerator {
           spacing: 8,
           children: [
             _chip(_ar(
-                "الحالة: ${PublicTextSanitizer.sanitize(repair.displayPaymentStatus)}")),
+                "حالة السداد: ${RepairFinancialTruthService.paymentStatusFor(paid + remaining - credit, paid)}")),
             _chip(pw.Row(children: [_ar("مدفوع:"), _ltrText(_fmt(paid))])),
             _chip(
               pw.Row(
@@ -536,33 +542,6 @@ class RepairPdfGenerator {
   // =====================================================================
   // FOOTER
   // =====================================================================
-  static pw.Widget _buildFooter({
-    required String workshopCity,
-    required String workshopAddress,
-    required String phone1,
-    required String phone2,
-    required String email,
-  }) {
-    final text = [
-      if (workshopCity.isNotEmpty) "المدينة: $workshopCity",
-      if (workshopAddress.isNotEmpty) "العنوان: $workshopAddress",
-      if (phone1.isNotEmpty) "هاتف: $phone1",
-      if (phone2.isNotEmpty) "هاتف إضافي: $phone2",
-      if (email.isNotEmpty) "Email: $email",
-    ].join(" • ");
-
-    return pw.Directionality(
-      textDirection: pw.TextDirection.rtl,
-      child: _ar(
-        text,
-        style: const pw.TextStyle(fontSize: 10),
-      ),
-    );
-  }
-
-  // =====================================================================
-  // TABLE HELPERS
-  // =====================================================================
   static pw.TableRow _headerRow(List<String> titles) {
     return pw.TableRow(
       decoration: const pw.BoxDecoration(color: PdfColors.grey300),
@@ -606,65 +585,6 @@ class RepairPdfGenerator {
     );
   }
 
-  static pw.Widget _labeledTable(
-      String title, List<Map<String, dynamic>>? items) {
-    final rows = items ?? [];
-
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: [
-        _ar(
-          title,
-          style: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold,
-            fontSize: 13,
-          ),
-        ),
-        pw.SizedBox(height: 6),
-        if (rows.isEmpty)
-          _ar("لا يوجد بيانات")
-        else
-          pw.Container(
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.grey600, width: .8),
-              borderRadius: pw.BorderRadius.circular(4),
-            ),
-            child: pw.Table(
-              border: pw.TableBorder.symmetric(
-                inside: pw.BorderSide(color: PdfColors.grey500, width: .6),
-              ),
-              columnWidths: const {
-                0: pw.FlexColumnWidth(3),
-                1: pw.FlexColumnWidth(1),
-                2: pw.FlexColumnWidth(1.2),
-              },
-              children: [
-                _headerRow(["الوصف", "الكمية", "السعر"]),
-                ...rows.map(
-                  (row) {
-                    final name = "${row['name'] ?? ''}";
-                    final qty =
-                        ((row['qty'] as num?)?.toDouble() ?? 1).toString();
-                    final price =
-                        _fmt(((row['price'] as num?)?.toDouble() ?? 0.0));
-
-                    return pw.TableRow(
-                      children: [
-                        _cell(name, arabic: true),
-                        _cellWidget(_ltrText(qty), align: pw.Alignment.center),
-                        _cellWidget(_ltrText(price),
-                            align: pw.Alignment.centerLeft),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
   static pw.Widget _chip(pw.Widget child) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -687,19 +607,20 @@ class RepairPdfGenerator {
     return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.grey600, width: 0.6),
       columnWidths: const {
-        0: pw.FlexColumnWidth(3),
+        0: pw.FlexColumnWidth(1.2),
         1: pw.FlexColumnWidth(1),
-        2: pw.FlexColumnWidth(1.2),
-        3: pw.FlexColumnWidth(1.2),
+        2: pw.FlexColumnWidth(1),
+        3: pw.FlexColumnWidth(3),
       },
       children: [
         pw.TableRow(
+          repeat: true,
           decoration: const pw.BoxDecoration(color: PdfColors.grey300),
           children: [
-            _cell("الوصف", header: true, arabic: true),
-            _cell("الكمية", header: true, arabic: true),
-            _cell("سعر الوحدة", header: true, arabic: true),
             _cell("الإجمالي", header: true, arabic: true),
+            _cell("سعر الوحدة", header: true, arabic: true),
+            _cell("الكمية", header: true, arabic: true),
+            _cell("الوصف", header: true, arabic: true),
           ],
         ),
         ...rows.map((row) {
@@ -714,12 +635,12 @@ class RepairPdfGenerator {
 
           return pw.TableRow(
             children: [
-              _cell(name, arabic: true),
-              _cellWidget(_ltrText(_fmt(qtyValue)), align: pw.Alignment.center),
-              _cellWidget(_ltrText(_fmt(priceValue)),
-                  align: pw.Alignment.centerLeft),
               _cellWidget(_ltrText(_fmt(totalValue)),
                   align: pw.Alignment.centerLeft),
+              _cellWidget(_ltrText(_fmt(priceValue)),
+                  align: pw.Alignment.centerLeft),
+              _cellWidget(_ltrText(_fmt(qtyValue)), align: pw.Alignment.center),
+              _cell(name, arabic: true),
             ],
           );
         }),
@@ -773,7 +694,7 @@ class RepairPdfGenerator {
     });
   }
 
-  static final NumberFormat _numFmt = NumberFormat("#,##0.00", "ar");
+  static final NumberFormat _numFmt = NumberFormat("#,##0.00", "en");
 
   static String _fmt(double v) => _numFmt.format(v);
 
@@ -785,57 +706,29 @@ class RepairPdfGenerator {
 
   // Arabic text
   static pw.Widget _ar(String text, {pw.TextStyle? style}) {
-    return pw.Text(
-      text,
-      textAlign: pw.TextAlign.right,
-      style: (style ?? const pw.TextStyle()).copyWith(font: _gFonts.bold),
-    );
+    final requested = style ?? const pw.TextStyle();
+    return ArabicPdfText.build(text,
+        style: requested.copyWith(
+            font: requested.fontWeight == pw.FontWeight.bold
+                ? _gFonts.bold
+                : _gFonts.base),
+        latin: _gFonts.fallbacks.first);
   }
 
-  // LTR text
-  static pw.Widget _ltrText(String text, {pw.TextStyle? style}) {
-    return pw.Directionality(
+  static pw.Widget _ltrText(String text, {pw.TextStyle? style}) => pw.Text(text,
       textDirection: pw.TextDirection.ltr,
-      child: pw.Text(text, style: style),
-    );
-  }
+      style: (style ?? const pw.TextStyle())
+          .copyWith(font: _gFonts.fallbacks.first));
 
-  // Load fonts
-  static Future<_FontSet> _loadArabicFontSet() async {
-    pw.Font? base;
-    pw.Font? bold;
-
-    try {
-      base =
-          pw.Font.ttf(await rootBundle.load("assets/fonts/Cairo-Regular.ttf"));
-      bold = pw.Font.ttf(await rootBundle.load("assets/fonts/Cairo-Bold.ttf"));
-    } catch (_) {
-      try {
-        base = pw.Font.ttf(
-            await rootBundle.load("assets/fonts/NotoNaskhArabic-Regular.ttf"));
-      } catch (_) {}
-      try {
-        bold = pw.Font.ttf(
-            await rootBundle.load("assets/fonts/NotoNaskhArabic-Bold.ttf"));
-      } catch (_) {}
-    }
-    base ??= pw.Font.helvetica();
-    bold ??= base;
-
-    final fallbacks = <pw.Font>[];
-    for (final path in const [
-      "assets/fonts/NotoNaskhArabic-Regular.ttf",
-      "assets/fonts/Tahoma-Regular.ttf",
-      "assets/fonts/TraditionalArabic-Regular.ttf",
-      "assets/fonts/NotoSansArabic-Regular.ttf",
-    ]) {
-      try {
-        fallbacks.add(pw.Font.ttf(await rootBundle.load(path)));
-      } catch (_) {}
-    }
-
-    return _FontSet(base: base, bold: bold, fallbacks: fallbacks);
-  }
+  static Future<_FontSet> _loadArabicFontSet() async => _FontSet(
+          base: pw.Font.ttf(await rootBundle
+              .load('assets/fonts/NotoNaskhArabic-Regular.ttf')),
+          bold: pw.Font.ttf(
+              await rootBundle.load('assets/fonts/NotoNaskhArabic-Bold.ttf')),
+          fallbacks: [
+            pw.Font.ttf(
+                await rootBundle.load('assets/fonts/Tahoma-Regular.ttf'))
+          ]);
 
   static pw.Widget _imageCell(List<Uint8List> images, int index) {
     if (index >= images.length) {

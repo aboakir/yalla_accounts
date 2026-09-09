@@ -1,3 +1,7 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
+import 'package:yalla_accounts/features/finance/services/financial_void_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
 // 📁 lib/features/finance/invoices/services/invoice_service.dart
 //
 // FINAL STABLE VERSION — v38
@@ -142,43 +146,46 @@ class InvoiceService {
     final sub = subtotal ?? _to2(total - vatValue);
     final tot = _to2(sub + vatValue);
 
-    await db.insert(
-      _table,
-      {
-        'id': id,
-        'repair_id': repairId,
-        'date': date.toIso8601String(),
-        'subtotal': sub,
-        'vat': vatValue,
-        'total': tot,
-        'paid': 0.0,
-        'status': status,
-        'notes': notes,
-        'note': note,
-        'method': method,
-        'created_at': nowIso,
-        'updated_at': nowIso,
-        'client_id': clientId ?? await _clientIdByRepair(repairId),
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
-    await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
-      actorRole: p16Actor?.role,
-      action: 'INVOICE_CREATED',
-      entityType: 'invoice',
-      entityId: id,
-      after: {
-        'repair_id': repairId,
-        'client_id': clientId,
-        'subtotal': sub,
-        'vat': vatValue,
-        'total': tot,
-        'status': status,
-      },
-      reason: note ?? notes,
-    );
-
+    final resolvedClient = clientId ?? await _clientIdByRepair(repairId);
+    await SyncFoundationService.transaction(db, (txn) async {
+      await txn.insert(
+        _table,
+        {
+          'id': id,
+          'repair_id': repairId,
+          'date': date.toIso8601String(),
+          'subtotal': sub,
+          'vat': vatValue,
+          'total': tot,
+          'paid': 0.0,
+          'status': status,
+          'notes': notes,
+          'note': note,
+          'method': method,
+          'created_at': nowIso,
+          'updated_at': nowIso,
+          'client_id': resolvedClient,
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+      await AuditTrailService.log(
+        executor: txn,
+        actorUserId: p16Actor?.id,
+        actorRole: p16Actor?.role,
+        action: 'INVOICE_CREATED',
+        entityType: 'invoice',
+        entityId: id,
+        after: {
+          'repair_id': repairId,
+          'client_id': clientId,
+          'subtotal': sub,
+          'vat': vatValue,
+          'total': tot,
+          'status': status,
+        },
+        reason: note ?? notes,
+      );
+    });
     return id;
   }
 
@@ -199,7 +206,7 @@ class InvoiceService {
     int? clientId,
     bool postToGL = true,
   }) async {
-    final p16Actor = await AuthorizationGuard.require(
+    await AuthorizationGuard.require(
       postToGL ? PermissionKeys.invoicePost : PermissionKeys.invoiceCreate,
     );
     // P0.006 — invoice creation + posting is one atomic transaction.
@@ -220,22 +227,6 @@ class InvoiceService {
         postToGL: postToGL,
       );
     });
-    await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
-      actorRole: p16Actor?.role,
-      action: postToGL ? 'INVOICE_CREATED_AND_POSTED' : 'INVOICE_CREATED',
-      entityType: 'invoice',
-      entityId: invoiceId,
-      after: {
-        'repair_id': repairId,
-        'client_id': clientId,
-        'total': total,
-        'vat': vatAmount,
-        'status': status,
-        'posted_to_gl': postToGL,
-      },
-      reason: note ?? notes,
-    );
     return invoiceId;
   }
 
@@ -450,6 +441,15 @@ class InvoiceService {
       whereArgs: [repairId],
     );
 
+    await AuditTrailService.log(
+        executor: txn,
+        action: existing.isEmpty ? 'INVOICE_CREATED' : 'INVOICE_UPDATED',
+        entityType: 'invoice',
+        entityId: invId,
+        before: existing.isEmpty ? null : existing.first,
+        after:
+            (await txn.query(_table, where: 'id=?', whereArgs: [invId])).single,
+        reason: note ?? notes);
     return invId;
   }
 
@@ -508,6 +508,7 @@ class InvoiceService {
     return DBService.inTx((txn) async {
       await _ensureSchema(txn);
       await _assertInvoiceMutable(txn, id);
+      final before = await txn.query(_table, where: 'id=?', whereArgs: [id]);
 
       double? totOut = total;
 
@@ -541,28 +542,41 @@ class InvoiceService {
       data.removeWhere((k, v) => v == null);
       if (data.length == 1) return 0;
 
-      return txn.update(
+      final count = await txn.update(
         _table,
         data,
         where: 'id=?',
         whereArgs: [id],
       );
+      if (count > 0)
+        await AuditTrailService.log(
+            executor: txn,
+            action: 'INVOICE_UPDATED',
+            entityType: 'invoice',
+            entityId: id,
+            before: before.single,
+            after: (await txn.query(_table, where: 'id=?', whereArgs: [id]))
+                .single,
+            reason: note ?? notes);
+      return count;
     });
   }
 
   // ============================================================
   // 8) Delete Invoice
   // ============================================================
-  Future<int> deleteInvoice(String id) async {
-    return DBService.inTx((txn) async {
-      await _ensureSchema(txn);
-      await _assertInvoiceMutable(txn, id);
-      return txn.delete(
-        _table,
-        where: 'id=?',
-        whereArgs: [id],
-      );
-    });
+  Future<int> deleteInvoice(String id,
+      {String reason = 'Invoice cancelled'}) async {
+    final db = await DBService.database;
+    final rows = await db.query(_table, where: 'id=?', whereArgs: [id]);
+    if (rows.isEmpty) return 0;
+    final repairId = rows.single['repair_id']?.toString() ?? '';
+    if (repairId.isNotEmpty) {
+      await RepairAutoAccountingService.deleteRepair(repairId, reason: reason);
+      return 1;
+    }
+    return FinancialVoidService.voidInvoice(id,
+        purchase: false, reason: reason);
   }
 
   // ============================================================
@@ -572,10 +586,10 @@ class InvoiceService {
     final db = await DBService.database;
     await _ensureSchema(db);
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       final inv = await txn.query(
         _table,
-        columns: ['total'],
+        columns: ['total', 'repair_id', 'status'],
         where: 'id=?',
         whereArgs: [invoiceId],
         limit: 1,
@@ -585,14 +599,22 @@ class InvoiceService {
         throw StateError('invoice $invoiceId not found');
       }
 
+      if (['VOID', 'CANCELLED']
+          .contains('${inv.first['status']}'.toUpperCase())) return;
       final total = _asD(inv.first['total']) ?? 0.0;
 
-      final sum = await txn.rawQuery(
-        'SELECT IFNULL(SUM(amount),0) s FROM payments WHERE invoice_id=?',
-        [invoiceId],
-      );
-
-      final paid = _asD(sum.first['s']) ?? 0.0;
+      final repairId = inv.first['repair_id']?.toString() ?? '';
+      final paid = repairId.isNotEmpty
+          ? await RepairFinancialTruthService.paidForRepair(repairId,
+              executor: txn)
+          : ((await txn.rawQuery('''
+              SELECT COALESCE(SUM(l.credit-l.debit),0) AS paid
+              FROM gl_lines l JOIN gl_entries e ON e.id=l.entry_id
+              JOIN accounts a ON a.id=l.account_id
+              LEFT JOIN gl_entries original ON original.id=e.reversal_of
+              WHERE l.invoice_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
+                AND UPPER(COALESCE(original.source,e.source)) IN ('PAYMENT','CREDIT_ALLOCATION','CHEQUE_STATUS')
+            ''', [invoiceId])).single['paid'] as num).toDouble();
 
       String status;
 

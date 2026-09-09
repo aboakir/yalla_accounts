@@ -90,7 +90,8 @@ class CommercialSettingsService {
     return settings;
   }
 
-  Future<void> save(CommercialSettings value) async {
+  Future<void> save(CommercialSettings value,
+      {DatabaseExecutor? executor}) async {
     if (value.baseCurrencyCode.trim().length != 3) {
       throw ArgumentError('Currency code must contain 3 ISO letters.');
     }
@@ -101,7 +102,7 @@ class CommercialSettingsService {
       throw ArgumentError('VAT rate must be 0..100.');
     }
 
-    final db = await DBService.database;
+    final db = executor ?? await DBService.database;
     final current = await get(executor: db);
     final nextCurrency = value.baseCurrencyCode.trim().toUpperCase();
 

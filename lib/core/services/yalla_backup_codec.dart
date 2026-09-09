@@ -81,12 +81,18 @@ class YallaBackupCodec {
       final salt = await _readExact(reader, _saltLength);
       final rounds = _fromU32(await _readExact(reader, 4));
       final encodedChunkSize = _fromU32(await _readExact(reader, 4));
-      if (rounds < 100000 || encodedChunkSize <= 0) {
+      if (rounds < 100000 ||
+          rounds > 1000000 ||
+          encodedChunkSize <= 0 ||
+          encodedChunkSize > chunkSize) {
         throw StateError('ترويسة النسخة الاحتياطية غير صالحة.');
       }
       final secretKey = await _deriveKey(password, salt, rounds: rounds);
       final aes = AesGcm.with256bits();
       final total = await input.length();
+      if (await reader.position() == total) {
+        throw StateError('النسخة الاحتياطية فارغة أو مبتورة.');
+      }
 
       while (await reader.position() < total) {
         final plainLen = _fromU32(await _readExact(reader, 4));
@@ -95,7 +101,7 @@ class YallaBackupCodec {
         }
         final nonce = await _readExact(reader, _nonceLength);
         final cipherLen = _fromU32(await _readExact(reader, 4));
-        if (cipherLen <= 0 || cipherLen > encodedChunkSize + 64) {
+        if (cipherLen != plainLen) {
           throw StateError('بيانات النسخة الاحتياطية تالفة.');
         }
         final cipher = await _readExact(reader, cipherLen);

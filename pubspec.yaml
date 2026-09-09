@@ -83,8 +83,11 @@ dependencies:
   clipboard: ^0.1.3
   reorderable_grid_view: ^2.2.8
   reorderables: ^0.6.0
-
+  app_links: 7.2.1
+  supabase_flutter: 2.17.2
+  logging: 1.3.0
 dev_dependencies:
+  device_info_plus_platform_interface: ^7.0.3
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
@@ -108,6 +111,12 @@ flutter:
     - assets/fonts/Tahoma-Regular.ttf
 
   fonts:
+    - family: DashboardSymbols
+      fonts:
+        - asset: assets/fonts/Tahoma-Regular.ttf
+    - family: DashboardArabic
+      fonts:
+        - asset: assets/fonts/NotoSansArabic-Regular.ttf
     - family: Cairo
       fonts:
         - asset: assets/fonts/Cairo-Regular.ttf

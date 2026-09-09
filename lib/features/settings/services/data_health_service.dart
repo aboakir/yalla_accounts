@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -636,13 +637,7 @@ class DataHealthService {
       db,
       '''
       WITH paid AS (
-        SELECT
-          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
-          COUNT(*) AS payment_count,
-          SUM(amount) AS paid
-        FROM payments
-        WHERE COALESCE(isIncome,1)=1
-        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+        SELECT repair_id, 1 AS payment_count, paid FROM (${RepairFinancialTruthService.paidByRepairSql})
       )
       SELECT COUNT(*)
       FROM repairs r
@@ -667,7 +662,7 @@ class DataHealthService {
         id: 'repair_payment_cache',
         title: 'مطابقة مدفوع Repair مع Payments',
         count: repairPaymentCacheMismatch,
-        okMessage: 'paidAmount و total_paid_amount مطابقان لـ SUM(payments).',
+        okMessage: 'paidAmount و total_paid_amount مطابقان لـ GL receipts.',
         issueMessage:
             'يوجد Repair cache لا يطابق المدفوعات ويمكن إصلاحه بأمان.',
         issueStatus: DataHealthStatus.repairable,
@@ -710,12 +705,7 @@ class DataHealthService {
     final repairArReconciliation = await db.rawQuery(
       '''
       WITH paid AS (
-        SELECT
-          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
-          SUM(amount) AS paid
-        FROM payments
-        WHERE COALESCE(isIncome,1)=1
-        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+        SELECT repair_id, 1 AS payment_count, paid FROM (${RepairFinancialTruthService.paidByRepairSql})
       ),
       ar AS (
         SELECT
@@ -1509,13 +1499,7 @@ class DataHealthService {
   ) async {
     final rows = await db.rawQuery('''
       WITH paid AS (
-        SELECT
-          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
-          COUNT(*) AS payment_count,
-          SUM(amount) AS paid
-        FROM payments
-        WHERE COALESCE(isIncome,1)=1
-        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
+        SELECT repair_id, 1 AS payment_count, paid FROM (${RepairFinancialTruthService.paidByRepairSql})
       )
       SELECT
         r.id,

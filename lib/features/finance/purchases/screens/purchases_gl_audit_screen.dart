@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/error_widget.dart';
 // 📁 lib/features/finance/purchases/screens/purchases_gl_audit_screen.dart
 //
 // PurchasesGLAuditScreen — تدقيق GL للمشتريات (v30, UI unified)
@@ -26,6 +27,7 @@ enum _Filter { all, posted, unposted }
 
 class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
   bool _loading = true;
+  bool _loadFailed = false;
   _Filter _filter = _Filter.all;
   final _df = DateFormat('yyyy-MM-dd', 'ar');
   final _nf = NumberFormat('#,##0.00', 'ar');
@@ -51,13 +53,15 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
   Future<void> _load() async {
     setState(() {
       _loading = true;
+      _loadFailed = false;
       _rows = [];
       _selected.clear();
     });
 
-    final db = await DBService.database;
+    try {
+      final db = await DBService.database;
 
-    final base = await db.rawQuery('''
+      final base = await db.rawQuery('''
       SELECT 
         p.id,
         p.supplier_pid,
@@ -71,33 +75,42 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
       ORDER BY p.date DESC, p.id DESC
     ''');
 
-    final List<_Row> all = [];
-    for (final m in base) {
-      final pid = '${m['id']}';
-      final glId = await _findGlIdForPurchase(pid, m['gl_entry_id']);
-      final supplierPid = (m['supplier_pid'] ?? '').toString();
-      final supplierName = (m['supplierName'] ?? '').toString();
+      final List<_Row> all = [];
+      for (final m in base) {
+        final pid = '${m['id']}';
+        final glId = await _findGlIdForPurchase(pid, m['gl_entry_id']);
+        final supplierPid = (m['supplier_pid'] ?? '').toString();
+        final supplierName = (m['supplierName'] ?? '').toString();
 
-      all.add(_Row(
-        id: pid,
-        supplierPid: supplierPid.isEmpty ? null : supplierPid,
-        supplierName: supplierName.isNotEmpty ? supplierName : null,
-        amount: ((m['amount'] as num?) ?? 0).toDouble(),
-        dateStr: m['date']?.toString(),
-        method: m['method']?.toString() ?? 'credit',
-        note: m['note']?.toString(),
-        glEntryId: glId,
-      ));
+        all.add(_Row(
+          id: pid,
+          supplierPid: supplierPid.isEmpty ? null : supplierPid,
+          supplierName: supplierName.isNotEmpty ? supplierName : null,
+          amount: ((m['amount'] as num?) ?? 0).toDouble(),
+          dateStr: m['date']?.toString(),
+          method: m['method']?.toString() ?? 'credit',
+          note: m['note']?.toString(),
+          glEntryId: glId,
+        ));
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _rows = switch (_filter) {
+          _Filter.posted => all.where((r) => r.glEntryId != null).toList(),
+          _Filter.unposted => all.where((r) => r.glEntryId == null).toList(),
+          _ => all,
+        };
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
     }
-
-    setState(() {
-      _rows = switch (_filter) {
-        _Filter.posted => all.where((r) => r.glEntryId != null).toList(),
-        _Filter.unposted => all.where((r) => r.glEntryId == null).toList(),
-        _ => all,
-      };
-      _loading = false;
-    });
   }
 
   double get _sumSelected => _rows
@@ -372,7 +385,10 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
     final toolbar = Container(
       padding: const EdgeInsets.all(12),
       color: Colors.grey.shade100,
-      child: AdaptiveRow(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Chip(
             backgroundColor: Colors.white,
@@ -391,7 +407,6 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
             side: BorderSide(color: Colors.grey.shade300),
             label: Text('المحدد: ${_nf.format(_sumSelected)}'),
           ),
-          const Spacer(),
           if (_filter != _Filter.posted)
             FilledButton.icon(
               onPressed: _selected.isEmpty ? null : _postSelected,
@@ -409,81 +424,88 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
       ),
     );
 
-    final list = _loading
-        ? const Center(child: CircularProgressIndicator())
-        : (_rows.isEmpty
-            ? const Center(child: Text('لا توجد بيانات'))
-            : ListView.separated(
-                itemCount: _rows.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (_, i) {
-                  final r = _rows[i];
-                  final checked = _selected.contains(r.id);
-                  final dateTxt = (r.dateStr == null || r.dateStr!.isEmpty)
-                      ? ''
-                      : _df.format(
-                          DateTime.tryParse(r.dateStr!) ?? DateTime.now());
-                  final title = r.supplierName ??
-                      (r.supplierPid != null
-                          ? 'مورد ${r.supplierPid}'
-                          : 'مورد');
+    final list = _loadFailed
+        ? ErrorDisplay(
+            message: 'تعذّر تحميل المشتريات. أعد المحاولة أو تواصل مع الدعم.',
+            onRetry: _load)
+        : _loading
+            ? const Center(child: CircularProgressIndicator())
+            : (_rows.isEmpty
+                ? const Center(child: Text('لا توجد بيانات'))
+                : ListView.separated(
+                    itemCount: _rows.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final r = _rows[i];
+                      final checked = _selected.contains(r.id);
+                      final dateTxt = (r.dateStr == null || r.dateStr!.isEmpty)
+                          ? ''
+                          : _df.format(
+                              DateTime.tryParse(r.dateStr!) ?? DateTime.now());
+                      final title = r.supplierName ??
+                          (r.supplierPid != null
+                              ? 'مورد ${r.supplierPid}'
+                              : 'مورد');
 
-                  return ListTile(
-                    leading: Checkbox(
-                      value: checked,
-                      onChanged: (v) {
-                        setState(() {
-                          if (v == true) {
-                            _selected.add(r.id);
-                          } else {
-                            _selected.remove(r.id);
-                          }
-                        });
-                      },
-                    ),
-                    title: Text(title, textAlign: TextAlign.right),
-                    subtitle: Text(
-                      [
-                        if ((r.note ?? '').isNotEmpty) r.note!,
-                        if (dateTxt.isNotEmpty) dateTxt,
-                      ].join(' • '),
-                      textAlign: TextAlign.right,
-                    ),
-                    trailing: Wrap(
-                      spacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(_nf.format(r.amount),
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w600)),
-                        if (r.glEntryId != null)
-                          Chip(
-                            label: Text('#${r.glEntryId}'),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        IconButton(
-                          tooltip: 'ترحيل',
-                          onPressed:
-                              r.glEntryId == null ? () => _postOne(r) : null,
-                          icon: const Icon(Icons.publish),
+                      return ListTile(
+                        leading: Checkbox(
+                          value: checked,
+                          onChanged: (v) {
+                            setState(() {
+                              if (v == true) {
+                                _selected.add(r.id);
+                              } else {
+                                _selected.remove(r.id);
+                              }
+                            });
+                          },
                         ),
-                        IconButton(
-                          tooltip: 'فتح القيد',
-                          onPressed:
-                              r.glEntryId != null ? () => _openOne(r) : null,
-                          icon: const Icon(Icons.open_in_new),
+                        title: Text(title, textAlign: TextAlign.right),
+                        subtitle: Text(
+                          [
+                            if ((r.note ?? '').isNotEmpty) r.note!,
+                            if (dateTxt.isNotEmpty) dateTxt,
+                          ].join(' • '),
+                          textAlign: TextAlign.right,
                         ),
-                        IconButton(
-                          tooltip: 'عكس',
-                          onPressed:
-                              r.glEntryId != null ? () => _reverseOne(r) : null,
-                          icon: const Icon(Icons.undo),
+                        trailing: Wrap(
+                          spacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(_nf.format(r.amount),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                            if (r.glEntryId != null)
+                              Chip(
+                                label: Text('#${r.glEntryId}'),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            IconButton(
+                              tooltip: 'ترحيل',
+                              onPressed: r.glEntryId == null
+                                  ? () => _postOne(r)
+                                  : null,
+                              icon: const Icon(Icons.publish),
+                            ),
+                            IconButton(
+                              tooltip: 'فتح القيد',
+                              onPressed: r.glEntryId != null
+                                  ? () => _openOne(r)
+                                  : null,
+                              icon: const Icon(Icons.open_in_new),
+                            ),
+                            IconButton(
+                              tooltip: 'عكس',
+                              onPressed: r.glEntryId != null
+                                  ? () => _reverseOne(r)
+                                  : null,
+                              icon: const Icon(Icons.undo),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ));
+                      );
+                    },
+                  ));
 
     return Scaffold(
       // AppBar موحّد مع النظام الجديد

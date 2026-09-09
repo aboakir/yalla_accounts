@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
@@ -23,6 +24,7 @@ class SupplierPaymentButton extends StatefulWidget {
 }
 
 class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
+  String _operationId = const Uuid().v4();
   bool _loading = false;
 
   // ---------------------------------------------------------------------------
@@ -156,6 +158,7 @@ class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
 
         // 2) تنفيذ السداد v51
         await SupplierPaymentService.insertAndPost(
+          operationId: _operationId,
           supplierId: supplierId,
           amount: res['amount'] as double,
           date: res['date'] as DateTime,
@@ -163,6 +166,7 @@ class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
           note: res['note'] as String?,
         );
 
+        _operationId = const Uuid().v4();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم تسجيل السداد بنجاح')),

@@ -1,6 +1,7 @@
+import 'package:yalla_accounts/features/vouchers/widgets/voucher_list_phone.dart';
 // -----------------------------------------------------------------------------
-// ًں“پ lib/features/finance/vouchers/receipt_voucher_list_screen.dart
-// FINAL DESKTOP SCROLL SUPPORT â€” Fixed Class Placement
+// 📁 lib/features/finance/vouchers/receipt_voucher_list_screen.dart
+// FINAL DESKTOP SCROLL SUPPORT — Fixed Class Placement
 // -----------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ import 'package:yalla_accounts/features/documents/services/p15_document_service.
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 /// ============================================================================
-/// DESKTOP SCROLL BEHAVIOR â€” MUST BE OUTSIDE ANY CLASS
+/// DESKTOP SCROLL BEHAVIOR — MUST BE OUTSIDE ANY CLASS
 /// ============================================================================
 class DesktopScrollBehavior extends ScrollBehavior {
   const DesktopScrollBehavior();
@@ -62,7 +63,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   List<Map<String, Object?>> filtered = [];
 
   String search = "";
-  String filterMethod = "ط§ظ„ظƒظ„";
+  String filterMethod = "الكل";
 
   double totalToday = 0;
   double totalMonth = 0;
@@ -128,6 +129,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     totalMonth = (rowMonth.first["s"] as num? ?? 0).toDouble();
 
     _applyFilters();
+    if (!mounted) return;
     setState(() => loading = false);
   }
 
@@ -143,7 +145,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
       if (!txt.contains(search.toLowerCase())) return false;
 
       final m = (row["method"] ?? "").toString().toLowerCase();
-      if (filterMethod != "ط§ظ„ظƒظ„" && m != filterMethod.toLowerCase()) {
+      if (filterMethod != "الكل" && m != filterMethod.toLowerCase()) {
         return false;
       }
 
@@ -167,32 +169,17 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("ط®ط·ط£ PDF: $e")),
+        SnackBar(content: Text("خطأ PDF: $e")),
       );
     }
   }
 
   String _receiptLabel(Map<String, Object?> row) {
     final rawNumber = row["receipt_number"];
-    if (rawNumber == null)
+    if (rawNumber == null) {
       return "RC-\u063a\u064a\u0631 \u0645\u0631\u0642\u0645";
-    return "RC-${rawNumber.toString().padLeft(6, '0')}";
-  }
-
-  String _methodLabel(Object? raw) {
-    switch ((raw ?? '').toString().trim().toLowerCase()) {
-      case 'cash':
-        return 'ظ†ظ‚ط¯ظٹ';
-      case 'bank_transfer':
-        return 'طھط­ظˆظٹظ„ ط¨ظ†ظƒظٹ';
-      case 'card':
-        return 'ط¨ط·ط§ظ‚ط©';
-      case 'cheque':
-        return 'ط´ظٹظƒ';
-      default:
-        final value = (raw ?? '').toString().trim();
-        return value.isEmpty ? 'ط؛ظٹط± ظ…ط­ط¯ط¯' : value;
     }
+    return "RC-${rawNumber.toString().padLeft(6, '0')}";
   }
 
   Future<void> _exportReceiptPdf(Map<String, Object?> row) async {
@@ -231,7 +218,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('طھط¹ط°ط± ط¥ظ†ط´ط§ط، PDF ظ„ظ„ط³ظ†ط¯: $e')),
+        SnackBar(content: Text('تعذر إنشاء PDF للسند: $e')),
       );
     }
   }
@@ -251,7 +238,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
         showThemeToggle: false,
         showSearch: false,
       ),
-      body: AdaptiveRow(
+      body: Row(
         children: [
           if (isDesktop)
             const YallaSidebar(currentRoute: AppRoutes.receiptVouchersList),
@@ -269,7 +256,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   // MAIN WRAPPER
   // =============================================================================
   Widget _main() {
-    final isPhone = MediaQuery.sizeOf(context).width < 600;
+    final isPhone = MediaQuery.sizeOf(context).width < 1024;
     return isPhone ? _phoneMain() : _desktopMain();
   }
 
@@ -293,257 +280,26 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     );
   }
 
-  Widget _phoneMain() {
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'ط³ظ†ط¯ط§طھ ط§ظ„ظ‚ط¨ط¶',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                ),
-              ),
-              IconButton(
-                tooltip: 'طھط­ط¯ظٹط«',
-                onPressed: _load,
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 3,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: .92,
-            children: [
-              _phoneKpi('ط§ظ„ط³ظ†ط¯ط§طھ', filtered.length.toString(),
-                  Icons.receipt_long),
-              _phoneKpi(
-                  'ط§ظ„ظٹظˆظ…', totalToday.toStringAsFixed(0), Icons.today),
-              _phoneKpi('ط§ظ„ط´ظ‡ط±', totalMonth.toStringAsFixed(0),
-                  Icons.calendar_month),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            inputFormatters: const [YallaDigitNormalizer()],
-            onChanged: (value) {
-              search = value;
-              setState(_applyFilters);
-            },
-            decoration: InputDecoration(
-              hintText:
-                  'ط§ط¨ط­ط« ط¨ط±ظ‚ظ… ط§ظ„ط³ظ†ط¯ ط£ظˆ ط§ظ„ط¹ظ…ظٹظ„ ط£ظˆ ط§ظ„ظ…ط¨ظ„ط؛',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: AppColors.inputFill,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: filterMethod,
-                  decoration: const InputDecoration(
-                    labelText: 'ط·ط±ظٹظ‚ط© ط§ظ„ظ‚ط¨ط¶',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  items: const [
-                    'ط§ظ„ظƒظ„',
-                    'cash',
-                    'bank_transfer',
-                    'card',
-                    'cheque'
-                  ]
-                      .map((value) => DropdownMenuItem(
-                            value: value,
-                            child: Text(value == 'ط§ظ„ظƒظ„'
-                                ? value
-                                : _methodLabel(value)),
-                          ))
-                      .toList(growable: false),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      filterMethod = value;
-                      _applyFilters();
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.filledTonal(
-                tooltip: 'PDF ط§ظ„ظ‚ط§ط¦ظ…ط©',
-                onPressed: filtered.isEmpty ? null : _exportListPdf,
-                icon: const Icon(Icons.picture_as_pdf),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (filtered.isEmpty)
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 34, horizontal: 16),
-                child: Column(
-                  children: [
-                    Icon(Icons.receipt_long_outlined,
-                        size: 42, color: Colors.grey),
-                    SizedBox(height: 10),
-                    Text('ظ„ط§ طھظˆط¬ط¯ ط³ظ†ط¯ط§طھ ظ…ط·ط§ط¨ظ‚ط©'),
-                  ],
-                ),
-              ),
-            )
-          else
-            ...filtered.map(_phoneReceiptCard),
-        ],
-      ),
-    );
-  }
-
-  Widget _phoneKpi(String title, String value, IconData icon) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: AppColors.primary, size: 22),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: Colors.black54),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _phoneReceiptCard(Map<String, Object?> row) {
-    final dateText = (row['date'] ?? '').toString();
-    final date = dateText.length >= 10 ? dateText.substring(0, 10) : dateText;
-    final amount = (row['amount'] as num?)?.toDouble() ?? 0;
-    final gl = (row['gl_entry_ids'] ?? '').toString().trim();
-    final reversed = ((row['reversal_lines'] as num?)?.toInt() ?? 0) > 0;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _receiptLabel(row),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        row['clientName']?.toString().trim().isNotEmpty == true
-                            ? row['clientName'].toString()
-                            : 'ط¨ط¯ظˆظ† ط§ط³ظ… ط¹ظ…ظٹظ„',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      amount.toStringAsFixed(2),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    Text(date,
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.black54)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Chip(
-                  visualDensity: VisualDensity.compact,
-                  label: Text(_methodLabel(row['method'])),
-                ),
-                if (gl.isNotEmpty)
-                  Chip(
-                    visualDensity: VisualDensity.compact,
-                    avatar:
-                        const Icon(Icons.account_balance_outlined, size: 16),
-                    label: Text('GL $gl'),
-                  ),
-                if (reversed)
-                  const Chip(
-                    visualDensity: VisualDensity.compact,
-                    avatar: Icon(Icons.undo, size: 16),
-                    label: Text('ظٹطھط¶ظ…ظ† ط¹ظƒط³'),
-                  ),
-              ],
-            ),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton.icon(
-                onPressed: () => _exportReceiptPdf(row),
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                label: const Text('ظپطھط­ PDF'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _phoneMain() => VoucherListPhone(
+        isReceipt: true,
+        rows: filtered,
+        today: totalToday,
+        month: totalMonth,
+        method: filterMethod,
+        methods: const ['الكل', 'cash', 'bank_transfer', 'card', 'cheque'],
+        onSearch: (value) {
+          search = value;
+          setState(_applyFilters);
+        },
+        onMethod: (value) {
+          filterMethod = value;
+          setState(_applyFilters);
+        },
+        onRefresh: _load,
+        onExport: _exportListPdf,
+        onDocument: _exportReceiptPdf,
+        numberLabel: _receiptLabel,
+      );
 
   // =============================================================================
   // KPI CARDS
@@ -551,13 +307,11 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   Widget _kpiCards() {
     return AdaptiveRow(
       children: [
-        _kpi("ط¹ط¯ط¯ ط§ظ„ط³ظ†ط¯ط§طھ", filtered.length.toString(),
-            Icons.receipt_long),
+        _kpi("عدد السندات", filtered.length.toString(), Icons.receipt_long),
         const SizedBox(width: 12),
-        _kpi("ظ…ظ‚ط¨ظˆط¶ط§طھ ط§ظ„ظٹظˆظ…", totalToday.toString(), Icons.today),
+        _kpi("مقبوضات اليوم", totalToday.toString(), Icons.today),
         const SizedBox(width: 12),
-        _kpi("ظ…ظ‚ط¨ظˆط¶ط§طھ ط§ظ„ط´ظ‡ط±", totalMonth.toString(),
-            Icons.calendar_month),
+        _kpi("مقبوضات الشهر", totalMonth.toString(), Icons.calendar_month),
       ],
     );
   }
@@ -608,7 +362,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
                   setState(_applyFilters);
                 },
                 decoration: InputDecoration(
-                  hintText: "ط¨ط­ط«...",
+                  hintText: "بحث...",
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: AppColors.inputFill,
@@ -623,13 +377,12 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
             DropdownButton<String>(
               value: filterMethod,
               underline: const SizedBox(),
-              items:
-                  const ["ط§ظ„ظƒظ„", "cash", "bank_transfer", "card", "cheque"]
-                      .map((e) => DropdownMenuItem(
-                            value: e,
-                            child: Text(e.toUpperCase()),
-                          ))
-                      .toList(),
+              items: const ["الكل", "cash", "bank_transfer", "card", "cheque"]
+                  .map((e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(voucherMethodLabel(e)),
+                      ))
+                  .toList(),
               onChanged: (v) {
                 filterMethod = v!;
                 setState(_applyFilters);
@@ -638,7 +391,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
             const SizedBox(width: 12),
             ElevatedButton.icon(
               icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-              label: const Text("PDF ط§ظ„ظ‚ط§ط¦ظ…ط©"),
+              label: const Text("PDF القائمة"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 padding:
@@ -656,7 +409,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   }
 
   // =============================================================================
-  // TABLE â€” SCROLL + KEYBOARD MOVEMENT
+  // TABLE — SCROLL + KEYBOARD MOVEMENT
   // =============================================================================
   Widget _table() {
     return Card(
@@ -677,20 +430,19 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
               children: const [
                 Expanded(flex: 1, child: Text("PDF")),
                 Expanded(
-                    flex: 2,
-                    child: Text("ط§ظ„ط³ظ†ط¯", textAlign: TextAlign.center)),
+                    flex: 2, child: Text("السند", textAlign: TextAlign.center)),
                 Expanded(
                     flex: 3,
-                    child: Text("ط§ظ„طھط§ط±ظٹط®", textAlign: TextAlign.center)),
+                    child: Text("التاريخ", textAlign: TextAlign.center)),
                 Expanded(
                     flex: 4,
-                    child: Text("ط§ظ„ط¹ظ…ظٹظ„", textAlign: TextAlign.center)),
+                    child: Text("العميل", textAlign: TextAlign.center)),
                 Expanded(
                     flex: 3,
-                    child: Text("ط§ظ„ظ…ط¨ظ„ط؛", textAlign: TextAlign.center)),
+                    child: Text("المبلغ", textAlign: TextAlign.center)),
                 Expanded(
                     flex: 3,
-                    child: Text("ط§ظ„ط·ط±ظٹظ‚ط©", textAlign: TextAlign.center)),
+                    child: Text("الطريقة", textAlign: TextAlign.center)),
                 Expanded(
                     flex: 2, child: Text("GL", textAlign: TextAlign.center)),
               ],
@@ -795,7 +547,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
               ),
             ),
             child: Text(
-              "${filtered.length} ط³ظ†ط¯",
+              "${filtered.length} سند",
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,

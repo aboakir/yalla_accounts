@@ -1,3 +1,4 @@
+import '../widgets/quick_entry_fields.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -194,74 +195,78 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   }
 
   Future<void> _addClient() async {
-    final nameController = TextEditingController();
     var type = 'أفراد';
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AdaptiveAlertDialog(
-          title: const Text('إضافة عميل سريع'),
-          content: SizedBox(
-            width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                TextField(
-                  inputFormatters: const [YallaDigitNormalizer()],
-                  controller: nameController,
-                  autofocus: true,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    labelText: 'اسم العميل *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: type,
-                  decoration: const InputDecoration(
-                    labelText: 'نوع العميل',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const <DropdownMenuItem<String>>[
-                    DropdownMenuItem(value: 'أفراد', child: Text('أفراد')),
-                    DropdownMenuItem(
-                      value: 'شركة تأمين',
-                      child: Text('شركة تأمين'),
+      builder: (dialogContext) => QuickEntryFields(
+        count: 1,
+        builder: (controllers) {
+          final nameController = controllers[0];
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AdaptiveAlertDialog(
+              title: const Text('إضافة عميل سريع'),
+              content: SizedBox(
+                width: 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
+                      controller: nameController,
+                      autofocus: true,
+                      textInputAction: TextInputAction.done,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم العميل *',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      initialValue: type,
+                      decoration: const InputDecoration(
+                        labelText: 'نوع العميل',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const <DropdownMenuItem<String>>[
+                        DropdownMenuItem(value: 'أفراد', child: Text('أفراد')),
+                        DropdownMenuItem(
+                          value: 'شركة تأمين',
+                          child: Text('شركة تأمين'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setDialogState(() => type = value);
+                        }
+                      },
                     ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => type = value);
-                    }
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('إلغاء'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+                    Navigator.pop(
+                      dialogContext,
+                      <String, String>{'name': name, 'type': type},
+                    );
                   },
+                  child: const Text('إضافة'),
                 ),
               ],
             ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = nameController.text.trim();
-                if (name.isEmpty) return;
-                Navigator.pop(
-                  dialogContext,
-                  <String, String>{'name': name, 'type': type},
-                );
-              },
-              child: const Text('إضافة'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
-    nameController.dispose();
-    if (result == null) return;
+    if (!mounted || result == null) return;
 
     try {
       final id = await ClientService.insertOrGetClientId(
@@ -280,80 +285,82 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
     final client = _client;
     if (client == null) return;
 
-    final numberController = TextEditingController();
-    final typeController = TextEditingController();
-    final modelController = TextEditingController();
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (dialogContext) => AdaptiveAlertDialog(
-        title: const Text('إضافة مركبة سريعة'),
-        content: SizedBox(
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(
-                inputFormatters: const [YallaDigitNormalizer()],
-                controller: numberController,
-                autofocus: true,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'رقم المركبة *',
-                  border: OutlineInputBorder(),
-                ),
+      builder: (dialogContext) => QuickEntryFields(
+        count: 3,
+        builder: (controllers) {
+          final numberController = controllers[0];
+          final typeController = controllers[1];
+          final modelController = controllers[2];
+          return AdaptiveAlertDialog(
+            title: const Text('إضافة مركبة سريعة'),
+            content: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
+                    controller: numberController,
+                    autofocus: true,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'رقم المركبة *',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
+                    controller: typeController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'نوع المركبة',
+                      hintText: 'مثال: توسان',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    inputFormatters: const [YallaDigitNormalizer()],
+                    controller: modelController,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      labelText: 'الموديل / السنة',
+                      hintText: 'مثال: 2022',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              TextField(
-                inputFormatters: const [YallaDigitNormalizer()],
-                controller: typeController,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'نوع المركبة',
-                  hintText: 'مثال: توسان',
-                  border: OutlineInputBorder(),
-                ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('إلغاء'),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                inputFormatters: const [YallaDigitNormalizer()],
-                controller: modelController,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  labelText: 'الموديل / السنة',
-                  hintText: 'مثال: 2022',
-                  border: OutlineInputBorder(),
-                ),
+              FilledButton(
+                onPressed: () {
+                  final number = numberController.text.trim();
+                  if (number.isEmpty) return;
+                  Navigator.pop(
+                    dialogContext,
+                    <String, String>{
+                      'number': number,
+                      'type': typeController.text.trim(),
+                      'model': modelController.text.trim(),
+                    },
+                  );
+                },
+                child: const Text('إضافة'),
               ),
             ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final number = numberController.text.trim();
-              if (number.isEmpty) return;
-              Navigator.pop(
-                dialogContext,
-                <String, String>{
-                  'number': number,
-                  'type': typeController.text.trim(),
-                  'model': modelController.text.trim(),
-                },
-              );
-            },
-            child: const Text('إضافة'),
-          ),
-        ],
+          );
+        },
       ),
     );
-    numberController.dispose();
-    typeController.dispose();
-    modelController.dispose();
-    if (result == null) return;
+    if (!mounted || result == null) return;
 
     try {
       final db = await DBService.database;
@@ -545,6 +552,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   }
 
   Future<void> _save() async {
+    if (_busy) return;
     final client = _client;
     final vehicle = _vehicle;
     if (client == null || vehicle == null) {

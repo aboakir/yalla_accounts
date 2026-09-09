@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-String read(String path) => File(path).readAsStringSync();
+String read(String path) =>
+    File(path).readAsStringSync().replaceAll('\r\n', '\n');
 
 void main() {
   test('Stage2 payment vouchers use formal reversal and audit trail', () {

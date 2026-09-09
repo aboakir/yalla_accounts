@@ -53,8 +53,9 @@ void main() {
       RegExp(r'await _assertInvoiceMutable\(txn, id\);')
           .allMatches(source)
           .length,
-      greaterThanOrEqualTo(2),
-      reason: 'Both update and delete paths must fail closed once posted.',
+      greaterThanOrEqualTo(1),
+      reason:
+          'Updates must reject changes to posted amounts; cancellation uses formal reversal.',
     );
     expect(
       source.contains('return DBService.inTx((txn) async {'),
@@ -93,13 +94,14 @@ void main() {
     );
 
     final start = accountingSource.indexOf(
-      'static Future<void> deleteRepair(String repairId) async {',
+      'static Future<void> deleteRepair(String repairId',
     );
     expect(start, greaterThanOrEqualTo(0));
     final method = accountingSource.substring(start);
 
     // Payments must be formally handled before cancellation.
-    expect(method.contains('paymentCount > 0'), isTrue);
+    expect(method.contains('await _sumPaymentsOn(tx, repairId)'), isTrue);
+    expect(method.contains('paymentBalance.abs() > 0.005'), isTrue);
 
     // Posted financial history is preserved through reversal, never DELETE.
     expect(method.contains('DBService.reverseEntryGLOn('), isTrue);

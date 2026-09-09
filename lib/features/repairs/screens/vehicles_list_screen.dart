@@ -73,12 +73,9 @@ class _VehiclesListScreenState extends State<VehiclesListScreen> {
     final query = _searchController.text.trim().toLowerCase();
     if (query.isEmpty) return _vehicles;
 
-    return _vehicles.where((vehicle) {
-      return vehicle.number.toLowerCase().contains(query) ||
-          vehicle.type.toLowerCase().contains(query) ||
-          vehicle.model.toLowerCase().contains(query) ||
-          vehicle.clientName.toLowerCase().contains(query);
-    }).toList(growable: false);
+    return _vehicles
+        .where((vehicle) => VehicleService.matchesQuery(vehicle, query))
+        .toList(growable: false);
   }
 
   Future<void> _addVehicle() async {

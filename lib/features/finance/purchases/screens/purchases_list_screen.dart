@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/purchases/screens/purchases_list_screen.dart
 // PREMIUM DESKTOP SCROLL v6 — Guaranteed Fix
@@ -82,11 +83,11 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
     await DBService.inTx((txn) async {
       final invoices = await txn.rawQuery("""
 SELECT 
-  pi.id,
+  pi.id, pi.invoice_number,
   pi.date,
-  pi.amount_total,
-  IFNULL((SELECT SUM(p.amount) FROM payments p 
-          WHERE p.invoice_id = pi.id AND p.isIncome = 0), 0) AS paid_total,
+  pi.status, pi.amount_total AS original_amount_total,
+  CASE WHEN UPPER(pi.status) IN ('VOID','CANCELLED','REVERSED') THEN 0 ELSE pi.amount_total END AS amount_total,
+  ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
   pi.supplier_id,
   (SELECT name FROM suppliers s WHERE s.id = pi.supplier_id LIMIT 1)
       AS supplier_name
@@ -144,6 +145,7 @@ ORDER BY pi.date DESC;
   // BODY
   // ============================================================================
   Widget _buildBody() {
+    if (!context.isDesktopWidth) return _buildPhoneBody();
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -158,6 +160,185 @@ ORDER BY pi.date DESC;
             child: _loading ? _loadingWidget() : _buildTable(),
           ),
         ],
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> get _filteredRows {
+    final query = _search.toLowerCase();
+    return _rows
+        .where((r) =>
+            '${r['supplier_name'] ?? ''} ${r['invoice_number'] ?? ''} ${r['id']}'
+                .toLowerCase()
+                .contains(query))
+        .toList();
+  }
+
+  double _amount(Map<String, dynamic> row, String key) =>
+      (row[key] as num?)?.toDouble() ?? 0;
+
+  Future<void> _openPurchase(Map<String, dynamic> row) async {
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              PurchaseDetailsScreen(invoiceId: row['id'].toString()),
+        ));
+    if (mounted) await _load();
+  }
+
+  String _purchaseDate(Object? value) {
+    final raw = value?.toString() ?? '';
+    final date = DateTime.tryParse(raw);
+    if (date == null) return raw.isEmpty ? 'تاريخ غير محدد' : raw;
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Widget _amounts(double total, double paid) {
+    Widget cell(String label, double value, Color color) => Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            child: Column(children: [
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              const SizedBox(height: 4),
+              Text(MoneyFormatter.format(value),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            ]),
+          ),
+        );
+    return Container(
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        cell('الإجمالي', total, Colors.black87),
+        cell('المدفوع', paid, Colors.green.shade700),
+        cell('المتبقي', total - paid, Colors.red.shade700),
+      ]),
+    );
+  }
+
+  Widget _buildPhoneBody() {
+    final rows = _filteredRows;
+    final total = rows.fold(0.0, (s, r) => s + _amount(r, 'amount_total'));
+    final paid = rows.fold(0.0, (s, r) => s + _amount(r, 'paid_total'));
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          SliverToBoxAdapter(
+              child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(children: [
+                  const Expanded(
+                      child: Text('قائمة المشتريات',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold))),
+                  IconButton(
+                      tooltip: 'تصدير PDF',
+                      onPressed: _generatePdf,
+                      icon: const Icon(Icons.picture_as_pdf)),
+                ]),
+                _buildSearch(),
+                const SizedBox(height: 12),
+                Text('ملخص النتائج · ${rows.length} فاتورة',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 6),
+                _amounts(total, paid),
+              ],
+            ),
+          )),
+          if (_loading)
+            SliverFillRemaining(hasScrollBody: false, child: _loadingWidget())
+          else if (rows.isEmpty)
+            const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: Text('لا توجد فواتير شراء مطابقة')))
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+              sliver: SliverList.builder(
+                itemCount: rows.length,
+                itemBuilder: (_, i) => _purchaseCard(rows[i]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _purchaseCard(Map<String, dynamic> row) {
+    final total = _amount(row, 'amount_total');
+    final paid = _amount(row, 'paid_total');
+    final remaining = total - paid;
+    final status = ['VOID', 'CANCELLED', 'REVERSED'].contains(row['status'])
+        ? 'ملغاة'
+        : remaining <= 0.0001
+            ? 'مسدد'
+            : paid > 0.0001
+                ? 'مسدد جزئيًا'
+                : 'غير مسدد';
+    final color = remaining <= 0.0001
+        ? Colors.green.shade700
+        : paid > 0.0001
+            ? Colors.orange.shade800
+            : Colors.red.shade700;
+    final number = (row['invoice_number'] ?? '').toString().trim();
+    final supplier = (row['supplier_name'] ?? '').toString().trim();
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: Colors.grey.shade200)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openPurchase(row),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(children: [
+                const Icon(Icons.storefront_outlined, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: Text(supplier.isEmpty ? 'مورد غير محدد' : supplier,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold))),
+              ]),
+              const SizedBox(height: 8),
+              Text('رقم الفاتورة: ${number.isEmpty ? row['id'] : number}',
+                  style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              const SizedBox(height: 6),
+              Text('تاريخ الشراء: ${_purchaseDate(row['date'])}',
+                  style: const TextStyle(fontSize: 13)),
+              const SizedBox(height: 10),
+              _amounts(total, paid),
+              const SizedBox(height: 6),
+              Row(children: [
+                Expanded(
+                    child: Text(status,
+                        style: TextStyle(
+                            color: color, fontWeight: FontWeight.bold))),
+                TextButton.icon(
+                    onPressed: () => _openPurchase(row),
+                    icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                    label: const Text('تفاصيل الفاتورة')),
+              ]),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -221,11 +402,7 @@ ORDER BY pi.date DESC;
 // TABLE — FINAL DESKTOP SCROLL FIX
 // ============================================================================
   Widget _buildTable() {
-    final filtered = _rows.where((r) {
-      final supplier = (r['supplier_name'] ?? '').toString();
-      final id = r['id'].toString();
-      return supplier.contains(_search) || id.contains(_search);
-    }).toList();
+    final filtered = _filteredRows;
 
     if (filtered.isEmpty) {
       return const Center(child: Text('لا توجد فواتير شراء'));

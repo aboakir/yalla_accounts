@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/features/finance/services/financial_overview_service.dart';
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/finance/reports/screens/cash_flow_screen.dart
 //
 // CashFlowScreen — تقرير التدفق النقدي (GL v30 موحَّد الهوية)
@@ -41,7 +43,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
   final _money = NumberFormat('#,##0.00', 'ar');
 
   DateTime? _from;
-  DateTime? _to;
+  DateTime? _to = DateTime.now();
   String _query = '';
   String? _which; // null=All, '1000'=Cash, '1010'=Bank
 
@@ -86,6 +88,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
 
   // ───────── Load rows with filters ─────────
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -95,38 +98,38 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
     });
 
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
 
-      // Resolve account filter
-      final ids = <int>[];
-      if (_which == null || _which == '1000') {
-        if (_accCashId != null) ids.add(_accCashId!);
-      }
-      if (_which == null || _which == '1010') {
-        if (_accBankId != null) ids.add(_accBankId!);
-      }
+      final liquidityAccounts = await db.query('accounts',
+          columns: ['id', 'code'],
+          where: _which == null
+              ? "code IN ('1000','1010') OR code LIKE '1000.%' OR code LIKE '1010.%'"
+              : 'code=? OR code LIKE ?',
+          whereArgs: _which == null ? null : [_which, '$_which.%']);
+      final ids =
+          liquidityAccounts.map((a) => (a['id'] as num).toInt()).toList();
+      final codes = {
+        for (final a in liquidityAccounts)
+          (a['id'] as num).toInt(): a['code'].toString()
+      };
       if (ids.isEmpty) throw StateError('لا يوجد حساب نقدي ضمن الفلتر.');
-
       final placeholders = List.filled(ids.length, '?').join(',');
       final where = <String>['l.account_id IN ($placeholders)'];
       final args = <Object?>[...ids];
 
       if (_from != null) {
-        where.add('e.date >= ?');
+        where.add('substr(e.date,1,10) >= substr(?,1,10)');
         args.add(
             DateTime(_from!.year, _from!.month, _from!.day).toIso8601String());
       }
       if (_to != null) {
-        where.add('e.date <= ?');
+        where.add('substr(e.date,1,10) <= substr(?,1,10)');
         args.add(DateTime(_to!.year, _to!.month, _to!.day, 23, 59, 59)
             .toIso8601String());
       }
-      if (_query.trim().isNotEmpty) {
-        final s = '%${_query.trim()}%';
-        where.add('(e.ref LIKE ? OR e.note LIKE ? OR e.source LIKE ?)');
-        args.addAll([s, s, s]);
-      }
-
       final sql = '''
         SELECT
           e.id                    AS entry_id,
@@ -146,21 +149,36 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
 
       final maps = await db.rawQuery(sql, args);
 
-      double running = 0.0;
-      double sIn = 0.0, sOut = 0.0;
+      double running = 0;
+      if (_from != null) {
+        final opening = await db.rawQuery(
+            'SELECT COALESCE(SUM(l.debit-l.credit),0) AS balance FROM gl_lines l JOIN gl_entries e ON e.id=l.entry_id WHERE l.account_id IN ($placeholders) AND substr(e.date,1,10)<substr(?,1,10)',
+            [...ids, _from!.toIso8601String()]);
+        running = (opening.first['balance'] as num).toDouble();
+      }
+      final flows = await FinancialOverviewService.cashFlowsOn(db,
+          from: _from, to: _to, liquidityCode: _which);
+      final sIn = flows.$1, sOut = flows.$2;
       final out = <_Row>[];
 
       for (final m in maps) {
         final deb = _toD(m['debit']);
         final cre = _toD(m['credit']);
 
-        sIn += deb; // مدين يزيد النقد
-        sOut += cre; // دائن ينقص النقد
         running += (deb - cre);
+        if (_query.trim().isNotEmpty &&
+            !m.values
+                .join(' ')
+                .toLowerCase()
+                .contains(_query.trim().toLowerCase())) {
+          continue;
+        }
 
         final aid = (m['account_id'] as num).toInt();
-        final isCash = _accCashId != null && aid == _accCashId!;
-        final isBank = _accBankId != null && aid == _accBankId!;
+        final isCash =
+            codes[aid] == '1000' || (codes[aid]?.startsWith('1000.') ?? false);
+        final isBank =
+            codes[aid] == '1010' || (codes[aid]?.startsWith('1010.') ?? false);
 
         out.add(_Row(
           entryId: (m['entry_id'] as num).toInt(),
@@ -204,6 +222,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _from = d);
       _load();
@@ -219,6 +238,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _to = d);
       _load();
@@ -228,7 +248,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
   // ───────── UI ─────────
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isMobile = !Responsive.isDesktop(context);
     const currentRoute = '/reports/cash-flow';
     final net = _sumIn - _sumOut;
 
@@ -243,8 +263,21 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
               offset: const Offset(0, 2)),
         ],
       ),
-      child: AdaptiveRow(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          FinancialPeriodFilter(
+              from: _from,
+              to: _to,
+              onChanged: (range) {
+                setState(() {
+                  _from = range.start;
+                  _to = range.end;
+                });
+                _load();
+              }),
           if (isMobile)
             IconButton(
               icon: const Icon(Icons.menu, color: Colors.white),
@@ -255,16 +288,20 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             style: TextStyle(
                 color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          const Spacer(),
+
           // اختيار الحساب — Account filter dropdown
           DropdownButtonHideUnderline(
             child: Container(
+              width: MediaQuery.sizeOf(context).width < 400
+                  ? MediaQuery.sizeOf(context).width - 64
+                  : 320,
               padding: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: DropdownButton<String?>(
+                isExpanded: true,
                 value: _which,
                 iconEnabledColor: Colors.white,
                 dropdownColor: Colors.white,
@@ -336,6 +373,8 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
         runSpacing: 8,
         alignment: WrapAlignment.end,
         children: [
+          const Text(
+              'صافي التدفقات يستبعد الرصيد الافتتاحي ويخصم العكس. التحويل بين الصندوق والبنك لا يحتسب عند اختيار الكل.'),
           _stat('التدفقات الداخلة', _sumIn, Colors.green),
           _stat('التدفقات الخارجة', _sumOut, Colors.red),
           Chip(
@@ -420,13 +459,15 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
           if (!isMobile) const YallaSidebar(currentRoute: currentRoute),
           Expanded(
             child: SafeArea(
-              child: Column(
-                children: [
-                  header,
-                  totalsTop,
-                  Expanded(child: body),
-                  if (!isMobile) totalsBottom,
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerScrolled) => [
+                  SliverToBoxAdapter(child: header),
+                  SliverToBoxAdapter(child: totalsTop),
                 ],
+                body: Column(children: [
+                  Expanded(child: body),
+                  if (!isMobile) totalsBottom
+                ]),
               ),
             ),
           ),
@@ -693,7 +734,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(

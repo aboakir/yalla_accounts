@@ -1,3 +1,6 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import '../../gl_posting_policy.dart';
+import '../../current_user_context.dart';
 // 📁 lib/core/services/db/tables/accounting_tables.dart
 import 'package:sqflite/sqflite.dart';
 import 'payments_tables.dart';
@@ -9,6 +12,7 @@ import 'party_tables.dart';
 // أضف هذه الاستيرادات:
 
 class AccountingTables {
+  static int _postingSavepoint = 0;
   // 💰 إنشاء الجداول المحاسبية
   static Future<void> createAllTables(DatabaseExecutor db) async {
     await _createAccountsTable(db);
@@ -699,6 +703,35 @@ class AccountingTables {
       END;
     ''');
 
+    for (final event in ['INSERT', 'UPDATE OF parent_id, type']) {
+      final suffix = event.startsWith('INSERT') ? 'insert' : 'update';
+      await db.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_accounts_parent_valid_$suffix
+        BEFORE $event ON accounts WHEN NEW.parent_id IS NOT NULL
+        BEGIN
+          SELECT RAISE(ABORT,'ACCOUNT_PARENT_MISSING') WHERE NOT EXISTS
+            (SELECT 1 FROM accounts WHERE id=NEW.parent_id);
+          SELECT RAISE(ABORT,'ACCOUNT_PARENT_TYPE') WHERE EXISTS
+            (SELECT 1 FROM accounts WHERE id=NEW.parent_id AND UPPER(type)<>UPPER(NEW.type));
+          SELECT RAISE(ABORT,'ACCOUNT_PARENT_CYCLE') WHERE NEW.id IN (
+            WITH RECURSIVE ancestors(id,parent_id) AS (
+              SELECT id,parent_id FROM accounts WHERE id=NEW.parent_id
+              UNION SELECT a.id,a.parent_id FROM accounts a JOIN ancestors p ON a.id=p.parent_id
+            ) SELECT id FROM ancestors);
+          SELECT RAISE(ABORT,'ACCOUNT_CHILD_TYPE') WHERE EXISTS
+            (SELECT 1 FROM accounts WHERE parent_id=NEW.id AND UPPER(type)<>UPPER(NEW.type));
+        END;
+      """);
+    }
+    await db
+        .execute("""CREATE TRIGGER IF NOT EXISTS trg_accounts_child_type_update
+      BEFORE UPDATE OF type ON accounts WHEN EXISTS
+        (SELECT 1 FROM accounts WHERE parent_id=OLD.id AND UPPER(type)<>UPPER(NEW.type))
+      BEGIN SELECT RAISE(ABORT,'ACCOUNT_CHILD_TYPE'); END;""");
+    await db.execute("""CREATE TRIGGER IF NOT EXISTS trg_accounts_parent_delete
+      BEFORE DELETE ON accounts WHEN EXISTS(SELECT 1 FROM accounts WHERE parent_id=OLD.id)
+      BEGIN SELECT RAISE(ABORT,'ACCOUNT_HAS_CHILDREN'); END;""");
+
     await db.execute(r'''
       CREATE TRIGGER IF NOT EXISTS trg_accounts_protect_delete
       BEFORE DELETE ON accounts
@@ -1034,12 +1067,14 @@ class AccountingTables {
       return;
     }
 
-    await db.insert('accounts', {
-      ...account,
-      'report_class': _reportClassForType(account['type']!),
-      'is_system': 1,
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert('accounts', {
+              ...account,
+              'report_class': _reportClassForType(account['type']!),
+              'is_system': 1,
+              'created_at': DateTime.now().toIso8601String(),
+            }));
   }
 
   // 🎯 واجهات المحاسبة الرئيسية
@@ -1055,7 +1090,8 @@ class AccountingTables {
     required List<Map<String, Object?>> lines,
   }) async {
     final db = await DBService.database;
-    return await db.transaction(
+    return await SyncFoundationService.transaction(
+      db,
       (txn) => _postEntryGLOn(
         db: txn,
         date: date,
@@ -1176,6 +1212,59 @@ class AccountingTables {
     String? note,
     required List<Map<String, Object?>> lines,
   }) async {
+    if (db is Database) {
+      return SyncFoundationService.transaction(
+          db,
+          (txn) => _writeEntryGLOn(
+              db: txn,
+              date: date,
+              ref: ref,
+              source: source,
+              sourceId: sourceId,
+              sourceNumber: sourceNumber,
+              postingVersion: postingVersion,
+              reversalOf: reversalOf,
+              createdBy: createdBy,
+              note: note,
+              lines: lines));
+    }
+    final savepoint = 'gl_post_${++_postingSavepoint}';
+    await db.execute('SAVEPOINT $savepoint');
+    try {
+      final id = await _writeEntryGLOn(
+          db: db,
+          date: date,
+          ref: ref,
+          source: source,
+          sourceId: sourceId,
+          sourceNumber: sourceNumber,
+          postingVersion: postingVersion,
+          reversalOf: reversalOf,
+          createdBy: createdBy,
+          note: note,
+          lines: lines);
+      await db.execute('RELEASE SAVEPOINT $savepoint');
+      return id;
+    } catch (_) {
+      await db.execute('ROLLBACK TO SAVEPOINT $savepoint');
+      await db.execute('RELEASE SAVEPOINT $savepoint');
+      rethrow;
+    }
+  }
+
+  static Future<int> _writeEntryGLOn({
+    required DatabaseExecutor db,
+    required DateTime date,
+    String? ref,
+    required String source,
+    required String sourceId,
+    String? sourceNumber,
+    int postingVersion = 1,
+    int? reversalOf,
+    String? createdBy,
+    String? note,
+    required List<Map<String, Object?>> lines,
+  }) async {
     if (postingVersion < 1) {
       throw ArgumentError('postingVersion must be >= 1');
     }
@@ -1195,7 +1284,7 @@ class AccountingTables {
     // Stage 1: all new Party metadata is canonicalized at the GL gateway.
     // Historical CLIENT/S0001 rows remain readable through Party views.
     final normalizedLines = <Map<String, Object?>>[];
-    for (final raw in lines) {
+    for (final raw in GlPostingPolicy.normalize(lines)) {
       final line = Map<String, Object?>.from(raw);
       final rawRole = line['party_type']?.toString().trim();
       final rawPartyId = line['party_id'];
@@ -1215,16 +1304,6 @@ class AccountingTables {
         }
       }
       normalizedLines.add(line);
-    }
-
-    final total = normalizedLines.fold<double>(0, (sum, line) {
-      final debit = (line['debit'] as num?)?.toDouble() ?? 0.0;
-      final credit = (line['credit'] as num?)?.toDouble() ?? 0.0;
-      return sum + debit - credit;
-    });
-
-    if (total.abs() > 0.01) {
-      throw StateError('القيد غير متوازن. الفرق: $total');
     }
 
     double numberValue(Object? value) {
@@ -1268,7 +1347,7 @@ class AccountingTables {
     }
 
     Future<List<Map<String, Object?>>> findExistingEntries() async {
-      final columns = <String>['id', 'source'];
+      final columns = <String>['id', 'source', 'date', 'ref', 'note'];
       if (sourceNumber != null || postingVersion != 1 || reversalOf != null) {
         columns.addAll(['source_number', 'posting_version', 'reversal_of']);
       }
@@ -1287,6 +1366,16 @@ class AccountingTables {
       Map<String, Object?> existingHead,
     ) async {
       final entryId = (existingHead['id'] as num).toInt();
+      if (DateTime.tryParse('${existingHead['date']}') != date ||
+          (ref != null &&
+              ref.trim().isNotEmpty &&
+              existingHead['ref'] != ref.trim()) ||
+          (note != null &&
+              note.trim().isNotEmpty &&
+              existingHead['note'] != note.trim())) {
+        throw StateError(
+            'Posting identity reused with different date/reference/description');
+      }
 
       if (sourceNumber != null &&
           existingHead.containsKey('source_number') &&
@@ -1355,21 +1444,33 @@ class AccountingTables {
       allowRetiredForReversal: reversalOf != null,
     );
 
+    final columns = await db.rawQuery('PRAGMA table_info(gl_entries)');
+    final supportsActor = columns.any((c) => c['name'] == 'created_by');
+    final actor = (createdBy?.trim().isNotEmpty ?? false)
+        ? createdBy!.trim()
+        : (supportsActor ? await CurrentUserContext.userId() : null);
+    if (supportsActor && (actor == null || actor.isEmpty)) {
+      throw StateError('يجب تسجيل الدخول قبل ترحيل قيد محاسبي');
+    }
+    final resolvedRef = GlPostingPolicy.reference(
+        canonicalSource, cleanSourceId, ref, sourceNumber);
+    final resolvedNote =
+        GlPostingPolicy.description(canonicalSource, resolvedRef, note);
     final header = <String, Object?>{
       'date': date.toIso8601String(),
-      'ref': ref,
+      'ref': resolvedRef,
       'source': canonicalSource,
       'source_id': cleanSourceId,
-      'note': note,
-      'created_at': DateTime.now().toIso8601String(),
+      'note': resolvedNote,
+      'created_at': DateTime.now().toUtc().toIso8601String(),
     };
     if (sourceNumber != null && sourceNumber.trim().isNotEmpty) {
       header['source_number'] = sourceNumber.trim();
     }
     if (postingVersion != 1) header['posting_version'] = postingVersion;
     if (reversalOf != null) header['reversal_of'] = reversalOf;
-    if (createdBy != null && createdBy.trim().isNotEmpty) {
-      header['created_by'] = createdBy.trim();
+    if (supportsActor && actor != null) {
+      header['created_by'] = actor;
     }
 
     int entryId;
@@ -1407,7 +1508,7 @@ class AccountingTables {
       sourceId: cleanSourceId,
       canonicalSource: canonicalSource,
       reversalOf: reversalOf,
-      actorUserId: createdBy,
+      actorUserId: actor,
     );
 
     return entryId;
@@ -1418,6 +1519,9 @@ class AccountingTables {
     final db = await DBService.database;
     return await _ensureClientAccountOn(db, clientId);
   }
+
+  static Future<int> ensureClientAccountOn(DatabaseExecutor db, int clientId) =>
+      _ensureClientAccountOn(db, clientId);
 
   static Future<int> _ensureClientAccountOn(
       DatabaseExecutor db, int clientId) async {
@@ -1505,7 +1609,8 @@ class AccountingTables {
         });
       }
 
-      accountId = await db.insert('accounts', values);
+      accountId = await SyncFoundationService.writeOn(
+          db, (syncTxn) => syncTxn.insert('accounts', values));
     }
 
     await db.update(
@@ -1594,7 +1699,8 @@ class AccountingTables {
       });
     }
 
-    return db.insert('accounts', values);
+    return SyncFoundationService.writeOn(
+        db, (syncTxn) => syncTxn.insert('accounts', values));
   }
 
   // 🎯 فاتورة GL
@@ -1690,7 +1796,8 @@ class AccountingTables {
     String? note,
   }) async {
     final db = await DBService.database;
-    return db.transaction(
+    return SyncFoundationService.transaction(
+      db,
       (txn) => reverseEntryGLOn(
         txn,
         entryId,
@@ -1880,14 +1987,16 @@ class AccountingTables {
       return row['id'] as int;
     }
 
-    return db.insert('accounts', {
-      'code': normalizedCode,
-      'name': name,
-      'type': normalizedType,
-      'normal_balance': normalizedBalance,
-      'report_class': _reportClassForType(normalizedType),
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    return SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert('accounts', {
+              'code': normalizedCode,
+              'name': name,
+              'type': normalizedType,
+              'normal_balance': normalizedBalance,
+              'report_class': _reportClassForType(normalizedType),
+              'created_at': DateTime.now().toIso8601String(),
+            }));
   }
 
   static Future<void> ensureDefaultAccountsExist() async {
@@ -1959,7 +2068,8 @@ class AccountingTables {
     String? note,
   }) async {
     final db = await DBService.database;
-    return db.transaction(
+    return SyncFoundationService.transaction(
+      db,
       (txn) => postInvoiceGLOnTransaction(
         txn: txn,
         invoiceId: invoiceId,
@@ -2092,12 +2202,14 @@ class AccountingTables {
         where: 'code=?', whereArgs: [code], limit: 1);
     if (result.isNotEmpty) return result.first['id'] as int;
 
-    return await db.insert('accounts', {
-      'code': code,
-      'name': 'سلف موظف - $employeeId',
-      'type': 'ASSET',
-      'normal_balance': 'DEBIT',
-    });
+    return await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert('accounts', {
+              'code': code,
+              'name': 'سلف موظف - $employeeId',
+              'type': 'ASSET',
+              'normal_balance': 'DEBIT',
+            }));
   }
 
 // ============================================================

@@ -316,7 +316,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isMobile = !Responsive.isDesktop(context);
 
     final header = Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -330,7 +330,10 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
           )
         ],
       ),
-      child: AdaptiveRow(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (isMobile)
             IconButton(
@@ -345,7 +348,6 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const Spacer(),
           _chip(
               label: _from == null ? 'من' : _df.format(_from!),
               icon: Icons.date_range,
@@ -489,13 +491,12 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
             const YallaSidebar(currentRoute: '/finance/general-journal'),
           Expanded(
             child: SafeArea(
-              child: Column(
-                children: [
-                  header,
-                  totals,
-                  Expanded(child: body),
-                ],
-              ),
+              child: NestedScrollView(
+                  headerSliverBuilder: (_, __) => [
+                        SliverToBoxAdapter(child: header),
+                        SliverToBoxAdapter(child: totals)
+                      ],
+                  body: body),
             ),
           ),
         ],
@@ -751,7 +752,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(

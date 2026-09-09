@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import '../../finance/purchases/services/purchase_balance_sql.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/vouchers/services/voucher_payment_service.dart
 // Voucher Payment Service — v54 (AUTO FIFO SETTLEMENT)
@@ -127,13 +129,16 @@ class VoucherPaymentService {
     required VoucherPayment voucher,
     required String partyName,
     Map<String, dynamic>? chequeDraft,
+    Database? database,
   }) async {
-    if (voucher.amount <= 0) throw ArgumentError('Amount must be > 0');
+    if (!voucher.amount.isFinite || voucher.amount <= 0) {
+      throw ArgumentError('Amount must be > 0');
+    }
 
-    final db = await DBService.database;
+    final db = database ?? await DBService.database;
     final id = voucher.id.isEmpty ? const Uuid().v4() : voucher.id;
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       await ensureSchema(txn);
       await _validateVoucherOnTxn(
         txn: txn,
@@ -198,6 +203,10 @@ class VoucherPaymentService {
           conflictAlgorithm: ConflictAlgorithm.abort,
         );
       } else {
+        if (['VOID', 'REVERSED']
+            .contains('${existingRows.first['status']}'.toUpperCase())) {
+          throw StateError('Cancelled voucher cannot be reposted');
+        }
         postingVoucher = VoucherPayment.fromMap(existingRows.first);
         voucherNumber = postingVoucher.voucherNumber ?? '';
 
@@ -209,7 +218,8 @@ class VoucherPaymentService {
             postingVoucher.partyType?.toUpperCase() ==
                 voucher.partyType?.toUpperCase() &&
             sameText(postingVoucher.partyId, voucher.partyId) &&
-            (postingVoucher.amount - voucher.amount).abs() <= 0.01 &&
+            (postingVoucher.amount * 100).round() ==
+                (voucher.amount * 100).round() &&
             postingVoucher.currency.toUpperCase() ==
                 voucher.currency.toUpperCase() &&
             postingVoucher.date.toIso8601String() ==
@@ -356,7 +366,12 @@ class VoucherPaymentService {
             'account_id': debitAccId,
             'debit': postingVoucher.amount,
             'credit': 0.0,
-            'party_type': postingVoucher.partyType,
+            // Operating expenses have an expense account, not a counterparty.
+            'party_type':
+                postingVoucher.partyType?.toUpperCase() == 'EXPENSE' &&
+                        (postingVoucher.partyId?.trim().isEmpty ?? true)
+                    ? null
+                    : postingVoucher.partyType,
             'party_id': postingVoucher.partyId,
             'invoice_id': postingVoucher.reference,
             'repair_id': null,
@@ -426,6 +441,14 @@ class VoucherPaymentService {
           preferredInvoiceId: postingVoucher.reference!.trim(),
         );
       }
+      await AuditTrailService.log(
+        executor: txn,
+        action: 'PAYMENT_VOUCHER_POSTED',
+        entityType: 'voucher',
+        entityId: id,
+        before: existingRows.isEmpty ? null : existingRows.first,
+        after: (await txn.query(table, where: 'id=?', whereArgs: [id])).single,
+      );
     });
 
     final postedRow = await db.query(
@@ -547,11 +570,10 @@ class VoucherPaymentService {
       throw StateError('Purchase invoice $invoiceId has non-positive total');
     }
 
-    final settledRow = await txn.rawQuery('''
-      SELECT COALESCE(SUM(amount_applied), 0) AS s
-      FROM invoice_settlements
-      WHERE invoice_id = ?
-    ''', [invoiceId]);
+    final settledRow = await txn.rawQuery(
+      "SELECT ${PurchaseBalanceSql.paid('?', excludingVoucher: '?')} AS s",
+      [invoiceId, voucherId],
+    );
 
     final settled = (settledRow.first['s'] as num?)?.toDouble() ?? 0.0;
     final outstanding = total - settled;
@@ -631,7 +653,21 @@ class VoucherPaymentService {
       final empId = voucher.partyId ?? "";
       final isPayroll =
           (voucher.source ?? '').trim().toUpperCase() == 'PAYROLL_ENTITLEMENT';
-      final code = isPayroll ? "2140.E$empId" : "1120.E$empId";
+      var isBonus = (voucher.source ?? '').toUpperCase() == 'EMPLOYEE_BONUS';
+      if ((voucher.source ?? '').toUpperCase() == 'EMP_ADV' &&
+          voucher.sourceId != null) {
+        final legacy = await txn.query('employee_advances',
+            columns: ['type'],
+            where: 'id=?',
+            whereArgs: [voucher.sourceId],
+            limit: 1);
+        isBonus = legacy.isNotEmpty && legacy.first['type'] == 'bonus';
+      }
+      final code = isPayroll
+          ? "2140.E$empId"
+          : isBonus
+              ? '5100'
+              : "1120.E$empId";
 
       final existing = await txn.query(
         "accounts",
@@ -644,9 +680,16 @@ class VoucherPaymentService {
 
       return await txn.insert("accounts", {
         "code": code,
-        "name":
-            isPayroll ? "مستحقات رواتب - $partyName" : "سلفة موظف: $partyName",
-        "type": isPayroll ? "LIABILITY" : "ASSET",
+        "name": isPayroll
+            ? "مستحقات رواتب - $partyName"
+            : isBonus
+                ? 'مصروف رواتب ومكافآت'
+                : "سلفة موظف: $partyName",
+        "type": isPayroll
+            ? "LIABILITY"
+            : isBonus
+                ? 'EXPENSE'
+                : "ASSET",
         "normal_balance": isPayroll ? "CREDIT" : "DEBIT",
       });
     }
@@ -743,7 +786,7 @@ class VoucherPaymentService {
       if (reference.isNotEmpty) {
         final invoices = await txn.query(
           'purchase_invoices',
-          columns: const ['id', 'supplier_id', 'amount_total'],
+          columns: const ['id', 'supplier_id', 'amount_total', 'status'],
           where: 'id=? AND supplier_id=?',
           whereArgs: [reference, supplierId],
           limit: 1,
@@ -754,12 +797,12 @@ class VoucherPaymentService {
           );
         }
 
+        if (['VOID', 'CANCELLED', 'REVERSED']
+            .contains('${invoices.first['status']}'.toUpperCase())) {
+          throw StateError('Cannot pay a cancelled invoice');
+        }
         final settledRows = await txn.rawQuery(
-          """
-          SELECT COALESCE(SUM(amount_applied),0) AS s
-          FROM invoice_settlements
-          WHERE invoice_id=? AND voucher_id<>?
-          """,
+          "SELECT ${PurchaseBalanceSql.paid('?', excludingVoucher: '?')} AS s",
           [reference, voucher.id],
         );
         final settled = (settledRows.first['s'] as num?)?.toDouble() ?? 0.0;
@@ -797,7 +840,7 @@ class VoucherPaymentService {
         }
         final runs = await txn.query(
           'payroll_runs',
-          columns: const ['id', 'employee_id', 'net', 'status'],
+          columns: const ['id', 'employee_id', 'net', 'status', 'period_start'],
           where: 'id=?',
           whereArgs: [runId],
           limit: 1,
@@ -806,6 +849,14 @@ class VoucherPaymentService {
           throw StateError('Payroll entitlement does not exist.');
         }
         final run = runs.first;
+        final month = (run['period_start'] ?? '').toString().substring(0, 7);
+        final locked = await txn.query('salary_periods',
+            columns: ['is_locked'],
+            where: 'month=? AND is_locked=1',
+            whereArgs: [month],
+            limit: 1);
+        if (locked.isNotEmpty)
+          throw StateError('فترة الرواتب مقفلة؛ افتحها قبل الصرف.');
         if ((run['employee_id'] ?? '').toString() != partyId) {
           throw StateError(
             'Payroll entitlement belongs to a different employee.',
@@ -896,14 +947,15 @@ class VoucherPaymentService {
   static Future<void> reverseVoucher(
     String voucherId, {
     required String reason,
+    Database? database,
   }) async {
     final trimmedReason = reason.trim();
     if (trimmedReason.isEmpty) {
       throw ArgumentError('A reversal reason is required.');
     }
 
-    final db = await DBService.database;
-    await db.transaction((txn) async {
+    final db = database ?? await DBService.database;
+    await SyncFoundationService.transaction(db, (txn) async {
       await ensureSchema(txn);
 
       final rows = await txn.query(
@@ -916,7 +968,7 @@ class VoucherPaymentService {
 
       final row = Map<String, Object?>.from(rows.first);
       final status = (row['status'] ?? '').toString().toUpperCase();
-      if (status == 'REVERSED') {
+      if (status == 'REVERSED' || status == 'VOID') {
         throw StateError('Voucher is already reversed.');
       }
 
@@ -939,19 +991,20 @@ class VoucherPaymentService {
       }
 
       if (glId == null) {
+        final changes = <String, Object?>{
+          'status': 'VOID',
+          'reversal_reason': trimmedReason,
+          'reversed_at': DateTime.now().toUtc().toIso8601String(),
+        };
+        await txn.update(table, changes, where: 'id=?', whereArgs: [voucherId]);
         await AuditTrailService.log(
-          executor: txn,
-          action: 'PAYMENT_VOUCHER_DRAFT_DELETED',
-          entityType: 'voucher',
-          entityId: voucherId,
-          before: row,
-          reason: trimmedReason,
-        );
-        await txn.delete(
-          table,
-          where: 'id=?',
-          whereArgs: [voucherId],
-        );
+            executor: txn,
+            action: 'PAYMENT_VOUCHER_VOIDED',
+            entityType: 'voucher',
+            entityId: voucherId,
+            before: row,
+            after: {...row, ...changes},
+            reason: trimmedReason);
         return;
       }
 
@@ -988,6 +1041,8 @@ class VoucherPaymentService {
         );
       }
 
+      final originalSettlements = await txn.query('invoice_settlements',
+          where: 'voucher_id=?', whereArgs: [voucherId]);
       await txn.delete(
         'invoice_settlements',
         where: 'voucher_id=?',
@@ -1032,6 +1087,7 @@ class VoucherPaymentService {
         reason: trimmedReason,
         metadata: {
           'original_gl_entry_id': glId,
+          'reversed_settlements': originalSettlements,
           'method': method,
         },
       );

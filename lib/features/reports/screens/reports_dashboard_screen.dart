@@ -28,7 +28,6 @@ class ReportsDashboardScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: SizedBox(
           width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 210,
-          height: MediaQuery.sizeOf(context).width < 600 ? 126 : 170,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

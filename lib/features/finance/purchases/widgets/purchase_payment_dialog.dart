@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/features/cheques/widgets/steps/cheque_step_entry.dart';
+import 'package:uuid/uuid.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/purchases/widgets/purchase_payment_dialog.dart
 // PurchasePaymentDialog — FINAL v51 CLEAN VERSION
@@ -53,6 +55,7 @@ class PurchasePaymentDialog extends StatefulWidget {
 }
 
 class _PurchasePaymentDialogState extends State<PurchasePaymentDialog> {
+  final String _operationId = const Uuid().v4();
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _amountCtrl = TextEditingController();
@@ -61,6 +64,7 @@ class _PurchasePaymentDialogState extends State<PurchasePaymentDialog> {
   String _method = "cash";
   DateTime _date = DateTime.now();
   bool _saving = false;
+  Map<String, dynamic>? _chequeDraft;
 
   // ---------------------------------------------------------------------------
   Future<void> _pickDate() async {
@@ -75,14 +79,23 @@ class _PurchasePaymentDialogState extends State<PurchasePaymentDialog> {
 
   // ---------------------------------------------------------------------------
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
 
     try {
       final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0.0;
 
+      if (_method == 'cheque' && _chequeDraft == null) {
+        _chequeDraft = await showDialog<Map<String, dynamic>>(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => ChequeStepEntry(amount: amount, onSubmit: (_) {}));
+        if (!mounted || _chequeDraft == null) return;
+      }
       await PurchasePaymentService.payPurchase(
+        operationId: _operationId,
+        chequeDraft: _method == 'cheque' ? _chequeDraft : null,
         purchaseId: widget.purchaseId,
         supplierId: widget.supplierId,
         amount: amount,

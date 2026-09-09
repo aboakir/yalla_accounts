@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/vouchers/widgets/voucher_list_phone.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/vouchers/screens/payment_voucher_list_screen.dart
 // FINAL DESKTOP SCROLL — Premium v5 (Unified PDF)
@@ -154,6 +155,7 @@ WHERE v.voucher_type = 'PAYMENT'
     totalMonth = (rowMonth.first["s"] as num? ?? 0).toDouble();
 
     _applyFilters();
+    if (!mounted) return;
     setState(() => loading = false);
   }
 
@@ -241,7 +243,7 @@ WHERE v.voucher_type = 'PAYMENT'
         showThemeToggle: false,
         showSearch: false,
       ),
-      body: AdaptiveRow(
+      body: Row(
         children: [
           if (isDesktop)
             const YallaSidebar(currentRoute: '/finance/payment-vouchers'),
@@ -249,7 +251,9 @@ WHERE v.voucher_type = 'PAYMENT'
             child: loading
                 ? const Center(child: CircularProgressIndicator())
                 : ScrollConfiguration(
-                    behavior: const DesktopScrollBehavior(),
+                    behavior: isDesktop
+                        ? const DesktopScrollBehavior()
+                        : const MaterialScrollBehavior(),
                     child: _main(),
                   ),
           ),
@@ -335,6 +339,29 @@ WHERE v.voucher_type = 'PAYMENT'
   // MAIN CONTAINER
   // =============================================================================
   Widget _main() {
+    if (MediaQuery.sizeOf(context).width < 1024) {
+      return VoucherListPhone(
+        isReceipt: false,
+        rows: filtered,
+        today: totalToday,
+        month: totalMonth,
+        method: filterMethod,
+        methods: const ['الكل', 'cash', 'bank', 'cheque', 'transfer'],
+        onSearch: (value) {
+          search = value;
+          setState(_applyFilters);
+        },
+        onMethod: (value) {
+          filterMethod = value;
+          setState(_applyFilters);
+        },
+        onRefresh: _load,
+        onExport: _exportListPdf,
+        onDocument: _generatePdf,
+        onReverse: _confirmDelete,
+        numberLabel: (row) => 'سند صرف: ${row['voucher_number'] ?? 'غير مرقم'}',
+      );
+    }
     return Padding(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -433,7 +460,7 @@ WHERE v.voucher_type = 'PAYMENT'
               items: const ["الكل", "cash", "bank", "cheque", "transfer"]
                   .map((e) => DropdownMenuItem(
                         value: e,
-                        child: Text(e.toUpperCase()),
+                        child: Text(voucherMethodLabel(e)),
                       ))
                   .toList(),
               onChanged: (v) {
@@ -484,7 +511,7 @@ WHERE v.voucher_type = 'PAYMENT'
             child: AdaptiveRow(
               children: const [
                 Expanded(flex: 1, child: Text("PDF")),
-                Expanded(flex: 1, child: Text("حذف")),
+                Expanded(flex: 1, child: Text("إلغاء")),
                 Expanded(
                     flex: 2,
                     child: Text("ID",

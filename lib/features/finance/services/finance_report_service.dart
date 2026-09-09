@@ -29,68 +29,25 @@ class FinanceReportService {
     return out;
   }
 
-  /// 🔹 مجموع الرواتب شهريًا (من جدول salaries الحقيقي)
-  /// ملاحظة: جدول salaries عندك يحتوي عمود month بصيغة 'YYYY-MM'
-  /// وعمود total لقيمة الراتب لذلك الشهر.
-  static Future<Map<String, double>> getMonthlySalaries() async {
+  static Future<Map<String, double>> _monthlyExpense(String condition) async {
     final db = await _db();
-    final rows = await db.rawQuery('''
-      SELECT month AS month,
-             IFNULL(SUM(total), 0) AS total
-      FROM salaries
-      GROUP BY month
-      ORDER BY month
-    ''');
-
-    final out = <String, double>{};
-    for (final r in rows) {
-      final m = (r['month'] ?? 'غير معروف').toString();
-      final v = (r['total'] as num?)?.toDouble() ?? 0.0;
-      out[m] = v;
-    }
-    return out;
+    final rows = await db.rawQuery("""
+      SELECT substr(e.date,1,7) month, SUM(l.debit-l.credit) total
+      FROM gl_lines l JOIN gl_entries e ON e.id=l.entry_id JOIN accounts a ON a.id=l.account_id
+      WHERE $condition GROUP BY substr(e.date,1,7) ORDER BY month
+    """);
+    return {
+      for (final r in rows)
+        r['month'].toString(): (r['total'] as num).toDouble()
+    };
   }
 
-  /// 🔹 مجموع المشتريات شهريًا (من purchases)
-  /// Schema: quantity INTEGER, pricePerUnit REAL, date TEXT
-  /// نجمع (quantity * pricePerUnit) لكل شهر.
-  static Future<Map<String, double>> getMonthlyPurchases() async {
-    final db = await _db();
-    final rows = await db.rawQuery('''
-      SELECT strftime('%Y-%m', date)              AS month,
-             IFNULL(SUM(quantity * pricePerUnit), 0) AS total
-      FROM purchases
-      GROUP BY month
-      ORDER BY month
-    ''');
-
-    final out = <String, double>{};
-    for (final r in rows) {
-      final m = (r['month'] ?? 'غير معروف').toString();
-      final v = (r['total'] as num?)?.toDouble() ?? 0.0;
-      out[m] = v;
-    }
-    return out;
-  }
-
-  /// 🔹 مصروفات تشغيل أخرى شهريًا (من monthly_expenses)
-  /// نأخذ (electricity + rent + other) لكل شهر — بدون رواتب كي لا نكررها.
-  /// Schema: month TEXT UNIQUE, salaries, raw_materials, electricity, rent, other, date?
-  static Future<Map<String, double>> getMonthlyOtherExpenses() async {
-    final db = await _db();
-    final rows = await db.rawQuery('''
-      SELECT month AS month,
-             IFNULL(electricity, 0) + IFNULL(rent, 0) + IFNULL(other, 0) AS total
-      FROM monthly_expenses
-      ORDER BY month
-    ''');
-
-    final out = <String, double>{};
-    for (final r in rows) {
-      final m = (r['month'] ?? 'غير معروف').toString();
-      final v = (r['total'] as num?)?.toDouble() ?? 0.0;
-      out[m] = v;
-    }
-    return out;
-  }
+  static Future<Map<String, double>> getMonthlySalaries() =>
+      _monthlyExpense("a.code='5100' OR a.code LIKE '5100.%'");
+  static Future<Map<String, double>> getMonthlyPurchases() =>
+      _monthlyExpense("a.code='5005' OR a.code LIKE '5005.%'");
+  static Future<
+      Map<String,
+          double>> getMonthlyOtherExpenses() => _monthlyExpense(
+      "(UPPER(a.type)='EXPENSE' OR a.code LIKE '5%') AND a.code<>'5100' AND a.code NOT LIKE '5100.%' AND a.code<>'5005' AND a.code NOT LIKE '5005.%'");
 }

@@ -1,3 +1,7 @@
+import 'package:yalla_accounts/features/cloud_auth/cloud_auth_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -28,6 +32,7 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
   final _email = TextEditingController();
   BackupGuardianStatus? _status;
   EncryptedBackupResult? _latest;
+  DateTime? _lastRestore;
 
   @override
   void initState() {
@@ -45,6 +50,7 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
     final status = await WeeklyBackupGuardianService.load();
     final latest = await BackupService.latestEncryptedBackup();
     final hasPassword = await BackupKeyStore.hasPassword();
+    final lastRestore = await BackupService.lastRestoreAt();
     if (!mounted) return;
     setState(() {
       _status = status;
@@ -52,6 +58,7 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
       _email.text = status.backupEmail ?? '';
       _latest = latest;
       _hasPassword = hasPassword;
+      _lastRestore = lastRestore;
       _loading = false;
     });
   }
@@ -72,7 +79,7 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
     final a = TextEditingController();
     final b = TextEditingController();
     try {
-      return showDialog<String>(
+      return await showDialog<String>(
         context: context,
         builder: (ctx) => AdaptiveAlertDialog(
           title: Text(title),
@@ -119,7 +126,7 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
   Future<String?> _restorePasswordDialog() async {
     final c = TextEditingController();
     try {
-      return showDialog<String>(
+      return await showDialog<String>(
         context: context,
         builder: (ctx) => AdaptiveAlertDialog(
           title: const Text('فك النسخة الاحتياطية'),
@@ -202,20 +209,33 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
       _message('الاستعادة متاحة للمالك فقط.');
       return;
     }
+    if (!mounted) return;
+    String? selectedPath;
+    try {
+      selectedPath = await BackupService.pickEncryptedBackup();
+    } catch (e) {
+      if (mounted) _message('تعذر اختيار النسخة: $e');
+      return;
+    }
+    if (!mounted || selectedPath == null) return;
     final password = await _restorePasswordDialog();
     if (password == null || password.isEmpty) return;
     final confirm = await _confirmDanger(
       'استعادة نسخة كاملة',
-      'سيتم إنشاء Safety Backup أولًا، ثم استبدال قاعدة البيانات الحالية '
-          'وإعادة الصور والمرفقات. عند فشل الاستعادة سيحاول Yalla إعادة البيانات السابقة.',
+      'ستستبدل هذه العملية بيانات الورشة الحالية ومرفقاتها بمحتويات النسخة المختارة. '
+          'سيتم حفظ نسخة أمان كاملة أولًا. عند فشل العملية تُعاد البيانات والملفات السابقة. '
+          'بعد النجاح ستحتاج إلى تسجيل الدخول مجددًا.',
     );
     if (!confirm) return;
     await _runBusy(() async {
-      final path =
-          await BackupService.restoreEncryptedFromPicker(password: password);
-      if (path != null)
-        _message(
-            'تمت الاستعادة والتحقق بنجاح. أعد فتح الشاشات لتحديث البيانات.');
+      await BackupService.restoreEncryptedFromPath(selectedPath!,
+          password: password);
+      if (!mounted) return;
+      ProviderScope.containerOf(context)
+          .read(currentUserProvider.notifier)
+          .state = null;
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
     });
   }
 
@@ -228,8 +248,9 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
     if (!confirm) return;
     await _runBusy(() async {
       final path = await WindowsMigrationService.importDatabaseFromPicker();
-      if (path != null)
+      if (path != null) {
         _message('تم استيراد قاعدة Windows وتشغيل Migration بنجاح.');
+      }
     });
   }
 
@@ -302,6 +323,7 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            const CloudAccountLinkTile(),
             if (_busy) const LinearProgressIndicator(),
             Card(
               child: Padding(
@@ -336,7 +358,9 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
                         icon: const Icon(Icons.save_outlined),
                         label: const Text('حفظ الإعدادات')),
                     const Divider(height: 28),
-                    Text('آخر نسخة محلية: ${_fmt(status.lastLocalBackupAt)}'),
+                    Text(
+                        'آخر نسخة محلية: ${_fmt(_latest?.createdAt ?? status.lastLocalBackupAt)}'),
+                    Text('آخر استعادة ناجحة: ${_fmt(_lastRestore)}'),
                     Text(
                         'آخر تسليم خارج الجهاز: ${_fmt(status.lastExternalHandoffAt)}'),
                     Text('الموعد القادم: ${_fmt(status.nextDueAt)}'),
@@ -357,9 +381,14 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
+                    const Text(
+                        'تشمل النسخة قاعدة البيانات والإعدادات وبيانات الورشة والشعار وصور الإصلاحات وسجلات التدقيق والتغييرات.'),
+                    const SizedBox(height: 8),
+                    const Text(
+                        'اختر الملفات أو Drive أو iCloud من نافذة مشاركة النظام؛ لا تُرفع النسخة تلقائيًا.'),
                     if (_latest != null)
                       Text(
-                          'أحدث نسخة: ${_latest!.path}\nالحجم: ${_latest!.sizeMb.toStringAsFixed(1)} MB'),
+                          'مكان الحفظ: ${_latest!.path}\nالحجم: ${_latest!.sizeMb.toStringAsFixed(1)} MB'),
                     if (sizeWarning)
                       const Padding(
                         padding: EdgeInsets.only(top: 8),
@@ -393,7 +422,7 @@ class _SecurityDataScreenState extends State<SecurityDataScreen> {
                         FilledButton.tonalIcon(
                             onPressed: _restoreEncrypted,
                             icon: const Icon(Icons.restore),
-                            label: const Text('استعادة .yallabackup')),
+                            label: const Text('استعادة نسخة .yab')),
                       ],
                     ),
                   ],

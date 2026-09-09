@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/settings/widgets/work_schedule_fields.dart';
 // 📁 lib/features/settings/screens/workshop_settings_screen.dart
 //
 // WorkshopSettingsScreen — تصميم A
@@ -127,7 +128,12 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
       earlyLeavePenalty: _earlyLeavePenalty,
     );
 
-    await WorkshopSettingsService.instance.saveSettings(model);
+    try {
+      await WorkshopSettingsService.instance.saveSettings(model);
+    } catch (e) {
+      if (mounted) _snack('تعذر حفظ الدوام: $e');
+      return;
+    }
 
     await UserService().setSecurityQuestions(
       question1: 'ما أول اسم لورشتك بالعربية؟',
@@ -286,6 +292,15 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
               if (t != null) setState(() => _end = t);
             },
           ),
+          WorkScheduleFields(
+              days: _weekWorkdays,
+              hours: _dailyHours,
+              breakMinutes: _breakMinutes,
+              overtime: _overtimeRate,
+              onDays: (v) => setState(() => _weekWorkdays = v),
+              onHours: (v) => _dailyHours = v,
+              onBreak: (v) => _breakMinutes = v,
+              onOvertime: (v) => _overtimeRate = v),
         ]),
       ),
     );

@@ -81,6 +81,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
   }
 
   Future<void> _saveFinal() async {
+    if (_isSaving) return;
     final lastForm = _formKeys.last.currentState!;
     if (!lastForm.validate()) return;
 

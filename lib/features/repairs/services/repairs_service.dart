@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 // 📁 lib/features/repairs/services/repairs_service.dart
 //
 // النسخة النهائية بالكامل — متوافقة مع DB v36 ومصححة مشكلة total_paid_amount
@@ -37,12 +39,8 @@ class RepairsService {
   // ======================== تحديث إجمالي المدفوعات ===========================
   Future<void> updateTotalsFromPayments(String repairId) async {
     // مجموع المدفوعات من جدول payments
-    final sumRow = await db.rawQuery(
-      'SELECT IFNULL(SUM(amount),0) AS total FROM payments WHERE repair_id = ?',
-      [repairId],
-    );
-
-    final totalPaid = (sumRow.first['total'] as num?)?.toDouble() ?? 0.0;
+    final totalPaid =
+        await RepairFinancialTruthService.paidForRepair(repairId, executor: db);
 
     // قيمة الملف الأصلية
     final r = await db.rawQuery(
@@ -64,22 +62,24 @@ class RepairsService {
     }
 
     // تحديث جدول repairs
-    await db.update(
-      'repairs',
-      {
-        'total_paid_amount': totalPaid,
-        'paymentStatus': paymentStatus,
-      },
-      where: 'id = ?',
-      whereArgs: [repairId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              'repairs',
+              {
+                'total_paid_amount': totalPaid,
+                'paymentStatus': paymentStatus,
+              },
+              where: 'id = ?',
+              whereArgs: [repairId],
+            ));
   }
 
   // ============================== CREATE =====================================
   Future<String> createRepair(Repair repair) async {
     final id = repair.id.isEmpty ? const Uuid().v4() : repair.id;
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       final data = repair.copyWith(id: id).toMap();
       await txn.insert('repairs', data,
           conflictAlgorithm: ConflictAlgorithm.replace);
@@ -102,7 +102,7 @@ class RepairsService {
   Future<int> updateRepair(Repair repair) async {
     if (repair.id.isEmpty) throw ArgumentError('repair.id is required');
 
-    return await db.transaction<int>((txn) async {
+    return await SyncFoundationService.transaction<int>(db, (txn) async {
       final data = repair.toMap()..remove('invoice_id');
 
       final rows = await txn.update(
@@ -159,16 +159,19 @@ class RepairsService {
     int? limit,
     int? offset,
   }) async {
+    // Intake timestamps are UTC; legacy timestamps without an offset are local.
+    const receivedDay =
+        "date(CASE WHEN receivedDate LIKE '%Z' OR (length(receivedDate)>19 AND substr(receivedDate,-6,1) IN ('+','-')) THEN datetime(receivedDate,'localtime') ELSE receivedDate END)";
     final where = <String>["(status IS NULL OR status <> ?)"];
     final args = <Object?>[RepairAutoAccountingService.cancelledStatus];
 
     if (from != null && from.isNotEmpty) {
-      where.add('date(receivedDate) >= date(?)');
+      where.add('$receivedDay >= date(?)');
       args.add(from);
     }
 
     if (to != null && to.isNotEmpty) {
-      where.add('date(receivedDate) <= date(?)');
+      where.add('$receivedDay <= date(?)');
       args.add(to);
     }
 
@@ -497,12 +500,14 @@ class RepairsService {
     required String repairId,
     required String? thumbPath,
   }) async {
-    await db.update(
-      'repairs',
-      {'thumbnail_path': thumbPath},
-      where: 'id = ?',
-      whereArgs: [repairId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              'repairs',
+              {'thumbnail_path': thumbPath},
+              where: 'id = ?',
+              whereArgs: [repairId],
+            ));
   }
 }
 

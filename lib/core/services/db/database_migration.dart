@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/cloud_auth/cloud_identity_tables.dart';
 // Database migration compatibility note.
 //
 // Purchase schema compatibility.
@@ -14,12 +15,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database_constants.dart';
+import '../restore_file_journal.dart';
 import '../offline_outbox_service.dart';
 import 'database_platform_policy.dart';
 import 'database_encryption_service.dart';
 
 // Database migration compatibility note.
 import 'tables/user_tables.dart';
+import 'tables/identity_account_tables.dart';
+import 'tables/sync_foundation_tables.dart';
+import '../sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/onboarding/services/workshop_onboarding_tables.dart';
 import 'tables/organization_identity_tables.dart';
 import 'tables/device_identity_tables.dart';
 import 'tables/license_activation_tables.dart';
@@ -49,6 +55,12 @@ import 'tables/purchase_payments_table.dart';
 class DatabaseMigration {
   static Database? _database;
   static Future<Database>? _opening;
+
+  @visibleForTesting
+  static void useDatabaseForTesting(Database? database) {
+    _database = database;
+    _opening = null;
+  }
 
 // ---------------------------------------------------------------
 // Database migration compatibility note.
@@ -89,7 +101,7 @@ class DatabaseMigration {
   static Future<T> inTx<T>(
       Future<T> Function(DatabaseExecutor db) action) async {
     final db = await database;
-    return db.transaction<T>((txn) async => await action(txn));
+    return SyncFoundationService.transaction<T>(db, action);
   }
 
   // ============================================================
@@ -101,68 +113,65 @@ class DatabaseMigration {
       '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );
 
+    await RestoreFileJournal.recover(path);
+    if (await databaseExists(path)) {
+      final existing =
+          await DatabaseEncryptionService.openReadOnlyCandidate(path);
+      late int version;
+      try {
+        version = await existing.getVersion();
+      } finally {
+        await existing.close();
+      }
+      if (version > DatabaseConstants.dbVersion) {
+        throw StateError('Database version $version is newer than supported '
+            '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.');
+      }
+    }
     final encryption = pathOverride == null
         ? await DatabaseEncryptionService.prepareCanonical(path)
         : null;
 
     Database? db;
+    Database? openingHandle;
     try {
       db = encryption == null
           ? await openDatabase(
               path,
               version: DatabaseConstants.dbVersion,
               onConfigure: _onConfigure,
-              onCreate: _onCreate,
-              onUpgrade: _onUpgrade,
+              onCreate: (opened, version) async {
+                openingHandle = opened;
+                await _onCreate(opened, version);
+              },
+              onUpgrade: (opened, oldVersion, newVersion) async {
+                openingHandle = opened;
+                await _onUpgrade(opened, oldVersion, newVersion);
+              },
               singleInstance: pathOverride == null,
             )
           : await encryption.open(
               version: DatabaseConstants.dbVersion,
               onConfigure: _onConfigure,
-              onCreate: _onCreate,
-              onUpgrade: _onUpgrade,
+              onCreate: (opened, version) async {
+                openingHandle = opened;
+                await _onCreate(opened, version);
+              },
+              onUpgrade: (opened, oldVersion, newVersion) async {
+                openingHandle = opened;
+                await _onUpgrade(opened, oldVersion, newVersion);
+              },
               singleInstance: true,
             );
-
-      // C02 FIX7 / P05 current-v69 compatibility:
-      // P05 added the canonical vehicles table without increasing dbVersion.
-      // Existing v69 installations therefore do not run onUpgrade. Ensure only
-      // this derived P05 master-data table before fail-closed validation.
-      await ensureP05VehicleCompatibilityBeforeValidation(db);
-
-      // C02 FIX8 / P04 current-v69 compatibility:
-      // Existing v69 installations can still carry the legacy Outbox layout.
-      // Upgrade/create the technical Outbox before any sync-state consumer can
-      // query the newer status/retry columns.
-      await ensureP04OutboxCompatibilityBeforeValidation(db);
-
-      // Group 2 hardening: workshop settings are part of the canonical DB
-      // contract. Older/current-v69 installations may have the narrow legacy
-      // table because dbVersion did not change when presentation fields were
-      // introduced. Add only missing nullable columns before validation.
-      await UserTables.ensureWorkshopSettingsCompatibility(db);
-
-      // P11 keeps dbVersion at 69: receipt identity/reversal columns are
-      // additive and must exist on already-upgraded installations too.
-      await PaymentsTables.ensurePaymentsSchema(db);
-      await ReceiptTables.createAllTables(db);
-
-      // P14 keeps dbVersion at 69. Purchase-line category/note are additive
-      // compatibility columns and must exist on already-upgraded databases.
-      await PurchaseInvoicesTable.createAllTables(db);
-      await PurchasePaymentsTable.createAllTables(db);
-
-      // Stage 1 keeps v69: unified Party + accounting audit/guards are
-      // additive and idempotent. They must exist before fail-closed validation.
-      await ensureStage1AccountingCoreCompatibilityBeforeValidation(db);
 
       await _validateDatabase(db);
       await encryption?.commit();
       return db;
     } catch (_) {
-      if (db != null && db.isOpen) {
+      final failed = db ?? openingHandle;
+      if (failed != null && failed.isOpen) {
         try {
-          await db.close();
+          await failed.close();
         } catch (_) {
           // Rollback below remains the authoritative recovery step.
         }
@@ -211,6 +220,11 @@ class DatabaseMigration {
     // P1.001 - lifecycle/database normalization.
     await _postInit(db);
 
+    await _upgradeV70(db);
+    await _upgradeV71(db);
+    await _upgradeV72(db);
+    await _upgradeV73(db);
+    await _upgradeV74(db);
     debugPrint('All tables created successfully');
   }
 
@@ -219,6 +233,15 @@ class DatabaseMigration {
   // ============================================================
   static Future<void> _onUpgrade(Database db, int oldV, int newV) async {
     debugPrint('Upgrade $oldV -> $newV');
+    // v70 already contains compatibility schemas. Avoid replaying seed writes
+    // under an expired license for additive identity and sync upgrades.
+    if (oldV >= 70) {
+      if (oldV < 71) await _upgradeV71(db);
+      if (oldV < 72) await _upgradeV72(db);
+      if (oldV < 73) await _upgradeV73(db);
+      if (oldV < 74) await _upgradeV74(db);
+      return;
+    }
 
     await UserTables.onUpgrade(db, oldV, newV);
     await RepairTables.onUpgrade(db, oldV, newV);
@@ -377,6 +400,80 @@ class DatabaseMigration {
     await UserTables.createActivationCodesTable(db);
 
     await _postInit(db);
+    if (oldV < 70) await _upgradeV70(db);
+    if (oldV < 71) await _upgradeV71(db);
+    if (oldV < 72) await _upgradeV72(db);
+    if (oldV < 73) await _upgradeV73(db);
+    if (oldV < 74) await _upgradeV74(db);
+  }
+
+  static Future<void> _upgradeV74(Database db) async {
+    await CloudIdentityTables.ensure(db);
+    await SyncFoundationTables.ensure(db);
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert('schema_migrations',
+        {'version': 74, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+        conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  static Future<void> _upgradeV73(Database db) async {
+    await WorkshopOnboardingTables.ensure(db);
+    await SyncFoundationTables.ensure(db);
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert(
+        'schema_migrations',
+        {
+          'version': 73,
+          'applied_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  static Future<void> _upgradeV72(Database db) async {
+    await IdentityAccountTables.ensure(db);
+    await UserAuthorizationTables.refreshRoleCatalog(db);
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert(
+        'schema_migrations',
+        {
+          'version': 72,
+          'applied_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  static Future<void> _upgradeV71(Database db) async {
+    await LicenseRuntimeTables.upgradeBackupAvailability(db);
+    await db.insert(
+        'schema_migrations',
+        {
+          'version': 71,
+          'applied_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  // Sqflite runs onCreate/onUpgrade in one transaction and advances
+  // user_version only after this entire versioned migration succeeds.
+  static Future<void> _upgradeV70(Database db) async {
+    // Consolidate the previously unversioned v69 compatibility additions.
+    await ensureP05VehicleCompatibilityBeforeValidation(db);
+    await ensureP04OutboxCompatibilityBeforeValidation(db);
+    await UserTables.ensureWorkshopSettingsCompatibility(db);
+    await PaymentsTables.ensurePaymentsSchema(db);
+    await ReceiptTables.createAllTables(db);
+    await PurchaseInvoicesTable.createAllTables(db);
+    await PurchasePaymentsTable.createAllTables(db);
+    await ensureStage1AccountingCoreCompatibilityBeforeValidation(db);
+    await db.execute('CREATE TABLE IF NOT EXISTS schema_migrations '
+        '(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
+    await db.insert(
+        'schema_migrations',
+        {
+          'version': 70,
+          'applied_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   // ============================================================
@@ -418,7 +515,7 @@ class DatabaseMigration {
     await UserAuthorizationTables.ensure(db);
 
     // P16 - append-only audit + backup guardian / recovery metadata.
-    // dbVersion intentionally remains 69, so this must run on every current-version open.
+    // Authorization and backup metadata are included in versioned initialization.
     await P16SecurityTables.ensure(db);
 
     await ChequeTables.ensureChequesSchema(db);
@@ -427,7 +524,7 @@ class DatabaseMigration {
     await ReceiptTables.createAllTables(db);
     await InsuranceTables.ensureInsuranceSchema(db);
 
-    // Stage 1 canonical accounting core. No dbVersion bump: safe additive
+    // Stage 1 canonical accounting core: safe additive
     // compatibility plus read-time Party mapping preserves historical GL.
     await PartyTables.ensure(db);
     await AccountingIntegrityTables.ensure(db);
@@ -554,7 +651,8 @@ class DatabaseMigration {
     await db.execute(r'''
       UPDATE vouchers
       SET currency = COALESCE(NULLIF(TRIM(currency), ''), 'ILS'),
-          currency_decimals = COALESCE(currency_decimals, 2);
+          currency_decimals = COALESCE(currency_decimals, 2)
+      WHERE NULLIF(TRIM(currency), '') IS NULL OR currency_decimals IS NULL;
     ''');
 
     await db.execute(r'''
@@ -860,6 +958,8 @@ class DatabaseMigration {
     }
 
     await OrganizationIdentityTables.validate(db);
+    await IdentityAccountTables.validate(db);
+    await SyncFoundationTables.validate(db);
     await DeviceIdentityTables.validate(db);
     await LicenseActivationTables.validate(db);
     await LicenseRuntimeTables.validate(db);

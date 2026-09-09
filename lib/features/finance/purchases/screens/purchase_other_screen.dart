@@ -190,8 +190,10 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
                 },
               ),
             ),
-            AdaptiveRow(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceBetween,
               children: [
                 Text(
                   "الإجمالي: ${MoneyFormatter.format(total)}",

@@ -232,30 +232,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   }
 
   Future<void> _navigateAddParty() async {
-    if (_isCollapsed) {
-      _navigate(rClientAdd);
-      return;
-    }
-    final sel = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AdaptiveAlertDialog(
-        title: const Text('إضافة جهة'),
-        content: const Text('اختر نوع الجهة:'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop('client'),
-              child: const Text('عميل')),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop('supplier'),
-              child: const Text('مورد')),
-          TextButton(
-              onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('إلغاء')),
-        ],
-      ),
-    );
-    if (sel == 'client') _navigate(rClientAdd);
-    if (sel == 'supplier') _navigate(rSupplierAdd);
+    _navigate('/parties/add');
   }
 
   Future<void> _navigateAgingBoth() async {
@@ -292,6 +269,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     required String title,
     required String route,
   }) {
+    final enabled = !AppRoutes.isInsuranceAgentFrozenRoute(route);
     final bool active = (widget.currentRoute == route) ||
         (ModalRoute.of(context)?.settings.name == route);
 
@@ -308,14 +286,17 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       children: [
         line,
         const SizedBox(width: 8),
-        Icon(icon, color: active ? Colors.green : null),
+        Icon(icon,
+            color: enabled ? (active ? Colors.green : null) : Colors.grey),
         const SizedBox(width: 8),
         if (!_isCollapsed)
           Expanded(
             child: Text(
               title,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: active ? Colors.green : null),
+              style: TextStyle(
+                  color:
+                      enabled ? (active ? Colors.green : null) : Colors.grey),
             ),
           ),
       ],
@@ -325,10 +306,17 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 10),
       title: row,
-      onTap: () => _navigate(route),
+      enabled: enabled,
+      subtitle: !enabled && !_isCollapsed
+          ? const Text('غير مفعّل حاليًا', style: TextStyle(fontSize: 11))
+          : null,
+      onTap: enabled ? () => _navigate(route) : null,
     );
 
-    return _isCollapsed ? Tooltip(message: title, child: tile) : tile;
+    return _isCollapsed
+        ? Tooltip(
+            message: enabled ? title : '$title — غير مفعّل حاليًا', child: tile)
+        : tile;
   }
 
   Widget _actionTile({
@@ -399,15 +387,21 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     // 5) العملاء والموردون
     final clientsSuppliersItems = <Widget>[];
+    if (_matches('الجهات وكشف الحساب الشامل')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.contact_page,
+          title: 'الجهات وكشف الحساب الشامل',
+          route: '/parties'));
+    }
     if (_matches('قائمة العملاء')) {
       clientsSuppliersItems.add(
           _tile(icon: Icons.people, title: 'قائمة العملاء', route: rClients));
     }
 
-    if (_matches('إضافة عميل/مورد')) {
+    if (_matches('إضافة جهة')) {
       clientsSuppliersItems.add(_actionTile(
         icon: Icons.person_add_alt_1,
-        title: 'إضافة عميل/مورد',
+        title: 'إضافة جهة',
         onTap: _navigateAddParty,
       ));
     }
@@ -700,6 +694,10 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                             icon: Icons.shield_outlined,
                             title: 'حماية البيانات',
                             route: rSettingsSecurityData),
+                        _tile(
+                            icon: Icons.verified_outlined,
+                            title: 'حالة الاشتراك',
+                            route: '/current-subscription'),
                         _tile(
                             icon: Icons.support_agent,
                             title: 'الدعم الفني',

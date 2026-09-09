@@ -34,7 +34,12 @@ class AccountingViews {
         c.name AS client_name,
         IFNULL(i.invoices_total,0) AS invoices_total,
         IFNULL(p.payments_total,0) AS payments_total,
-        (IFNULL(i.invoices_total,0) - IFNULL(p.payments_total,0)) AS balance_due
+        COALESCE((SELECT SUM(l.debit-l.credit) FROM gl_lines l
+          JOIN accounts a ON a.id=l.account_id
+          WHERE (a.code='1200' OR a.code LIKE '1200.%')
+            AND (l.account_id=c.account_id OR
+              (UPPER(COALESCE(l.party_type,'')) IN ('CLIENT','CUSTOMER')
+                AND CAST(l.party_id AS INTEGER)=c.id))),0) AS balance_due
       FROM clients c
       LEFT JOIN v_client_invoices_total i ON i.client_id = c.id
       LEFT JOIN v_client_payments_total_unified p ON p.client_id = c.id;
@@ -63,9 +68,7 @@ class AccountingViews {
           LEFT JOIN accounts a ON a.id=l.account_id
           LEFT JOIN clients c ON c.account_id=l.account_id
           WHERE
-            a.code LIKE '1200.C%'
-            OR c.id IS NOT NULL
-            OR UPPER(COALESCE(l.party_type,'')) IN ('CLIENT','CUSTOMER')
+            (a.code='1200' OR a.code LIKE '1200.%')
         ) x
         WHERE client_id IS NOT NULL
         GROUP BY client_id

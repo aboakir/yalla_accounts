@@ -85,18 +85,21 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  _buildHeader(list),
-                  const SizedBox(height: 16),
-                  _buildDueSummaryBar(list),
-                  const SizedBox(height: 20),
-                  _buildFilterCard(filter),
-                  const SizedBox(height: 20),
-                  _quickFilters(filter),
-                  const SizedBox(height: 20),
-                  Expanded(child: _buildList(list)),
+              child: NestedScrollView(
+                headerSliverBuilder: (_, __) => [
+                  SliverToBoxAdapter(
+                      child: Column(children: [
+                    _buildHeader(list),
+                    const SizedBox(height: 16),
+                    _buildDueSummaryBar(list),
+                    const SizedBox(height: 20),
+                    _buildFilterCard(filter),
+                    const SizedBox(height: 20),
+                    _quickFilters(filter),
+                    const SizedBox(height: 20),
+                  ]))
                 ],
+                body: _buildList(list),
               ),
             ),
           ),
@@ -541,6 +544,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 180,
       child: DropdownButtonFormField<ChequeType?>(
+        isExpanded: true,
         value: f.type,
         decoration: const InputDecoration(labelText: "نوع الشيك"),
         items: [
@@ -558,6 +562,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return SizedBox(
       width: 180,
       child: DropdownButtonFormField<ChequeStatus?>(
+        isExpanded: true,
         value: f.status,
         decoration: const InputDecoration(labelText: "الحالة"),
         items: [

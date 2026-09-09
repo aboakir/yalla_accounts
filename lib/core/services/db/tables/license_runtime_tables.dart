@@ -27,6 +27,15 @@ class LicenseRuntimeTables {
   static const table = 'license_runtime_state';
 
   static const Set<String> _technicalExemptTables = <String>{
+    // Version metadata must advance during atomic non-destructive upgrades.
+    'schema_migrations',
+    'cloud_identity_links',
+    'sync_entity_registry',
+    'sync_change_log',
+    'sync_mutation_context',
+    'sync_conflicts',
+    'sync_remote_candidates',
+    'sync_outbox_links',
     table,
     'organizations',
     'organization_identity',
@@ -38,6 +47,9 @@ class LicenseRuntimeTables {
     'auth_permissions',
     'auth_role_permissions',
     'auth_sessions',
+    'app_audit_events',
+    'backup_runs',
+    'backup_guardian_settings',
     'password_reset_grants',
     'activation_codes',
     'domain_events',
@@ -158,6 +170,21 @@ class LicenseRuntimeTables {
     });
 
     await ensure(db);
+  }
+
+  /// v71: backup metadata must stay writable when business data is read only.
+  /// Audit append-only triggers are deliberately retained.
+  static Future<void> upgradeBackupAvailability(DatabaseExecutor db) async {
+    for (final name in [
+      'app_audit_events',
+      'backup_runs',
+      'backup_guardian_settings'
+    ]) {
+      for (final operation in ['insert', 'update', 'delete']) {
+        await db.execute(
+            'DROP TRIGGER IF EXISTS yalla_sec011_ro_${name}_$operation');
+      }
+    }
   }
 
   static Future<void> installOperationalTriggers(DatabaseExecutor db) async {

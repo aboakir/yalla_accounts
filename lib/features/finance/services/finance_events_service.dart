@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
@@ -54,7 +55,7 @@ class FinanceEventsService {
     final paid = repair.totalPaidAmount;
 
     // تشغيل العملية داخل transaction لأن createOrGetByRepair يتطلب txn
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       await InvoiceDatabaseService.instance.createOrGetByRepair(
         txn: txn,
         repairId: repair.id,
@@ -109,7 +110,7 @@ class FinanceEventsService {
     final paymentId = const Uuid().v4();
     final nowIso = date.toIso8601String();
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       // 1) إدراج الدفعة في payments (id TEXT PRIMARY KEY)
       await txn.insert('payments', {
         'id': paymentId,

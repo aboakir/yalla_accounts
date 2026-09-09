@@ -1,26 +1,26 @@
-import 'package:flutter/services.dart' show MissingPluginException;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 
-/// Lightweight local authenticated-user identity for audit attribution.
-///
-/// This deliberately reads only the locally stored session user id. It does
-/// not query the database, so PostingEngine can use it safely from inside an
-/// existing SQLite transaction. Headless/unit-test environments may not have
-/// the SharedPreferences platform plugin registered; audit attribution must
-/// never make an otherwise valid business operation fail in that case.
+/// Uses the same verified, process-local session as authentication.
+/// Never restores a session here: financial callers may already hold a SQLite
+/// transaction. Restoration belongs to login/startup, before financial writes.
 class CurrentUserContext {
   CurrentUserContext._();
 
-  static const String _sessionUserKey = 'yalla_auth_session_user_v2';
+  static String? Function()? _activeUserReader;
+
+  /// The application binds its current-user state here. Read lazily so account
+  /// switches and logout are reflected immediately, without caching an id.
+  static void bindActiveUserReader(String? Function() reader) {
+    _activeUserReader = reader;
+  }
 
   static Future<String?> userId() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final value = prefs.getString(_sessionUserKey)?.trim();
-      if (value == null || value.isEmpty) return null;
-      return value;
-    } on MissingPluginException {
-      return null;
-    }
+    if (AuthSessionService.isRecoverySession) return null;
+    final reader = _activeUserReader;
+    // A bound but signed-out UI must not fall back to an older session.
+    final id =
+        reader != null ? reader() : AuthSessionService.authenticatedUserId;
+    if (id != AuthSessionService.authenticatedUserId) return null;
+    return id == null || id.trim().isEmpty ? null : id.trim();
   }
 }

@@ -22,6 +22,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   final _searchCtrl = TextEditingController();
   List<Map<String, Object?>> _rows = [];
   bool _loading = false;
+  int _loadVersion = 0;
 
   @override
   void initState() {
@@ -38,28 +39,36 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
   // تحميل الموردين من قاعدة البيانات
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final db = await DBService.database;
-
-    final q = _searchCtrl.text.trim();
-    List<Map<String, Object?>> rows;
-
-    if (q.isEmpty) {
-      rows = await db.query('suppliers', orderBy: 'LOWER(name) ASC');
-    } else {
-      rows = await db.query(
-        'suppliers',
-        where: 'LOWER(name) LIKE ?',
-        whereArgs: ['%${q.toLowerCase()}%'],
-        orderBy: 'LOWER(name) ASC',
-      );
-    }
-
     if (!mounted) return;
-    setState(() {
-      _rows = rows;
-      _loading = false;
-    });
+    final version = ++_loadVersion;
+    final q = _searchCtrl.text.trim();
+    setState(() => _loading = true);
+    try {
+      final db = await DBService.database;
+      List<Map<String, Object?>> rows;
+
+      if (q.isEmpty) {
+        rows = await db.query('suppliers', orderBy: 'LOWER(name) ASC');
+      } else {
+        rows = await db.query(
+          'suppliers',
+          where: 'LOWER(name) LIKE ?',
+          whereArgs: ['%${q.toLowerCase()}%'],
+          orderBy: 'LOWER(name) ASC',
+        );
+      }
+
+      if (!mounted || version != _loadVersion) return;
+      setState(() {
+        _rows = rows;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted || version != _loadVersion) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('تعذر تحميل الموردين: $error')));
+    }
   }
 
   // -----------------------------------------------------------------------------

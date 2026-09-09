@@ -23,10 +23,10 @@ void main() {
             RoleKeys.technician,
           }));
       expect(RoleKeys.assignable, <String>{
-        RoleKeys.manager,
+        RoleKeys.admin,
         RoleKeys.accountant,
-        RoleKeys.employee,
-        RoleKeys.technician,
+        RoleKeys.staff,
+        RoleKeys.viewer,
       });
       expect(
         AuthorizationPolicy.forRole(RoleKeys.owner),
@@ -113,7 +113,8 @@ void main() {
       expect(source, contains("'manifest.json'"));
       expect(source, contains(".yallabackup"));
       expect(source, contains("kind: 'pre_restore'"));
-      expect(source, contains('_restoreSafetyBundle'));
+      expect(source, contains('journal.rollback()'));
+      expect(source, contains('journal.commit()'));
       expect(source, contains('extractFileToDisk('));
       expect(source, contains('fullChecksumValidation: true'));
       expect(source, contains("const int weeklyRetention = 4"));
@@ -181,10 +182,10 @@ void main() {
       expect(RoleKeys.isKnown(RoleKeys.cashier), isTrue);
       expect(RoleKeys.isAssignable(RoleKeys.cashier), isFalse);
       expect(RoleKeys.isAssignable(RoleKeys.readOnly), isFalse);
-      expect(RoleKeys.isAssignable(RoleKeys.employee), isTrue);
+      expect(RoleKeys.isAssignable(RoleKeys.employee), isFalse);
 
       final addUser = read('lib/features/auth/widgets/add_user_dialog.dart');
-      expect(addUser, contains('String _role = RoleKeys.employee;'));
+      expect(addUser, contains('String _role = RoleKeys.staff;'));
     });
 
     test('fresh login enables service-level authorization immediately', () {

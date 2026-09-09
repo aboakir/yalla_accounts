@@ -392,8 +392,12 @@ void main() {
       isFalse,
     );
 
-    expect(startup.contains('hasAnyUsers()'), isTrue);
-    expect(startup.contains('restoreSession()'), isTrue);
+    expect(startup.contains('currentUserProvider.notifier'), isTrue);
+    expect(
+        source('lib/features/auth/screens/login_screen.dart')
+            .contains('restoreSession()'),
+        isTrue);
+    expect(startup.contains('AppRoutes.login'), isTrue);
     expect(
       startup.contains(
         'Navigator.of(context).pushReplacementNamed(\n      AppRoutes.dashboard',

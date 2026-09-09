@@ -62,12 +62,14 @@ class EmployeeNotifier extends StateNotifier<EmployeeState> {
   }
 
   Future<void> loadEmployees() async {
+    if (!mounted) return;
     state = state.copyWith(isLoading: true, error: null);
     try {
       final data = await EmployeeDatabaseService.getAllEmployees();
-      state = state.copyWith(employees: data, isLoading: false);
+      if (mounted) state = state.copyWith(employees: data, isLoading: false);
     } catch (e) {
-      state = state.copyWith(error: e.toString(), isLoading: false);
+      if (mounted)
+        state = state.copyWith(error: e.toString(), isLoading: false);
     }
   }
 
@@ -76,7 +78,8 @@ class EmployeeNotifier extends StateNotifier<EmployeeState> {
       await EmployeeDatabaseService.insert(employee);
       await loadEmployees();
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      if (mounted) state = state.copyWith(error: e.toString());
+      rethrow;
     }
   }
 
@@ -85,7 +88,8 @@ class EmployeeNotifier extends StateNotifier<EmployeeState> {
       await EmployeeDatabaseService.update(employee);
       await loadEmployees();
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      if (mounted) state = state.copyWith(error: e.toString());
+      rethrow;
     }
   }
 
@@ -94,7 +98,8 @@ class EmployeeNotifier extends StateNotifier<EmployeeState> {
       await EmployeeDatabaseService.delete(id);
       await loadEmployees();
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      if (mounted) state = state.copyWith(error: e.toString());
+      rethrow;
     }
   }
 

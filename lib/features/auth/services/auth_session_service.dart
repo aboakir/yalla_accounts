@@ -1,3 +1,4 @@
+import 'device_unlock_service.dart';
 import 'dart:convert';
 import 'dart:math';
 
@@ -51,6 +52,50 @@ class AuthSessionService {
   // persisting it across application restarts.
   static String? _ephemeralToken;
   static String? _ephemeralUserId;
+  static AppUser? _previewUser;
+  static bool _recoveryOnly = false;
+  static bool get isRecoverySession => _recoveryOnly;
+
+  /// Simulates loss of volatile process memory; never grants or renews access.
+  @visibleForTesting
+  static void resetProcessMemoryForTesting() {
+    _ephemeralToken = null;
+    _ephemeralUserId = null;
+    _previewUser = null;
+    _previewUsesLocalUser = false;
+    _recoveryOnly = false;
+  }
+
+  Future<void> createRecoverySession(AppUser user) async {
+    if (!user.isOwner) throw StateError('Owner authentication required.');
+    await createSession(user);
+    _recoveryOnly = true;
+  }
+
+  static bool _previewUsesLocalUser = false;
+
+  /// Explicit temporary-login session, never persisted as a production token.
+  /// Existing local users are re-read on authorization; synthetic preview users
+  /// exist only until logout/process exit. No workshop employee rows are used.
+  Future<AppUser> startPreviewSession(AppUser user,
+      {required bool localUser}) async {
+    if (!kDebugMode) throw StateError('Temporary login is disabled.');
+    await _clearSessionMaterial();
+    if (user.status != 'active') {
+      throw StateError('Cannot create a session for a disabled user.');
+    }
+    _previewUser = user;
+    _previewUsesLocalUser = localUser;
+    return (await restoreSession()) ??
+        (throw StateError('User is unavailable.'));
+  }
+
+  static bool get hasPreviewSession => _previewUser != null;
+
+  /// Identity established by createSession/restoreSession and cleared on logout.
+  /// No database access: safe to read from inside financial transactions.
+  static String? get authenticatedUserId =>
+      _previewUser?.id ?? (_ephemeralToken == null ? null : _ephemeralUserId);
 
   Future<LoginPreferences> loadLoginPreferences() async {
     final prefs = await SharedPreferences.getInstance();
@@ -98,6 +143,8 @@ class AuthSessionService {
     AppUser user, {
     bool keepSignedIn = false,
   }) async {
+    _recoveryOnly = false;
+    _previewUser = null;
     if (user.status != 'active') {
       throw StateError('Cannot create a session for a disabled user.');
     }
@@ -139,6 +186,19 @@ class AuthSessionService {
   }
 
   Future<AppUser?> restoreSession() async {
+    final preview = _previewUser;
+    if (preview != null) {
+      if (!_previewUsesLocalUser) {
+        return preview.status == 'active' ? preview : null;
+      }
+      final db = await _databaseProvider();
+      final rows = await db.query('users',
+          where: 'id = ?', whereArgs: [preview.id], limit: 1);
+      if (rows.isEmpty) return null;
+      final current = AppUser.fromMap(rows.single);
+      return current.status == 'active' ? current : null;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await _clearLegacyFlags(prefs);
 
@@ -197,22 +257,32 @@ class AuthSessionService {
     return AppUser.fromMap(rows.first);
   }
 
-  Future<void> logout() async {
-    final rawToken = _ephemeralToken ?? await _secureRead(_secureTokenKey);
-    final userId = _ephemeralUserId ?? await _secureRead(_secureUserIdKey);
-
-    if (rawToken != null && userId != null) {
-      final db = await _databaseProvider();
-      await db.update(
-        'auth_sessions',
+  /// Called on the restored database before its file journal is committed.
+  /// A backup must never reactivate sessions issued on another device.
+  Future<void> invalidateAfterRestore() async {
+    final db = await _databaseProvider();
+    await db.update('auth_sessions',
         {'revoked_at': DateTime.now().toUtc().toIso8601String()},
-        where: 'user_id = ? AND token_hash = ? AND revoked_at IS NULL',
-        whereArgs: [userId, _tokenHash(rawToken)],
-      );
-    }
-
+        where: 'revoked_at IS NULL');
     await _clearSessionMaterial();
+    await DeviceUnlockService().clear();
+  }
 
+  Future<void> logout() async {
+    try {
+      final rawToken = _ephemeralToken ?? await _secureRead(_secureTokenKey);
+      final userId = _ephemeralUserId ?? await _secureRead(_secureUserIdKey);
+      if (rawToken != null && userId != null) {
+        final db = await _databaseProvider();
+        await db.update('auth_sessions',
+            {'revoked_at': DateTime.now().toUtc().toIso8601String()},
+            where: 'user_id = ? AND token_hash = ? AND revoked_at IS NULL',
+            whereArgs: [userId, _tokenHash(rawToken)]);
+      }
+    } finally {
+      // Revocation failures must not leave process-local authority alive.
+      await _clearSessionMaterial();
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keepSignedInKey, false);
     await _clearLegacyFlags(prefs);
@@ -251,6 +321,9 @@ class AuthSessionService {
   /// Ends only the process-local customer preview session. It deliberately
   /// leaves remembered username / persistent-login preferences untouched.
   Future<void> endEphemeralPreviewSession() async {
+    _recoveryOnly = false;
+    _previewUser = null;
+    _previewUsesLocalUser = false;
     final rawToken = _ephemeralToken;
     final userId = _ephemeralUserId;
     if (rawToken != null && userId != null) {
@@ -277,6 +350,9 @@ class AuthSessionService {
   }
 
   Future<void> _clearSessionMaterial() async {
+    _recoveryOnly = false;
+    _previewUser = null;
+    _previewUsesLocalUser = false;
     _ephemeralToken = null;
     _ephemeralUserId = null;
     await _clearPersistentSession();

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 // 📁 lib/features/finance/services/accounts_receivable_service.dart
 //
 // AccountsReceivableService — مصدر موحّد وخفيف للذمم + تكامل كامل مع GL.
@@ -78,16 +79,8 @@ class AccountsReceivableService {
   //──────────────────────────────────────────────────────────────
   // Helpers
 
-  Future<double> _sumPaidForRepair(Database db, String repairId) async {
-    final res = await db.rawQuery(
-      'SELECT IFNULL(SUM(amount),0) AS s FROM payments WHERE repair_id = ? OR relatedRepairId = ?',
-      [repairId, repairId],
-    );
-    final v = res.first['s'];
-    if (v == null) return 0.0;
-    if (v is num) return v.toDouble();
-    return double.tryParse(v.toString()) ?? 0.0;
-  }
+  Future<double> _sumPaidForRepair(Database db, String repairId) async =>
+      RepairFinancialTruthService.paidForRepair(repairId, executor: db);
 
   Future<Repair?> _getRepairById(Database db, String id) async {
     final rows =

@@ -1,37 +1,27 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 
-/// TEMPORARY LOGIN MODE startup gate.
-///
-/// Always opens the simplified local login screen. Activation/licensing and
-/// persistent authentication are intentionally deferred during prototyping.
-class StartupScreen extends StatefulWidget {
+/// Persisted sessions are verified and unlocked by LoginScreen before use.
+class StartupScreen extends ConsumerStatefulWidget {
   const StartupScreen({super.key});
-
   @override
-  State<StartupScreen> createState() => _StartupScreenState();
+  ConsumerState<StartupScreen> createState() => _StartupScreenState();
 }
 
-class _StartupScreenState extends State<StartupScreen> {
-  bool _navigated = false;
-
+class _StartupScreenState extends ConsumerState<StartupScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _openLogin());
-  }
-
-  void _openLogin() {
-    if (!mounted || _navigated) return;
-    _navigated = true;
-    Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(currentUserProvider.notifier).state = null;
+      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+    });
   }
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: CircularProgressIndicator()));
 }

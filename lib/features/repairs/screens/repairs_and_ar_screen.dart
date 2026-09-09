@@ -200,18 +200,19 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
               child: YallaSidebar(currentRoute: AppRoutes.debts),
             ),
           Expanded(
-            child: Column(
-              children: [
-                _header(isDesktop),
-                _statsRow(stats),
-                _filters(),
-                _tabs(),
-                Expanded(
-                  child: _loadingRepairs
-                      ? const Center(child: CircularProgressIndicator())
-                      : _tabViews(),
-                ),
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                    child: Column(children: [
+                  _header(isDesktop),
+                  _statsRow(stats),
+                  _filters(),
+                  _tabs(),
+                ])),
               ],
+              body: _loadingRepairs
+                  ? const Center(child: CircularProgressIndicator())
+                  : _tabViews(),
             ),
           ),
         ],
@@ -305,9 +306,12 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
 
   Widget _filters() => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: AdaptiveRow(
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Expanded(
+            SizedBox(
+              width: 260,
               child: TextField(
                 inputFormatters: const [YallaDigitNormalizer()],
                 decoration: const InputDecoration(

@@ -1,11 +1,11 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 // ============================================================================
 // lib/features/repairs/services/edit_repair_service.dart
 // P07 Auto Accounting V10B
 // Repair details stay editable. Posted accounting entries remain immutable;
 // value changes are represented by additive, audited adjustment entries.
 // ============================================================================
-
-import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
@@ -64,14 +64,8 @@ class EditRepairService {
   ) =>
       lines.map(_normalizeLine).toList(growable: false);
 
-  static Future<double> _paidOn(DatabaseExecutor tx, String repairId) async {
-    final rows = await tx.rawQuery(
-      'SELECT IFNULL(SUM(amount),0) AS s FROM payments '
-      'WHERE repair_id = ? OR relatedRepairId = ?',
-      <Object?>[repairId, repairId],
-    );
-    return rows.isEmpty ? 0.0 : _toDouble(rows.first['s']);
-  }
+  static Future<double> _paidOn(DatabaseExecutor tx, String repairId) async =>
+      RepairFinancialTruthService.paidForRepair(repairId, executor: tx);
 
   static Future<void> _replaceRepairLinesOn(
     DatabaseExecutor tx, {
@@ -124,8 +118,10 @@ class EditRepairService {
     required List<Map<String, dynamic>> newWorks,
     required String notes,
     required String editedBy,
+    Database? database,
   }) async {
-    return DBService.inTx<EditRepairResult>((txn) async {
+    final db = database ?? await DBService.database;
+    return SyncFoundationService.transaction<EditRepairResult>(db, (txn) async {
       final original =
           await RepairDatabaseService.getRepairByIdTx(txn, repairId);
       if (original == null) {

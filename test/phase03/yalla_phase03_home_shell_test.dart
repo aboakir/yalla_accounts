@@ -33,12 +33,15 @@ void main() {
 
     expect(dashboard, contains("Key('yalla_mobile_menu_button')"));
     expect(dashboard, contains('Scaffold.of(headerContext).openDrawer()'));
-    expect(dashboard, contains("Key('yalla_home_notifications_button')"));
-    expect(dashboard, contains("'ملخص اليوم'"));
-    expect(dashboard, contains("'يحتاج انتباهك'"));
-    expect(dashboard, contains("'إجراءات سريعة'"));
-    expect(dashboard, contains("'آخر الملفات'"));
-    expect(dashboard, contains('P03HomeService.load()'));
+
+    final content =
+        read('lib/features/home/widgets/daily_dashboard_content.dart');
+    expect(content, contains("'صافي اليوم'"));
+    expect(content, contains("'أفضل خطوة'"));
+    expect(content, contains("'يحتاج انتباهك'"));
+    expect(content, contains("'إجراءات سريعة'"));
+    expect(content, contains("'آخر حركة موثقة'"));
+    expect(dashboard, contains('DailyDashboardService.load('));
     expect(dashboard, isNot(contains("'جاهزة للتسليم'")));
     expect(dashboard, isNot(contains('_recentRepairPlaceholder')));
   });
@@ -49,7 +52,7 @@ void main() {
     );
 
     expect(service, contains('FROM repairs'));
-    expect(service, contains('FROM payments'));
+    expect(service, contains('FinancialOverviewService.cashFlowsOn'));
     expect(service, contains('FROM cheques'));
     expect(service, contains('WorkshopSettingsService.instance.getSettings()'));
     expect(service, contains('CommercialSettingsService.instance.get()'));
@@ -65,10 +68,9 @@ void main() {
       'lib/features/home/screens/dashboard_screen.dart',
     );
 
-    expect(dashboard, contains('AdaptiveRow('));
-    expect(dashboard, contains("import 'dart:ui' as ui;"));
-    expect(dashboard, contains('ui.TextDirection.ltr'));
-    expect(dashboard, isNot(contains('textDirection: TextDirection.ltr')));
+    expect(dashboard, contains('TextDirection.rtl'));
+    expect(dashboard, contains('ConstrainedBox('));
+    expect(dashboard, contains('ListView('));
   });
 
   test('C01 iPhone fixes keep sidebar Arabic and Home dates presentation-safe',

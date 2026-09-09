@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/purchases/screens/supplier_payments_screen.dart
 //
@@ -12,7 +13,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/supplier_payment_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
@@ -35,6 +35,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
 
   String _method = 'cash';
   DateTime _date = DateTime.now();
+  String _operationId = const Uuid().v4();
   bool _saving = false;
 
   // فلترة
@@ -80,27 +81,9 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
       _rows = [];
     });
 
-    final db = await DBService.database;
-    final filter = _filterCtrl.text.trim();
-    List<Map<String, Object?>> rows;
-
-    if (filter.isEmpty) {
-      rows = await db.rawQuery('''
-        SELECT id, party_id, amount, date, method, status, notes, gl_entry_id
-        FROM payments
-        WHERE party_type='SUPPLIER'
-        ORDER BY date DESC, id DESC
-        LIMIT 300
-      ''');
-    } else {
-      rows = await db.rawQuery('''
-        SELECT id, party_id, amount, date, method, status, notes, gl_entry_id
-        FROM payments
-        WHERE party_type='SUPPLIER' AND party_id = ?
-        ORDER BY date DESC, id DESC
-        LIMIT 300
-      ''', [filter]);
-    }
+    final rows =
+        await SupplierPaymentService.list(supplierId: _filterCtrl.text.trim());
+    if (!mounted) return;
 
     setState(() {
       _rows = rows;
@@ -110,7 +93,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
 
   // تنفيذ السداد
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
 
     final supplierId = int.tryParse(_supplierCtrl.text.trim());
     if (supplierId == null) {
@@ -127,12 +110,15 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
 
     try {
       final glId = await SupplierPaymentService.insertAndPost(
+        operationId: _operationId,
         supplierId: supplierId,
         amount: amount,
         date: _date,
         method: _method,
+        note: note,
       );
 
+      _operationId = const Uuid().v4();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('تم السداد ونشر GL #$glId')),
@@ -414,13 +400,12 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
           IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
         ],
       ),
-      body: Column(
-        children: [
-          _buildQuickForm(),
-          _buildFilter(),
-          _buildList(),
-        ],
-      ),
+      body: NestedScrollView(
+          headerSliverBuilder: (_, __) => [
+                SliverToBoxAdapter(child: _buildQuickForm()),
+                SliverToBoxAdapter(child: _buildFilter())
+              ],
+          body: Column(children: [_buildList()])),
     );
   }
 }

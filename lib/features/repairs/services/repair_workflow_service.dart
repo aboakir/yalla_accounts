@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/services/current_user_context.dart';
@@ -241,7 +242,7 @@ class RepairWorkflowService {
         ? current.quoteNumber!.trim()
         : _newQuoteNumber(repairId, now);
 
-    await db.transaction((tx) async {
+    await SyncFoundationService.transaction(db, (tx) async {
       await tx.update(
         'repair_workflow',
         {
@@ -399,15 +400,17 @@ class RepairWorkflowService {
     await RepairTables.ensureP09WorkflowSchema(db);
     await _ensureRow(db, repairId);
     final before = await _loadStateOn(db, repairId);
-    await db.update(
-      'repair_workflow',
-      {
-        'responsible_employee_id': employeeId.trim(),
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      where: 'repair_id = ?',
-      whereArgs: [repairId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              'repair_workflow',
+              {
+                'responsible_employee_id': employeeId.trim(),
+                'updated_at': DateTime.now().toIso8601String(),
+              },
+              where: 'repair_id = ?',
+              whereArgs: [repairId],
+            ));
     await AuditTrailService.log(
       actorUserId: p16Actor?.id,
       actorRole: p16Actor?.role,
@@ -936,16 +939,18 @@ class RepairWorkflowService {
     await RepairTables.ensureP09WorkflowSchema(db);
     await _ensureRow(db, repairId);
     final before = await _loadStateOn(db, repairId);
-    await db.update(
-      'repair_workflow',
-      {
-        'stage': stage,
-        ...extra,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
-      where: 'repair_id = ?',
-      whereArgs: [repairId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              'repair_workflow',
+              {
+                'stage': stage,
+                ...extra,
+                'updated_at': DateTime.now().toIso8601String(),
+              },
+              where: 'repair_id = ?',
+              whereArgs: [repairId],
+            ));
     await AuditTrailService.log(
       actorUserId: p16Actor?.id,
       actorRole: p16Actor?.role,
@@ -1000,19 +1005,21 @@ class RepairWorkflowService {
       seedQuoteValidUntil = repair['quote_valid_until']?.toString();
     }
 
-    await db.insert(
-      'repair_workflow',
-      {
-        'repair_id': cleanId,
-        'stage': seedStage,
-        'damage_assessment': '',
-        'quote_number': _nullIfBlank(seedQuoteNumber),
-        'quote_valid_until': _nullIfBlank(seedQuoteValidUntil),
-        'created_at': now,
-        'updated_at': now,
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              'repair_workflow',
+              {
+                'repair_id': cleanId,
+                'stage': seedStage,
+                'damage_assessment': '',
+                'quote_number': _nullIfBlank(seedQuoteNumber),
+                'quote_valid_until': _nullIfBlank(seedQuoteValidUntil),
+                'created_at': now,
+                'updated_at': now,
+              },
+              conflictAlgorithm: ConflictAlgorithm.ignore,
+            ));
   }
 
   static String _newQuoteNumber(String repairId, DateTime now) {

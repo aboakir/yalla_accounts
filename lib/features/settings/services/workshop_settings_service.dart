@@ -8,13 +8,20 @@
 // --------------------------------------------------------------
 
 import 'package:sqflite/sqflite.dart';
+import 'workshop_logo_service.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/settings/models/workshop_settings.dart';
 
 class WorkshopSettingsService {
-  WorkshopSettingsService._();
+  WorkshopSettingsService(
+      {Future<Database> Function()? databaseProvider,
+      WorkshopLogoService? logos})
+      : _databaseProvider = databaseProvider ?? (() => DBService.database),
+        _logos = logos ?? WorkshopLogoService();
+  final Future<Database> Function() _databaseProvider;
+  final WorkshopLogoService _logos;
 
-  static final WorkshopSettingsService instance = WorkshopSettingsService._();
+  static final WorkshopSettingsService instance = WorkshopSettingsService();
 
   static const table = 'workshop_settings';
 
@@ -22,10 +29,19 @@ class WorkshopSettingsService {
   // GET SETTINGS
   // ============================================================
   Future<WorkshopSettings?> getSettings() async {
-    final db = await DBService.database;
+    final db = await _databaseProvider();
     final rows = await db.query(table, limit: 1);
     if (rows.isEmpty) return null;
-    return WorkshopSettings.fromMap(rows.first);
+    final settings = WorkshopSettings.fromMap(rows.first);
+    final logo = await _logos.resolve(settings.logoPath);
+    if (logo == null) return settings;
+    // Recover still-accessible legacy gallery paths before the OS clears cache.
+    final portable = await _logos.persist(logo.path);
+    if (portable != settings.logoPath) {
+      await db.update(table, {'logoPath': portable},
+          where: 'id = ?', whereArgs: [settings.id]);
+    }
+    return settings.copyWith(logoPath: (await _logos.resolve(portable))!.path);
   }
 
   Future<WorkshopSettings> getOrDefaults() async {
@@ -37,9 +53,12 @@ class WorkshopSettingsService {
   // SAVE SETTINGS
   // ============================================================
   Future<void> saveSettings(WorkshopSettings settings) async {
-    final db = await DBService.database;
+    validateSchedule(settings);
+    final db = await _databaseProvider();
 
+    final portableLogo = await _logos.persist(settings.logoPath);
     final data = Map<String, Object?>.from(settings.toMap())
+      ..['logoPath'] = portableLogo
       ..['id'] = 1
       ..['updated_at'] = DateTime.now().toIso8601String();
 
@@ -60,6 +79,42 @@ class WorkshopSettingsService {
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+    }
+  }
+
+  static void validateSchedule(WorkshopSettings s) {
+    int time(String? raw) {
+      final parts = (raw ?? '').split(':');
+      final h = parts.length == 2 ? int.tryParse(parts[0]) : null;
+      final m = parts.length == 2 ? int.tryParse(parts[1]) : null;
+      if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) {
+        throw ArgumentError('وقت الدوام غير صالح.');
+      }
+      return h * 60 + m;
+    }
+
+    final start = time(s.workStart ?? '09:00');
+    final end = time(s.workEnd ?? '17:00');
+    final span = (end - start + 1440) % 1440;
+    final hours = s.dailyHours ?? 8;
+    final pause = s.breakMinutes ?? 0;
+    final days =
+        (s.weekWorkdays ?? '1,2,3,4,5,6').split(',').map(int.tryParse).toList();
+    if (days.isEmpty ||
+        days.any((d) => d == null || d < 1 || d > 7) ||
+        days.toSet().length != days.length) {
+      throw ArgumentError('حدد أيام عمل صحيحة وغير مكررة.');
+    }
+    if (!hours.isFinite ||
+        hours <= 0 ||
+        pause < 0 ||
+        hours * 60 + pause > span) {
+      throw ArgumentError(
+          'ساعات العمل والاستراحة تتجاوز الفترة بين بداية الدوام ونهايته.');
+    }
+    if (s.overtimeRate != null &&
+        (!s.overtimeRate!.isFinite || s.overtimeRate! < 0)) {
+      throw ArgumentError('معدل الإضافي غير صالح.');
     }
   }
 

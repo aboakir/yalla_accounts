@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart';
-import 'package:yalla_accounts/features/employees/providers/employee_provider.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
@@ -39,16 +38,6 @@ class _EmployeeSalaryCardState extends ConsumerState<EmployeeSalaryCard> {
   void dispose() {
     advanceController.dispose();
     super.dispose();
-  }
-
-  void _onAdvanceChanged(String val) {
-    final updatedAdvance = double.tryParse(val);
-    if (updatedAdvance != null) {
-      final updatedEmployee = widget.employee.copyWith(
-        advances: updatedAdvance,
-      );
-      ref.read(employeeProvider.notifier).updateEmployee(updatedEmployee);
-    }
   }
 
   @override
@@ -93,7 +82,7 @@ class _EmployeeSalaryCardState extends ConsumerState<EmployeeSalaryCard> {
             Expanded(
               child: Column(
                 children: [
-                  const Text('تعديل السلفة'),
+                  const Text('السلف من سند الصرف فقط'),
                   const SizedBox(height: 4),
                   TextFormField(
                     inputFormatters: const [YallaDigitNormalizer()],
@@ -107,7 +96,7 @@ class _EmployeeSalaryCardState extends ConsumerState<EmployeeSalaryCard> {
                           EdgeInsets.symmetric(vertical: 8, horizontal: 10),
                       border: OutlineInputBorder(),
                     ),
-                    onChanged: _onAdvanceChanged,
+                    readOnly: true,
                   ),
                 ],
               ),

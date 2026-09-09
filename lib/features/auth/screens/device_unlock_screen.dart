@@ -169,80 +169,134 @@ Future<bool> showDeviceSecuritySetupDialog({
   required DeviceUnlockService service,
   required String userId,
 }) async {
-  final pin = TextEditingController();
-  final confirm = TextEditingController();
-  var biometric = false;
   final available = await service.biometricAvailable();
   if (!context.mounted) return false;
+  return await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _DeviceSecuritySetupDialog(
+          service: service,
+          userId: userId,
+          biometricAvailable: available,
+        ),
+      ) ==
+      true;
+}
 
-  final result = await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setLocalState) => AdaptiveAlertDialog(
-        title: const Text('حماية هذا الجهاز'),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                  'أنشئ PIN سريعًا. سيبقى تسجيل الدخول محفوظًا داخل التخزين الآمن، وليس ككلمة مرور مكشوفة.'),
-              const SizedBox(height: 16),
-              TextField(
-                  inputFormatters: const [YallaDigitNormalizer()],
-                  controller: pin,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: const InputDecoration(
-                      labelText: 'PIN من 4 إلى 6 أرقام', counterText: '')),
-              TextField(
-                  inputFormatters: const [YallaDigitNormalizer()],
-                  controller: confirm,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: const InputDecoration(
-                      labelText: 'تأكيد PIN', counterText: '')),
-              if (available)
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: biometric,
-                  onChanged: (value) => setLocalState(() => biometric = value),
-                  title: const Text('تفعيل البصمة / Face ID'),
-                ),
+class _DeviceSecuritySetupDialog extends StatefulWidget {
+  const _DeviceSecuritySetupDialog(
+      {required this.service,
+      required this.userId,
+      required this.biometricAvailable});
+  final DeviceUnlockService service;
+  final String userId;
+  final bool biometricAvailable;
+  @override
+  State<_DeviceSecuritySetupDialog> createState() => _SecuritySetupState();
+}
+
+class _SecuritySetupState extends State<_DeviceSecuritySetupDialog> {
+  final _pin = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _biometric = false;
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _save() async {
+    if (_busy) return;
+    final value = _pin.text.trim();
+    if (!RegExp(r'^\d{4,6}$').hasMatch(value) ||
+        value != _confirm.text.trim()) {
+      setState(() => _error = 'تحقق من PIN وتأكيده.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.service.configure(
+          userId: widget.userId, pin: value, enableBiometric: _biometric);
+      if (!await widget.service.isConfiguredFor(widget.userId) ||
+          !await widget.service.verifyPin(userId: widget.userId, pin: value)) {
+        throw StateError('PIN verification after save failed.');
+      }
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error =
+            'تعذر حفظ حماية الجهاز بأمان. أعد المحاولة أو ألغِ الإعداد.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pin.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+        canPop: !_busy,
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: AdaptiveAlertDialog(
+            title: const Text('حماية هذا الجهاز'),
+            content: SizedBox(
+                width: 420,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  const Text(
+                      'أنشئ PIN سريعًا. سيبقى تسجيل الدخول محفوظًا داخل التخزين الآمن.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
+                      controller: _pin,
+                      enabled: !_busy,
+                      obscureText: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: const InputDecoration(
+                          labelText: 'PIN من 4 إلى 6 أرقام', counterText: '')),
+                  TextField(
+                      inputFormatters: const [YallaDigitNormalizer()],
+                      controller: _confirm,
+                      enabled: !_busy,
+                      obscureText: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: const InputDecoration(
+                          labelText: 'تأكيد PIN', counterText: '')),
+                  if (widget.biometricAvailable)
+                    SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        value: _biometric,
+                        onChanged: _busy
+                            ? null
+                            : (value) => setState(() => _biometric = value),
+                        title: const Text('تفعيل البصمة / Face ID')),
+                  if (_error != null)
+                    Text(_error!,
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error)),
+                ])),
+            actions: [
+              TextButton(
+                  onPressed:
+                      _busy ? null : () => Navigator.of(context).pop(false),
+                  child: const Text('إلغاء')),
+              FilledButton(
+                  onPressed: _busy ? null : _save,
+                  child: Text(_busy ? 'جارٍ الحفظ...' : 'حفظ والمتابعة')),
             ],
           ),
         ),
-        actions: [
-          FilledButton(
-            onPressed: () async {
-              final value = pin.text.trim();
-              if (!RegExp(r'^\d{4,6}$').hasMatch(value) ||
-                  value != confirm.text.trim()) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('تحقق من PIN وتأكيده.')));
-                return;
-              }
-              try {
-                await service.configure(
-                    userId: userId, pin: value, enableBiometric: biometric);
-                if (dialogContext.mounted) Navigator.pop(dialogContext, true);
-              } catch (e) {
-                if (dialogContext.mounted)
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text('تعذر حفظ حماية الجهاز: $e')));
-              }
-            },
-            child: const Text('حفظ والمتابعة'),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  pin.dispose();
-  confirm.dispose();
-  return result == true;
+      );
 }

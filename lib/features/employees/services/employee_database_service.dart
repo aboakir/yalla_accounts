@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // ✅ Fixed v31: add columns first, then indexes
 // 📁 lib/features/employees/services/employee_database_service.dart
 
@@ -111,47 +112,69 @@ class EmployeeDatabaseService {
 
   // ───────────── CRUD ─────────────
 
+  static void _validate(Employee employee) {
+    if (employee.fullName.trim().isEmpty ||
+        employee.employeeCode.trim().isEmpty)
+      throw ArgumentError('اسم الموظف ورقمه مطلوبان.');
+    for (final amount in [
+      employee.baseSalaryForType,
+      employee.allowances,
+      employee.deductions
+    ]) {
+      if (!amount.isFinite || amount < 0)
+        throw ArgumentError(
+            'الأجر والبدلات والخصومات يجب أن تكون أرقاماً موجبة أو صفراً.');
+    }
+  }
+
   static Future<void> insert(Employee employee) async {
+    _validate(employee);
     await ensureTable();
     final db = await _db;
-    await db.insert(
-      tableName,
-      employee.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.fail,
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              tableName,
+              employee.toMap(),
+              conflictAlgorithm: ConflictAlgorithm.fail,
+            ));
   }
 
   static Future<void> upsert(Employee employee) async {
+    _validate(employee);
     await ensureTable();
     final db = await _db;
-    await db.insert(
-      tableName,
-      employee.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await SyncFoundationService.transaction(db, (txn) async {
+      final exists = await txn.query(tableName,
+          columns: ['id'], where: 'id=?', whereArgs: [employee.id]);
+      if (exists.isEmpty) {
+        await txn.insert(tableName, employee.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.abort);
+      } else {
+        await txn.update(tableName, employee.toMap(),
+            where: 'id=?', whereArgs: [employee.id]);
+      }
+    });
   }
 
   static Future<void> upsertBulk(List<Employee> employees) async {
-    if (employees.isEmpty) return;
-    await ensureTable();
-    final db = await _db;
-    final batch = db.batch();
-    for (final e in employees) {
-      batch.insert(tableName, e.toMap(),
-          conflictAlgorithm: ConflictAlgorithm.replace);
+    for (final employee in employees) {
+      await upsert(employee);
     }
-    await batch.commit(noResult: true);
   }
 
   static Future<void> update(Employee employee) async {
+    _validate(employee);
     await ensureTable();
     final db = await _db;
-    await db.update(
-      tableName,
-      employee.toMap(),
-      where: 'id = ?',
-      whereArgs: [employee.id],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              tableName,
+              employee.toMap(),
+              where: 'id = ?',
+              whereArgs: [employee.id],
+            ));
   }
 
   static Future<int> patch(String id, Map<String, Object?> fields) async {
@@ -160,13 +183,24 @@ class EmployeeDatabaseService {
     fields.removeWhere((k, v) => v == null);
     if (fields.isEmpty) return 0;
     fields['updated_at'] = DateTime.now().toIso8601String();
-    return db.update(tableName, fields, where: 'id = ?', whereArgs: [id]);
+    return SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn
+            .update(tableName, fields, where: 'id = ?', whereArgs: [id]));
   }
 
   static Future<void> delete(String id) async {
     await ensureTable();
     final db = await _db;
-    await db.delete(tableName, where: 'id = ?', whereArgs: [id]);
+    await SyncFoundationService.transaction(db, (txn) async {
+      final activity = await txn.rawQuery(
+          "SELECT id FROM attendance WHERE employeeId=? UNION ALL SELECT id FROM payroll_runs WHERE employee_id=? UNION ALL SELECT id FROM vouchers WHERE party_type='EMPLOYEE' AND party_id=? LIMIT 1",
+          [id, id, id]);
+      if (activity.isNotEmpty)
+        throw StateError(
+            'للموظف حضور أو حركات مالية؛ غيّر حالته إلى غير نشط بدلاً من حذفه.');
+      await txn.delete(tableName, where: 'id=?', whereArgs: [id]);
+    });
   }
 
   // ───────────── Queries ─────────────

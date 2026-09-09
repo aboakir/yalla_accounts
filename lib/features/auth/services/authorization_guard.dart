@@ -1,4 +1,8 @@
+import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
+import 'package:flutter/foundation.dart';
+import 'auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/features/auth/services/permission_service.dart';
 
 /// Runtime service-level authorization gate.
@@ -10,7 +14,7 @@ import 'package:yalla_accounts/features/auth/services/permission_service.dart';
 class AuthorizationGuard {
   AuthorizationGuard._();
 
-  static bool _interactiveEnforcement = false;
+  static bool _interactiveEnforcement = kReleaseMode;
 
   static bool get isInteractiveEnforcementEnabled => _interactiveEnforcement;
 
@@ -19,11 +23,32 @@ class AuthorizationGuard {
   }
 
   static void disableInteractiveEnforcement() {
-    _interactiveEnforcement = false;
+    if (!kReleaseMode) _interactiveEnforcement = false;
   }
 
   static Future<AppUser?> require(String permission) async {
-    if (!_interactiveEnforcement) return null;
-    return PermissionService().requireCurrent(permission);
+    if (!_interactiveEnforcement &&
+        !AuthSessionService.isRecoverySession &&
+        permission != PermissionKeys.backupRestore) {
+      return null;
+    }
+    final actor = await PermissionService().requireCurrent(permission);
+    const readPermissions = {
+      PermissionKeys.customerView,
+      PermissionKeys.repairView,
+      PermissionKeys.payrollView,
+      PermissionKeys.glView,
+      PermissionKeys.reportView,
+      PermissionKeys.reportExport,
+      PermissionKeys.userView,
+      PermissionKeys.auditView,
+      PermissionKeys.settingsView,
+      PermissionKeys.backupCreate,
+      PermissionKeys.backupExport,
+    };
+    if (!readPermissions.contains(permission)) {
+      await LicenseRuntimeService().requireOperationalWrite(permission);
+    }
+    return actor;
   }
 }

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // 📁 lib/features/finance/screens/journal_entries_screen.dart
 //
 // قيود اليومية — قراءة مباشرة من GL (gl_entries + gl_lines + accounts)
@@ -252,6 +253,10 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
           gl.debit         AS debit,
           gl.credit        AS credit,
           gl.repair_id     AS repair_id,
+          (SELECT pi.amount_total FROM purchase_invoices pi
+            WHERE pi.id = gl.invoice_id) AS purchase_total,
+          (SELECT ${PurchaseBalanceSql.paid('pi.id')} FROM purchase_invoices pi
+            WHERE pi.id = gl.invoice_id) AS purchase_paid,
           a.name           AS account_name
         FROM gl_entries ge
         JOIN gl_lines gl  ON gl.entry_id = ge.id
@@ -278,6 +283,8 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
           debit: debit,
           credit: credit,
           relatedRepairId: rid.isEmpty ? null : rid,
+          purchaseTotal: (m['purchase_total'] as num?)?.toDouble(),
+          purchasePaid: (m['purchase_paid'] as num?)?.toDouble(),
         );
       }).toList();
 
@@ -690,39 +697,72 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                 ),
               ),
         actions: [
-          // toggle mode
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 6),
-            child: SegmentedButton<ViewMode>(
-              showSelectedIcon: false,
-              style: const ButtonStyle(
-                visualDensity: VisualDensity.compact,
-                padding: WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 10)),
+          if (isDesktop) ...[
+            // toggle mode
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 6),
+              child: SegmentedButton<ViewMode>(
+                showSelectedIcon: false,
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  padding: WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 10)),
+                ),
+                segments: const [
+                  ButtonSegment(
+                      value: ViewMode.transactions, label: Text('سطور')),
+                  ButtonSegment(
+                      value: ViewMode.byRepair, label: Text('حسب الإصلاح')),
+                ],
+                selected: {_mode},
+                onSelectionChanged: (s) => setState(() => _mode = s.first),
               ),
-              segments: const [
-                ButtonSegment(
-                    value: ViewMode.transactions, label: Text('سطور')),
-                ButtonSegment(
-                    value: ViewMode.byRepair, label: Text('حسب الإصلاح')),
-              ],
-              selected: {_mode},
-              onSelectionChanged: (s) => setState(() => _mode = s.first),
             ),
-          ),
-          IconButton(
-              tooltip: 'تحديث',
-              icon: const Icon(Icons.refresh),
-              onPressed: _load),
-          IconButton(
-            tooltip: _compact ? 'وضع مريح' : 'وضع مضغوط',
-            icon: Icon(_compact ? Icons.density_small : Icons.density_medium),
-            onPressed: () => setState(() => _compact = !_compact),
-          ),
-          IconButton(
-              tooltip: 'اختيار الأعمدة',
-              icon: const Icon(Icons.view_column),
-              onPressed: _openColumnChooser),
+            IconButton(
+                tooltip: 'تحديث',
+                icon: const Icon(Icons.refresh),
+                onPressed: _load),
+            IconButton(
+              tooltip: _compact ? 'وضع مريح' : 'وضع مضغوط',
+              icon: Icon(_compact ? Icons.density_small : Icons.density_medium),
+              onPressed: () => setState(() => _compact = !_compact),
+            ),
+            IconButton(
+                tooltip: 'اختيار الأعمدة',
+                icon: const Icon(Icons.view_column),
+                onPressed: _openColumnChooser),
+          ] else
+            PopupMenuButton<String>(
+                tooltip: 'خيارات العرض',
+                onSelected: (value) {
+                  if (value == 'refresh') {
+                    _load();
+                  }
+                  if (value == 'columns') {
+                    _openColumnChooser();
+                  }
+                  if (value == 'mode') {
+                    setState(() => _mode = _mode == ViewMode.transactions
+                        ? ViewMode.byRepair
+                        : ViewMode.transactions);
+                  }
+                  if (value == 'density') {
+                    setState(() => _compact = !_compact);
+                  }
+                },
+                itemBuilder: (_) => [
+                      PopupMenuItem(
+                          value: 'mode',
+                          child: Text(_mode == ViewMode.transactions
+                              ? 'عرض حسب الإصلاح'
+                              : 'عرض السطور')),
+                      const PopupMenuItem(
+                          value: 'refresh', child: Text('تحديث')),
+                      const PopupMenuItem(
+                          value: 'columns', child: Text('اختيار الأعمدة')),
+                      const PopupMenuItem(
+                          value: 'density', child: Text('تغيير كثافة العرض')),
+                    ]),
         ],
       ),
       body: AdaptiveRow(
@@ -770,8 +810,9 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                                     ),
                                   ),
                                 ),
-                                AdaptiveRow(
-                                  mainAxisSize: MainAxisSize.min,
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
                                   children: [
                                     OutlinedButton.icon(
                                       onPressed: _pickRange,
@@ -924,8 +965,10 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                   ],
                   rows: list.map((e) {
                     final rid = e.relatedRepairId ?? '';
-                    final paid = rid.isEmpty ? 0 : (_paidMap[rid] ?? 0);
-                    final invTotal = rid.isEmpty ? 0 : (_invoiceMap[rid] ?? 0);
+                    final paid = e.purchasePaid ??
+                        (rid.isEmpty ? 0 : (_paidMap[rid] ?? 0));
+                    final invTotal = e.purchaseTotal ??
+                        (rid.isEmpty ? 0 : (_invoiceMap[rid] ?? 0));
                     final remain = invTotal - paid;
 
                     return DataRow(cells: [
@@ -937,7 +980,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                       if (_tRepair) DataCell(Text(_repairLabel(rid))),
                       if (_tPaid)
                         DataCell(
-                          rid.isEmpty
+                          rid.isEmpty && e.purchaseTotal == null
                               ? const Text('—')
                               : Text(
                                   _currency.format(paid),
@@ -946,7 +989,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                         ),
                       if (_tRemain)
                         DataCell(
-                          rid.isEmpty
+                          rid.isEmpty && e.purchaseTotal == null
                               ? const Text('—')
                               : Text(
                                   _currency.format(remain),
@@ -983,8 +1026,10 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
       itemBuilder: (_, i) {
         final e = list[i];
         final rid = e.relatedRepairId ?? '';
-        final paid = rid.isEmpty ? 0.0 : (_paidMap[rid] ?? 0.0);
-        final invTotal = rid.isEmpty ? 0.0 : (_invoiceMap[rid] ?? 0.0);
+        final paid =
+            e.purchasePaid ?? (rid.isEmpty ? 0.0 : (_paidMap[rid] ?? 0.0));
+        final invTotal =
+            e.purchaseTotal ?? (rid.isEmpty ? 0.0 : (_invoiceMap[rid] ?? 0.0));
         final remain = (invTotal - paid).clamp(-1e12, 1e12);
 
         return Card(
@@ -1012,10 +1057,20 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                     _kv('مدين', _currency.format(e.debit)),
                     _kv('دائن', _currency.format(e.credit)),
                     _kv('ملف الإصلاح', _repairLabel(rid)),
-                    _kv('المدفوع', rid.isEmpty ? '—' : _currency.format(paid),
-                        valueColor: Colors.green, isBold: true),
-                    _kv('المتبقي', rid.isEmpty ? '—' : _currency.format(remain),
-                        valueColor: Colors.red, isBold: true),
+                    _kv(
+                        'المدفوع',
+                        rid.isEmpty && e.purchaseTotal == null
+                            ? '—'
+                            : _currency.format(paid),
+                        valueColor: Colors.green,
+                        isBold: true),
+                    _kv(
+                        'المتبقي',
+                        rid.isEmpty && e.purchaseTotal == null
+                            ? '—'
+                            : _currency.format(remain),
+                        valueColor: Colors.red,
+                        isBold: true),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -1235,6 +1290,8 @@ class _JRow {
   final double debit;
   final double credit;
   final String? relatedRepairId;
+  final double? purchaseTotal;
+  final double? purchasePaid;
 
   _JRow({
     required this.date,
@@ -1243,6 +1300,8 @@ class _JRow {
     required this.debit,
     required this.credit,
     required this.relatedRepairId,
+    this.purchaseTotal,
+    this.purchasePaid,
   });
 }
 

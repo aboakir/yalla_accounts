@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -64,7 +65,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
       lastDate: DateTime(now.year + 1),
       initialDateRange: _range,
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
     setState(() {
       _range = picked;
       _reload();
@@ -161,6 +162,15 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
       appBar: AppBar(
         title: Text('كشف حساب — ${widget.supplierName}'),
         actions: [
+          FinancialPeriodFilter(
+              from: _range?.start,
+              to: _range?.end,
+              onChanged: (range) {
+                setState(() {
+                  _range = range;
+                  _reload();
+                });
+              }),
           IconButton(
             tooltip: 'الفترة',
             onPressed: _pickRange,

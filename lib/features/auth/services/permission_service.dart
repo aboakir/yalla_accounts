@@ -27,11 +27,18 @@ class PermissionService {
     }
 
     final db = await _databaseProvider();
+    if (permission == PermissionKeys.backupRestore) {
+      final users = await db.query('users',
+          where: 'id = ?', whereArgs: [userId], limit: 1);
+      if (users.isEmpty) return false;
+      final user = AppUser.fromMap(users.single);
+      return user.status == 'active' && user.isOwner;
+    }
     final rows = await db.rawQuery(
       '''
       SELECT 1
       FROM users u
-      JOIN auth_role_permissions rp ON rp.role_key = u.role
+      JOIN auth_role_permissions rp ON rp.role_key = lower(trim(u.role))
       WHERE u.id = ?
         AND (u.status IS NULL OR u.status = 'active')
         AND rp.permission_key = ?
@@ -48,7 +55,7 @@ class PermissionService {
       '''
       SELECT rp.permission_key
       FROM users u
-      JOIN auth_role_permissions rp ON rp.role_key = u.role
+      JOIN auth_role_permissions rp ON rp.role_key = lower(trim(u.role))
       WHERE u.id = ?
         AND (u.status IS NULL OR u.status = 'active')
       ORDER BY rp.permission_key
@@ -67,7 +74,7 @@ class PermissionService {
     if (actor == null) {
       return false;
     }
-    return hasPermissionForUser(actor.id, permission);
+    return _allowed(actor, permission);
   }
 
   Future<AppUser> requireCurrent(String permission) async {
@@ -76,11 +83,25 @@ class PermissionService {
       throw StateError('Authenticated user session is required.');
     }
 
-    if (!await hasPermissionForUser(actor.id, permission)) {
+    if (!await _allowed(actor, permission)) {
       throw StateError('Permission denied: $permission');
     }
 
     return actor;
+  }
+
+  Future<bool> _allowed(AppUser actor, String permission) async {
+    if (AuthSessionService.isRecoverySession) {
+      return actor.isOwner &&
+          const {PermissionKeys.backupCreate, PermissionKeys.backupExport}
+              .contains(permission);
+    }
+    // Disaster recovery stays Owner-only even if a role permission row is stale.
+    if (permission == PermissionKeys.backupRestore) return actor.isOwner;
+    if (AuthSessionService.hasPreviewSession) {
+      return AuthorizationPolicy.forRole(actor.role).contains(permission);
+    }
+    return hasPermissionForUser(actor.id, permission);
   }
 
   Future<void> requireAssignableRole(String role) async {

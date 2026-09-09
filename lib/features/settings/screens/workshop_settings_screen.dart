@@ -1,3 +1,6 @@
+import 'commercial_settings_screen.dart';
+import '../providers/workshop_settings_provider.dart';
+import 'package:yalla_accounts/features/settings/widgets/work_schedule_fields.dart';
 // 📁 lib/features/settings/screens/workshop_settings_screen.dart
 // WorkshopSettingsScreen — FIXED (Phones + Email Visible & Saved)
 
@@ -140,18 +143,7 @@ class _WorkshopSettingsScreenState
         earlyLeavePenalty: _earlyLeavePenalty,
       );
 
-      await WorkshopSettingsService.instance.saveSettings(model);
-
-      final securityAnswer1 = _qWorkshopNameCtrl.text.trim();
-      final securityAnswer2 = _qOwnerIdCtrl.text.trim();
-      if (securityAnswer1.isNotEmpty && securityAnswer2.isNotEmpty) {
-        await ref.read(userServiceProvider).setSecurityQuestions(
-              question1: 'ما أول اسم لورشتك بالعربية؟',
-              question2: 'ما هو رقم هوية صاحب الورشة؟',
-              answer1: securityAnswer1,
-              answer2: securityAnswer2,
-            );
-      }
+      await ref.read(workshopSettingsWriteProvider)(model);
 
       if (!mounted) return;
 
@@ -186,6 +178,7 @@ class _WorkshopSettingsScreenState
 
     final userService = ref.read(userServiceProvider);
     final owner = await userService.getOwner();
+    if (!mounted) return;
 
     if (owner == null) {
       setState(() => _generatingCode = false);
@@ -198,7 +191,8 @@ class _WorkshopSettingsScreenState
     }
 
     final code = await userService.generateOwnerRecoveryCode();
-    if (!mounted || code == null) {
+    if (!mounted) return;
+    if (code == null) {
       setState(() => _generatingCode = false);
       return;
     }
@@ -263,12 +257,20 @@ class _WorkshopSettingsScreenState
           padding: const EdgeInsets.all(16),
           children: [
             _buildWorkshopInfoCard(),
+            ListTile(
+              leading: const Icon(Icons.currency_exchange),
+              title: const Text('العملة والرقم الضريبي'),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const CommercialSettingsScreen(),
+              )),
+            ),
             const SizedBox(height: 20),
             _buildWorkTimeCard(),
             const SizedBox(height: 20),
-            _buildSecurityCard(),
+            _buildFrozenSection(_buildSecurityCard()),
             const SizedBox(height: 20),
-            _buildAccountManagementCard(),
+            _buildFrozenSection(_buildAccountManagementCard()),
             const SizedBox(height: 25),
             ElevatedButton.icon(
               onPressed: _saving ? null : _save,
@@ -283,6 +285,16 @@ class _WorkshopSettingsScreenState
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFrozenSection(Widget child) {
+    return AbsorbPointer(
+      absorbing: true,
+      child: Opacity(
+        opacity: 0.52,
+        child: child,
       ),
     );
   }
@@ -406,6 +418,15 @@ class _WorkshopSettingsScreenState
               if (t != null && mounted) setState(() => _end = t);
             },
           ),
+          WorkScheduleFields(
+              days: _weekWorkdays,
+              hours: _dailyHours,
+              breakMinutes: _breakMinutes,
+              overtime: _overtimeRate,
+              onDays: (v) => setState(() => _weekWorkdays = v),
+              onHours: (v) => _dailyHours = v,
+              onBreak: (v) => _breakMinutes = v,
+              onOvertime: (v) => _overtimeRate = v),
         ]),
       ),
     );

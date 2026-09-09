@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/parties/screens/parties_screen.dart';
 // 📁 lib/core/routes/app_routes.dart
 //
 // Routes — v29a+
@@ -8,7 +9,7 @@ import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/logout_screen.dart';
-import 'package:yalla_accounts/features/auth/screens/register_user_screen.dart';
+import 'package:yalla_accounts/features/onboarding/screens/workshop_onboarding_screen.dart';
 import 'package:yalla_accounts/features/auth/widgets/authenticated_route_gate.dart';
 import 'package:yalla_accounts/features/finance/purchases/screens/purchase_other_screen.dart';
 
@@ -375,14 +376,35 @@ class AppRoutes {
       _page(settings, UnderConstructionScreen(title: title));
 
   // ===== Router =====
+  // Keep the calculator available while the other agent sections are paused.
+  static bool isInsuranceAgentFrozenRoute(String route) =>
+      (route == insuranceAgentRoot ||
+          route.startsWith('$insuranceAgentRoot/')) &&
+      route != insuranceAgentCalculator;
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
+
+    if (isInsuranceAgentFrozenRoute(name)) {
+      return _page(
+          settings,
+          Scaffold(
+            appBar: AppBar(title: const Text('وكيل التأمين')),
+            body: const Center(
+                child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                  'هذا القسم غير مفعّل حاليًا. حاسبة التأمين متاحة من القائمة.',
+                  textAlign: TextAlign.center),
+            )),
+          ));
+    }
 
     if (name == login || name == forgotAccess) {
       return _page(settings, const LoginScreen());
     }
     if (name == register) {
-      return _page(settings, const RegisterUserScreen());
+      return _page(settings, const WorkshopOnboardingScreen());
     }
     if (name == logout) {
       return _page(settings, const LogoutScreen());
@@ -684,6 +706,12 @@ class AppRoutes {
     }
 
     // Clients
+    if (name == '/parties') {
+      return _page(settings, const PartiesScreen());
+    }
+    if (name == '/parties/add') {
+      return _page(settings, const PartyFormScreen());
+    }
     if (name == clients || name == clientsList) {
       return _page(settings, const ClientsScreen());
     }

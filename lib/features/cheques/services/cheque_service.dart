@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // -----------------------------------------------------------------------------
 // lib/features/cheques/services/cheque_service.dart
 // P0.008 — safe cheque register + canonical lifecycle gateway
@@ -39,7 +40,7 @@ class ChequeService {
 
     await ChequeTables.ensureChequesSchema(db);
 
-    return db.transaction<int>((txn) async {
+    return SyncFoundationService.transaction<int>(db, (txn) async {
       final now = DateTime.now().toIso8601String();
 
       final id = await txn.insert(
@@ -82,7 +83,7 @@ class ChequeService {
     final db = await DBService.database;
     await ChequeTables.ensureChequesSchema(db);
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       final rows = await txn.query(
         _table,
         where: 'id=?',
@@ -199,7 +200,7 @@ class ChequeService {
     final db = await DBService.database;
     await ChequeTables.ensureChequesSchema(db);
 
-    await db.transaction((txn) async {
+    await SyncFoundationService.transaction(db, (txn) async {
       final rows = await txn.query(
         _table,
         where: 'id=?',

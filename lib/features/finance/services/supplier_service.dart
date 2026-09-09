@@ -1,4 +1,6 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:sqflite/sqflite.dart';
+import '../../suppliers/services/supplier_service.dart' as canonical;
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/models/supplier_model.dart';
 
@@ -17,11 +19,13 @@ class SupplierService {
 
   static Future<void> addSupplier(SupplierModel supplier) async {
     final db = await DBService.database;
-    await db.insert(
-      'suppliers',
-      supplier.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.insert(
+              'suppliers',
+              supplier.toMap(),
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            ));
   }
 
   static Future<List<SupplierModel>> getAllSuppliers() async {
@@ -31,7 +35,6 @@ class SupplierService {
   }
 
   static Future<void> deleteSupplier(String id) async {
-    final db = await DBService.database;
-    await db.delete('suppliers', where: 'id = ?', whereArgs: [id]);
+    await canonical.SupplierService.deleteSupplier(id);
   }
 }

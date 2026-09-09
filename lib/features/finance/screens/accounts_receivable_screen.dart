@@ -14,6 +14,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 
@@ -176,7 +177,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
       context: context,
       firstDate: DateTime(now.year - 5, 1, 1),
       lastDate: DateTime(now.year + 1, 12, 31),
-      helpText: 'نطاق تواريخ الدفعات فقط',
+      helpText: 'نشاط الجهات خلال الفترة — الرصيد حتى نهايتها',
     );
     if (dr != null) {
       setState(() => _range = dr);
@@ -219,30 +220,25 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
 
     // إجمالي الفواتير لكل ملف
     final invRows = await db.rawQuery('''
-      SELECT repair_id AS rid, IFNULL(SUM(total),0) AS tot
-      FROM invoices
-      WHERE client_id = ?
-      GROUP BY repair_id
+      SELECT l.repair_id AS rid, COALESCE(SUM(l.debit-l.credit),0) AS tot
+      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
+      JOIN gl_entries e ON e.id=l.entry_id
+      LEFT JOIN gl_entries original ON original.id=e.reversal_of
+      WHERE l.party_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
+        AND UPPER(COALESCE(original.source,e.source)) NOT IN
+          ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE','VOUCHER')
+      GROUP BY l.repair_id
     ''', [row.clientId]);
-
-    // مدفوعات كل ملف ضمن النطاق الزمني (إن وجد)
-    final payArgs = <Object?>[row.clientId];
-    String payWhere =
-        'COALESCE(p.client_id, (SELECT r.client_id FROM repairs r WHERE r.id = p.repair_id)) = ?';
-    if (_range != null) {
-      final s = _df.format(
-          DateTime(_range!.start.year, _range!.start.month, _range!.start.day));
-      final e = _df.format(
-          DateTime(_range!.end.year, _range!.end.month, _range!.end.day));
-      payWhere += ' AND p.date >= ? AND p.date <= ?';
-      payArgs.addAll([s, e]);
-    }
     final payRows = await db.rawQuery('''
-      SELECT repair_id AS rid, IFNULL(SUM(amount),0) AS tot
-      FROM payments p
-      WHERE $payWhere
-      GROUP BY repair_id
-    ''', payArgs);
+      SELECT l.repair_id AS rid, COALESCE(SUM(l.credit-l.debit),0) AS tot
+      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
+      JOIN gl_entries e ON e.id=l.entry_id
+      LEFT JOIN gl_entries original ON original.id=e.reversal_of
+      WHERE l.party_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
+        AND UPPER(COALESCE(original.source,e.source)) IN
+          ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE','VOUCHER')
+      GROUP BY l.repair_id
+    ''', [row.clientId]);
 
     final invByRid = <String, double>{};
     for (final m in invRows) {
@@ -448,7 +444,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      drawer: Responsive.isDesktop(context) || _showSidebar
+      drawer: Responsive.isDesktop(context)
           ? null
           : const Drawer(
               child: YallaSidebar(
@@ -464,212 +460,281 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
             ),
           Expanded(
             child: SafeArea(
-              child: Column(
-                children: [
-                  // ---------------------------
-                  // NEW TOP APP BAR
-                  // ---------------------------
-                  Container(
-                    height: 60,
-                    color: AppColors.primary,
-                    child: AdaptiveRow(
-                      children: [
-                        if (!Responsive.isDesktop(context))
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerScrolled) => [
+                  SliverToBoxAdapter(
+                      child: Column(children: [
+                    // ---------------------------
+                    // NEW TOP APP BAR
+                    // ---------------------------
+                    Container(
+                      height: 60,
+                      color: AppColors.primary,
+                      child: Row(
+                        children: [
+                          if (!Responsive.isDesktop(context))
+                            Builder(
+                                builder: (drawerContext) => IconButton(
+                                    icon: const Icon(Icons.menu,
+                                        color: Colors.white),
+                                    onPressed: () => Scaffold.of(drawerContext)
+                                        .openDrawer())),
+                          const SizedBox(width: 12),
+                          Expanded(
+                              child: Text(
+                            context.isPhoneWidth
+                                ? 'ذمم العملاء'
+                                : 'ذمم العملاء وإدارة الدفعات',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )),
                           IconButton(
-                            icon: const Icon(Icons.menu, color: Colors.white),
-                            onPressed: () => Scaffold.of(context).openDrawer(),
+                            tooltip: 'التحصيل والمتابعة',
+                            icon: const Icon(
+                                Icons.collections_bookmark_outlined,
+                                color: Colors.white),
+                            onPressed: () => Navigator.pushNamed(
+                                context, AppRoutes.collectionDashboard),
                           ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'ذمم العملاء وإدارة الدفعات',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+
+                          // --------------------------
+                          // زر PDF الجديد
+                          // --------------------------
+                          IconButton(
+                            tooltip: "طباعة PDF",
+                            icon: const Icon(Icons.picture_as_pdf,
+                                color: Colors.white),
+                            onPressed: () async {
+                              final settings = await WorkshopSettingsService
+                                  .instance
+                                  .getOrDefaults();
+
+                              await YallaPdfService
+                                  .generateAccountsReceivablePdf(
+                                _filtered
+                                    .map((c) => {
+                                          'name': c.name,
+                                          'total': c.invoicesTotal,
+                                          'paid': c.paymentsTotal,
+                                          'remain': c.balance,
+                                        })
+                                    .toList(),
+                                workshopName:
+                                    settings.workshopName ?? "ورشة بدون اسم",
+                                logoPath: settings.logoPath,
+                              );
+                            },
                           ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          tooltip: 'التحصيل والمتابعة',
-                          icon: const Icon(Icons.collections_bookmark_outlined,
-                              color: Colors.white),
-                          onPressed: () => Navigator.pushNamed(
-                              context, AppRoutes.collectionDashboard),
-                        ),
 
-                        // --------------------------
-                        // زر PDF الجديد
-                        // --------------------------
-                        IconButton(
-                          tooltip: "طباعة PDF",
-                          icon: const Icon(Icons.picture_as_pdf,
-                              color: Colors.white),
-                          onPressed: () async {
-                            final settings = await WorkshopSettingsService
-                                .instance
-                                .getOrDefaults();
-
-                            await YallaPdfService.generateAccountsReceivablePdf(
-                              _filtered
-                                  .map((c) => {
-                                        'name': c.name,
-                                        'total': c.invoicesTotal,
-                                        'paid': c.paymentsTotal,
-                                        'remain': c.balance,
-                                      })
-                                  .toList(),
-                              workshopName:
-                                  settings.workshopName ?? "ورشة بدون اسم",
-                              logoPath: settings.logoPath,
-                            );
-                          },
-                        ),
-
-                        IconButton(
-                          icon: const Icon(Icons.refresh, color: Colors.white),
-                          onPressed: _load,
-                        ),
-                        const SizedBox(width: 10),
-                      ],
+                          IconButton(
+                            icon:
+                                const Icon(Icons.refresh, color: Colors.white),
+                            onPressed: _load,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // ---------------------------
-                  // KPIs
-                  // ---------------------------
-                  _HeaderKpis(
-                    sumInv: _money.format(_sumInv),
-                    sumPaid: _money.format(_sumPaid),
-                    sumRemain: _money.format(_sumRemain),
-                  ),
+                    // ---------------------------
+                    // KPIs
+                    // ---------------------------
+                    _HeaderKpis(
+                      sumInv: _money.format(_sumInv),
+                      sumPaid: _money.format(_sumPaid),
+                      sumRemain: _money.format(_sumRemain),
+                    ),
 
-                  // ---------------------------
-                  // FILTERS BAR
-                  // ---------------------------
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.spaceBetween,
-                      children: [
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 560),
-                          child: TextField(
-                            inputFormatters: const [YallaDigitNormalizer()],
-                            onChanged: (v) => setState(() => _query = v),
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.search),
-                              hintText: 'بحث باسم العميل…',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                          ),
-                        ),
-                        Wrap(
+                    // ---------------------------
+                    // FILTERS BAR
+                    // ---------------------------
+                    if (context.isPhoneWidth)
+                      _phoneFilters()
+                    else
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                        child: Wrap(
                           spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.spaceBetween,
                           children: [
-                            _StatusPicker(
-                              value: _status,
-                              onChanged: (v) => setState(() => _status = v),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _pickRange,
-                              icon: const Icon(Icons.date_range),
-                              label: Text(
-                                _range == null
-                                    ? 'كل التواريخ (الدفعات)'
-                                    : '${_df.format(_range!.start)} → ${_df.format(_range!.end)}',
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 560),
+                              child: TextField(
+                                inputFormatters: const [YallaDigitNormalizer()],
+                                onChanged: (v) => setState(() => _query = v),
+                                decoration: const InputDecoration(
+                                  prefixIcon: Icon(Icons.search),
+                                  hintText: 'بحث باسم العميل…',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
                               ),
                             ),
-                            if (_range != null)
-                              IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: _clearRange,
-                              ),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                              ),
-                              onPressed: () => _exportCsv(_filtered),
-                              icon: const Icon(Icons.download_rounded),
-                              label: const Text('تصدير CSV'),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                _StatusPicker(
+                                  value: _status,
+                                  onChanged: (v) => setState(() => _status = v),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _pickRange,
+                                  icon: const Icon(Icons.date_range),
+                                  label: Text(
+                                    _range == null
+                                        ? 'كل التواريخ'
+                                        : '${_df.format(_range!.start)} → ${_df.format(_range!.end)}',
+                                  ),
+                                ),
+                                if (_range != null)
+                                  IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: _clearRange,
+                                  ),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                  ),
+                                  onPressed: () => _exportCsv(_filtered),
+                                  icon: const Icon(Icons.download_rounded),
+                                  label: const Text('تصدير CSV'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
+                      ),
+
+                    const SizedBox(height: 4),
+
+                    // ---------------------------
+                    // TABS
+                    // ---------------------------
+                    Material(
+                      color: Colors.transparent,
+                      child: TabBar(
+                        controller: _tabs,
+                        labelColor: AppColors.primary,
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: AppColors.primary,
+                        tabs: [
+                          Tab(
+                            text:
+                                'أفراد (${_allRows.where((e) => e.type == "أفراد").length})',
+                          ),
+                          Tab(
+                            text:
+                                'شركة تأمين (${_allRows.where((e) => e.type == "شركة تأمين").length})',
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 4),
+                    const SizedBox(height: 6),
 
-                  // ---------------------------
-                  // TABS
-                  // ---------------------------
-                  Material(
-                    color: Colors.transparent,
-                    child: TabBar(
-                      controller: _tabs,
-                      labelColor: AppColors.primary,
-                      unselectedLabelColor: Colors.grey,
-                      indicatorColor: AppColors.primary,
-                      tabs: [
-                        Tab(
-                          text:
-                              'أفراد (${_allRows.where((e) => e.type == "أفراد").length})',
-                        ),
-                        Tab(
-                          text:
-                              'شركة تأمين (${_allRows.where((e) => e.type == "شركة تأمين").length})',
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // ---------------------------
-                  // LIST AREA
-                  // ---------------------------
-                  Expanded(
-                    child: _loading
-                        ? const Center(child: CircularProgressIndicator())
-                        : _error != null
-                            ? Center(
-                                child: Text(
-                                  'خطأ أثناء التحميل:\n$_error',
-                                  style: const TextStyle(color: Colors.red),
-                                  textAlign: TextAlign.center,
-                                ),
+                    // ---------------------------
+                    // LIST AREA
+                    // ---------------------------
+                  ]))
+                ],
+                body: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                        ? Center(
+                            child: Text(
+                              'خطأ أثناء التحميل:\n$_error',
+                              style: const TextStyle(color: Colors.red),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : Responsive.isDesktop(context)
+                            ? _DesktopTable(
+                                rows: _filtered,
+                                money: _money,
+                                onOpen: _openClientDetails,
                               )
-                            : Responsive.isDesktop(context)
-                                ? _DesktopTable(
-                                    rows: _filtered,
+                            : RefreshIndicator(
+                                onRefresh: _load,
+                                child: ListView.separated(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                                  itemCount: _filtered.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 8),
+                                  itemBuilder: (_, i) => _ClientCard(
+                                    row: _filtered[i],
                                     money: _money,
                                     onOpen: _openClientDetails,
-                                  )
-                                : RefreshIndicator(
-                                    onRefresh: _load,
-                                    child: ListView.separated(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          12, 8, 12, 16),
-                                      itemCount: _filtered.length,
-                                      separatorBuilder: (_, __) =>
-                                          const SizedBox(height: 8),
-                                      itemBuilder: (_, i) => _ClientCard(
-                                        row: _filtered[i],
-                                        money: _money,
-                                        onOpen: _openClientDetails,
-                                      ),
-                                    ),
                                   ),
-                  ),
-                ],
+                                ),
+                              ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _phoneFilters() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      child: Column(children: [
+        TextField(
+          inputFormatters: const [YallaDigitNormalizer()],
+          onChanged: (v) => setState(() => _query = v),
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search),
+            hintText: 'بحث باسم العميل…',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+              child: DropdownButtonFormField<String>(
+            initialValue: _status,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'حالة السداد',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: ['الكل', 'مسدد', 'مسدد جزئي', 'غير مسدد']
+                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                .toList(),
+            onChanged: (v) => setState(() => _status = v ?? 'الكل'),
+          )),
+          const SizedBox(width: 8),
+          Expanded(
+              child: OutlinedButton.icon(
+            onPressed: _pickRange,
+            icon: const Icon(Icons.date_range, size: 18),
+            label: Text(_range == null ? 'فترة النشاط' : 'تغيير الفترة',
+                textAlign: TextAlign.center),
+          )),
+          IconButton(
+            tooltip: 'تصدير CSV',
+            onPressed: () => _exportCsv(_filtered),
+            icon: const Icon(Icons.download_rounded),
+          ),
+        ]),
+        if (_range != null)
+          Row(children: [
+            Expanded(
+                child: Text(
+                    '${_df.format(_range!.start)} → ${_df.format(_range!.end)}')),
+            IconButton(
+                tooltip: 'مسح الفترة',
+                onPressed: _clearRange,
+                icon: const Icon(Icons.clear)),
+          ]),
+      ]),
     );
   }
 
@@ -739,6 +804,13 @@ class _HeaderKpis extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
+    if (context.isPhoneWidth) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        child:
+            _AmountSummary(total: sumInv, paid: sumPaid, remaining: sumRemain),
+      );
+    }
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -876,44 +948,99 @@ class _ClientCard extends StatelessWidget {
             : Colors.red.shade100);
 
     return Card(
+      margin: EdgeInsets.zero,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withOpacity(.1),
-          child: Icon(
-            row.type == 'شركة تأمين' ? Icons.apartment : Icons.person,
-            color: AppColors.primary,
-          ),
-        ),
-        title: Text(row.name.isEmpty ? '—' : row.name),
-        subtitle: Wrap(
-          spacing: 8,
-          runSpacing: 8,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Chip(
-              backgroundColor: Colors.grey.shade200,
-              label: Text('إجمالي: ${money.format(row.invoicesTotal)}'),
+            Row(children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primary.withOpacity(.1),
+                child: Icon(
+                    row.type == 'شركة تأمين' ? Icons.apartment : Icons.person,
+                    color: AppColors.primary,
+                    size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text(row.name.isEmpty ? '—' : row.name,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16))),
+            ]),
+            const SizedBox(height: 14),
+            _AmountSummary(
+              total: money.format(row.invoicesTotal),
+              paid: money.format(row.paymentsTotal),
+              remaining: money.format(row.balance),
             ),
-            Chip(
-              backgroundColor: Colors.green.shade100,
-              label: Text('مدفوع: ${money.format(row.paymentsTotal)}'),
-            ),
-            Chip(
-              backgroundColor: Colors.red.shade100,
-              label: Text('متبقي: ${money.format(row.balance)}'),
-            ),
-            Chip(
-                backgroundColor: statusColor,
-                label: Text('الحالة: $statusText')),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(
+                  child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text(statusText, style: const TextStyle(fontSize: 12)),
+                ),
+              )),
+              TextButton.icon(
+                onPressed: () => onOpen(row),
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('تفاصيل'),
+              ),
+            ]),
           ],
         ),
-        trailing: OutlinedButton.icon(
-          onPressed: () => onOpen(row),
-          icon: const Icon(Icons.open_in_new),
-          label: const Text('تفاصيل'),
-        ),
       ),
+    );
+  }
+}
+
+class _AmountSummary extends StatelessWidget {
+  final String total;
+  final String paid;
+  final String remaining;
+  const _AmountSummary(
+      {required this.total, required this.paid, required this.remaining});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget amount(String label, String value, Color color) => Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Column(children: [
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              const SizedBox(height: 6),
+              Text(value,
+                  textAlign: TextAlign.center,
+                  textDirection: ui.TextDirection.ltr,
+                  style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+            ]),
+          ),
+        );
+    return Container(
+      decoration: BoxDecoration(
+          color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        amount('الإجمالي', total, Colors.black87),
+        amount('المدفوع', paid, Colors.green.shade700),
+        amount('المتبقي', remaining, Colors.red.shade700),
+      ]),
     );
   }
 }

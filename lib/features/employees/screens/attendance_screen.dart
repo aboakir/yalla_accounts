@@ -323,6 +323,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                             selectedEmployee!.baseSalary,
                                         totalWorkDaysInMonth: totalDays,
                                         attendanceRecords: records,
+                                        periodStart: DateTime(
+                                            selectedMonth.year,
+                                            selectedMonth.month,
+                                            1),
+                                        periodEnd: DateTime(selectedMonth.year,
+                                            selectedMonth.month + 1, 0),
                                         payOfficialHolidays: true,
                                       );
 
@@ -1401,14 +1407,17 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       selectedMonth.month,
     );
 
-    final totalSalary =
-        await ref.read(salaryProvider.notifier).calculateAndReturn(
-              employeeId: selectedEmployee!.id,
-              baseSalary: selectedEmployee!.baseSalary,
-              totalWorkDaysInMonth: totalWorkDays,
-              attendanceRecords: records,
-              payOfficialHolidays: true,
-            );
+    final totalSalary = await ref
+        .read(salaryProvider.notifier)
+        .calculateAndReturn(
+          employeeId: selectedEmployee!.id,
+          baseSalary: selectedEmployee!.baseSalary,
+          totalWorkDaysInMonth: totalWorkDays,
+          attendanceRecords: records,
+          periodStart: DateTime(selectedMonth.year, selectedMonth.month, 1),
+          periodEnd: DateTime(selectedMonth.year, selectedMonth.month + 1, 0),
+          payOfficialHolidays: true,
+        );
 
     if (!mounted) return;
 

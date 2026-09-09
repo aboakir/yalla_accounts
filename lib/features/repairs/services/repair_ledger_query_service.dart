@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 
@@ -9,14 +10,7 @@ class RepairLedgerQueryService {
   static Future<Database> get _db async => DBService.database;
 
   static const _paidCte = '''
-    WITH paid AS (
-      SELECT
-        COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
-        SUM(amount) AS paid
-      FROM payments
-      WHERE COALESCE(isIncome,1)=1
-      GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
-    )
+    WITH paid AS (${RepairFinancialTruthService.paidByRepairSql})
   ''';
 
   static Future<List<Map<String, dynamic>>> getMonthlyRevenue() async {

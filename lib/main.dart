@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 // 📁 lib/main.dart — Production bootstrap + Riverpod root
 // FINAL — Global EN digits (Latin) while keeping Arabic UI + RTL
 
@@ -80,6 +81,7 @@ class YallaScrollBehavior extends MaterialScrollBehavior {
 /// ---------------------------------------------------------------------------
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  AuthorizationGuard.enableInteractiveEnforcement();
 
   // ✅ هذا أهم سطر: يخلي intl (DateFormat/NumberFormat) يستخدم أرقام 0-9
   Intl.defaultLocale = 'ar-u-nu-latn';

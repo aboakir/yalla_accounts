@@ -585,13 +585,15 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
               filtered.length,
             ),
             const SizedBox(height: 24),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceBetween,
               children: [
                 Text(
                   '${activeAll.length} ملف نشط',
                   style: const TextStyle(color: Colors.black54),
                 ),
-                const Spacer(),
                 const Text(
                   'ملفات الإصلاح',
                   style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900),
@@ -856,7 +858,10 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  alignment: WrapAlignment.start,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -876,48 +881,61 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(.08),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Text(
-                          normalizeValue(
-                                r.vehicleStatus,
-                                kVehicleStatuses,
-                                aliases: kVehicleStatusAliases,
-                              ) ??
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(.08),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        normalizeValue(
                               r.vehicleStatus,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
+                              kVehicleStatuses,
+                              aliases: kVehicleStatusAliases,
+                            ) ??
+                            r.vehicleStatus,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'المتبقي ${MoneyFormatter.format(remaining)}',
+                          style: TextStyle(
+                            color: remaining > 0
+                                ? AppColors.danger
+                                : AppColors.success,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      'المتبقي ${MoneyFormatter.format(remaining)}',
-                      style: TextStyle(
-                        color: remaining > 0
-                            ? AppColors.danger
-                            : AppColors.success,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
                     const SizedBox(width: 12),
-                    Text(
-                      'الإجمالي ${MoneyFormatter.format(total)}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'الإجمالي ${MoneyFormatter.format(total)}',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
                     ),
                   ],
                 ),

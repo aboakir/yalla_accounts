@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/party_tables.dart';
@@ -81,6 +82,84 @@ class PartyLedgerStatement {
 class PartyFinancialService {
   PartyFinancialService._();
 
+  static Future<void> createParty(
+      {required String name,
+      required String phone,
+      required String address,
+      required bool customer,
+      required bool supplier,
+      Database? database}) async {
+    if (name.trim().isEmpty || (!customer && !supplier)) {
+      throw ArgumentError('أدخل الاسم واختر دورًا واحدًا على الأقل');
+    }
+    final db = database ?? await DBService.database;
+    int? customerId;
+    int? supplierId;
+    await db.transaction((txn) async {
+      final existing = await txn.rawQuery(
+          'SELECT id FROM parties WHERE LOWER(TRIM(display_name))=LOWER(?) AND merged_into_id IS NULL',
+          [name.trim()]);
+      if (existing.isNotEmpty) {
+        throw StateError(
+            'توجد جهة بهذا الاسم. استخدم سجلها الحالي أو خيار الربط.');
+      }
+      if (customer) {
+        customerId = await txn.insert('clients', {
+          'name': name.trim(),
+          'type': 'أفراد',
+          'phone': phone.trim(),
+          'address': address.trim(),
+          'email': '',
+          'notes': ''
+        });
+        await OfflineOutboxService.enqueue(txn,
+            channel: OfflineOutboxService.channelSync,
+            operation: 'UPSERT',
+            entityType: 'client',
+            entityId: '$customerId',
+            idempotencyKey: 'client:$customerId:create',
+            payload: {
+              'schema': 1,
+              'entity_type': 'client',
+              'entity_id': customerId,
+              'name': name.trim(),
+              'type': 'أفراد',
+              'phone': phone.trim(),
+              'address': address.trim(),
+              'email': '',
+              'notes': ''
+            });
+      }
+      if (supplier) {
+        supplierId = await txn.insert('suppliers', {
+          'name': name.trim(),
+          'phone': phone.trim(),
+          'address': address.trim()
+        });
+        await txn.update(
+            'suppliers', {'pid': 'S${supplierId.toString().padLeft(4, '0')}'},
+            where: 'id=?', whereArgs: [supplierId]);
+      }
+      if (customerId != null && supplierId != null) {
+        await linkCustomerAndSupplier(
+            customerId: customerId!, supplierId: supplierId!, executor: txn);
+      }
+    });
+    // Use the same lazy account initialization as the existing master-data forms.
+    if (database == null) {
+      if (customerId != null) {
+        try {
+          await DBService.ensureClientAccount(customerId!);
+        } catch (_) {}
+      }
+      if (supplierId != null) {
+        try {
+          await DBService.ensureSupplierAccount('$supplierId');
+        } catch (_) {}
+      }
+    }
+  }
+
   static double _d(Object? value) {
     if (value is num) return value.toDouble();
     return double.tryParse(value?.toString() ?? '') ?? 0.0;
@@ -147,18 +226,31 @@ class PartyFinancialService {
     final where = <String>[];
     final args = <Object?>[];
 
-    if (from != null) {
-      where.add('e.date >= ?');
-      args.add(DateTime(from.year, from.month, from.day).toIso8601String());
-    }
+    // Balances retain opening movements. The start date selects active parties,
+    // never truncates their balance history.
     if (to != null) {
-      where.add('e.date <= ?');
+      where.add('substr(e.date,1,10) <= substr(?,1,10)');
       args.add(
         DateTime(to.year, to.month, to.day, 23, 59, 59, 999).toIso8601String(),
       );
     }
 
+    if (from != null) {
+      where.add('''EXISTS (SELECT 1 FROM v_party_gl_lines activity
+        JOIN gl_entries ae ON ae.id=activity.entry_id
+        WHERE activity.canonical_party_id=p.id AND substr(ae.date,1,10) >= substr(?,1,10)
+          ${to == null ? '' : 'AND substr(ae.date,1,10) <= substr(?,1,10)'})''');
+      args.add(DateTime(from.year, from.month, from.day).toIso8601String());
+      if (to != null) {
+        args.add(DateTime(to.year, to.month, to.day, 23, 59, 59, 999)
+            .toIso8601String());
+      }
+    }
     final dateClause = where.isEmpty ? '' : 'AND ${where.join(' AND ')}';
+    const paymentSources =
+        "'PAYMENT', 'PAYMENT_OUT', 'VOUCHER', 'PURCHASE_PAYMENT', 'PURCHASE_PAY', 'SUPPLIER_PAYMENT', 'CREDIT_ALLOCATION', 'PAYMENT-ADJUST', 'CHEQUE_STATUS', 'CHEQUE_ENDORSE'";
+    const payment =
+        'UPPER(COALESCE(original.source, e.source)) IN ($paymentSources)';
 
     final rows = await db.rawQuery('''
       SELECT
@@ -169,11 +261,15 @@ class PartyFinancialService {
         COALESCE(SUM(CASE WHEN v.party_role='CUSTOMER' THEN v.debit ELSE 0 END),0) AS ar_debit,
         COALESCE(SUM(CASE WHEN v.party_role='CUSTOMER' THEN v.credit ELSE 0 END),0) AS ar_credit,
         COALESCE(SUM(CASE WHEN v.party_role='SUPPLIER' THEN v.credit ELSE 0 END),0) AS ap_credit,
-        COALESCE(SUM(CASE WHEN v.party_role='SUPPLIER' THEN v.debit ELSE 0 END),0) AS ap_debit
+        COALESCE(SUM(CASE WHEN v.party_role='SUPPLIER' THEN v.debit ELSE 0 END),0) AS ap_debit,
+        COALESCE(SUM(CASE WHEN v.party_role='CUSTOMER' AND $payment THEN v.credit-v.debit ELSE 0 END),0) AS receipts,
+        COALESCE(SUM(CASE WHEN v.party_role='SUPPLIER' AND $payment THEN v.debit-v.credit ELSE 0 END),0) AS disbursements
       FROM parties p
       LEFT JOIN v_party_gl_lines v ON v.canonical_party_id=p.id
       LEFT JOIN gl_entries e ON e.id=v.entry_id
+      LEFT JOIN gl_entries original ON original.id=e.reversal_of
       WHERE p.merged_into_id IS NULL
+        AND EXISTS (SELECT 1 FROM party_roles live_role WHERE live_role.party_id=p.id)
         $dateClause
       GROUP BY p.id, p.display_name
       ORDER BY LOWER(p.display_name) ASC
@@ -189,12 +285,14 @@ class PartyFinancialService {
         displayName: (row['display_name'] ?? '').toString(),
         customerLegacyId: row['customer_id']?.toString(),
         supplierLegacyId: row['supplier_id']?.toString(),
-        totalReceivable: double.parse(arDebit.toStringAsFixed(2)),
-        received: double.parse(arCredit.toStringAsFixed(2)),
+        totalReceivable: double.parse(
+            (arDebit - arCredit + _d(row['receipts'])).toStringAsFixed(2)),
+        received: double.parse(_d(row['receipts']).toStringAsFixed(2)),
         receivableBalance:
             double.parse((arDebit - arCredit).toStringAsFixed(2)),
-        totalPayable: double.parse(apCredit.toStringAsFixed(2)),
-        paid: double.parse(apDebit.toStringAsFixed(2)),
+        totalPayable: double.parse(
+            (apCredit - apDebit + _d(row['disbursements'])).toStringAsFixed(2)),
+        paid: double.parse(_d(row['disbursements']).toStringAsFixed(2)),
         payableBalance: double.parse((apCredit - apDebit).toStringAsFixed(2)),
       );
     }).toList(growable: false);
@@ -202,11 +300,18 @@ class PartyFinancialService {
 
   static Future<PartyLedgerStatement> statement({
     required String role,
+    bool combined = false,
     required Object legacyId,
     DateTime? from,
     DateTime? to,
     DatabaseExecutor? executor,
   }) async {
+    if (from != null &&
+        to != null &&
+        DateTime(from.year, from.month, from.day)
+            .isAfter(DateTime(to.year, to.month, to.day))) {
+      throw ArgumentError('بداية الفترة بعد نهايتها');
+    }
     final db = executor ?? await DBService.database;
     final canonicalRole = _role(role);
     final partyId = await resolvePartyId(
@@ -234,7 +339,7 @@ class PartyFinancialService {
         : DateTime(to.year, to.month, to.day, 23, 59, 59, 999)
             .toIso8601String();
 
-    final sign = canonicalRole == 'CUSTOMER' ? 1.0 : -1.0;
+    final sign = combined || canonicalRole == 'CUSTOMER' ? 1.0 : -1.0;
 
     var opening = 0.0;
     if (fromIso != null) {
@@ -243,23 +348,23 @@ class PartyFinancialService {
         FROM v_party_gl_lines v
         JOIN gl_entries e ON e.id=v.entry_id
         WHERE v.canonical_party_id=?
-          AND v.party_role=?
-          AND e.date < ?
-      ''', [sign, partyId, canonicalRole, fromIso]);
+          AND (? = 1 OR v.party_role=?)
+          AND substr(e.date,1,10) < substr(?,1,10)
+      ''', [sign, partyId, combined ? 1 : 0, canonicalRole, fromIso]);
       opening = openingRows.isEmpty ? 0.0 : _d(openingRows.first['balance']);
     }
 
     final where = <String>[
       'v.canonical_party_id=?',
-      'v.party_role=?',
+      if (!combined) 'v.party_role=?',
     ];
-    final args = <Object?>[partyId, canonicalRole];
+    final args = <Object?>[partyId, if (!combined) canonicalRole];
     if (fromIso != null) {
-      where.add('e.date >= ?');
+      where.add('substr(e.date,1,10) >= substr(?,1,10)');
       args.add(fromIso);
     }
     if (toIso != null) {
-      where.add('e.date <= ?');
+      where.add('substr(e.date,1,10) <= substr(?,1,10)');
       args.add(toIso);
     }
 
@@ -288,8 +393,10 @@ class PartyFinancialService {
       final rawDebit = _d(row['debit']);
       final rawCredit = _d(row['credit']);
 
-      final debit = canonicalRole == 'CUSTOMER' ? rawDebit : rawCredit;
-      final credit = canonicalRole == 'CUSTOMER' ? rawCredit : rawDebit;
+      final debit =
+          combined || canonicalRole == 'CUSTOMER' ? rawDebit : rawCredit;
+      final credit =
+          combined || canonicalRole == 'CUSTOMER' ? rawCredit : rawDebit;
       running = double.parse((running + debit - credit).toStringAsFixed(2));
 
       final source = (row['source'] ?? '').toString();
@@ -315,7 +422,7 @@ class PartyFinancialService {
     return PartyLedgerStatement(
       partyId: partyId,
       displayName: displayName,
-      role: canonicalRole,
+      role: combined ? 'COMBINED' : canonicalRole,
       openingBalance: double.parse(opening.toStringAsFixed(2)),
       closingBalance: double.parse(running.toStringAsFixed(2)),
       lines: lines,

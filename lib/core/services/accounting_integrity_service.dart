@@ -61,6 +61,19 @@ class AccountingIntegrityService {
       whereArgs: [entryId],
     );
 
+    Map<String, Object?>? originalEntry;
+    if (entry['reversal_of'] != null) {
+      final originals = await db.query('gl_entries',
+          where: 'id=?', whereArgs: [entry['reversal_of']]);
+      if (originals.isNotEmpty) originalEntry = originals.first;
+    }
+    final document = await _sourceDocument(
+        db,
+        originalEntry == null
+            ? canonical
+            : AccountingSourcePolicy.canonical('${originalEntry['source']}'),
+        originalEntry == null ? sourceId : '${originalEntry['source_id']}',
+        entryId: (originalEntry?['id'] as num?)?.toInt() ?? entryId);
     return <String, Object?>{
       'canonical_source': canonical,
       'source_id': sourceId,
@@ -68,7 +81,10 @@ class AccountingIntegrityService {
       'entry': entry,
       'lines': lines,
       'audit_events': events,
-      'source_document': await _sourceDocument(db, canonical, sourceId),
+      'source_document': document,
+      'original_entry': originalEntry,
+      'sourceType': canonical,
+      'sourceId': sourceId,
     };
   }
 
@@ -149,13 +165,25 @@ class AccountingIntegrityService {
   static Future<Map<String, Object?>?> _sourceDocument(
     DatabaseExecutor db,
     String canonicalSource,
-    String sourceId,
-  ) async {
+    String sourceId, {
+    int? entryId,
+  }) async {
     final source = canonicalSource.toUpperCase();
     String? table;
     if (source == 'INVOICE') table = 'invoices';
     if (source == 'PURCHASE') table = 'purchase_invoices';
     if (source == 'VOUCHER') table = 'vouchers';
+    if (source == 'PAYMENT' ||
+        source == 'PAYMENT_OUT' ||
+        source == 'PURCHASE_PAYMENT' ||
+        source == 'CREDIT_ALLOCATION') {
+      table = 'payments';
+    }
+    if (source == 'CHEQUE_STATUS' || source == 'CHEQUE_ENDORSE') {
+      table = 'cheques';
+      sourceId = sourceId.split(':').first;
+    }
+    if (source == 'SUPPLIER_PAYMENT') table = 'purchase_payments';
     if (source == 'EMP_ADV') table = 'employee_advances';
     if (table == null || !await _tableExists(db, table)) return null;
     final rows = await db.query(
@@ -164,7 +192,16 @@ class AccountingIntegrityService {
       whereArgs: [sourceId],
       limit: 1,
     );
-    return rows.isEmpty ? null : rows.first;
+    if (rows.isNotEmpty) return rows.first;
+    if (entryId != null) {
+      final columns = await db.rawQuery('PRAGMA table_info($table)');
+      if (columns.any((c) => c['name'] == 'gl_entry_id')) {
+        final linked = await db.query(table,
+            where: 'gl_entry_id=?', whereArgs: [entryId], limit: 1);
+        if (linked.isNotEmpty) return linked.first;
+      }
+    }
+    return null;
   }
 
   static Future<List<Map<String, Object?>>> _queryIfTableExists(

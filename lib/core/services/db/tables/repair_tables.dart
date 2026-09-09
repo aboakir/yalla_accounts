@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 //[📁 lib/core/services/db/tables/repair_tables.dart]
 
 import 'dart:convert';
@@ -667,15 +668,17 @@ class RepairTables {
     required String repairId,
     String? path,
   }) async {
-    await db.update(
-      'repairs',
-      {
-        'thumbnail_path': path,
-        'thumbnail_updated_at': DateTime.now().toIso8601String(),
-      },
-      where: 'id = ?',
-      whereArgs: [repairId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (txn) => txn.update(
+              'repairs',
+              {
+                'thumbnail_path': path,
+                'thumbnail_updated_at': DateTime.now().toIso8601String(),
+              },
+              where: 'id = ?',
+              whereArgs: [repairId],
+            ));
   }
 
   static Future<String?> getRepairThumbnailPath(

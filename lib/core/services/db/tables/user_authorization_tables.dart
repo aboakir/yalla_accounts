@@ -39,11 +39,16 @@ class UserAuthorizationTables {
       ON auth_role_permissions(permission_key, role_key);
     ''');
 
+    await refreshRoleCatalog(db);
+    await _normalizeHistoricalRoles(db);
+    await _ensureUserRoleTriggers(db);
+  }
+
+  /// Update policy metadata without rewriting existing user identities/roles.
+  static Future<void> refreshRoleCatalog(DatabaseExecutor db) async {
     await _seedRoles(db);
     await _seedPermissions(db);
     await _seedRolePermissions(db);
-    await _normalizeHistoricalRoles(db);
-    await _ensureUserRoleTriggers(db);
   }
 
   static Future<void> _seedRoles(DatabaseExecutor db) async {
@@ -125,7 +130,7 @@ class UserAuthorizationTables {
       UPDATE users
       SET role = '${RoleKeys.manager}'
       WHERE COALESCE(is_owner, 0) = 0
-        AND LOWER(COALESCE(role, '')) IN ('admin', 'manager');
+        AND LOWER(COALESCE(role, '')) IN ('manager');
     ''');
 
     await db.execute('''
@@ -133,6 +138,7 @@ class UserAuthorizationTables {
       SET role = '${RoleKeys.readOnly}'
       WHERE COALESCE(is_owner, 0) = 0
         AND LOWER(COALESCE(role, '')) NOT IN (
+          'admin', 'staff', 'viewer',
           '${RoleKeys.manager}',
           '${RoleKeys.accountant}',
           '${RoleKeys.employee}',

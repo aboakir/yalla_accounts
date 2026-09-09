@@ -1,4 +1,4 @@
-workflows:
+﻿workflows:
   ios_unsigned:
     name: Yalla Accounts Unsigned iPhone
     instance_type: mac_mini_m2
@@ -83,3 +83,5 @@ workflows:
       - build/ios/ipa/Yalla_Accounts_Unsigned_iPhone.ipa
       - build/ios/iphoneos/Runner.app
       - /tmp/xcodebuild_logs/*.log
+
+

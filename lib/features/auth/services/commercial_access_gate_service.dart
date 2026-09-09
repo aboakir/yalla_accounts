@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/core/licensing/lifecycle/subscription_access_policy.dart';
+import 'package:yalla_accounts/core/services/db/tables/license_runtime_tables.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -110,10 +112,23 @@ class CommercialAccessGateService {
 
     if (canonicalUser.role != sessionUser.role ||
         canonicalUser.organizationId != sessionUser.organizationId ||
+        canonicalUser.identityAccountId != sessionUser.identityAccountId ||
         canonicalUser.isOwner != sessionUser.isOwner) {
       return const CommercialAccessDecision.deny(
         code: 'SESSION_IDENTITY_STALE',
         message: 'تغيرت صلاحيات الحساب. سجّل الدخول من جديد.',
+      );
+    }
+
+    final accountId = canonicalUser.identityAccountId;
+    final accounts = accountId == null
+        ? <Map<String, Object?>>[]
+        : await db.query('identity_accounts',
+            columns: ['id'], where: 'id = ?', whereArgs: [accountId], limit: 1);
+    if (accounts.isEmpty) {
+      return const CommercialAccessDecision.deny(
+        code: 'PERSON_IDENTITY_MISSING',
+        message: 'تعذر إثبات هوية الحساب. أعد فتح التطبيق ثم سجّل الدخول.',
       );
     }
 
@@ -262,32 +277,16 @@ class CommercialAccessGateService {
       );
     }
 
-    final now = DateTime.now().toUtc();
-    final status = license.operationalStatus.toUpperCase();
-
-    final bool lifecycleReadOnly;
-    switch (status) {
-      case 'ACTIVE':
-      case 'GRACE':
-        lifecycleReadOnly = false;
-        break;
-      case 'SUSPENDED':
-      case 'EXPIRED':
-      case 'REVOKED':
-      case 'CANCELLED':
-        lifecycleReadOnly = true;
-        break;
-      default:
-        return const CommercialAccessDecision.deny(
+    final status =
+        SubscriptionAccessPolicy.normalize(license.operationalStatus);
+    if (!SubscriptionAccessPolicy.statuses.contains(status)) {
+      return const CommercialAccessDecision.deny(
           code: 'LICENSE_STATUS_INVALID',
-          message: 'حالة الترخيص الموقّعة غير معتمدة.',
-        );
+          message: 'حالة الترخيص الموقّعة غير معتمدة.');
     }
-
-    final readOnly = lifecycleReadOnly ||
-        !license.expiresAt.isAfter(now) ||
-        !license.validationGraceUntil.isAfter(now);
-
+    final readOnly =
+        SubscriptionAccessPolicy.mode(license, DateTime.now().toUtc()) !=
+            LicenseRuntimeMode.writable;
     return CommercialAccessDecision.allow(
       readOnly: readOnly,
       code: readOnly ? 'BOUND_READ_ONLY' : 'BOUND_WRITABLE',

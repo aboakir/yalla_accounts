@@ -1,17 +1,17 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/finance/screens/account_ledger_screen.dart
 //
 // الأستاذ العام لحساب واحد — Account Ledger (GL v29)
 
 import 'dart:io';
+import '../../reports/screens/gl_entry_details_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:yalla_accounts/core/pdf/account_ledger_pdf.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 // PDF/Printing
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -40,6 +40,8 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
   DateTime? _from;
   DateTime? _to;
   String _query = '';
+  int _searchReset = 0;
+  String? _pendingSearch;
   bool _loading = true;
   String? _error;
 
@@ -48,10 +50,6 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
   double _sumDebit = 0.0;
   double _sumCredit = 0.0;
   List<_Row> _rows = [];
-
-  // PDF Font cache
-  static const String _arabicTtfPath = 'fonts/Cairo/Cairo-Regular.ttf';
-  pw.Font? _pdfArabicFont;
 
   bool _didInit = false;
 
@@ -103,6 +101,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _from = d);
       _load();
@@ -118,10 +117,16 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _to = d);
       _load();
     }
+  }
+
+  void _runSearch() {
+    _query = _pendingSearch ?? _query;
+    _load();
   }
 
   void _resetFilters() {
@@ -129,12 +134,15 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       _from = null;
       _to = null;
       _query = '';
+      _searchReset++;
+      _pendingSearch = null;
     });
     _load();
   }
 
   // ───────────── Load ─────────────
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -145,6 +153,9 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     });
 
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
 
       _accountId ??= await DBService.getAccountIdByCode('1000');
@@ -170,7 +181,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
           FROM gl_lines l
           JOIN gl_entries e ON e.id = l.entry_id
           WHERE l.account_id = ?
-            AND e.date < ?
+            AND substr(e.date,1,10) < substr(?,1,10)
         ''', [_accountId, _dayStart(_from!).toIso8601String()]);
         final d = _toD(openQ.first['d']);
         final c = _toD(openQ.first['c']);
@@ -184,24 +195,12 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
       final args = <Object?>[_accountId];
 
       if (_from != null) {
-        where.add('e.date >= ?');
+        where.add('substr(e.date,1,10) >= substr(?,1,10)');
         args.add(_dayStart(_from!).toIso8601String());
       }
       if (_to != null) {
-        where.add('e.date <= ?');
+        where.add('substr(e.date,1,10) <= substr(?,1,10)');
         args.add(_dayEnd(_to!).toIso8601String());
-      }
-
-      final q = _query.trim();
-      if (q.isNotEmpty) {
-        final s = '%$q%';
-        where.add('('
-            'e.ref LIKE ? OR e.note LIKE ? OR e.source LIKE ? OR e.source_id LIKE ? OR '
-            'a.code LIKE ? OR a.name LIKE ? OR '
-            'IFNULL(l.party_type, \'\') LIKE ? OR IFNULL(l.party_id, \'\') LIKE ? OR '
-            'IFNULL(l.invoice_id, \'\') LIKE ? OR IFNULL(l.repair_id, \'\') LIKE ?'
-            ')');
-        args.addAll([s, s, s, s, s, s, s, s, s, s]);
       }
 
       final sql = '''
@@ -248,6 +247,13 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
         running += d - c;
         sumD += d;
         sumC += c;
+        if (_query.trim().isNotEmpty &&
+            !m.values
+                .join(' ')
+                .toLowerCase()
+                .contains(_query.trim().toLowerCase())) {
+          continue;
+        }
 
         rows.add(
           _Row(
@@ -274,6 +280,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
         );
       }
 
+      if (!mounted) return;
       setState(() {
         _rows = rows;
         _sumDebit = double.parse(sumD.toStringAsFixed(2));
@@ -281,6 +288,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -352,323 +360,126 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     }
   }
 
-  // ───────────── PDF helpers ─────────────
-  Future<pw.Font> _loadPdfArabicFont() async {
-    if (_pdfArabicFont != null) return _pdfArabicFont!;
-    try {
-      final data = await rootBundle.load(_arabicTtfPath);
-      _pdfArabicFont = pw.Font.ttf(data);
-      return _pdfArabicFont!;
-    } catch (_) {
-      _pdfArabicFont = pw.Font.helvetica(); // fallback
-      return _pdfArabicFont!;
-    }
-  }
-
   Future<void> _exportPdf() async {
+    if (_accountId == null || _loading) return;
     try {
-      if (_rows.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا توجد بيانات للتصدير')),
-        );
-        return;
-      }
-
-      final font = await _loadPdfArabicFont();
-      final doc = pw.Document();
-
-      final asOfText = [
-        if (_from != null) 'من ${_df.format(_from!)}',
-        if (_to != null) 'إلى ${_df.format(_to!)}',
-      ].join(' • ');
-
-      final ending = _opening + (_sumDebit - _sumCredit);
-
-      doc.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-          textDirection: pw.TextDirection.rtl,
-          build: (ctx) => [
-            // Header
-            pw.Row(
-              children: [
-                pw.Text('الأستاذ العام',
-                    style: pw.TextStyle(
-                        font: font,
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold)),
-                pw.Spacer(),
-                pw.Text(
-                    '${_accountCode.isEmpty ? '' : '$_accountCode — '}$_accountName',
-                    style: pw.TextStyle(font: font, fontSize: 11)),
-              ],
-            ),
-            pw.SizedBox(height: 4),
-            if (asOfText.isNotEmpty)
-              pw.Text(asOfText,
-                  textDirection: pw.TextDirection.rtl,
-                  style: pw.TextStyle(
-                      font: font, fontSize: 10, color: PdfColors.grey700)),
-            pw.Divider(),
-
-            // Totals
-            pw.SizedBox(height: 6),
-            pw.Row(children: [
-              _pdfChip(font, 'افتتاحي: ${_money.format(_opening)}',
-                  PdfColors.blue800, 0xFFE3F2FD),
-              pw.SizedBox(width: 8),
-              _pdfChip(font, 'مدين: ${_money.format(_sumDebit)}',
-                  PdfColors.green800, 0xFFE9F7EF),
-              pw.SizedBox(width: 8),
-              _pdfChip(font, 'دائن: ${_money.format(_sumCredit)}',
-                  PdfColors.red800, 0xFFFFEBEE),
-              pw.SizedBox(width: 8),
-              _pdfChip(
-                  font,
-                  'ختامي: ${_money.format(ending)}',
-                  ending >= 0 ? PdfColors.green800 : PdfColors.red800,
-                  ending >= 0 ? 0xFFE9F7EF : 0xFFFFEBEE),
-            ]),
-            pw.SizedBox(height: 10),
-
-            // Table
-            pw.Table(
-              border: pw.TableBorder(
-                horizontalInside:
-                    pw.BorderSide(width: .2, color: PdfColors.grey300),
-                bottom: pw.BorderSide(width: .4, color: PdfColors.grey400),
-                top: pw.BorderSide(width: .4, color: PdfColors.grey400),
-              ),
-              columnWidths: const {
-                0: pw.FlexColumnWidth(2),
-                1: pw.FlexColumnWidth(5),
-                2: pw.FlexColumnWidth(2),
-                3: pw.FlexColumnWidth(2),
-                4: pw.FlexColumnWidth(2),
-              },
-              children: [
-                pw.TableRow(
-                  decoration: const pw.BoxDecoration(
-                      color: PdfColor.fromInt(0xFFEFEFEF)),
-                  children: [
-                    _cell(font, 'التاريخ', bold: true),
-                    _cell(font, 'الوصف', bold: true, alignRight: true),
-                    _cell(font, 'مدين', bold: true),
-                    _cell(font, 'دائن', bold: true),
-                    _cell(font, 'رصيد', bold: true),
-                  ],
-                ),
-                if (_from != null)
-                  pw.TableRow(children: [
-                    _cell(font, _df.format(_dayStart(_from!))),
-                    _cell(font, 'رصيد افتتاحي', alignRight: true),
-                    _cell(font, '0.00'),
-                    _cell(font, '0.00'),
-                    _cell(font, _money.format(_opening)),
-                  ]),
-                ..._rows.where((r) => !r.isOpening).map((r) {
-                  return pw.TableRow(children: [
-                    _cell(font, _df.format(r.date)),
-                    _cell(font, r.description.isEmpty ? '-' : r.description,
-                        alignRight: true),
-                    _cell(font, _money.format(r.debit)),
-                    _cell(font, _money.format(r.credit)),
-                    _cell(font, _money.format(r.runningBalance)),
-                  ]);
-                }),
-              ],
-            ),
-          ],
-        ),
-      );
-
-      final bytes = await doc.save();
+      final bytes = await AccountLedgerPdf.generateForAccount(_accountId!,
+          from: _from, to: _to);
       await Printing.sharePdf(
-        bytes: bytes,
-        filename:
-            'ledger_${_accountCode.isEmpty ? 'account' : _accountCode}.pdf',
-      );
+          bytes: bytes,
+          filename:
+              'ledger_${_accountCode.isEmpty ? 'account' : _accountCode}.pdf');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تصدير PDF: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('تعذر إنشاء كشف PDF صالح: $e')));
     }
-  }
-
-  pw.Widget _pdfChip(pw.Font font, String text, PdfColor fg, int bgHex) {
-    return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: pw.BoxDecoration(
-        borderRadius: pw.BorderRadius.circular(6),
-        color: PdfColor.fromInt(bgHex),
-      ),
-      child: pw.Text(text,
-          textDirection: pw.TextDirection.rtl,
-          style: pw.TextStyle(font: font, fontSize: 11, color: fg)),
-    );
-  }
-
-  pw.Widget _cell(pw.Font font, String text,
-      {bool bold = false, bool alignRight = false}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.all(6),
-      child: pw.Align(
-        alignment:
-            alignRight ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
-        child: pw.Text(
-          text,
-          textDirection:
-              alignRight ? pw.TextDirection.rtl : pw.TextDirection.ltr,
-          style: pw.TextStyle(
-            font: font,
-            fontSize: 10,
-            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-          ),
-        ),
-      ),
-    );
   }
 
   // ───────────── UI ─────────────
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
+    final isMobile = !Responsive.isDesktop(context);
     final ending = _opening + (_sumDebit - _sumCredit);
 
-    final header = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.08),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      child: AdaptiveRow(
-        children: [
-          if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'الأستاذ العام للحساب',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  _accountId == null
-                      ? '—'
-                      : '${_accountCode.isEmpty ? '' : '$_accountCode — '}$_accountName',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+    final header = Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(_accountName.isEmpty ? 'جاري تحميل الحساب…' : _accountName,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        if (_accountCode.isNotEmpty) Text('رقم الحساب: $_accountCode'),
+        FinancialPeriodFilter(
+            from: _from,
+            to: _to,
+            onChanged: (range) {
+              setState(() {
+                _from = range.start;
+                _to = range.end;
+              });
+              _load();
+            }),
+        const SizedBox(height: 12),
+        TextFormField(
+          key: ValueKey(_searchReset),
+          initialValue: _query,
+          inputFormatters: const [YallaDigitNormalizer()],
+          textInputAction: TextInputAction.search,
+          onChanged: (value) => _pendingSearch = value,
+          onFieldSubmitted: (_) => _runSearch(),
+          decoration: InputDecoration(
+            labelText: 'بحث في الوصف أو رقم المستند',
+            suffixIcon: IconButton(
+                tooltip: 'بحث',
+                onPressed: _runSearch,
+                icon: const Icon(Icons.search)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Colors.white,
           ),
-          _chip(
-              label: _from == null ? 'من' : _df.format(_from!),
-              icon: Icons.date_range,
-              onTap: _pickFrom),
-          const SizedBox(width: 8),
-          _chip(
-              label: _to == null ? 'إلى' : _df.format(_to!),
-              icon: Icons.event,
-              onTap: _pickTo),
-          const SizedBox(width: 12),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 280),
-            child: TextField(
-              inputFormatters: const [YallaDigitNormalizer()],
-              textAlign: TextAlign.right,
-              onChanged: (v) {
-                setState(() => _query = v);
-                _load();
-              },
-              decoration: InputDecoration(
-                hintText: 'بحث: المرجع/الوصف/المصدر/طرف/فاتورة/ملف…',
-                filled: true,
-                fillColor: Colors.white,
-                isDense: true,
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: _load,
-            icon: const Icon(Icons.refresh, color: Colors.white),
-          ),
-          IconButton(
-            tooltip: 'مسح الفلاتر',
-            onPressed: _resetFilters,
-            icon: const Icon(Icons.clear_all, color: Colors.white),
-          ),
-          const SizedBox(width: 4),
-          ElevatedButton.icon(
-            onPressed: _exportCsv,
-            icon: const Icon(Icons.download_rounded),
-            label: const Text('CSV'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.primary,
-            ),
-          ),
-          const SizedBox(width: 6),
-          ElevatedButton.icon(
-            onPressed: _exportPdf,
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: const Text('PDF'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
+        ),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('الفترة وخيارات العرض'),
+          subtitle: Text(
+              '${_from == null ? 'من البداية' : _df.format(_from!)} — ${_to == null ? 'كل التواريخ' : _df.format(_to!)}'),
+          children: [
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              OutlinedButton.icon(
+                  onPressed: _pickFrom,
+                  icon: const Icon(Icons.date_range),
+                  label: Text(_from == null ? 'من تاريخ' : _df.format(_from!))),
+              OutlinedButton.icon(
+                  onPressed: _pickTo,
+                  icon: const Icon(Icons.event),
+                  label: Text(_to == null ? 'إلى تاريخ' : _df.format(_to!))),
+              TextButton.icon(
+                  onPressed: _resetFilters,
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('مسح الفلاتر')),
+            ])
+          ],
+        ),
+      ]),
     );
-
-    final totals = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 8,
-        alignment: WrapAlignment.end,
-        children: [
-          _stat('رصيد افتتاحي', _opening, Colors.blueGrey),
-          _stat('إجمالي مدين', _sumDebit, Colors.green),
-          _stat('إجمالي دائن', _sumCredit, Colors.red),
-          _stat(
-            'الرصيد الختامي',
-            ending,
-            ending >= 0 ? Colors.green : Colors.red,
-            bold: true,
-          ),
-        ],
-      ),
+    final totals = Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        LayoutBuilder(builder: (context, constraints) {
+          final width = constraints.maxWidth < 600
+              ? (constraints.maxWidth - 8) / 2
+              : (constraints.maxWidth - 24) / 4;
+          return Wrap(spacing: 8, runSpacing: 8, children: [
+            SizedBox(
+                width: width,
+                child: _stat('رصيد بداية الفترة', _opening, Colors.blueGrey)),
+            SizedBox(
+                width: width,
+                child: _stat(_debitLabel, _sumDebit, Colors.teal)),
+            SizedBox(
+                width: width,
+                child: _stat(_creditLabel, _sumCredit, Colors.deepOrange)),
+            SizedBox(
+                width: width,
+                child: _stat(
+                    _query.trim().isEmpty
+                        ? 'الرصيد بعد الحركات'
+                        : 'الرصيد بعد الحركات',
+                    ending,
+                    AppColors.primary,
+                    bold: true)),
+          ]);
+        }),
+        const SizedBox(height: 8),
+        Text(
+            _isCashAccount
+                ? 'الوارد يزيد رصيد هذا الحساب، والمنصرف يخفضه.'
+                : 'مدين ودائن هما جانبا القيد، ولا يعنيان قبضًا أو صرفًا بالضرورة. الرصيد = بداية الفترة + المدين − الدائن.',
+            style: const TextStyle(fontSize: 12, color: Colors.black54)),
+        if (_query.trim().isNotEmpty)
+          const Text(
+              'البحث يرشّح الحركات المعروضة فقط؛ الأرصدة والإجماليات تخص كامل الفترة.',
+              style: TextStyle(fontSize: 12)),
+      ]),
     );
 
     final content = _loading
@@ -688,38 +499,65 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
                 ? const _EmptyState(
                     icon: Icons.menu_book_outlined,
                     title: 'لا توجد حركات ضمن الفلاتر الحالية',
-                    subtitle:
-                        'عدّل التاريخ/البحث أو نفّذ عمليات تولّد قيود GL.',
+                    subtitle: 'جرّب تغيير الفترة أو مسح البحث.',
                   )
-                : (Responsive.isMobile(context)
+                : (!Responsive.isDesktop(context)
                     ? _mobileList()
                     : _desktopTable());
 
     return Scaffold(
-      drawer: Responsive.isMobile(context)
-          ? const Drawer(child: YallaSidebar())
-          : null,
-      body: AdaptiveRow(
-        children: [
-          if (!Responsive.isMobile(context))
-            const YallaSidebar(currentRoute: '/finance/gl'),
-          Expanded(
-            child: SafeArea(
-              child: Column(
-                children: [
-                  header,
-                  totals,
-                  Expanded(child: content),
-                ],
-              ),
+      appBar: AppBar(
+          title: const Text('حركة الحساب', overflow: TextOverflow.ellipsis),
+          actions: [
+            IconButton(
+                tooltip: 'تحديث',
+                onPressed: _load,
+                icon: const Icon(Icons.refresh)),
+            PopupMenuButton<String>(
+              tooltip: 'تصدير الكشف',
+              icon: const Icon(Icons.ios_share),
+              onSelected: (value) {
+                if (value == 'pdf') {
+                  _exportPdf();
+                } else {
+                  _exportCsv();
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'pdf', child: Text('تصدير PDF')),
+                PopupMenuItem(value: 'csv', child: Text('تصدير CSV (Excel)')),
+              ],
             ),
-          ),
-        ],
-      ),
+          ]),
+      drawer: isMobile ? const Drawer(child: YallaSidebar()) : null,
+      body: Row(children: [
+        if (!isMobile) const YallaSidebar(currentRoute: '/finance/gl'),
+        Expanded(
+            child: SafeArea(
+                top: false,
+                child: isMobile
+                    ? CustomScrollView(slivers: [
+                        SliverToBoxAdapter(child: header),
+                        SliverToBoxAdapter(child: totals),
+                        if (!_loading && _error == null && _rows.isNotEmpty)
+                          SliverPadding(
+                              padding: const EdgeInsets.all(12),
+                              sliver: SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                      (_, index) => Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 8),
+                                          child: _movementCard(_rows[index])),
+                                      childCount: _rows.length)))
+                        else
+                          SliverFillRemaining(
+                              hasScrollBody: false, child: content),
+                      ])
+                    : Column(
+                        children: [header, totals, Expanded(child: content)]))),
+      ]),
     );
   }
-
-  // ───────────── Views ─────────────
 
   Widget _desktopTable() {
     return Scrollbar(
@@ -779,120 +617,84 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     );
   }
 
-  Widget _mobileList() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
+  bool get _isCashAccount =>
+      const {'1000', '1010', '1020', '1030'}.contains(_accountCode);
+  String get _debitLabel => _isCashAccount ? 'وارد إلى الحساب' : 'حركات مدينة';
+  String get _creditLabel => _isCashAccount ? 'منصرف من الحساب' : 'حركات دائنة';
+
+  Widget _mobileList() => ListView.builder(
       itemCount: _rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (_, i) {
-        final e = _rows[i];
-        final tip = e.isOpening
-            ? 'رصيد افتتاحي'
-            : [
-                if (e.ref.isNotEmpty) 'ref: ${e.ref}',
-                if (e.source.isNotEmpty) 'source: ${e.source}',
-                if (e.sourceId.isNotEmpty) 'source_id: ${e.sourceId}',
-                if (e.partyType.isNotEmpty || e.partyId.isNotEmpty)
-                  'party: ${e.partyType}:${e.partyId}',
-                if (e.invoiceId.isNotEmpty) 'invoice: ${e.invoiceId}',
-                if (e.repairId.isNotEmpty) 'repair: ${e.repairId}',
-              ].join('  •  ');
-        return Card(
-          elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            title: Text(
-              e.isOpening ? 'رصيد افتتاحي' : e.description,
-              textAlign: TextAlign.right,
-            ),
-            subtitle: Text(
-              _df.format(e.date),
-              textAlign: TextAlign.right,
-            ),
-            leading: Tooltip(
-              message: tip.isEmpty ? '—' : tip,
-              child: const Icon(Icons.info_outline),
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
+      itemBuilder: (_, index) => _movementCard(_rows[index]));
+
+  Widget _movementCard(_Row e) => Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: Colors.grey.shade200)),
+        child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  _money.format(e.runningBalance),
-                  style: TextStyle(
-                    color: e.runningBalance >= 0 ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                AdaptiveRow(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      e.isOpening ? '0.00' : _money.format(e.debit),
-                      style: const TextStyle(color: Colors.green),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      e.isOpening ? '0.00' : _money.format(e.credit),
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ],
-                ),
+                    e.isOpening
+                        ? 'رصيد بداية الفترة'
+                        : e.description.isEmpty
+                            ? 'حركة مالية'
+                            : e.description,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Text(_df.format(e.date),
+                    style: const TextStyle(color: Colors.black54)),
+                if (e.ref.isNotEmpty) Text('رقم المستند: ${e.ref}'),
+                const SizedBox(height: 12),
+                Wrap(spacing: 16, runSpacing: 8, children: [
+                  if (!e.isOpening && e.debit != 0)
+                    Text('$_debitLabel: ${_money.format(e.debit)}',
+                        style: const TextStyle(
+                            color: Colors.teal, fontWeight: FontWeight.bold)),
+                  if (!e.isOpening && e.credit != 0)
+                    Text('$_creditLabel: ${_money.format(e.credit)}',
+                        style: const TextStyle(
+                            color: Colors.deepOrange,
+                            fontWeight: FontWeight.bold)),
+                ]),
+                const Divider(height: 24),
+                Text('الرصيد بعد الحركة: ${_money.format(e.runningBalance)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (e.entryId != null)
+                  Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton.icon(
+                          onPressed: () =>
+                              showGlEntryDetails(context, e.entryId!),
+                          icon:
+                              const Icon(Icons.receipt_long_outlined, size: 18),
+                          label: const Text('تفاصيل الحركة والمستند'))),
               ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+            )),
+      );
 
-  // ───────────── UI bits ─────────────
-  Widget _stat(String label, double value, Color color, {bool bold = false}) {
-    return Chip(
-      backgroundColor: color.withOpacity(.08),
-      label: AdaptiveRow(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(
-            _money.format(value),
-            style: TextStyle(
-              color: color,
-              fontWeight: bold ? FontWeight.bold : FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _chip({
-    required String label,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Chip(
-        backgroundColor: AppColors.primary,
-        labelPadding: const EdgeInsetsDirectional.only(start: 8, end: 10),
-        label: AdaptiveRow(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: Colors.white),
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: Colors.white)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _stat(String label, double value, Color color, {bool bold = false}) =>
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: color.withValues(alpha: .07),
+            borderRadius: BorderRadius.circular(12)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 6),
+          Text(_money.format(value),
+              style: TextStyle(
+                  color: color,
+                  fontSize: 18,
+                  fontWeight: bold ? FontWeight.bold : FontWeight.w600)),
+        ]),
+      );
 }
-
-// ───────────── Models داخلي ─────────────
 
 class _Row {
   final bool isOpening;

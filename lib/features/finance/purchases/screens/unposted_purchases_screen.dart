@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/error_widget.dart';
 // 📁 lib/features/finance/purchases/screens/unposted_purchases_screen.dart
 //
 // UnpostedPurchasesScreen — تدقيق مشتريات غير مرحلة للـ GL (v29a)
@@ -24,6 +25,7 @@ class UnpostedPurchasesScreen extends StatefulWidget {
 
 class _UnpostedPurchasesScreenState extends State<UnpostedPurchasesScreen> {
   bool _loading = true;
+  bool _loadFailed = false;
   List<Map<String, dynamic>> _rows = [];
   final _df = DateFormat('yyyy-MM-dd', 'ar');
   final _nf = NumberFormat('#,##0.00', 'ar');
@@ -37,13 +39,15 @@ class _UnpostedPurchasesScreenState extends State<UnpostedPurchasesScreen> {
   Future<void> _load() async {
     setState(() {
       _loading = true;
+      _loadFailed = false;
       _rows = [];
     });
 
-    final db = await DBService.database;
+    try {
+      final db = await DBService.database;
 
-    // v29a: supplier_pid نصي + JOIN بالـ suppliers.id (TEXT)
-    final rows = await db.rawQuery('''
+      // v29a: supplier_pid نصي + JOIN بالـ suppliers.id (TEXT)
+      final rows = await db.rawQuery('''
       SELECT
         p.id,
         p.supplier_pid,
@@ -59,20 +63,28 @@ class _UnpostedPurchasesScreenState extends State<UnpostedPurchasesScreen> {
       ORDER BY p.date DESC, p.id DESC
     ''');
 
-    _rows = rows
-        .map((r) => {
-              'id': r['id']?.toString(),
-              'supplier_pid': r['supplier_pid']?.toString(),
-              'supplier_name': r['supplier_name']?.toString(),
-              'amount': ((r['amount'] as num?) ?? 0).toDouble(),
-              'date': r['date']?.toString(),
-              'method': r['method']?.toString(),
-              'note': r['note']?.toString(),
-              'gl_entry_id': r['gl_entry_id'],
-            })
-        .toList();
+      _rows = rows
+          .map((r) => {
+                'id': r['id']?.toString(),
+                'supplier_pid': r['supplier_pid']?.toString(),
+                'supplier_name': r['supplier_name']?.toString(),
+                'amount': ((r['amount'] as num?) ?? 0).toDouble(),
+                'date': r['date']?.toString(),
+                'method': r['method']?.toString(),
+                'note': r['note']?.toString(),
+                'gl_entry_id': r['gl_entry_id'],
+              })
+          .toList();
 
-    if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _loadFailed = true;
+        });
+      }
+    }
   }
 
   // ==== Helpers: method parsing ====
@@ -279,49 +291,55 @@ class _UnpostedPurchasesScreenState extends State<UnpostedPurchasesScreen> {
             ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _rows.isEmpty
-              ? const Center(child: Text('لا توجد مشتريات غير مرحلة'))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _rows.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, i) {
-                    final r = _rows[i];
-                    final id = r['id'] as String?;
-                    final supName = r['supplier_name'] as String?;
-                    final amount = r['amount'] as double;
-                    final dateStr = r['date'] as String?;
-                    final date = DateTime.tryParse(dateStr ?? '');
-                    final dateTxt =
-                        date != null ? _df.format(date) : (dateStr ?? '');
+      body: _loadFailed
+          ? ErrorDisplay(
+              message: 'تعذّر تحميل المشتريات. أعد المحاولة أو تواصل مع الدعم.',
+              onRetry: _load)
+          : _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _rows.isEmpty
+                  ? const Center(child: Text('لا توجد مشتريات غير مرحلة'))
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: _rows.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (_, i) {
+                        final r = _rows[i];
+                        final id = r['id'] as String?;
+                        final supName = r['supplier_name'] as String?;
+                        final amount = r['amount'] as double;
+                        final dateStr = r['date'] as String?;
+                        final date = DateTime.tryParse(dateStr ?? '');
+                        final dateTxt =
+                            date != null ? _df.format(date) : (dateStr ?? '');
 
-                    return ListTile(
-                      title: Text(
-                          supName ?? 'Supplier ${r['supplier_pid'] ?? '-'}'),
-                      subtitle: Text(dateTxt),
-                      trailing: AdaptiveRow(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_nf.format(amount)),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            tooltip: 'Post GL',
-                            icon: const Icon(Icons.publish),
-                            onPressed: id == null ? null : () => _postOne(id),
+                        return ListTile(
+                          title: Text(supName ??
+                              'Supplier ${r['supplier_pid'] ?? '-'}'),
+                          subtitle: Text(dateTxt),
+                          trailing: AdaptiveRow(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_nf.format(amount)),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                tooltip: 'Post GL',
+                                icon: const Icon(Icons.publish),
+                                onPressed:
+                                    id == null ? null : () => _postOne(id),
+                              ),
+                              IconButton(
+                                tooltip: 'Open GL',
+                                icon: const Icon(Icons.open_in_new),
+                                onPressed: id == null
+                                    ? null
+                                    : () => _openGlIfExists(id),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            tooltip: 'Open GL',
-                            icon: const Icon(Icons.open_in_new),
-                            onPressed:
-                                id == null ? null : () => _openGlIfExists(id),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        );
+                      },
+                    ),
     );
   }
 }

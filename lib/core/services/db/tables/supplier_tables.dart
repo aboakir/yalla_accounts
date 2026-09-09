@@ -1,11 +1,6 @@
 // -----------------------------------------------------------------------------
 // 📁 lib/core/services/db/tables/supplier_tables.dart
-// FINAL — Simplified Supplier System
-// ✔ suppliers(id, name)
-// ✔ pid = printf("S%04d", id) (runtime only)
-// ✔ فهارس جاهزة
-// ✔ بدون phone / address / account_id / types
-// ✔ مورد واحد فقط — بدون تصنيفات
+// Supplier schema: additive upgrades preserve contact details and account links.
 // -----------------------------------------------------------------------------
 
 import 'package:sqflite/sqflite.dart';
@@ -40,43 +35,23 @@ class SupplierTables {
   // SCHEMA CLEANUP
   // ===========================================================================
   static Future<void> ensureSuppliersSchema(DatabaseExecutor db) async {
-    await _dropColumnIfExists(db, 'suppliers', 'pid');
-    await _dropColumnIfExists(db, 'suppliers', 'phone');
-    await _dropColumnIfExists(db, 'suppliers', 'address');
-    await _dropColumnIfExists(db, 'suppliers', 'account_id');
-    await _dropColumnIfExists(db, 'suppliers', 'type');
-    await _dropColumnIfExists(db, 'suppliers', 'category');
-
-    debugPrint("✔ Supplier table normalized → (id, name)");
-  }
-
-  // ===========================================================================
-  // SAFE DROP COLUMN
-  // ===========================================================================
-  static Future<void> _dropColumnIfExists(
-      DatabaseExecutor db, String table, String column) async {
-    final info = await db.rawQuery('PRAGMA table_info($table)');
-    final exists = info.any((c) => c['name'] == column);
-    if (!exists) return;
-
-    final cols =
-        info.where((c) => c['name'] != column).map((c) => c['name']).toList();
-
-    final colsJoin = cols.join(', ');
-
-    await db.execute('ALTER TABLE $table RENAME TO ${table}_old;');
-    await db.execute('''
-      CREATE TABLE $table (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
-      );
-    ''');
+    final columns = (await db.rawQuery('PRAGMA table_info(suppliers)'))
+        .map((r) => r['name'])
+        .toSet();
+    for (final entry in {
+      'pid': 'TEXT',
+      'phone': 'TEXT',
+      'address': 'TEXT',
+      'account_id': 'INTEGER'
+    }.entries) {
+      if (!columns.contains(entry.key)) {
+        await db.execute(
+            'ALTER TABLE suppliers ADD COLUMN ${entry.key} ${entry.value}');
+      }
+    }
     await db.execute(
-      'INSERT INTO $table($colsJoin) SELECT $colsJoin FROM ${table}_old;',
-    );
-    await db.execute('DROP TABLE ${table}_old;');
-
-    debugPrint("🛠 Removed column '$column' from $table");
+        "UPDATE suppliers SET pid='S' || printf('%04d',id) WHERE pid IS NULL OR TRIM(pid)=''");
+    debugPrint('Supplier contact details and account links preserved');
   }
 
   // ===========================================================================

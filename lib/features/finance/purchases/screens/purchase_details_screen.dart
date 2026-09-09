@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/features/finance/services/financial_void_service.dart';
+import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // ============================================================================
 // 📄 PurchaseDetailsScreen — FINAL MODERN UI EDITION
 // متوافق 100% مع purchase_invoices + purchase_invoice_lines
@@ -39,6 +41,46 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   List<Map<String, dynamic>> lines = [];
   bool loading = true;
 
+  bool _voiding = false;
+  Future<void> _voidInvoice() async {
+    if (_voiding) return;
+    var reason = '';
+    final approved = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AdaptiveAlertDialog(
+              title: const Text('إلغاء فاتورة المشتريات'),
+              content: TextField(
+                  onChanged: (value) => reason = value,
+                  decoration: const InputDecoration(
+                      labelText: 'سبب الإلغاء',
+                      helperText: 'يُحفظ الأصل ويُعكس أثره المالي.')),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('رجوع')),
+                TextButton(
+                    onPressed: () {
+                      if (reason.trim().isNotEmpty)
+                        Navigator.pop(dialogContext, true);
+                    },
+                    child: const Text('تأكيد الإلغاء'))
+              ],
+            ));
+    if (approved != true || !mounted) return;
+    setState(() => _voiding = true);
+    try {
+      await FinancialVoidService.voidInvoice(widget.invoiceId,
+          purchase: true, reason: reason);
+      if (mounted) await _load();
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('تعذر الإلغاء: $error')));
+    } finally {
+      if (mounted) setState(() => _voiding = false);
+    }
+  }
+
   DateTime? _editingDate;
 
   // ----------------------------------------------------------------------------
@@ -67,8 +109,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
         pi.vat,
         pi.total,
         pi.amount_total,
-        pi.paid_total,
-        pi.status,
+        ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
+        CASE WHEN UPPER(pi.status) IN ('VOID','CANCELLED','REVERSED') THEN 'VOID' WHEN pi.amount_total - ${PurchaseBalanceSql.paid('pi.id')} <= 0.0001 THEN 'PAID' WHEN ${PurchaseBalanceSql.paid('pi.id')} > 0 THEN 'PARTIAL' ELSE 'UNPAID' END AS status,
         pi.method,
         pi.date,
         pi.note
@@ -157,11 +199,15 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
         invoiceNumber: _short(h['id']),
         date: _fmt(h['date']),
         supplierName: h['supplier_name'] ?? '',
-        purchaseType: _typeLabel(h['purchase_type']),
+        purchaseType: h['status'] == 'VOID'
+            ? 'ملغاة — ${_typeLabel(h['purchase_type'])}'
+            : _typeLabel(h['purchase_type']),
         paymentMethod: h['method'],
         totalAmount: _d(h['amount_total']),
         paidAmount: _d(h['paid_total']),
-        remainAmount: _d(h['amount_total']) - _d(h['paid_total']),
+        remainAmount: h['status'] == 'VOID'
+            ? 0
+            : _d(h['amount_total']) - _d(h['paid_total']),
         rows: pdfRows,
       );
 
@@ -220,8 +266,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     final h = header!;
     final amount = _d(h['amount_total']);
     final paid = _d(h['paid_total']);
-    final remain = amount - paid;
-    final isPhone = MediaQuery.sizeOf(context).width < 600;
+    final remain = h['status'] == 'VOID' ? 0.0 : amount - paid;
+    final isPhone = MediaQuery.sizeOf(context).width < YallaBreakpoints.desktop;
 
     if (isPhone) {
       return _phoneContent(h, amount, paid, remain);
@@ -341,7 +387,9 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   // HEADER CARD
   // ----------------------------------------------------------------------------
   Widget _headerCard(Map h, double amount, double paid, double remain) {
-    final canEditDate = _d(h['paid_total']) == 0 && h['status'] != 'PAID';
+    final canEditDate = _d(h['paid_total']) == 0 &&
+        h['status'] != 'PAID' &&
+        h['status'] != 'VOID';
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -398,7 +446,11 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           ),
           _row('نوع الشراء', _typeLabel(h['purchase_type'])),
           _row('طريقة الدفع', h['method'] ?? ''),
-          _row('الحالة', h['status'] ?? ''),
+          _row(
+              'الحالة',
+              h['status'] == 'VOID'
+                  ? 'ملغاة — عُكس الأثر المالي'
+                  : h['status'] ?? ''),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(16),
@@ -481,13 +533,16 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           FilledButton.icon(
-            onPressed: remain <= 0
+            onPressed: remain <= 0 || _voiding || header?['status'] == 'VOID'
                 ? null
                 : () async {
                     final refresh = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const PaymentVoucherScreen(),
+                        builder: (_) => PaymentVoucherScreen(
+                            purchaseId: widget.invoiceId,
+                            supplierPid: header?['supplier_id']?.toString(),
+                            supplierName: header?['supplier_name']?.toString()),
                       ),
                     );
                     if (refresh == true) _load();
@@ -505,6 +560,11 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
             ),
           ],
           const SizedBox(height: 8),
+          if (header?['status'] != 'VOID')
+            TextButton.icon(
+                onPressed: _voiding ? null : _voidInvoice,
+                icon: const Icon(Icons.cancel_outlined),
+                label: const Text('إلغاء الفاتورة وعكس القيد')),
           OutlinedButton.icon(
             onPressed: _exportPdf,
             icon: const Icon(Icons.picture_as_pdf_outlined),
@@ -545,13 +605,16 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
       children: [
         // ------------------------ سند صرف ------------------------
         ElevatedButton(
-          onPressed: remain <= 0
+          onPressed: remain <= 0 || _voiding || header?['status'] == 'VOID'
               ? null
               : () async {
                   final refresh = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const PaymentVoucherScreen(),
+                      builder: (_) => PaymentVoucherScreen(
+                          purchaseId: widget.invoiceId,
+                          supplierPid: header?['supplier_id']?.toString(),
+                          supplierName: header?['supplier_name']?.toString()),
                     ),
                   );
 
@@ -584,6 +647,10 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
         ],
 
         // ------------------------ PDF ------------------------
+        if (header?['status'] != 'VOID')
+          TextButton(
+              onPressed: _voiding ? null : _voidInvoice,
+              child: const Text('إلغاء الفاتورة وعكس القيد')),
         OutlinedButton(
           onPressed: _exportPdf,
           style: OutlinedButton.styleFrom(

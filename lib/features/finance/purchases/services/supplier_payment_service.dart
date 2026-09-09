@@ -1,181 +1,83 @@
-// -----------------------------------------------------------------------------
-// 📁 supplier_payment_service.dart — FINAL v51
-//
-// نظام سداد مورد متوافق بالكامل مع قاعدة البيانات الجديدة:
-// ✔ suppliers(id, name)
-// ✔ purchase_invoices
-// ✔ purchase_payments
-// ✔ GL posting حقيقي
-//
-// الحسابات:
-// Dr 2200.S{id}
-// Cr 1000 أو 1010
-// -----------------------------------------------------------------------------
-
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:yalla_accounts/core/services/accounting_gl.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
+import '../../../vouchers/models/voucher_payment_model.dart';
+import '../../../vouchers/services/voucher_payment_service.dart';
 
 class SupplierPaymentService {
-  // normalize method
-  static String _normalize(String? m) {
-    final s = (m ?? "").toLowerCase().trim();
-    if (s.contains("bank") || s.contains("بنك") || s.contains("حوالة")) {
-      return "bank";
-    }
-    return "cash";
-  }
-
-  static double _round(num v) => double.parse(v.toStringAsFixed(2));
-
-  // ---------------------------------------------------------------------------
-  // POST GL ONLY
-  // ---------------------------------------------------------------------------
-  static Future<int> postGL({
-    required int supplierId,
-    required double amount,
-    required DateTime date,
-    required String method,
-    String? note,
-    String? sourceId, // optional idempotency
-  }) async {
-    if (amount <= 0) throw "Amount must be > 0";
-
-    final norm = _normalize(method);
-    final amt = _round(amount);
-
-    // حساب المورد → 2200.S{id}
-    final supplierAcc =
-        await DBService.ensureSupplierAccount(supplierId.toString());
-
-    // كاش أو بنك
-    final creditAcc = await DBService.getAccountIdByCode(
-      norm == "bank" ? GL.bank : GL.cash,
-    );
-
-    if (creditAcc == null) {
-      throw "Missing account ${norm == 'bank' ? GL.bank : GL.cash}";
-    }
-
-    final key = sourceId ?? "SUPPAY-$supplierId-${date.toIso8601String()}-$amt";
-
-    // idempotency
-    final reused =
-        await DBService.getGlEntryIdBySource("SUPPLIER_PAYMENT", key);
-    if (reused != null) return reused;
-
-    final glId = await DBService.postEntryGL(
-      date: date,
-      source: "SUPPLIER_PAYMENT",
-      sourceId: key,
-      ref: "سداد مورد",
-      note: note,
-      lines: [
-        {
-          "account_id": supplierAcc,
-          "debit": amt,
-          "credit": 0.0,
-          "party_type": "SUPPLIER",
-          "party_id": supplierId,
-        },
-        {
-          "account_id": creditAcc,
-          "debit": 0.0,
-          "credit": amt,
-        }
-      ],
-    );
-
-    return glId;
-  }
-
-  // ---------------------------------------------------------------------------
-  // INSERT PAYMENT + GL
-  // ---------------------------------------------------------------------------
   static Future<int> insertAndPost({
+    required String operationId,
     required int supplierId,
     required double amount,
     required DateTime date,
     required String method,
     String? note,
+    Database? database,
   }) async {
-    final db = await DBService.database;
-    final amt = _round(amount);
-
-    // create key
-    final payId = "SUPPAY-$supplierId-${date.toIso8601String()}-$amt";
-
-    return await db.transaction<int>((txn) async {
-      // 1) insert payment into purchase_payments
-      await txn.insert(
-        "purchase_payments",
-        {
-          "id": payId,
-          "supplier_id": supplierId,
-          "amount": amt,
-          "date": date.toIso8601String(),
-          "method": _normalize(method),
-          "note": note,
-          "gl_entry_id": null,
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
-
-      // 2) GL posting
-      final glId = await postGL(
-        supplierId: supplierId,
-        amount: amt,
-        date: date,
-        method: method,
-        note: note,
-        sourceId: payId,
-      );
-
-      // 3) update payment with gl_entry_id
-      await txn.update(
-        "purchase_payments",
-        {"gl_entry_id": glId},
-        where: "id = ?",
-        whereArgs: [payId],
-      );
-
-      return glId;
-    });
+    if (operationId.trim().isEmpty) {
+      throw ArgumentError('Operation ID required');
+    }
+    final posted = await VoucherPaymentService.insertAndPost(
+      database: database,
+      voucher: VoucherPayment(
+          id: operationId,
+          voucherType: 'PAYMENT',
+          partyType: 'SUPPLIER',
+          partyId: '$supplierId',
+          amount: amount,
+          currency: 'ILS',
+          date: date,
+          method: method.toUpperCase(),
+          notes: note),
+      partyName: 'Supplier $supplierId',
+    );
+    return posted.glEntryId!;
   }
 
-  // ---------------------------------------------------------------------------
-  // REVERSE PAYMENT
-  // ---------------------------------------------------------------------------
-  static Future<int> reverse(String paymentId) async {
-    final db = await DBService.database;
+  /// One row per posted GL entry, including legacy payments without vouchers.
+  static Future<List<Map<String, Object?>>> list(
+      {String? supplierId, Database? database}) async {
+    final db = database ?? await DBService.database;
+    return db.rawQuery('''
+      SELECT e.source_id AS id, e.id AS gl_entry_id, l.party_id,
+        SUM(l.debit-l.credit) AS amount, e.date, e.note AS notes,
+        COALESCE((SELECT method FROM vouchers WHERE gl_entry_id=e.id LIMIT 1),
+          (SELECT method FROM payments WHERE gl_entry_id=e.id LIMIT 1),
+          (SELECT method FROM purchase_payments WHERE gl_entry_id=e.id LIMIT 1), '') AS method,
+        CASE WHEN EXISTS (SELECT 1 FROM gl_entries rev WHERE rev.reversal_of=e.id)
+          THEN 'REVERSED' ELSE 'POSTED' END AS status
+      FROM gl_entries e JOIN gl_lines l ON l.entry_id=e.id
+      WHERE UPPER(l.party_type)='SUPPLIER' AND e.reversal_of IS NULL
+        AND UPPER(e.source) IN ('VOUCHER','PURCHASE_PAYMENT','PURCHASE_PAY','SUPPLIER_PAYMENT','PAYMENT','PAYMENT_OUT')
+        ${supplierId == null || supplierId.isEmpty ? '' : 'AND l.party_id=?'}
+      GROUP BY e.id, l.party_id
+      ORDER BY e.date DESC, e.id DESC LIMIT 300
+    ''', [if (supplierId != null && supplierId.isNotEmpty) supplierId]);
+  }
 
-    final r = await db.query(
-      "purchase_payments",
-      columns: ["gl_entry_id"],
-      where: "id = ?",
-      whereArgs: [paymentId],
-      limit: 1,
-    );
-
-    if (r.isEmpty) throw "Payment not found";
-
-    final raw = r.first["gl_entry_id"];
-    final glId = raw is int ? raw : int.tryParse("$raw") ?? 0;
-
-    if (glId <= 0) throw "No GL entry attached";
-
-    final revId = await DBService.reverseEntryGL(
-      glId,
-      note: "عكس سداد مورد ($paymentId)",
-    );
-
-    await db.update(
-      "purchase_payments",
-      {"status": "REVERSED"},
-      where: "id = ?",
-      whereArgs: [paymentId],
-    );
-
-    return revId;
+  static Future<int> reverse(String paymentId, {Database? database}) async {
+    final db = database ?? await DBService.database;
+    final vouchers =
+        await db.query('vouchers', where: 'id=?', whereArgs: [paymentId]);
+    if (vouchers.isNotEmpty) {
+      await VoucherPaymentService.reverseVoucher(paymentId,
+          reason: 'Supplier payment reversal', database: db);
+      final rows =
+          await db.query('vouchers', where: 'id=?', whereArgs: [paymentId]);
+      return (rows.first['reversal_gl_entry_id'] as num).toInt();
+    }
+    return SyncFoundationService.transaction(db, (txn) async {
+      final rows = await txn
+          .query('purchase_payments', where: 'id=?', whereArgs: [paymentId]);
+      if (rows.isEmpty || rows.first['gl_entry_id'] == null) {
+        throw StateError('Posted payment not found');
+      }
+      final id = (rows.first['gl_entry_id'] as num).toInt();
+      final reversal = await DBService.reverseEntryGLOn(txn, id,
+          note: 'Supplier payment reversal');
+      await txn.update('purchase_payments', {'status': 'REVERSED'},
+          where: 'id=?', whereArgs: [paymentId]);
+      return reversal;
+    });
   }
 }

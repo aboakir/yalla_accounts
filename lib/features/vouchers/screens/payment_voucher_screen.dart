@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/features/employees/services/payroll_database_service.dart';
+import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/vouchers/screens/payment_voucher_screen.dart
 // FINAL — Fully Working Version (Supplier • Employee • Operating Expense)
@@ -22,6 +24,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 
 import '../models/voucher_payment_model.dart';
+import '../dialogs/voucher_selection_dialog.dart';
 import '../services/voucher_payment_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
@@ -33,6 +36,10 @@ class PaymentVoucherScreen extends ConsumerStatefulWidget {
   final String? supplierPid;
   final String? supplierName;
   final double? presetAmount;
+  final String? employeeId;
+  final String? employeeName;
+  final PayrollRun? payrollRun;
+  final String employeePaymentKind;
 
   const PaymentVoucherScreen({
     super.key,
@@ -40,6 +47,10 @@ class PaymentVoucherScreen extends ConsumerStatefulWidget {
     this.supplierPid,
     this.supplierName,
     this.presetAmount,
+    this.employeeId,
+    this.employeeName,
+    this.payrollRun,
+    this.employeePaymentKind = 'advance',
   });
 
   @override
@@ -60,11 +71,14 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
 
   Map<String, dynamic>? selectedInvoice;
   Map<String, dynamic>? selectedEmployee;
+  String _employeePaymentKind = 'advance';
+  PayrollRun? _employeePayroll;
 
   int? supplierId;
   String? supplierName;
   String paymentTarget = "INVOICE";
   bool _isSaving = false;
+  final String _operationId = const Uuid().v4();
   Map<String, dynamic>? _pendingCheque;
 // INVOICE = تسديد فاتورة
 // SUPPLIER = تسديد على حساب المورد
@@ -75,6 +89,17 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
   void initState() {
     super.initState();
     _loadEmployees();
+    if (widget.employeeId != null) {
+      expenseType = 'موظف';
+      selectedEmployee = {
+        'id': widget.employeeId,
+        'name': widget.employeeName ?? ''
+      };
+      _employeePayroll = widget.payrollRun;
+      _employeePaymentKind =
+          widget.payrollRun != null ? 'salary' : widget.employeePaymentKind;
+    }
+    if (widget.purchaseId != null) _loadPresetInvoice();
 
     if (widget.presetAmount != null) {
       amountCtrl.text = MoneyFormatter.number(widget.presetAmount!);
@@ -84,6 +109,24 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
       supplierId = int.tryParse(widget.supplierPid!);
       supplierName = widget.supplierName;
     }
+  }
+
+  Future<void> _loadPresetInvoice() async {
+    final db = await DBService.database;
+    final rows = await db.rawQuery('''
+      SELECT pi.*, ${PurchaseBalanceSql.paid('pi.id')} AS current_paid,
+        s.name AS supplier_name
+      FROM purchase_invoices pi
+      LEFT JOIN suppliers s ON s.id = pi.supplier_id
+      WHERE pi.id = ?
+    ''', [widget.purchaseId]);
+    if (!mounted || rows.isEmpty) return;
+    setState(() {
+      selectedInvoice = Map<String, dynamic>.from(rows.first)
+        ..['paid_total'] = rows.first['current_paid'];
+      supplierId = (rows.first['supplier_id'] as num?)?.toInt();
+      supplierName = rows.first['supplier_name']?.toString();
+    });
   }
 
   Future<void> _loadEmployees() async {
@@ -97,7 +140,7 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
     ORDER BY full_name ASC
   """);
 
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
@@ -118,24 +161,24 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
       pi.id,
       pi.date,
       pi.amount_total,
-      pi.paid_total,
+      ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
       pi.supplier_id,
       (SELECT name FROM suppliers s WHERE s.id = pi.supplier_id LIMIT 1) 
         AS supplier_name
 FROM purchase_invoices pi
-WHERE (pi.amount_total - IFNULL(pi.paid_total,0)) > 0
+WHERE (pi.amount_total - IFNULL(${PurchaseBalanceSql.paid('pi.id')} AS paid_total,0)) > 0
 ORDER BY pi.date DESC
   """);
 
-    final searchCtrl = TextEditingController();
+    if (!mounted) return;
     List<Map<String, dynamic>> filtered = List.from(data);
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setD) {
-            return AdaptiveAlertDialog(
+            return VoucherSelectionDialog(
               title: const Text("اختر فاتورة", textAlign: TextAlign.center),
               content: SizedBox(
                 width:
@@ -149,7 +192,6 @@ ORDER BY pi.date DESC
                   children: [
                     TextField(
                       inputFormatters: const [YallaDigitNormalizer()],
-                      controller: searchCtrl,
                       decoration: InputDecoration(
                         hintText: "ابحث باسم المورد أو رقم الفاتورة",
                         prefixIcon: Icon(Icons.search),
@@ -169,40 +211,43 @@ ORDER BY pi.date DESC
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: filtered.length,
-                        itemBuilder: (_, i) {
-                          final row = filtered[i];
+                      child: filtered.isEmpty
+                          ? const Center(child: Text('لا توجد نتائج مطابقة'))
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (_, i) {
+                                final row = filtered[i];
 
-                          final total = double.tryParse(
-                                  row['amount_total']?.toString() ?? '0') ??
-                              0;
-                          final paid = double.tryParse(
-                                  row['paid_total']?.toString() ?? '0') ??
-                              0;
-                          final remain = total - paid;
+                                final total = double.tryParse(
+                                        row['amount_total']?.toString() ??
+                                            '0') ??
+                                    0;
+                                final paid = double.tryParse(
+                                        row['paid_total']?.toString() ?? '0') ??
+                                    0;
+                                final remain = total - paid;
 
-                          return Card(
-                            child: ListTile(
-                              title: Text(
-                                "المورد: ${row['supplier_name'] ?? 'غير معروف'} | المتبقي: ${remain.toStringAsFixed(2)}",
-                              ),
-                              subtitle: Text("التاريخ: ${row['date']}"),
-                              trailing: const Icon(Icons.arrow_forward),
-                              onTap: () {
-                                setState(() {
-                                  selectedInvoice = row;
-                                  supplierId = row['supplier_id'] as int;
-                                  supplierName =
-                                      row['supplier_name']?.toString() ??
-                                          "مورد";
-                                });
-                                Navigator.pop(ctx);
+                                return Card(
+                                  child: ListTile(
+                                    title: Text(
+                                      "المورد: ${row['supplier_name'] ?? 'غير معروف'} | المتبقي: ${remain.toStringAsFixed(2)}",
+                                    ),
+                                    subtitle: Text("التاريخ: ${row['date']}"),
+                                    trailing: const Icon(Icons.arrow_forward),
+                                    onTap: () {
+                                      setState(() {
+                                        selectedInvoice = row;
+                                        supplierId = row['supplier_id'] as int;
+                                        supplierName =
+                                            row['supplier_name']?.toString() ??
+                                                "مورد";
+                                      });
+                                      Navigator.pop(ctx);
+                                    },
+                                  ),
+                                );
                               },
                             ),
-                          );
-                        },
-                      ),
                     ),
                   ],
                 ),
@@ -245,7 +290,10 @@ ORDER BY pi.date DESC
                   return ListTile(
                     title: Text(e['name']),
                     onTap: () {
-                      setState(() => selectedEmployee = e);
+                      setState(() {
+                        selectedEmployee = e;
+                        _employeePayroll = null;
+                      });
                       Navigator.pop(context);
                     },
                   );
@@ -429,15 +477,15 @@ ORDER BY pi.date DESC
     ORDER BY name ASC
   """);
 
-    final searchCtrl = TextEditingController();
+    if (!mounted) return;
     List<Map<String, dynamic>> filtered = List.from(data);
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setD) {
-            return AdaptiveAlertDialog(
+            return VoucherSelectionDialog(
               title: const Text("اختر المورد", textAlign: TextAlign.center),
               content: SizedBox(
                 width:
@@ -451,7 +499,6 @@ ORDER BY pi.date DESC
                   children: [
                     TextField(
                       inputFormatters: const [YallaDigitNormalizer()],
-                      controller: searchCtrl,
                       decoration: InputDecoration(
                         hintText: "ابحث باسم المورد",
                         prefixIcon: Icon(Icons.search),
@@ -470,22 +517,24 @@ ORDER BY pi.date DESC
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: filtered.length,
-                        itemBuilder: (_, i) {
-                          final s = filtered[i];
-                          return ListTile(
-                            title: Text(s['name'].toString()),
-                            onTap: () {
-                              setState(() {
-                                supplierId = s['id'] as int;
-                                supplierName = s['name'].toString();
-                              });
-                              Navigator.pop(ctx);
-                            },
-                          );
-                        },
-                      ),
+                      child: filtered.isEmpty
+                          ? const Center(child: Text('لا توجد نتائج مطابقة'))
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              itemBuilder: (_, i) {
+                                final s = filtered[i];
+                                return ListTile(
+                                  title: Text(s['name'].toString()),
+                                  onTap: () {
+                                    setState(() {
+                                      supplierId = s['id'] as int;
+                                      supplierName = s['name'].toString();
+                                    });
+                                    Navigator.pop(ctx);
+                                  },
+                                );
+                              },
+                            ),
                     ),
                   ],
                 ),
@@ -503,25 +552,68 @@ ORDER BY pi.date DESC
     );
   }
 
+  Future<void> _choosePayroll() async {
+    if (selectedEmployee == null) return;
+    final runs = await PayrollDatabaseService.listByEmployee(
+        selectedEmployee!['id'].toString());
+    if (!mounted) return;
+    final selected = await showDialog<PayrollRun>(
+        context: context,
+        builder: (ctx) => VoucherSelectionDialog(
+                title: const Text('اختر استحقاق الراتب'),
+                content: SizedBox(
+                    width: 400,
+                    height: 300,
+                    child: ListView(children: [
+                      for (final run in runs.where((r) =>
+                          r.status != 'REVERSED' && r.net > r.amountPaid))
+                        ListTile(
+                            title: Text(
+                                '${run.periodStart.toIso8601String().substring(0, 10)} — متبقي ${(run.net - run.amountPaid).toStringAsFixed(2)}'),
+                            onTap: () => Navigator.pop(ctx, run)),
+                      if (runs
+                          .where((r) =>
+                              r.status != 'REVERSED' && r.net > r.amountPaid)
+                          .isEmpty)
+                        const Text(
+                            'لا يوجد استحقاق غير مسدد. أنشئ الاستحقاق من شاشة الرواتب أولاً.'),
+                    ])),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('إلغاء'))
+                ]));
+    if (selected != null && mounted)
+      setState(() => _employeePayroll = selected);
+  }
+
   Widget _employeeSelector() {
     return _card(
-      title: "اختر الموظف",
-      child: InkWell(
-        onTap: _chooseEmployee,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.primary),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            selectedEmployee == null
-                ? "اضغط لاختيار موظف"
-                : "الموظف: ${selectedEmployee!['name']}",
-          ),
-        ),
-      ),
-    );
+        title: 'اختر الموظف',
+        child: Column(children: [
+          ListTile(
+              title: Text(selectedEmployee == null
+                  ? 'اضغط لاختيار موظف'
+                  : "الموظف: ${selectedEmployee!['name']}"),
+              onTap: _chooseEmployee),
+          DropdownButtonFormField<String>(
+              initialValue: _employeePaymentKind,
+              decoration: const InputDecoration(labelText: 'نوع الصرف للموظف'),
+              items: const [
+                DropdownMenuItem(value: 'advance', child: Text('سلفة')),
+                DropdownMenuItem(value: 'bonus', child: Text('مكافأة')),
+                DropdownMenuItem(value: 'salary', child: Text('راتب مستحق'))
+              ],
+              onChanged: (v) {
+                if (v != null) setState(() => _employeePaymentKind = v);
+              }),
+          if (_employeePaymentKind == 'salary')
+            TextButton(
+                onPressed: selectedEmployee == null ? null : _choosePayroll,
+                child: Text(_employeePayroll == null
+                    ? 'اختر استحقاق الراتب'
+                    : 'الاستحقاق: ${_employeePayroll!.net.toStringAsFixed(2)}')),
+        ]));
   }
 
   Widget _amountCard() {
@@ -595,36 +687,38 @@ ORDER BY pi.date DESC
 
   Widget _card({required String title, required Widget child}) {
     return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 22),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 22),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 10),
+              child,
+            ],
           ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
+        ));
   }
 
   // ============================================================================
@@ -723,6 +817,11 @@ ORDER BY pi.date DESC
         return;
       }
 
+      if (_employeePaymentKind == 'salary' && _employeePayroll == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('اختر استحقاق الراتب أولاً.')));
+        return;
+      }
       partyType = "EMPLOYEE";
       partyId = selectedEmployee!['id'].toString();
       partyName = selectedEmployee!['name'];
@@ -736,7 +835,7 @@ ORDER BY pi.date DESC
     }
 
     final voucher = VoucherPayment(
-      id: const Uuid().v4(),
+      id: _operationId,
       voucherType: "PAYMENT",
       voucherNumber: null,
       voucherCode: null,
@@ -752,11 +851,21 @@ ORDER BY pi.date DESC
       chequeId: null,
 
       // 🔴 المهم هنا
-      reference:
-          selectedInvoice != null ? selectedInvoice!['id'].toString() : null,
-
-      source: expenseType == "موظف" ? "EMP_ADV" : null,
-      sourceId: expenseType == "موظف" ? partyId : null,
+      reference: expenseType == 'موظف'
+          ? (_employeePaymentKind == 'salary' ? _employeePayroll!.id : null)
+          : selectedInvoice?['id']?.toString(),
+      source: expenseType == 'موظف'
+          ? (_employeePaymentKind == 'salary'
+              ? 'PAYROLL_ENTITLEMENT'
+              : _employeePaymentKind == 'bonus'
+                  ? 'EMPLOYEE_BONUS'
+                  : 'EMP_ADV')
+          : null,
+      sourceId: expenseType == 'موظف'
+          ? (_employeePaymentKind == 'salary'
+              ? _employeePayroll!.id
+              : _operationId)
+          : null,
 
       notes: notesCtrl.text.trim(),
       isPosted: false,

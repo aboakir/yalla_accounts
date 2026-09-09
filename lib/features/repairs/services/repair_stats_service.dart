@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 // 📁 lib/features/repairs/services/repair_stats_service.dart
 
 import 'package:sqflite/sqflite.dart';
@@ -43,10 +44,7 @@ class RepairStatsService {
   static Future<double> getTotalPaidAmount() async {
     final db = await _db;
     final rows = await db.rawQuery('''
-      SELECT COALESCE(SUM(amount),0) AS v
-      FROM payments
-      WHERE COALESCE(isIncome,1)=1
-        AND COALESCE(NULLIF(repair_id,''), relatedRepairId) IS NOT NULL
+      SELECT COALESCE(SUM(paid),0) AS v FROM (${RepairFinancialTruthService.paidByRepairSql}) WHERE repair_id IS NOT NULL
     ''');
 
     final v = rows.first['v'];
@@ -57,14 +55,7 @@ class RepairStatsService {
   static Future<List<Map<String, dynamic>>> getMonthlyRepairSummary() async {
     final db = await _db;
     final rows = await db.rawQuery('''
-      WITH paid AS (
-        SELECT
-          COALESCE(NULLIF(repair_id,''), relatedRepairId) AS repair_id,
-          SUM(amount) AS paid
-        FROM payments
-        WHERE COALESCE(isIncome,1)=1
-        GROUP BY COALESCE(NULLIF(repair_id,''), relatedRepairId)
-      )
+      WITH paid AS (${RepairFinancialTruthService.paidByRepairSql})
       SELECT
         strftime('%Y-%m', r.receivedDate) AS month,
         COUNT(*) AS repair_count,

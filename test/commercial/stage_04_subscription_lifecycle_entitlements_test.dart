@@ -101,12 +101,18 @@ void main() {
       'lib/core/licensing/entitlements/commercial_entitlement_policy.dart',
     );
     expect(policy, contains("'ACCOUNTING_CORE_NOT_ENTITLED'"));
-    expect(gate, contains("'ACTIVE'"));
-    expect(gate, contains("'GRACE'"));
-    expect(gate, contains("'SUSPENDED'"));
-    expect(gate, contains("'EXPIRED'"));
-    expect(gate, contains("'REVOKED'"));
-    expect(gate, contains("'CANCELLED'"));
+    expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),
+        contains("'ACTIVE'"));
+    expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),
+        contains("'GRACE'"));
+    expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),
+        contains("'SUSPENDED'"));
+    expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),
+        contains("'EXPIRED'"));
+    expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),
+        contains("'REVOKED'"));
+    expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),
+        contains("'CANCELLED'"));
   });
 
   test('Stage 04 disables legacy local trial and subscription authority', () {
@@ -149,7 +155,7 @@ void main() {
         subscription, contains('loadAuthenticLicenseForCurrentInstallation'));
     expect(subscription, isNot(contains('activateTrial')));
     expect(subscription, isNot(contains('PlanService')));
-    expect(current, contains('loadAuthenticLicenseForCurrentInstallation'));
+    expect(current, contains('refreshFromStoredLicense'));
     expect(current, isNot(contains('PlanService')));
     expect(current, isNot(contains('SubscriptionService')));
     expect(pending, isNot(contains('createSubscription')));

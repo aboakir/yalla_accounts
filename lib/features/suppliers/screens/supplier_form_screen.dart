@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/supplier.dart';
+import '../services/supplier_service.dart';
 import '../providers/supplier_provider.dart';
 import '../../../core/constants/colors.dart';
 import '../../../shared/widgets/adaptive_layout.dart';
@@ -49,7 +50,7 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
 
@@ -78,6 +79,13 @@ class _SupplierFormScreenState extends ConsumerState<SupplierFormScreen> {
 
       if (!mounted) return;
       Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is DuplicateSupplierException
+          ? error.toString()
+          : 'تعذر حفظ المورد: $error';
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

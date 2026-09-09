@@ -1,3 +1,4 @@
+import 'subscription_access_policy.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/services/db/db_service.dart';
@@ -79,47 +80,11 @@ class LicenseRuntimeService {
     }
 
     final current = (now ?? DateTime.now()).toUtc();
-    final operationalStatus = license.operationalStatus.toUpperCase();
-
-    late final LicenseRuntimeDecision decision;
-    if (operationalStatus == 'SUSPENDED') {
-      decision = LicenseRuntimeDecision(
-        mode: LicenseRuntimeMode.readOnlySuspended,
-        reason: 'Subscription or license is suspended.',
-        license: license,
-      );
-    } else if (operationalStatus == 'REVOKED' ||
-        operationalStatus == 'CANCELLED') {
-      decision = LicenseRuntimeDecision(
-        mode: LicenseRuntimeMode.readOnlyRevoked,
-        reason: 'License authorization is revoked or cancelled.',
-        license: license,
-      );
-    } else if (!license.expiresAt.isAfter(current)) {
-      decision = LicenseRuntimeDecision(
-        mode: LicenseRuntimeMode.readOnlyExpired,
-        reason: 'Signed license validity period has expired.',
-        license: license,
-      );
-    } else if (!license.validationGraceUntil.isAfter(current)) {
-      decision = LicenseRuntimeDecision(
-        mode: LicenseRuntimeMode.readOnlyValidationRequired,
-        reason: 'Periodic online validation grace period has expired.',
-        license: license,
-      );
-    } else {
-      final validationDue = !license.validationRequiredAt.isAfter(current);
-      decision = LicenseRuntimeDecision(
-        mode: LicenseRuntimeMode.writable,
-        reason: validationDue
-            ? 'Periodic validation is due; offline grace remains active.'
-            : operationalStatus == 'GRACE'
-                ? 'Signed license is within an authorized subscription grace state.'
-                : 'Signed license permits operational writes.',
-        license: license,
-      );
-    }
-
+    final mode = SubscriptionAccessPolicy.mode(license, current);
+    final decision = LicenseRuntimeDecision(
+        mode: mode,
+        reason: SubscriptionAccessPolicy.message(mode),
+        license: license);
     await LicenseValidationTables.projectSignedWindow(
       db,
       organizationId: license.organizationId,
@@ -154,7 +119,7 @@ class LicenseRuntimeService {
     // Re-evaluate the signed expiry before allowing a high-level write. DB
     // triggers independently provide a second enforcement layer.
     final decision = await refreshFromStoredLicense();
-    if (decision.isReadOnly) {
+    if (!decision.isWritable) {
       throw ReadOnlyOperationException(
         decision.mode,
         operation == null
@@ -172,15 +137,7 @@ class LicenseRuntimeService {
     final status = license.operationalStatus.toUpperCase();
     final current = serverTime.toUtc();
 
-    final mode = status == 'SUSPENDED'
-        ? LicenseRuntimeMode.readOnlySuspended
-        : (status == 'REVOKED' || status == 'CANCELLED')
-            ? LicenseRuntimeMode.readOnlyRevoked
-            : !license.expiresAt.isAfter(current)
-                ? LicenseRuntimeMode.readOnlyExpired
-                : !license.validationGraceUntil.isAfter(current)
-                    ? LicenseRuntimeMode.readOnlyValidationRequired
-                    : LicenseRuntimeMode.writable;
+    final mode = SubscriptionAccessPolicy.mode(license, current);
 
     await LicenseValidationTables.projectSignedWindow(
       db,

@@ -1,3 +1,6 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
@@ -80,14 +83,8 @@ class RepairAutoAccountingService {
   static Future<double> _sumPaymentsOn(
     DatabaseExecutor tx,
     String repairId,
-  ) async {
-    final rows = await tx.rawQuery(
-      'SELECT IFNULL(SUM(amount),0) AS s FROM payments '
-      'WHERE repair_id = ? OR relatedRepairId = ?',
-      [repairId, repairId],
-    );
-    return rows.isEmpty ? 0.0 : _toDouble(rows.first['s']);
-  }
+  ) async =>
+      RepairFinancialTruthService.paidForRepair(repairId, executor: tx);
 
   static Future<void> _ensureAdjustmentSchema(DatabaseExecutor tx) async {
     await tx.execute('''
@@ -436,6 +433,8 @@ class RepairAutoAccountingService {
     if (repairRows.isEmpty) throw StateError('ملف الإصلاح غير موجود.');
 
     final repair = repairRows.first;
+    if (repair['status'] == cancelledStatus)
+      throw StateError('Cancelled repair cannot be posted.');
     final clientRaw = repair['client_id'];
     final clientId = clientRaw is int
         ? clientRaw
@@ -499,6 +498,15 @@ class RepairAutoAccountingService {
       where: 'id = ?',
       whereArgs: [repairId],
     );
+    await AuditTrailService.log(
+        executor: tx,
+        action: 'REPAIR_FINANCIAL_CREATED',
+        entityType: 'repair',
+        entityId: repairId,
+        before: repair,
+        after: (await tx.query('repairs', where: 'id=?', whereArgs: [repairId]))
+            .single,
+        reason: 'Initial financial posting');
   }
 
   /// Reconciles a value change after an edit while keeping posted documents
@@ -515,6 +523,10 @@ class RepairAutoAccountingService {
   }) async {
     await _ensureAdjustmentSchema(tx);
 
+    final state = await tx.query('repairs',
+        columns: ['status'], where: 'id=?', whereArgs: [repairId]);
+    if (state.isNotEmpty && state.first['status'] == cancelledStatus)
+      throw StateError('Cancelled repair cannot be edited.');
     final invoiceBefore = await _invoiceOn(tx, repairId);
     final invoiceIdBefore = invoiceBefore?['id']?.toString();
     final postedBefore = invoiceIdBefore != null &&
@@ -569,10 +581,23 @@ class RepairAutoAccountingService {
       where: 'id = ?',
       whereArgs: [repairId],
     );
+    await AuditTrailService.log(
+        executor: tx,
+        action: 'REPAIR_FINANCIAL_UPDATED',
+        entityType: 'repair',
+        entityId: repairId,
+        before: {'fileValue': oldValue, 'invoice': invoiceBefore},
+        after: (await tx.query('repairs', where: 'id=?', whereArgs: [repairId]))
+            .single,
+        reason: reason);
   }
 
-  static Future<void> deleteRepair(String repairId) async {
-    await DBService.inTx((tx) async {
+  static Future<void> deleteRepair(String repairId,
+      {String reason = 'Repair cancelled', Database? database}) async {
+    if (reason.trim().isEmpty)
+      throw ArgumentError('Cancellation reason required');
+    final db = database ?? await DBService.database;
+    await SyncFoundationService.transaction(db, (tx) async {
       await _ensureAdjustmentSchema(tx);
 
       final repairRows = await tx.query(
@@ -582,6 +607,7 @@ class RepairAutoAccountingService {
         limit: 1,
       );
       if (repairRows.isEmpty) return;
+      if (repairRows.first['status'] == cancelledStatus) return;
 
       // STAGE1_P0_REPAIR_DELETE_AFTER_REVERSAL
       // Payment rows are immutable audit records. A formal reversal leaves the
@@ -661,6 +687,31 @@ class RepairAutoAccountingService {
         where: 'id = ?',
         whereArgs: [repairId],
       );
+      final linkedInvoices = await tx
+          .query('invoices', where: 'repair_id=?', whereArgs: [repairId]);
+      for (final original in linkedInvoices) {
+        await tx.update('invoices', {'status': 'VOID', 'updated_at': now},
+            where: 'id=?', whereArgs: [original['id']]);
+        await AuditTrailService.log(
+            executor: tx,
+            action: 'INVOICE_VOIDED',
+            entityType: 'invoice',
+            entityId: '${original['id']}',
+            before: original,
+            after: {...original, 'status': 'VOID'},
+            reason: reason);
+      }
+      await AuditTrailService.log(
+          executor: tx,
+          action: 'REPAIR_VOIDED',
+          entityType: 'repair',
+          entityId: repairId,
+          before: repairRows.first,
+          after:
+              (await tx.query('repairs', where: 'id=?', whereArgs: [repairId]))
+                  .single,
+          reason: reason,
+          metadata: {'reversed_entries': glRows});
     });
   }
 }

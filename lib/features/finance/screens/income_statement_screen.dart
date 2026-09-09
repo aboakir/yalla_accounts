@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/finance/screens/income_statement_screen.dart
 //
 // قائمة الدخل — Income Statement (GL v29)
@@ -98,6 +99,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _from = d);
       _load();
@@ -113,6 +115,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       lastDate: DateTime(now.year + 1, 12, 31),
       locale: const Locale('ar'),
     );
+    if (!mounted) return;
     if (d != null) {
       setState(() => _to = d);
       _load();
@@ -121,6 +124,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
   // ───────────── Load ─────────────
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -131,6 +135,9 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
     });
 
     try {
+      if (_from != null && _to != null && _from!.isAfter(_to!)) {
+        throw ArgumentError('بداية الفترة بعد نهايتها');
+      }
       final db = await DBService.database;
 
       // شروط التاريخ داخل LEFT JOIN على gl_entries للحفاظ على ظهور الحسابات بلا حركة
@@ -138,11 +145,11 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       final args = <Object?>[];
 
       if (_from != null) {
-        joinDateConds.add('e.date >= ?');
+        joinDateConds.add('substr(e.date,1,10) >= substr(?,1,10)');
         args.add(_dayStart(_from!).toIso8601String());
       }
       if (_to != null) {
-        joinDateConds.add('e.date <= ?');
+        joinDateConds.add('substr(e.date,1,10) <= substr(?,1,10)');
         args.add(_dayEnd(_to!).toIso8601String());
       }
       final joinDateSql =
@@ -164,8 +171,8 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           IFNULL(a.code,'')       AS code,
           a.name                  AS name,
           a.type                  AS type,      -- REVENUE / EXPENSE
-          IFNULL(SUM(l.debit),0)  AS sdebit,
-          IFNULL(SUM(l.credit),0) AS scredit
+          IFNULL(SUM(CASE WHEN e.id IS NOT NULL THEN l.debit ELSE 0 END),0)  AS sdebit,
+          IFNULL(SUM(CASE WHEN e.id IS NOT NULL THEN l.credit ELSE 0 END),0) AS scredit
         FROM accounts a
         LEFT JOIN gl_lines   l ON l.account_id = a.id
         LEFT JOIN gl_entries e ON e.id = l.entry_id $joinDateSql
@@ -587,6 +594,16 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
             ],
           ),
           const SizedBox(width: 8),
+          FinancialPeriodFilter(
+              from: _from,
+              to: _to,
+              onChanged: (range) {
+                setState(() {
+                  _from = range.start;
+                  _to = range.end;
+                });
+                _load();
+              }),
           _chip(
             label: _from == null ? 'من' : _df.format(_from!),
             icon: Icons.date_range,

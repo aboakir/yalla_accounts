@@ -70,14 +70,17 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
   // Load Data
   // ================================
   Future<void> _loadClients() async {
+    if (!mounted) return;
     try {
       setState(() => _isLoading = true);
       final result = await ClientService.getAllClients();
+      if (!mounted) return;
       setState(() {
         _clients = result;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("خطأ أثناء تحميل العملاء: $e")),
@@ -183,6 +186,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
       builder: (_) => ClientDetailsDialog(client: c),
     );
 
+    if (!mounted) return;
     if (r == "edit") _editClient(c);
     if (r == "delete") _deleteClient(c);
   }

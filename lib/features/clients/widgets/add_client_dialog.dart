@@ -17,6 +17,7 @@ class AddClientDialog extends StatefulWidget {
 
 class _AddClientDialogState extends State<AddClientDialog> {
   final _formKey = GlobalKey<FormState>();
+  bool _saving = false;
 
   // مدخلات اختيارية
   final _phoneController = TextEditingController();
@@ -39,36 +40,44 @@ class _AddClientDialogState extends State<AddClientDialog> {
   }
 
   Future<void> _saveClient() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || !_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      // تحديد الاسم حسب النوع
+      final String name = _clientType == 'شركة تأمين'
+          ? (_selectedInsuranceCompany ?? '')
+          : _manualNameController.text.trim();
 
-    // تحديد الاسم حسب النوع
-    final String name = _clientType == 'شركة تأمين'
-        ? (_selectedInsuranceCompany ?? '')
-        : _manualNameController.text.trim();
+      // فحص التكرار — نعتمد خدمة موحّدة (تدعم العربي/الإنجليزي داخليًا)
+      final exists = await ClientService.clientExists(name, type: _clientType);
+      if (exists) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❗ هذا العميل موجود مسبقًا')),
+        );
+        return;
+      }
 
-    // فحص التكرار — نعتمد خدمة موحّدة (تدعم العربي/الإنجليزي داخليًا)
-    final exists = await ClientService.clientExists(name, type: _clientType);
-    if (exists) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❗ هذا العميل موجود مسبقًا')),
+      final newClient = Client(
+        name: name,
+        type: _clientType, // بالعربي كما هو معتمد في مشروعك
+        phone: _phoneController.text.trim(),
+        email: _emailController.text.trim(),
+        address: _addressController.text.trim(),
+        notes: _notesController.text.trim(), // 🆕
       );
-      return;
+
+      await ClientService.insertClient(newClient);
+
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('تعذر حفظ العميل: $error')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-
-    final newClient = Client(
-      name: name,
-      type: _clientType, // بالعربي كما هو معتمد في مشروعك
-      phone: _phoneController.text.trim(),
-      email: _emailController.text.trim(),
-      address: _addressController.text.trim(),
-      notes: _notesController.text.trim(), // 🆕
-    );
-
-    await ClientService.insertClient(newClient);
-
-    if (!mounted) return;
-    Navigator.pop(context, true);
   }
 
   void _onTypeChanged(String? val) {
@@ -179,7 +188,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
           child: const Text('إلغاء'),
         ),
         ElevatedButton(
-          onPressed: _saveClient,
+          onPressed: _saving ? null : _saveClient,
           child: const Text('حفظ'),
         ),
       ],

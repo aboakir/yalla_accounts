@@ -1,3 +1,6 @@
+import 'package:yalla_accounts/features/onboarding/screens/workshop_onboarding_completion_screen.dart';
+import 'package:yalla_accounts/features/onboarding/services/workshop_onboarding_service.dart';
+import 'package:yalla_accounts/features/settings/services/workshop_logo_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -5,10 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
-import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
-import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/services/commercial_access_gate_service.dart';
-import 'package:yalla_accounts/features/auth/services/device_unlock_service.dart';
 import 'package:yalla_accounts/features/auth/services/first_owner_bootstrap_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
@@ -34,14 +34,11 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   final _address = TextEditingController();
   final _city = TextEditingController();
   final _street = TextEditingController();
-  final _pin = TextEditingController();
-  final _confirmPin = TextEditingController();
 
   int _step = 0;
   bool _loading = false;
   bool _obscure = true;
-  bool _enableBiometric = false;
-  bool _biometricAvailable = false;
+
   bool _otpBusy = false;
   bool _phoneVerified = false;
   String? _phoneChallengeId;
@@ -50,6 +47,9 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   String _country = 'فلسطين';
   String _province = 'الضفة الغربية';
   XFile? _logo;
+  FirstOwnerBootstrapResult? _createdOwner;
+  bool _recoveryAcknowledged = false;
+  bool _showingRecovery = false;
 
   static const _countries = ['فلسطين', 'الأردن', 'مصر', 'سوريا'];
   static const _provinces = <String, List<String>>{
@@ -58,18 +58,6 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
     'مصر': ['القاهرة', 'الإسكندرية'],
     'سوريا': ['دمشق', 'حلب'],
   };
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBiometrics();
-  }
-
-  Future<void> _loadBiometrics() async {
-    final value =
-        await ref.read(deviceUnlockServiceProvider).biometricAvailable();
-    if (mounted) setState(() => _biometricAvailable = value);
-  }
 
   bool _validateCurrentStep() {
     switch (_step) {
@@ -80,8 +68,9 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
           return _fail(
               'كلمة المرور يجب أن تكون 10 أحرف على الأقل وتحتوي رقمًا.');
         }
-        if (_password.text != _confirmPassword.text)
+        if (_password.text != _confirmPassword.text) {
           return _fail('كلمتا المرور غير متطابقتين.');
+        }
         return true;
       case 1:
         final phone = _normalizedPhone();
@@ -91,14 +80,10 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
         }
         return true;
       case 2:
-        if (_workshopName.text.trim().length < 2)
+        if (_workshopName.text.trim().length < 2) {
           return _fail('أدخل اسم الورشة.');
+        }
         if (_city.text.trim().isEmpty) return _fail('أدخل المدينة.');
-        return true;
-      case 3:
-        if (!RegExp(r'^\d{4,6}$').hasMatch(_pin.text))
-          return _fail('PIN يجب أن يكون من 4 إلى 6 أرقام.');
-        if (_pin.text != _confirmPin.text) return _fail('تأكيد PIN غير مطابق.');
         return true;
     }
     return false;
@@ -210,7 +195,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
 
   Future<void> _next() async {
     if (!_validateCurrentStep()) return;
-    if (_step < 3) {
+    if (_step < 2) {
       setState(() => _step++);
     } else {
       await _finish();
@@ -222,100 +207,112 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
     setState(() => _loading = true);
     try {
       final userService = ref.read(userServiceProvider);
-      if (await userService.hasAnyUsers()) {
-        _fail('تم إعداد مالك المنشأة مسبقًا.');
-        if (mounted)
-          Navigator.of(context).pushReplacementNamed(AppRoutes.login);
-        return;
-      }
-
-      final challengeId = _phoneChallengeId;
-      final verificationToken = _phoneVerificationToken;
-      final verifiedPhone = _verifiedPhone;
-      if (!_phoneVerified ||
-          challengeId == null ||
-          verificationToken == null ||
-          verifiedPhone == null ||
-          verifiedPhone != _normalizedPhone()) {
-        throw const YallaAdminAuthException(
-          'Server-authoritative phone verification is required.',
-        );
-      }
-      await ref
-          .read(yallaAdminAuthServiceProvider)
-          .consumeCustomerPhoneVerification(
-            challengeId: challengeId,
+      if (_createdOwner == null) {
+        if (await userService.hasAnyUsers()) {
+          if (mounted) {
+            _fail('توجد ورشة بالفعل. سجّل الدخول لإكمال إعدادها.');
+            Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+          }
+          return;
+        }
+        if (await ref
+                .read(workshopOnboardingServiceProvider)
+                .loadSetupLicense() ==
+            null) {
+          if (mounted) {
+            _fail('يلزم تفعيل صالح لهذا الجهاز قبل إنشاء الحساب.');
+            Navigator.of(context).pushReplacementNamed(AppRoutes.activation);
+          }
+          return;
+        }
+        final challengeId = _phoneChallengeId;
+        final verificationToken = _phoneVerificationToken;
+        final verifiedPhone = _verifiedPhone;
+        if (!_phoneVerified ||
+            challengeId == null ||
+            verificationToken == null ||
+            verifiedPhone == null ||
+            verifiedPhone != _normalizedPhone()) {
+          throw const YallaAdminAuthException(
+              'تحقق من رقم الهاتف مجددًا قبل تأسيس الورشة.');
+        }
+        final logoPath = await WorkshopLogoService().persist(_logo?.path);
+        await ref
+            .read(yallaAdminAuthServiceProvider)
+            .consumeCustomerPhoneVerification(
+              challengeId: challengeId,
+              phone: verifiedPhone,
+              verificationToken: verificationToken,
+            );
+        _phoneVerificationToken = null;
+        _phoneVerified = false;
+        _createdOwner = await userService.bootstrapFirstOwner(
+          FirstOwnerBootstrapRequest(
+            ownerName: _ownerName.text.trim(),
+            email: _ownerEmail.text.trim(),
+            password: _password.text,
+            workshopName: _workshopName.text.trim(),
+            workshopAddress: _address.text.trim(),
+            country: _country,
+            province: _province,
+            city: _city.text.trim(),
+            street: _street.text.trim(),
             phone: verifiedPhone,
-            verificationToken: verificationToken,
-          );
-      _phoneVerificationToken = null;
-
-      final result = await userService.bootstrapFirstOwner(
-        FirstOwnerBootstrapRequest(
-          ownerName: _ownerName.text.trim(),
-          email: _ownerEmail.text.trim(),
-          password: _password.text,
-          workshopName: _workshopName.text.trim(),
-          workshopAddress: _address.text.trim(),
-          country: _country,
-          province: _province,
-          city: _city.text.trim(),
-          street: _street.text.trim(),
-          phone: _phone.text.trim(),
-          logoPath: _logo?.path,
-        ),
-      );
-
-      await ref.read(deviceUnlockServiceProvider).configure(
-            userId: result.ownerUserId,
-            pin: _pin.text,
-            enableBiometric: _enableBiometric,
-          );
-
+            logoPath: logoPath,
+          ),
+        );
+        _password.clear();
+        _confirmPassword.clear();
+      }
+      final result = _createdOwner!;
+      if (!mounted) return;
+      if (!_recoveryAcknowledged) {
+        setState(() => _showingRecovery = true);
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => PopScope(
+              canPop: false,
+              child: AdaptiveAlertDialog(
+                title: const Text('تم تأسيس الورشة'),
+                content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                          'احفظ رمز الاستعادة في مكان آمن. يظهر مرة واحدة فقط.'),
+                      const SizedBox(height: 12),
+                      SelectableText(result.recoveryCode,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 18)),
+                    ]),
+                actions: [
+                  FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('حفظته'))
+                ],
+              )),
+        );
+        _recoveryAcknowledged = true;
+        if (mounted) setState(() => _showingRecovery = false);
+      }
       final AppUser? user = await userService.getUserById(result.ownerUserId);
-      if (user == null) throw StateError('تعذر قراءة حساب المالك بعد إنشائه.');
+      if (user == null) {
+        throw StateError('تعذر قراءة حساب المالك. عُد إلى تسجيل الدخول.');
+      }
       final access =
           await ref.read(commercialAccessGateServiceProvider).evaluate(user);
       if (!access.allowed) throw StateError(access.message);
-
-      final session = ref.read(authSessionServiceProvider);
-      await session.saveLoginPreferences(
-        username: user.name,
-        rememberUsername: true,
-        keepSignedIn: true,
-      );
-      await session.createSession(user, keepSignedIn: true);
-      ref.read(currentUserProvider.notifier).state = user;
-
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AdaptiveAlertDialog(
-          title: const Text('تم تأسيس الورشة'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('احفظ رمز الاستعادة في مكان آمن. يظهر مرة واحدة فقط.'),
-              const SizedBox(height: 12),
-              SelectableText(result.recoveryCode,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          actions: [
-            FilledButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('حفظته'))
-          ],
-        ),
-      );
-      if (!mounted) return;
-      Navigator.of(context)
-          .pushNamedAndRemoveUntil(AppRoutes.dashboard, (_) => false);
-    } catch (e) {
-      if (mounted) _fail('تعذر إكمال تأسيس الورشة: $e');
+      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+        builder: (_) => WorkshopOnboardingCompletionScreen(user: user),
+      ));
+    } catch (_) {
+      if (mounted) {
+        _fail(_createdOwner == null
+            ? 'تعذر تأسيس الورشة. تحقق من التفعيل والهاتف ثم أعد المحاولة.'
+            : 'تم حفظ الحساب. أعد المحاولة أو سجّل الدخول لإكمال حماية الجهاز.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -339,8 +336,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       _address,
       _city,
       _street,
-      _pin,
-      _confirmPin
+      _otp
     ]) {
       c.dispose();
     }
@@ -350,79 +346,82 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   @override
   Widget build(BuildContext context) {
     final isPhone = MediaQuery.sizeOf(context).width < 600;
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: AppColors.scaffoldBg,
-        appBar: AppBar(
-          title: const Text('تأسيس الورشة'),
-          centerTitle: false,
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: Column(
-                children: [
-                  _ProgressHeader(step: _step),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(isPhone ? 16 : 24),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: KeyedSubtree(
-                            key: ValueKey(_step), child: _stepBody()),
-                      ),
-                    ),
-                  ),
-                  SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                          isPhone ? 16 : 24, 8, isPhone ? 16 : 24, 16),
-                      child: AdaptiveRow(
-                        children: [
-                          if (_step > 0)
-                            Expanded(
-                                child: OutlinedButton(
-                                    onPressed: _loading
-                                        ? null
-                                        : () => setState(() => _step--),
-                                    child: const Text('السابق'))),
-                          if (_step > 0) const SizedBox(width: 10),
-                          Expanded(
-                            flex: 2,
-                            child: FilledButton(
-                              onPressed: _loading ? null : _next,
-                              child: _loading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2))
-                                  : Text(_step == 3
-                                      ? 'ابدأ استخدام Yalla Accounts'
-                                      : 'التالي'),
-                            ),
+    return PopScope(
+        canPop: !_loading,
+        child: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            backgroundColor: AppColors.scaffoldBg,
+            appBar: AppBar(
+              title: const Text('تأسيس الورشة'),
+              centerTitle: false,
+            ),
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Column(
+                    children: [
+                      _ProgressHeader(step: _step),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.all(isPhone ? 16 : 24),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: KeyedSubtree(
+                                key: ValueKey(_step), child: _stepBody()),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                      SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              isPhone ? 16 : 24, 8, isPhone ? 16 : 24, 16),
+                          child: AdaptiveRow(
+                            children: [
+                              if (_step > 0)
+                                Expanded(
+                                    child: OutlinedButton(
+                                        onPressed:
+                                            _loading || _createdOwner != null
+                                                ? null
+                                                : () => setState(() => _step--),
+                                        child: const Text('السابق'))),
+                              if (_step > 0) const SizedBox(width: 10),
+                              Expanded(
+                                flex: 2,
+                                child: FilledButton(
+                                  onPressed: _loading ? null : _next,
+                                  child: _loading && !_showingRecovery
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2))
+                                      : Text(_step == 2
+                                          ? 'إنشاء الحساب ومتابعة الإعداد'
+                                          : 'التالي'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   Widget _stepBody() {
     switch (_step) {
       case 0:
         return _CardSection(
-          title: '1/4 — حساب المالك',
+          title: '1/3 — حساب المالك',
           subtitle:
               'إعداد حساب مالك المنشأة — بيانات الدخول الأساسية للمالك الأول.',
           children: [
@@ -442,7 +441,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
         );
       case 1:
         return _CardSection(
-          title: '2/4 — التحقق من الهاتف',
+          title: '2/3 — التحقق من الهاتف',
           subtitle:
               'يرسل خادم Yalla الموثوق رمز SMS. لا يتم إنشاء الرمز أو حفظه داخل التطبيق.',
           children: [
@@ -487,7 +486,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
         );
       case 2:
         return _CardSection(
-          title: '3/4 — بيانات الورشة',
+          title: '3/3 — بيانات الورشة',
           subtitle: 'المعلومات الأساسية التي ستظهر داخل ملفات وتقارير الورشة.',
           children: [
             _field(_workshopName, 'اسم الورشة', Icons.storefront_outlined),
@@ -528,26 +527,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
           ],
         );
       default:
-        return _CardSection(
-          title: '4/4 — حماية الجهاز',
-          subtitle: 'PIN محلي مشفّر مع بصمة / Face ID عند توفرها.',
-          children: [
-            _field(_pin, 'PIN من 4 إلى 6 أرقام', Icons.pin_outlined,
-                keyboard: TextInputType.number, obscure: true),
-            _field(_confirmPin, 'تأكيد PIN', Icons.verified_user_outlined,
-                keyboard: TextInputType.number, obscure: true),
-            if (_biometricAvailable)
-              SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  value: _enableBiometric,
-                  onChanged: (v) => setState(() => _enableBiometric = v),
-                  title: const Text('تفعيل البصمة / Face ID'),
-                  subtitle: const Text('يستخدم التحقق المحلي الآمن للجهاز.')),
-            const _InfoBanner(
-                text:
-                    'بعد الإعداد، يمكن للمستخدم المسجل سابقًا فتح التطبيق محليًا عند انقطاع الإنترنت طالما الجلسة والترخيص المحلي ما زالا صالحين.'),
-          ],
-        );
+        return const SizedBox.shrink();
     }
   }
 
@@ -561,6 +541,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       child: TextField(
         inputFormatters: const [YallaDigitNormalizer()],
         controller: controller,
+        enabled: !_loading && !_otpBusy,
         keyboardType: keyboard,
         obscureText: obscure,
         onChanged: onChanged,
@@ -584,7 +565,7 @@ class _ProgressHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: AdaptiveRow(
         children: List.generate(
-            4,
+            3,
             (index) => Expanded(
                 child: Container(
                     height: 5,

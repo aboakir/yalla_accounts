@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -22,6 +23,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
   late DateTime _to;
   String _query = '';
   bool _loading = true;
+  int _request = 0;
   String? _error;
   FinancialOverviewSnapshot? _snapshot;
 
@@ -35,6 +37,8 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
+    final request = ++_request;
     setState(() {
       _loading = true;
       _error = null;
@@ -45,13 +49,13 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
         to: _to,
         query: _query,
       );
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _snapshot = snapshot;
         _loading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -67,7 +71,7 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
       lastDate: DateTime(DateTime.now().year + 1, 12, 31),
       locale: const Locale('ar'),
     );
-    if (d == null) return;
+    if (!mounted || d == null) return;
     setState(() => _from = d);
     await _load();
   }
@@ -80,18 +84,9 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
       lastDate: DateTime(DateTime.now().year + 1, 12, 31),
       locale: const Locale('ar'),
     );
-    if (d == null) return;
+    if (!mounted || d == null) return;
     setState(() => _to = d);
     await _load();
-  }
-
-  void _thisMonth() {
-    final now = DateTime.now();
-    setState(() {
-      _from = DateTime(now.year, now.month, 1);
-      _to = now;
-    });
-    _load();
   }
 
   @override
@@ -165,11 +160,16 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
                 children: [
                   _headerChip('من ${_df.format(_from)}', _pickFrom),
                   _headerChip('إلى ${_df.format(_to)}', _pickTo),
-                  ActionChip(
-                    label: const Text('هذا الشهر'),
-                    onPressed: _thisMonth,
-                    avatar: const Icon(Icons.today, size: 18),
-                  ),
+                  FinancialPeriodFilter(
+                      from: _from,
+                      to: _to,
+                      onChanged: (range) {
+                        setState(() {
+                          _from = range.start;
+                          _to = range.end;
+                        });
+                        _load();
+                      }),
                   SizedBox(
                     width: mobile ? double.infinity : 260,
                     child: TextField(
@@ -224,6 +224,8 @@ class _FinanceDashboardScreenState extends State<FinanceDashboardScreen> {
     final activityCards = <_MetricData>[
       _MetricData('إيرادات الفترة', s.revenue, Icons.south_west),
       _MetricData('مصروفات الفترة', s.expenses, Icons.north_east),
+      _MetricData('المقبوضات النقدية والبنكية', s.receipts, Icons.south_west),
+      _MetricData('المدفوعات النقدية والبنكية', s.payments, Icons.north_east),
       _MetricData('مقبوضات العملاء', s.collections, Icons.payments),
       _MetricData('مدفوع للموردين', s.supplierPayments, Icons.shopping_cart),
       _MetricData('رواتب مدفوعة', s.payrollPayments, Icons.price_check),

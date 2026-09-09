@@ -2,20 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/insurance/models/insurance_invoice.dart';
 import 'package:yalla_accounts/features/insurance/services/insurance_invoice_service.dart';
 
-final insuranceInvoiceListProvider =
-    StateNotifierProvider<InsuranceInvoiceListNotifier, List<InsuranceInvoice>>(
+final insuranceInvoiceListProvider = StateNotifierProvider<
+    InsuranceInvoiceListNotifier, AsyncValue<List<InsuranceInvoice>>>(
   (ref) => InsuranceInvoiceListNotifier(),
 );
 
 class InsuranceInvoiceListNotifier
-    extends StateNotifier<List<InsuranceInvoice>> {
-  InsuranceInvoiceListNotifier() : super([]) {
+    extends StateNotifier<AsyncValue<List<InsuranceInvoice>>> {
+  InsuranceInvoiceListNotifier() : super(const AsyncLoading()) {
     loadInvoices();
   }
 
   Future<void> loadInvoices() async {
-    final invoices = await InsuranceInvoiceService.getAllInvoices();
-    state = invoices;
+    state = const AsyncLoading();
+    final result =
+        await AsyncValue.guard(InsuranceInvoiceService.getAllInvoices);
+    if (mounted) state = result;
   }
 
   Future<void> addInvoice(InsuranceInvoice invoice) async {

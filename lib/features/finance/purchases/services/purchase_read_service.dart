@@ -1,3 +1,4 @@
+import 'purchase_balance_sql.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/purchases/services/purchase_read_service.dart
 //
@@ -26,8 +27,6 @@
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 
 class PurchaseReadService {
-  static const String _table = 'purchase_invoices';
-
   // ---------------------------------------------------------------------------
   // 1) جميع فواتير المشتريات — الأحدث أولاً
   // ---------------------------------------------------------------------------
@@ -40,8 +39,10 @@ class PurchaseReadService {
         pi.supplier_id,
         s.name AS supplierName,
         pi.amount_total,
-        pi.paid_total,
-        pi.status,
+        ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
+        CASE WHEN pi.status IN ('CANCELLED', 'VOID') THEN pi.status
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} >= pi.amount_total - 0.005 THEN 'PAID'
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} > 0.005 THEN 'PARTIAL' ELSE 'UNPAID' END AS status,
         pi.date
       FROM purchase_invoices pi
       LEFT JOIN suppliers s ON s.id = pi.supplier_id
@@ -61,12 +62,15 @@ class PurchaseReadService {
         pi.supplier_id,
         s.name AS supplierName,
         pi.amount_total,
-        pi.paid_total,
-        pi.status,
+        ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
+        CASE WHEN pi.status IN ('CANCELLED', 'VOID') THEN pi.status
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} >= pi.amount_total - 0.005 THEN 'PAID'
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} > 0.005 THEN 'PARTIAL' ELSE 'UNPAID' END AS status,
         pi.date
       FROM purchase_invoices pi
       LEFT JOIN suppliers s ON s.id = pi.supplier_id
-      WHERE pi.status = 'UNPAID' OR pi.status = 'PARTIAL'
+      WHERE COALESCE(pi.status, '') NOT IN ('CANCELLED', 'VOID')
+        AND pi.amount_total - ${PurchaseBalanceSql.paid('pi.id')} > 0.005
       ORDER BY pi.date DESC, pi.id DESC
     ''');
   }
@@ -84,8 +88,10 @@ class PurchaseReadService {
         pi.supplier_id,
         s.name AS supplierName,
         pi.amount_total,
-        pi.paid_total,
-        pi.status,
+        ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
+        CASE WHEN pi.status IN ('CANCELLED', 'VOID') THEN pi.status
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} >= pi.amount_total - 0.005 THEN 'PAID'
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} > 0.005 THEN 'PARTIAL' ELSE 'UNPAID' END AS status,
         pi.date
       FROM purchase_invoices pi
       LEFT JOIN suppliers s ON s.id = pi.supplier_id
@@ -106,8 +112,10 @@ class PurchaseReadService {
         pi.supplier_id,
         s.name AS supplierName,
         pi.amount_total,
-        pi.paid_total,
-        pi.status,
+        ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
+        CASE WHEN pi.status IN ('CANCELLED', 'VOID') THEN pi.status
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} >= pi.amount_total - 0.005 THEN 'PAID'
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} > 0.005 THEN 'PARTIAL' ELSE 'UNPAID' END AS status,
         pi.date
       FROM purchase_invoices pi
       LEFT JOIN suppliers s ON s.id = pi.supplier_id
@@ -144,8 +152,10 @@ class PurchaseReadService {
         pi.supplier_id,
         s.name AS supplierName,
         pi.amount_total,
-        pi.paid_total,
-        pi.status,
+        ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
+        CASE WHEN pi.status IN ('CANCELLED', 'VOID') THEN pi.status
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} >= pi.amount_total - 0.005 THEN 'PAID'
+          WHEN ${PurchaseBalanceSql.paid('pi.id')} > 0.005 THEN 'PARTIAL' ELSE 'UNPAID' END AS status,
         pi.date
       FROM purchase_invoices pi
       LEFT JOIN suppliers s ON s.id = pi.supplier_id

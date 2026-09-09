@@ -1,6 +1,16 @@
 class RoleKeys {
-  // P16 official Mobile V2 roles.
+  // Canonical roles for new users; legacy roles keep their existing grants.
   static const String owner = 'owner';
+  static const String admin = 'admin';
+  static const String staff = 'staff';
+  static const String viewer = 'viewer';
+  static const Set<String> canonical = {
+    owner,
+    admin,
+    accountant,
+    staff,
+    viewer
+  };
   static const String manager = 'manager';
   static const String accountant = 'accountant';
   static const String employee = 'employee';
@@ -8,7 +18,7 @@ class RoleKeys {
 
   // Historical SEC.008 roles remain recognized so existing installations and
   // old signed/test data are never orphaned. New UI assignment exposes only
-  // the five official P16 roles above.
+  // the canonical roles above (Owner is created by protected bootstrap).
   static const String cashier = 'cashier';
   static const String workshopManager = 'workshop_manager';
   static const String estimator = 'estimator';
@@ -17,13 +27,16 @@ class RoleKeys {
   static const String readOnly = 'read_only';
 
   static const Set<String> assignable = {
-    manager,
+    admin,
     accountant,
-    employee,
-    technician,
+    staff,
+    viewer,
   };
 
   static const Set<String> legacyAssignable = {
+    manager,
+    employee,
+    technician,
     cashier,
     workshopManager,
     estimator,
@@ -32,13 +45,14 @@ class RoleKeys {
     readOnly,
   };
 
-  static bool isKnown(String role) => all.contains(role);
-  static bool isAssignable(String role) => assignable.contains(role);
+  static String normalize(String role) => role.trim().toLowerCase();
+
+  static bool isKnown(String role) => all.contains(normalize(role));
+  static bool isAssignable(String role) => assignable.contains(normalize(role));
 
   static const Set<String> all = {
-    owner,
+    ...canonical,
     manager,
-    accountant,
     employee,
     technician,
     cashier,
@@ -50,7 +64,13 @@ class RoleKeys {
   };
 
   static String displayNameAr(String role) {
-    switch (role) {
+    switch (normalize(role)) {
+      case admin:
+        return 'مدير';
+      case staff:
+        return 'موظف';
+      case viewer:
+        return 'مشاهد — قراءة فقط';
       case owner:
         return 'المالك';
       case manager:
@@ -179,35 +199,56 @@ class PermissionKeys {
 }
 
 class AuthorizationPolicy {
+  static const Set<String> _readOnlyPermissions = {
+    PermissionKeys.customerView,
+    PermissionKeys.repairView,
+    PermissionKeys.glView,
+    PermissionKeys.reportView,
+    PermissionKeys.settingsView,
+  };
+
+  static const Set<String> _employeePermissions = {
+    PermissionKeys.customerView,
+    PermissionKeys.customerCreate,
+    PermissionKeys.customerEdit,
+    PermissionKeys.repairView,
+    PermissionKeys.repairCreate,
+    PermissionKeys.repairEdit,
+    PermissionKeys.repairWorkflow,
+  };
+
+  static const Set<String> _managerPermissions = {
+    PermissionKeys.customerView,
+    PermissionKeys.customerCreate,
+    PermissionKeys.customerEdit,
+    PermissionKeys.repairView,
+    PermissionKeys.repairCreate,
+    PermissionKeys.repairEdit,
+    PermissionKeys.repairWorkflow,
+    PermissionKeys.repairClose,
+    PermissionKeys.repairReopen,
+    PermissionKeys.invoiceCreate,
+    PermissionKeys.invoiceApprove,
+    PermissionKeys.receiptCreate,
+    PermissionKeys.paymentCreate,
+    PermissionKeys.chequeManage,
+    PermissionKeys.purchaseManage,
+    PermissionKeys.repairCostManage,
+    PermissionKeys.payrollView,
+    PermissionKeys.reportView,
+    PermissionKeys.reportExport,
+    PermissionKeys.userView,
+    PermissionKeys.auditView,
+    PermissionKeys.settingsView,
+    PermissionKeys.backupCreate,
+    PermissionKeys.backupExport,
+  };
+
   static const Map<String, Set<String>> rolePermissions = {
     RoleKeys.owner: PermissionKeys.all,
 
-    RoleKeys.manager: {
-      PermissionKeys.customerView,
-      PermissionKeys.customerCreate,
-      PermissionKeys.customerEdit,
-      PermissionKeys.repairView,
-      PermissionKeys.repairCreate,
-      PermissionKeys.repairEdit,
-      PermissionKeys.repairWorkflow,
-      PermissionKeys.repairClose,
-      PermissionKeys.repairReopen,
-      PermissionKeys.invoiceCreate,
-      PermissionKeys.invoiceApprove,
-      PermissionKeys.receiptCreate,
-      PermissionKeys.paymentCreate,
-      PermissionKeys.chequeManage,
-      PermissionKeys.purchaseManage,
-      PermissionKeys.repairCostManage,
-      PermissionKeys.payrollView,
-      PermissionKeys.reportView,
-      PermissionKeys.reportExport,
-      PermissionKeys.userView,
-      PermissionKeys.auditView,
-      PermissionKeys.settingsView,
-      PermissionKeys.backupCreate,
-      PermissionKeys.backupExport,
-    },
+    RoleKeys.manager: _managerPermissions,
+    RoleKeys.admin: _managerPermissions,
 
     RoleKeys.accountant: {
       PermissionKeys.customerView,
@@ -237,15 +278,8 @@ class AuthorizationPolicy {
       PermissionKeys.backupExport,
     },
 
-    RoleKeys.employee: {
-      PermissionKeys.customerView,
-      PermissionKeys.customerCreate,
-      PermissionKeys.customerEdit,
-      PermissionKeys.repairView,
-      PermissionKeys.repairCreate,
-      PermissionKeys.repairEdit,
-      PermissionKeys.repairWorkflow,
-    },
+    RoleKeys.employee: _employeePermissions,
+    RoleKeys.staff: _employeePermissions,
 
     RoleKeys.technician: {
       PermissionKeys.repairView,
@@ -298,15 +332,10 @@ class AuthorizationPolicy {
       PermissionKeys.auditView,
       PermissionKeys.settingsView,
     },
-    RoleKeys.readOnly: {
-      PermissionKeys.customerView,
-      PermissionKeys.repairView,
-      PermissionKeys.glView,
-      PermissionKeys.reportView,
-      PermissionKeys.settingsView,
-    },
+    RoleKeys.readOnly: _readOnlyPermissions,
+    RoleKeys.viewer: _readOnlyPermissions,
   };
 
-  static Set<String> forRole(String role) =>
-      Set<String>.unmodifiable(rolePermissions[role] ?? const <String>{});
+  static Set<String> forRole(String role) => Set<String>.unmodifiable(
+      rolePermissions[RoleKeys.normalize(role)] ?? const <String>{});
 }

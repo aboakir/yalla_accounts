@@ -87,7 +87,7 @@ class _StepEmployeeBasicDataState extends ConsumerState<StepEmployeeBasicData> {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Center(
+      child: SingleChildScrollView(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),

@@ -36,6 +36,8 @@ class EmployeeDetailsScreen extends ConsumerWidget {
               baseSalary: employee.baseSalary,
               totalWorkDaysInMonth: totalDaysInMonth,
               attendanceRecords: records,
+              periodStart: from,
+              periodEnd: to,
             );
 
     return calculated;

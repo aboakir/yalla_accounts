@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
 // 📁 lib/features/employees/screens/salary_screen.dart
 //
 // SalaryScreen — استحقاقات الرواتب من الحضور + سندات الصرف
@@ -28,7 +29,6 @@ import 'package:yalla_accounts/features/employees/services/payroll_periods_servi
 // Settings
 import 'package:yalla_accounts/features/settings/providers/workshop_settings_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
-import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
@@ -52,9 +52,6 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
 
   // ===== Helpers =====
   String _monthKey() => DateFormat('yyyy-MM', 'en').format(_selectedMonth);
-  String _snapId(String empId, String monthKey) => 'SNAP-$empId-$monthKey';
-  DateTime _periodDate() =>
-      DateTime(_selectedMonth.year, _selectedMonth.month, 1);
 
   @override
   void initState() {
@@ -214,7 +211,6 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
   }
 
   // ===== Payment =====
-  String _normalizeMethod(String? v) => (v ?? 'cash').toLowerCase().trim();
 
   Future<void> _paySalaryForEmployee({
     required String employeeId,
@@ -228,83 +224,14 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
       );
       return;
     }
-    final remaining = (run.net - run.amountPaid).clamp(0.0, double.infinity);
-    final controller =
-        TextEditingController(text: remaining.toStringAsFixed(2));
-    final methodItems = <DropdownMenuItem<String>>[
-      const DropdownMenuItem(value: 'cash', child: Text('نقدي')),
-      const DropdownMenuItem(value: 'bank', child: Text('بنك')),
-      const DropdownMenuItem(value: 'transfer', child: Text('تحويل')),
-    ];
-    String method = 'cash';
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AdaptiveAlertDialog(
-        title: const Text('إنشاء سند صرف راتب'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              inputFormatters: const [YallaDigitNormalizer()],
-              controller: controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: 'المبلغ',
-                helperText: 'المتبقي: ${MoneyFormatter.format(remaining)}',
-                prefixText: '${MoneyFormatter.symbol} ',
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: method,
-              items: methodItems,
-              onChanged: (v) => method = _normalizeMethod(v),
-              decoration: const InputDecoration(labelText: 'طريقة الدفع'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('إنشاء سند صرف'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    final amount = double.tryParse(controller.text.trim()) ?? 0.0;
-    if (amount <= 0) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('المبلغ غير صالح')),
-      );
-      return;
-    }
-    try {
-      await PayrollDatabaseService.pay(
-        runId: run.id,
-        amount: amount,
-        date: DateTime.now(),
-        method: method,
-        note: 'سند صرف راتب $employeeName لشهر ${_monthKey()}',
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم إنشاء سند صرف الراتب')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل إنشاء سند الصرف: $e')),
-      );
-    }
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => PaymentVoucherScreen(
+            employeeId: employeeId,
+            employeeName: employeeName,
+            payrollRun: run,
+            presetAmount: run.net - run.amountPaid)));
+    if (mounted) setState(() {});
   }
 
   // ===== Sidebar on mobile: custom right panel =====
@@ -415,21 +342,30 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
       extraActions: [
         Padding(
           padding: const EdgeInsets.only(right: 8.0),
-          child: TextButton.icon(
-            onPressed: (_togglingLock || _calculating) ? null : _toggleLock,
-            icon: _togglingLock
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(_isLocked ? Icons.lock : Icons.lock_open,
-                    color: Colors.white),
-            label: Text(
-              _isLocked ? 'الشهر مقفول' : 'الشهر مفتوح',
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
+          child: isDesktop
+              ? TextButton.icon(
+                  onPressed:
+                      (_togglingLock || _calculating) ? null : _toggleLock,
+                  icon: _togglingLock
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(_isLocked ? Icons.lock : Icons.lock_open,
+                          color: Colors.white),
+                  label: Text(
+                    _isLocked ? 'الشهر مقفول' : 'الشهر مفتوح',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                )
+              : IconButton(
+                  tooltip: _isLocked ? 'الشهر مقفول' : 'الشهر مفتوح',
+                  onPressed:
+                      (_togglingLock || _calculating) ? null : _toggleLock,
+                  icon: Icon(_isLocked ? Icons.lock : Icons.lock_open,
+                      color: Colors.white),
+                ),
         ),
         IconButton(
           tooltip: 'إعادة حساب الجميع',
@@ -446,7 +382,9 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
         _settingsBanner(context),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: AdaptiveRow(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               ElevatedButton.icon(
                 onPressed: _calculating ? null : _pickMonth,
@@ -465,7 +403,8 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
                 ),
               if (_calcError != null) ...[
                 const SizedBox(width: 12),
-                Flexible(
+                SizedBox(
+                  width: 260,
                   child: Text(
                     'خطأ في الحساب: $_calcError',
                     overflow: TextOverflow.ellipsis,
@@ -473,7 +412,6 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
                   ),
                 )
               ],
-              const Spacer(),
               SizedBox(
                 width: 260,
                 child: TextField(

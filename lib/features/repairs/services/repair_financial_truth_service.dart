@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'dart:math' as math;
 
 import 'package:sqflite/sqflite.dart';
@@ -7,7 +8,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 ///
 /// Rules:
 /// - commercial value: repairs.fileValue
-/// - paid: SUM(payments.amount) linked to the repair
+/// - paid: net posted GL receipt movements linked to the repair
 /// - repairs.total_paid_amount / repairs.paidAmount: cache only
 /// - remaining never goes negative
 /// - overpayment becomes customer credit
@@ -51,23 +52,24 @@ class RepairFinancialTruthService {
     return 'مسدد جزئي';
   }
 
-  static Future<double> paidForRepair(
-    String repairId, {
-    DatabaseExecutor? executor,
-  }) async {
+  /// Net posted receipts, credit allocations and cheque lifecycle movements.
+  /// Original + reversal cancel naturally; reopening screens never posts data.
+  static const String paidByRepairSql = '''
+    SELECT l.repair_id, SUM(l.credit-l.debit) AS paid
+    FROM gl_lines l JOIN gl_entries e ON e.id=l.entry_id
+    JOIN accounts a ON a.id=l.account_id
+    LEFT JOIN gl_entries original ON original.id=e.reversal_of
+    WHERE (a.code='1200' OR a.code LIKE '1200.%')
+      AND UPPER(COALESCE(original.source,e.source)) IN
+        ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE','VOUCHER')
+    GROUP BY l.repair_id
+  ''';
+
+  static Future<double> paidForRepair(String repairId,
+      {DatabaseExecutor? executor}) async {
     final db = executor ?? await DBService.database;
     final rows = await db.rawQuery(
-      '''
-      SELECT COALESCE(SUM(amount),0) AS paid
-      FROM payments
-      WHERE COALESCE(isIncome,1)=1
-        AND (
-          repair_id = ?
-          OR (COALESCE(repair_id,'')='' AND relatedRepairId = ?)
-        )
-      ''',
-      [repairId, repairId],
-    );
+        'SELECT paid FROM ($paidByRepairSql) WHERE repair_id=?', [repairId]);
     return rows.isEmpty ? 0.0 : _round2(_d(rows.first['paid']));
   }
 
@@ -83,8 +85,7 @@ class RepairFinancialTruthService {
       LEFT JOIN accounts a ON a.id=l.account_id
       WHERE l.repair_id=?
         AND (
-          a.code LIKE '1200.C%'
-          OR UPPER(COALESCE(l.party_type,'')) IN ('CLIENT','CUSTOMER')
+          a.code='1200' OR a.code LIKE '1200.%'
         )
       ''',
       [repairId],
@@ -160,15 +161,17 @@ class RepairFinancialTruthService {
 
     final fileValue = _round2(_d(rows.first['fileValue']));
     final paid = await paidForRepair(repairId, executor: db);
-    await db.update(
-      'repairs',
-      {
-        'paidAmount': paid,
-        'total_paid_amount': paid,
-        'paymentStatus': paymentStatusFor(fileValue, paid),
-      },
-      where: 'id=?',
-      whereArgs: [repairId],
-    );
+    await SyncFoundationService.writeOn(
+        db,
+        (syncTxn) => syncTxn.update(
+              'repairs',
+              {
+                'paidAmount': paid,
+                'total_paid_amount': paid,
+                'paymentStatus': paymentStatusFor(fileValue, paid),
+              },
+              where: 'id=?',
+              whereArgs: [repairId],
+            ));
   }
 }

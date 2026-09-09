@@ -146,8 +146,9 @@ class _DashboardBody extends StatelessWidget {
               // ==================================================================
               // HEADER + REPORT BUTTON
               // ==================================================================
-              AdaptiveRow(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
                 children: [
                   const Text(
                     "لوحة إدارة الشيكات",

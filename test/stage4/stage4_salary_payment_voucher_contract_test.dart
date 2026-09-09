@@ -57,7 +57,8 @@ void main() {
     expect(salaryDb, isNot(contains("source: 'PAYROLL_PAYMENT'")));
     expect(dashboard, isNot(contains('SalaryService.paySalary')));
     expect(salaryScreen, isNot(contains('SalaryDatabaseService.paySalary')));
-    expect(salaryScreen, contains('PayrollDatabaseService.pay'));
-    expect(salaryScreen, contains('إنشاء سند صرف راتب'));
+    expect(salaryScreen, isNot(contains('PayrollDatabaseService.pay(')));
+    expect(salaryScreen, contains('PaymentVoucherScreen('));
+    expect(salaryScreen, contains('payrollRun:'));
   });
 }

@@ -219,7 +219,7 @@ void main() {
       'lib/features/auth/widgets/authenticated_route_gate.dart',
     ).readAsString();
     expect(login, contains('commercialAccessGateServiceProvider'));
-    expect(login, contains('if (!commercialAccess.allowed)'));
+    expect(login, contains('if (!decision.allowed)'));
     expect(route, contains('commercialAccessGateServiceProvider'));
     expect(
       route,
