@@ -378,7 +378,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                         .pushNamed(
                                                             AppRoutes.register),
                                                 child: const Text(
-                                                    'إعداد الورشة لأول مرة')),
+                                                    'إنشاء ورشة جديدة')),
                                         ])))))))));
   }
 }
