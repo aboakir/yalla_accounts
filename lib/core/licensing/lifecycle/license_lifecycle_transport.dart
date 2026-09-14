@@ -96,9 +96,9 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
     }
 
     final response = await _post(
-      '/v1/license-lifecycle/challenge',
+      '/v1/accounts-integration/license-lifecycle/challenge',
       <String, Object?>{
-        'api_version': 1,
+        'contract_version': 2,
         'action': normalized,
         'license_id': licenseId,
         'subscription_id': subscriptionId,
@@ -126,9 +126,9 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
     }
 
     final response = await _post(
-      '/v1/license-lifecycle/complete',
+      '/v1/accounts-integration/license-lifecycle/complete',
       <String, Object?>{
-        'api_version': 1,
+        'contract_version': 2,
         'challenge_id': challenge.challengeId,
         'action': challenge.action,
         'device_id': proof.deviceId,
@@ -165,6 +165,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set('x-yalla-client', 'yalla-accounts-desktop');
+      request.headers.set('x-yalla-contract-version', '2');
       request.write(jsonEncode(body));
       final response = await request.close().timeout(timeout);
       final raw = await utf8.decoder.bind(response).join().timeout(timeout);

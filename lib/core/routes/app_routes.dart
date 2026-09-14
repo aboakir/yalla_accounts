@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
+import 'package:yalla_accounts/features/auth/screens/forgot_access_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/logout_screen.dart';
 import 'package:yalla_accounts/features/onboarding/screens/workshop_onboarding_screen.dart';
 import 'package:yalla_accounts/features/auth/widgets/authenticated_route_gate.dart';
@@ -400,8 +401,11 @@ class AppRoutes {
           ));
     }
 
-    if (name == login || name == forgotAccess) {
+    if (name == login) {
       return _page(settings, const LoginScreen());
+    }
+    if (name == forgotAccess) {
+      return _page(settings, const ForgotAccessScreen());
     }
     if (name == register) {
       return _page(settings, const WorkshopOnboardingScreen());
@@ -582,8 +586,6 @@ class AppRoutes {
     }
 // Finance - Vouchers
     if (name == receiptVoucher) {
-      print('✅ تم الوصول إلى مسار سند القبض');
-
       final args = settings.arguments;
       if (args is Map) {
         final clientRaw = args['clientId'];

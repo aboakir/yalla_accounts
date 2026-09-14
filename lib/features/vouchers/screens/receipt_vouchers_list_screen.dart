@@ -256,7 +256,8 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   // MAIN WRAPPER
   // =============================================================================
   Widget _main() {
-    final isPhone = MediaQuery.sizeOf(context).width < 1024;
+    final size = MediaQuery.sizeOf(context);
+    final isPhone = size.width < 600 || size.height < 520;
     return isPhone ? _phoneMain() : _desktopMain();
   }
 

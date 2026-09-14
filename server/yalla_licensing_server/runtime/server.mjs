@@ -4,11 +4,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { AuthorityError, C06Authority } from './lib/authority.mjs';
+import { SyncAuthority, SyncAuthorityError } from './lib/sync_authority.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const host = process.env.YALLA_C06_HOST || '127.0.0.1';
 const port = Number(process.env.YALLA_C06_PORT || '8787');
 const authority = new C06Authority({ rootDir: __dirname });
+const syncAuthority = new SyncAuthority({ rootDir: __dirname });
 const publicDir = path.join(__dirname, 'public');
 
 function json(res, status, body) {
@@ -35,7 +37,7 @@ function html(res, status, raw) {
   res.end(body);
 }
 
-async function bodyBytes(req, limit = 256 * 1024) {
+async function bodyBytes(req, limit = 384 * 1024) {
   const chunks = [];
   let total = 0;
   for await (const chunk of req) {
@@ -105,6 +107,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/v1/license-lifecycle/complete') {
       return json(res, 200, authority.completeLifecycle(await parseBody(req)));
     }
+    if (req.method === 'POST' && url.pathname === '/v1/sync/challenge') {
+      return json(res, 200, await syncAuthority.begin(await parseBody(req)));
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/sync/complete') {
+      return json(res, 200, await syncAuthority.complete(await parseBody(req)));
+    }
     if (req.method === 'POST' && url.pathname === '/v1/account-deletion-requests') {
       const item = authority.recordDeletionRequest(await parseBody(req));
       if (String(req.headers['content-type'] || '').includes('application/json')) {
@@ -113,15 +121,15 @@ const server = http.createServer(async (req, res) => {
       return html(
         res,
         202,
-        `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>تم استلام الطلب</title><body style="font-family:Arial,sans-serif;max-width:700px;margin:50px auto;padding:20px"><h1>تم استلام طلبك</h1><p>رقم الطلب: <strong>${item.request_id}</strong></p><p>سيتم التعامل معه وفق سياسة الاحتفاظ بالبيانات.</p></body></html>`,
+        `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>&#1578;&#1605; &#1575;&#1587;&#1578;&#1604;&#1575;&#1605; &#1575;&#1604;&#1591;&#1604;&#1576;</title><body style="font-family:Arial,sans-serif;max-width:700px;margin:50px auto;padding:20px"><h1>&#1578;&#1605; &#1575;&#1587;&#1578;&#1604;&#1575;&#1605; &#1591;&#1604;&#1576;&#1603;</h1><p>&#1585;&#1602;&#1605; &#1575;&#1604;&#1591;&#1604;&#1576;: <strong>${item.request_id}</strong></p><p>&#1587;&#1610;&#1578;&#1605; &#1575;&#1604;&#1578;&#1593;&#1575;&#1605;&#1604; &#1605;&#1593;&#1607; &#1608;&#1601;&#1602; &#1587;&#1610;&#1575;&#1587;&#1577; &#1575;&#1604;&#1575;&#1581;&#1578;&#1601;&#1575;&#1592; &#1576;&#1575;&#1604;&#1576;&#1610;&#1575;&#1606;&#1575;&#1578;.</p></body></html>`,
       );
     }
 
     return json(res, 404, { message: 'Not found.' });
   } catch (error) {
-    const status = error instanceof AuthorityError ? error.status : 500;
-    const message =
-      error instanceof AuthorityError ? error.message : 'Internal server error.';
+    const known = error instanceof AuthorityError || error instanceof SyncAuthorityError;
+    const status = known ? error.status : 500;
+    const message = known ? error.message : 'Internal server error.';
     if (status >= 500) console.error(error);
     return json(res, status, { message });
   }
@@ -131,3 +139,8 @@ server.listen(port, host, () => {
   console.log(`Yalla C06 licensing test authority listening on http://${host}:${port}`);
   console.log(`Trusted key SHA256: ${authority.publicInfo().public_key_sha256}`);
 });
+
+
+
+
+

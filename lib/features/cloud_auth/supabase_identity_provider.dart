@@ -114,17 +114,67 @@ class SupabaseIdentityProvider extends ChangeNotifier
   Future<void> signUp(String email, String password) async {
     await initialize();
     await _client.auth.signUp(
-        email: email.trim(),
-        password: password,
-        emailRedirectTo: CloudAuthConfig.callback);
-    // Account creation grants no local user, owner role, workshop or license.
+      email: email.trim(),
+      password: password,
+    );
+    // Confirmation is completed in-app with OtpType.signup. Creating the
+    // cloud identity alone never grants a local user, owner role or license.
     signedInThisVisit = false;
+  }
+
+  Future<void> verifySignupCode(String email, String code) async {
+    await initialize();
+    final response = await _client.auth.verifyOTP(
+      email: email.trim(),
+      token: code.trim(),
+      type: OtpType.signup,
+    );
+    if (response.session == null) {
+      throw StateError('Signup verification did not create a session.');
+    }
+    recoveryPending = false;
+    signedInThisVisit = true;
+    await verifyIdentity();
+    notifyListeners();
+  }
+
+  Future<void> resendSignupCode(String email) async {
+    await initialize();
+    await _client.auth.resend(
+      email: email.trim(),
+      type: OtpType.signup,
+    );
   }
 
   Future<void> resetPassword(String email) async {
     await initialize();
-    await _client.auth.resetPasswordForEmail(email.trim(),
-        redirectTo: CloudAuthConfig.recovery);
+    await _client.auth.resetPasswordForEmail(email.trim());
+    recoveryPending = false;
+    signedInThisVisit = false;
+  }
+
+  Future<void> verifyRecoveryCode(String email, String code) async {
+    await initialize();
+    final response = await _client.auth.verifyOTP(
+      email: email.trim(),
+      token: code.trim(),
+      type: OtpType.recovery,
+    );
+    if (response.session == null) {
+      throw StateError('Recovery verification did not create a session.');
+    }
+    recoveryPending = true;
+    signedInThisVisit = false;
+    notifyListeners();
+  }
+
+  Future<void> signOut() async {
+    await initialize();
+    await _client.auth.signOut(scope: SignOutScope.local);
+    recoveryPending = false;
+    signedInThisVisit = false;
+    callbackError = null;
+    notifyListeners();
   }
 
   Future<void> updateRecoveredPassword(String password) async {

@@ -11,7 +11,6 @@ import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/commercial_access_gate_service.dart';
 import 'package:yalla_accounts/features/auth/services/first_owner_bootstrap_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
-import 'package:yalla_accounts/features/auth/services/yalla_admin_auth_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -29,7 +28,6 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
   final _phone = TextEditingController();
-  final _otp = TextEditingController();
   final _workshopName = TextEditingController();
   final _address = TextEditingController();
   final _city = TextEditingController();
@@ -39,11 +37,6 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   bool _loading = false;
   bool _obscure = true;
 
-  bool _otpBusy = false;
-  bool _phoneVerified = false;
-  String? _phoneChallengeId;
-  String? _phoneVerificationToken;
-  String? _verifiedPhone;
   String _country = 'فلسطين';
   String _province = 'الضفة الغربية';
   XFile? _logo;
@@ -75,9 +68,6 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       case 1:
         final phone = _normalizedPhone();
         if (phone.length < 8) return _fail('أدخل رقم هاتف صحيحًا.');
-        if (!_phoneVerified || _verifiedPhone != phone) {
-          return _fail('تحقق من رقم الهاتف بواسطة رمز SMS أولًا.');
-        }
         return true;
       case 2:
         if (_workshopName.text.trim().length < 2) {
@@ -97,101 +87,6 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
 
   String _normalizedPhone() =>
       _phone.text.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-
-  void _resetPhoneVerification() {
-    if (_phoneVerified ||
-        _phoneChallengeId != null ||
-        _phoneVerificationToken != null) {
-      setState(() {
-        _phoneVerified = false;
-        _phoneChallengeId = null;
-        _phoneVerificationToken = null;
-        _verifiedPhone = null;
-        _otp.clear();
-      });
-    }
-  }
-
-  Future<void> _sendPhoneOtp() async {
-    final phone = _normalizedPhone();
-    if (phone.length < 8) {
-      _fail('أدخل رقم هاتف صحيحًا أولًا.');
-      return;
-    }
-    if (_otpBusy) return;
-    setState(() => _otpBusy = true);
-    try {
-      final service = ref.read(yallaAdminAuthServiceProvider);
-      if (!service.isConfigured) {
-        throw const YallaAdminAuthException(
-          'خادم Yalla Licensing غير مهيأ في هذه النسخة.',
-        );
-      }
-      final challenge =
-          await service.startCustomerPhoneVerification(phone: phone);
-      if (!mounted) return;
-      setState(() {
-        _phoneChallengeId = challenge.challengeId;
-        _phoneVerificationToken = null;
-        _verifiedPhone = null;
-        _phoneVerified = false;
-        _otp.clear();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'تم إرسال رمز التحقق. صالح لمدة '
-            '${(challenge.expiresInSeconds / 60).ceil()} دقائق.',
-          ),
-        ),
-      );
-    } catch (e) {
-      if (mounted) _fail('تعذر إرسال رمز التحقق: $e');
-    } finally {
-      if (mounted) setState(() => _otpBusy = false);
-    }
-  }
-
-  Future<void> _verifyPhoneOtp() async {
-    final challengeId = _phoneChallengeId;
-    final phone = _normalizedPhone();
-    final code = _otp.text.trim();
-    if (challengeId == null) {
-      _fail('اطلب رمز تحقق أولًا.');
-      return;
-    }
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      _fail('أدخل رمز التحقق المكوّن من 6 أرقام.');
-      return;
-    }
-    if (_otpBusy) return;
-    setState(() => _otpBusy = true);
-    try {
-      final verified =
-          await ref.read(yallaAdminAuthServiceProvider).verifyCustomerPhoneOtp(
-                challengeId: challengeId,
-                code: code,
-              );
-      if (!mounted) return;
-      if (verified.phone != phone) {
-        throw const YallaAdminAuthException(
-          'رقم الهاتف الذي تم التحقق منه لا يطابق الرقم الحالي.',
-        );
-      }
-      setState(() {
-        _phoneVerificationToken = verified.verificationToken;
-        _verifiedPhone = verified.phone;
-        _phoneVerified = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم التحقق من رقم الهاتف بنجاح.')),
-      );
-    } catch (e) {
-      if (mounted) _fail('رمز التحقق غير صحيح أو انتهت صلاحيته: $e');
-    } finally {
-      if (mounted) setState(() => _otpBusy = false);
-    }
-  }
 
   Future<void> _next() async {
     if (!_validateCurrentStep()) return;
@@ -225,27 +120,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
           }
           return;
         }
-        final challengeId = _phoneChallengeId;
-        final verificationToken = _phoneVerificationToken;
-        final verifiedPhone = _verifiedPhone;
-        if (!_phoneVerified ||
-            challengeId == null ||
-            verificationToken == null ||
-            verifiedPhone == null ||
-            verifiedPhone != _normalizedPhone()) {
-          throw const YallaAdminAuthException(
-              'تحقق من رقم الهاتف مجددًا قبل تأسيس الورشة.');
-        }
         final logoPath = await WorkshopLogoService().persist(_logo?.path);
-        await ref
-            .read(yallaAdminAuthServiceProvider)
-            .consumeCustomerPhoneVerification(
-              challengeId: challengeId,
-              phone: verifiedPhone,
-              verificationToken: verificationToken,
-            );
-        _phoneVerificationToken = null;
-        _phoneVerified = false;
         _createdOwner = await userService.bootstrapFirstOwner(
           FirstOwnerBootstrapRequest(
             ownerName: _ownerName.text.trim(),
@@ -257,7 +132,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
             province: _province,
             city: _city.text.trim(),
             street: _street.text.trim(),
-            phone: verifiedPhone,
+            phone: _normalizedPhone(),
             logoPath: logoPath,
           ),
         );
@@ -310,7 +185,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
     } catch (_) {
       if (mounted) {
         _fail(_createdOwner == null
-            ? 'تعذر تأسيس الورشة. تحقق من التفعيل والهاتف ثم أعد المحاولة.'
+            ? 'تعذر تأسيس الورشة. تحقق من التفعيل والبيانات ثم أعد المحاولة.'
             : 'تم حفظ الحساب. أعد المحاولة أو سجّل الدخول لإكمال حماية الجهاز.');
       }
     } finally {
@@ -335,8 +210,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       _workshopName,
       _address,
       _city,
-      _street,
-      _otp
+      _street
     ]) {
       c.dispose();
     }
@@ -441,46 +315,20 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
         );
       case 1:
         return _CardSection(
-          title: '2/3 — التحقق من الهاتف',
+          title: '2/3 — بيانات التواصل',
           subtitle:
-              'يرسل خادم Yalla الموثوق رمز SMS. لا يتم إنشاء الرمز أو حفظه داخل التطبيق.',
+              'رقم الهاتف مطلوب للتواصل مع مالك المنشأة. صلاحية تأسيس الحساب تأتي من رمز التفعيل الموثق لهذا الجهاز.',
           children: [
             _field(
               _phone,
               'رقم الهاتف',
               Icons.phone_outlined,
               keyboard: TextInputType.phone,
-              onChanged: (_) => _resetPhoneVerification(),
             ),
-            FilledButton.icon(
-              onPressed: _otpBusy ? null : _sendPhoneOtp,
-              icon: const Icon(Icons.sms_outlined),
-              label: Text(_phoneChallengeId == null
-                  ? 'إرسال رمز SMS'
-                  : 'إعادة إرسال رمز SMS'),
-            ),
-            if (_phoneChallengeId != null) ...[
-              const SizedBox(height: 12),
-              _field(
-                _otp,
-                'رمز التحقق — 6 أرقام',
-                Icons.password_outlined,
-                keyboard: TextInputType.number,
-              ),
-              OutlinedButton.icon(
-                onPressed: _otpBusy || _phoneVerified ? null : _verifyPhoneOtp,
-                icon: Icon(_phoneVerified
-                    ? Icons.verified_outlined
-                    : Icons.verified_user_outlined),
-                label: Text(
-                    _phoneVerified ? 'تم التحقق من الهاتف' : 'تحقق من الرمز'),
-              ),
-            ],
             const SizedBox(height: 12),
-            _InfoBanner(
-              text: _phoneVerified
-                  ? 'رقم الهاتف موثق من الخادم وسيتم استهلاك إثبات التحقق مرة واحدة عند تأسيس الورشة.'
-                  : 'رمز OTP لا يعود في استجابة API ولا يُحفظ في FlutterSecureStorage أو SQLite.',
+            const _InfoBanner(
+              text:
+                  'لا يُطلب رمز SMS لإنشاء الحساب. يجب أن يكون الجهاز مفعّلًا بترخيص صالح صادر من Yalla Control قبل تأسيس المالك الأول.',
             ),
           ],
         );
@@ -541,7 +389,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       child: TextField(
         inputFormatters: const [YallaDigitNormalizer()],
         controller: controller,
-        enabled: !_loading && !_otpBusy,
+        enabled: !_loading,
         keyboardType: keyboard,
         obscureText: obscure,
         onChanged: onChanged,

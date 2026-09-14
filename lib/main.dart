@@ -17,6 +17,7 @@ import 'package:sqflite/sqflite.dart' as sq;
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/outbox_sync_coordinator.dart';
+import 'package:yalla_accounts/core/services/sync/outbox_sync_transport.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/device_identity/device_identity_service.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
@@ -131,9 +132,14 @@ Future<void> _bootstrap() async {
     // window decides whether writes remain available.
     PeriodicLicenseValidationScheduler.start();
 
-    // P04.3 - keep the visible local/sync state current. No workshop-sync
-    // endpoint is invented here; the coordinator drains only after an
-    // authoritative OutboxSyncTransport is configured.
+    // Stage 8 - durable local-first sync. The client never calls Supabase
+    // directly; it sends a device-signed challenge/complete exchange to the
+    // configured Yalla server, which is the only component allowed to journal
+    // the mutation through the server-authorized RPC.
+    final syncTransport = SecureServerOutboxSyncTransport();
+    if (syncTransport.isConfigured) {
+      OutboxSyncCoordinator.instance.configureTransport(syncTransport);
+    }
     await OutboxSyncCoordinator.instance.start();
 
     debugPrint(

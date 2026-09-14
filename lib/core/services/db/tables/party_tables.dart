@@ -26,6 +26,15 @@ class PartyTables {
     return rows.isNotEmpty;
   }
 
+  static Future<bool> _columnExists(
+    DatabaseExecutor db,
+    String table,
+    String column,
+  ) async {
+    final rows = await db.rawQuery('PRAGMA table_info($table)');
+    return rows.any((row) => row['name']?.toString() == column);
+  }
+
   static String canonicalRole(Object? raw) {
     final role = raw?.toString().trim().toUpperCase() ?? '';
     if (role == 'CLIENT') return 'CUSTOMER';
@@ -190,6 +199,10 @@ class PartyTables {
   static Future<void> _createViews(DatabaseExecutor db) async {
     if (!await _tableExists(db, 'gl_lines')) return;
 
+    final chequeSelect = await _columnExists(db, 'gl_lines', 'cheque_id')
+        ? 'l.cheque_id'
+        : 'NULL AS cheque_id';
+
     await db.execute('DROP VIEW IF EXISTS v_party_balances;');
     await db.execute('DROP VIEW IF EXISTS v_party_gl_lines;');
 
@@ -211,7 +224,7 @@ class PartyTables {
         pr.party_id AS canonical_party_id,
         l.invoice_id,
         l.repair_id,
-        l.cheque_id
+        $chequeSelect
       FROM gl_lines l
       LEFT JOIN party_roles pr
         ON pr.role = CASE

@@ -26,6 +26,7 @@ import 'tables/identity_account_tables.dart';
 import 'tables/sync_foundation_tables.dart';
 import '../sync/sync_foundation_service.dart';
 import 'package:yalla_accounts/features/onboarding/services/workshop_onboarding_tables.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_cost_service.dart';
 import 'tables/organization_identity_tables.dart';
 import 'tables/device_identity_tables.dart';
 import 'tables/license_activation_tables.dart';
@@ -225,6 +226,7 @@ class DatabaseMigration {
     await _upgradeV72(db);
     await _upgradeV73(db);
     await _upgradeV74(db);
+    await _upgradeV75(db);
     debugPrint('All tables created successfully');
   }
 
@@ -240,6 +242,7 @@ class DatabaseMigration {
       if (oldV < 72) await _upgradeV72(db);
       if (oldV < 73) await _upgradeV73(db);
       if (oldV < 74) await _upgradeV74(db);
+      if (oldV < 75) await _upgradeV75(db);
       return;
     }
 
@@ -405,6 +408,20 @@ class DatabaseMigration {
     if (oldV < 72) await _upgradeV72(db);
     if (oldV < 73) await _upgradeV73(db);
     if (oldV < 74) await _upgradeV74(db);
+    if (oldV < 75) await _upgradeV75(db);
+  }
+
+  static Future<void> _upgradeV75(Database db) async {
+    // Stage 5 commercial Job Costing becomes part of the versioned schema.
+    await RepairCostService.ensureSchema(db);
+    await PartyTables.ensure(db);
+    await SyncFoundationTables.ensure(db);
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert(
+      'schema_migrations',
+      {'version': 75, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   static Future<void> _upgradeV74(Database db) async {

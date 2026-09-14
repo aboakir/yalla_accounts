@@ -96,9 +96,9 @@ class HttpActivationTransport implements ActivationTransport {
     }
     final idempotency = const Uuid().v4();
     final response = await _post(
-      '/v1/activations/challenge',
+      '/v1/accounts-integration/activation/challenge',
       {
-        'api_version': 2,
+        'contract_version': 2,
         'activation_code': code,
         'idempotency_key': idempotency,
         'device': identity.toRegistrationPayload(),
@@ -121,9 +121,9 @@ class HttpActivationTransport implements ActivationTransport {
       throw const ActivationTransportException('Activation challenge expired.');
     }
     final response = await _post(
-      '/v1/activations/complete',
+      '/v1/accounts-integration/activation/complete',
       {
-        'api_version': 2,
+        'contract_version': 2,
         'challenge_id': challenge.challengeId,
         'idempotency_key': challenge.idempotencyKey,
         'device_id': proof.deviceId,
@@ -158,6 +158,7 @@ class HttpActivationTransport implements ActivationTransport {
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set('x-yalla-client', 'yalla-accounts-desktop');
+      request.headers.set('x-yalla-contract-version', '2');
       request.write(jsonEncode(body));
       final response = await request.close().timeout(timeout);
       final raw = await utf8.decoder.bind(response).join().timeout(timeout);

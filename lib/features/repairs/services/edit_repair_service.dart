@@ -136,6 +136,43 @@ class EditRepairService {
         );
       }
 
+      final originalStatus = original.status.trim().toUpperCase();
+      final isFinanciallyApproved = originalStatus == 'APPROVED' ||
+          originalStatus == 'COMPLETED' ||
+          original.invoiceId != null;
+      if (!isFinanciallyApproved) {
+        final parts = _normalizeLines(newParts);
+        final works = _normalizeLines(newWorks);
+        final newValue = RepairAutoAccountingService.computeAccountingTotal(
+            works: works, parts: parts, notes: notes);
+        final map = updatedRepair
+            .copyWith(
+                parts: parts,
+                works: works,
+                fileValue: newValue,
+                notes: notes,
+                status: original.status,
+                updatedAt: DateTime.now())
+            .toMap()
+          ..remove('invoice_id')
+          ..remove('id');
+        await txn
+            .update('repairs', map, where: 'id = ?', whereArgs: [repairId]);
+        await _replaceRepairLinesOn(txn,
+            repairId: repairId, parts: parts, works: works);
+        await _insertDraftHistory(
+            txn: txn,
+            repairId: repairId,
+            oldValue: original.fileValue,
+            newValue: newValue,
+            editedBy: editedBy,
+            notes: notes);
+        return EditRepairResult(
+            success: true,
+            oldValue: original.fileValue,
+            newValue: newValue,
+            difference: _round2(newValue - original.fileValue));
+      }
       final parts = _normalizeLines(newParts);
       final works = _normalizeLines(newWorks);
       final effectiveNotes = _ensureAutoMarker(notes);
@@ -238,6 +275,22 @@ class EditRepairService {
       );
     });
   }
+
+  static Future<void> _insertDraftHistory({
+    required DatabaseExecutor txn,
+    required String repairId,
+    required double oldValue,
+    required double newValue,
+    required String editedBy,
+    required String notes,
+  }) =>
+      _insertHistory(
+          txn: txn,
+          repairId: repairId,
+          oldValue: oldValue,
+          newValue: newValue,
+          editedBy: editedBy,
+          notes: notes);
 
   static Future<void> _insertHistory({
     required DatabaseExecutor txn,

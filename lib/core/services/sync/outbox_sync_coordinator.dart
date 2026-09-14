@@ -33,6 +33,7 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
   OutboxSyncCoordinator({
     required SyncStateService status,
     this.sendTimeout = const Duration(seconds: 20),
+    this.retryInterval = const Duration(seconds: 30),
   }) : _status = status;
 
   static final OutboxSyncCoordinator instance = OutboxSyncCoordinator(
@@ -41,9 +42,11 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
 
   final SyncStateService _status;
   final Duration sendTimeout;
+  final Duration retryInterval;
   final Lock _drainLock = Lock();
 
   OutboxSyncTransport? _transport;
+  Timer? _retryTimer;
   bool _started = false;
 
   bool get transportConfigured => _transport != null;
@@ -53,8 +56,13 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
     _started = true;
     WidgetsBinding.instance.addObserver(this);
     _status.setTransportConfigured(transportConfigured);
+    final db = await DBService.database;
+    await OfflineOutboxService.resetInterruptedSending(db);
     await _status.start();
-    await drain();
+    await drain(database: db);
+    _retryTimer = Timer.periodic(retryInterval, (_) {
+      unawaited(drain());
+    });
   }
 
   void configureTransport(OutboxSyncTransport transport) {
@@ -66,6 +74,14 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
   void clearTransport() {
     _transport = null;
     _status.setTransportConfigured(false);
+  }
+
+  Future<void> stop() async {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    WidgetsBinding.instance.removeObserver(this);
+    _started = false;
+    await _status.dispose();
   }
 
   @override
