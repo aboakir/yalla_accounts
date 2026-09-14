@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'cloud_auth_service.dart';
 import 'supabase_identity_provider.dart';
+import '../onboarding/customer_onboarding_screen.dart';
 
 class CloudAccountLinkTile extends ConsumerWidget {
   const CloudAccountLinkTile({super.key});
@@ -24,8 +25,9 @@ class CloudAccountLinkTile extends ConsumerWidget {
 }
 
 class CloudAuthScreen extends ConsumerStatefulWidget {
-  const CloudAuthScreen({super.key, this.linkUser});
+  const CloudAuthScreen({super.key, this.linkUser, this.onboarding = false});
   final AppUser? linkUser;
+  final bool onboarding;
   @override
   ConsumerState<CloudAuthScreen> createState() => _CloudAuthScreenState();
 }
@@ -82,6 +84,14 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
   }
 
   Future<void> _finish() async {
+    if (widget.onboarding) {
+      await _identity.verifiedOnboardingSession();
+      if (mounted) {
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => const CustomerOnboardingScreen()));
+      }
+      return;
+    }
     final user = widget.linkUser;
     if (user != null) {
       await ref.read(cloudAuthServiceProvider).link(user, _localPassword.text);
@@ -113,7 +123,9 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
           _code.clear();
           _awaitingSignupCode = false;
           _create = false;
-          await _finish();
+          // OTP and recovery sessions share Supabase's OTP AMR. Only a fresh
+          // password sign-in may proceed into normal onboarding/commercial use.
+          _message = 'تم تأكيد البريد. أدخل كلمة المرور للمتابعة الآمنة.';
           return;
         }
         if (_create) {
@@ -278,7 +290,8 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                               child: const Text(
                                                   'الدخول باستخدام Apple'))
                                         ],
-                                        if (_identity.signedInThisVisit)
+                                        if (_identity.signedInThisVisit ||
+                                            widget.onboarding)
                                           FilledButton.tonal(
                                               onPressed: _busy
                                                   ? null

@@ -23,13 +23,17 @@ String token(int expiry, {String subject = userId}) =>
     '${base64Url.encode(utf8.encode('{"alg":"HS256"}')).replaceAll('=', '')}.'
     '${base64Url.encode(utf8.encode(jsonEncode({
               'sub': subject,
-              'exp': expiry
+              'exp': expiry,
+              'amr': [
+                {'method': 'password'}
+              ]
             }))).replaceAll('=', '')}.fixture_signature';
 Map<String, dynamic> user([String id = userId]) => {
       'id': id,
       'aud': 'authenticated',
       'role': 'authenticated',
       'email': 'same@example.invalid',
+      'email_confirmed_at': '2026-01-01T00:00:00Z',
       'created_at': '2026-01-01T00:00:00Z',
       'app_metadata': {},
       'user_metadata': {'customer_id': 'forged'}

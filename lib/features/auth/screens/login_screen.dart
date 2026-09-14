@@ -208,7 +208,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (!await unlock.isConfiguredFor(user.id)) {
           if (!mounted) return;
           if (!await showDeviceSecuritySetupDialog(
-              context: context, service: unlock, userId: user.id)) return;
+              context: context, service: unlock, userId: user.id)) {
+            return;
+          }
         }
       }
       if (!mounted) return;
@@ -375,8 +377,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                     ? null
                                                     : () => Navigator.of(
                                                             context)
-                                                        .pushNamed(
-                                                            AppRoutes.register),
+                                                        .push(MaterialPageRoute<
+                                                                void>(
+                                                            builder: (_) =>
+                                                                const CloudAuthScreen(
+                                                                    onboarding:
+                                                                        true))),
                                                 child: const Text(
                                                     'إنشاء ورشة جديدة')),
                                         ])))))))));

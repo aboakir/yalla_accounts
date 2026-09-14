@@ -14,6 +14,12 @@ class VerifiedCloudIdentity {
   final String subject;
 }
 
+class VerifiedOnboardingSession {
+  const VerifiedOnboardingSession(this.authUserId, this.accessToken);
+  final String authUserId;
+  final String accessToken;
+}
+
 abstract interface class CloudIdentityProvider {
   Future<VerifiedCloudIdentity> verifyIdentity();
 }
@@ -33,6 +39,7 @@ class SupabaseIdentityProvider extends ChangeNotifier
   bool _initialLinkRead = false;
   bool recoveryPending = false;
   bool signedInThisVisit = false;
+  bool _signedOutLocally = false;
   String? callbackError;
   SupabaseClient get _client => _injectedClient ?? Supabase.instance.client;
 
@@ -44,6 +51,7 @@ class SupabaseIdentityProvider extends ChangeNotifier
     _storage = CloudSecureStorage(
         sha256.convert(utf8.encode(config.issuer)).toString());
     recoveryPending = recoveryPending || await _storage.isRecoveryPending();
+    _signedOutLocally = await _storage.isSignedOut();
     if (_injectedClient == null) {
       await Supabase.initialize(
           url: config.url,
@@ -87,6 +95,10 @@ class SupabaseIdentityProvider extends ChangeNotifier
       await _storage.persistSession(jsonEncode(response.session.toJson()));
       await _storage.setRecoveryPending(recoveryPending);
       signedInThisVisit = !recoveryPending;
+      if (!recoveryPending) {
+        _signedOutLocally = false;
+        await _storage.setSignedOut(false);
+      }
     } catch (_) {
       callbackError =
           'انتهت صلاحية الرابط أو لم يكتمل التحقق. اطلب رابطًا جديدًا.';
@@ -116,6 +128,8 @@ class SupabaseIdentityProvider extends ChangeNotifier
     await initialize();
     await _client.auth
         .signInWithPassword(email: email.trim(), password: password);
+    _signedOutLocally = false;
+    await _storage.setSignedOut(false);
     recoveryPending = false;
     await _storage.setRecoveryPending(false);
     signedInThisVisit = true;
@@ -143,10 +157,13 @@ class SupabaseIdentityProvider extends ChangeNotifier
     if (response.session == null) {
       throw StateError('Signup verification did not create a session.');
     }
+    _signedOutLocally = false;
+    await _storage.setSignedOut(false);
     recoveryPending = false;
     await _storage.setRecoveryPending(false);
     signedInThisVisit = true;
-    await verifyIdentity();
+    final session = await _verifiedSession(requireNormalSignIn: false);
+    await _storage.persistSession(jsonEncode(session.toJson()));
     notifyListeners();
   }
 
@@ -183,12 +200,18 @@ class SupabaseIdentityProvider extends ChangeNotifier
 
   Future<void> signOut() async {
     await initialize();
-    await _client.auth.signOut(scope: SignOutScope.local);
-    recoveryPending = false;
-    await _storage.setRecoveryPending(false);
+    _signedOutLocally = true;
     signedInThisVisit = false;
-    callbackError = null;
-    notifyListeners();
+    await _storage.setSignedOut(true);
+    try {
+      await _client.auth.signOut(scope: SignOutScope.local);
+    } finally {
+      await _storage.removePersistedSession();
+      recoveryPending = false;
+      await _storage.setRecoveryPending(false);
+      callbackError = null;
+      notifyListeners();
+    }
   }
 
   Future<void> updateRecoveredPassword(String password) async {
@@ -196,11 +219,7 @@ class SupabaseIdentityProvider extends ChangeNotifier
     if (!recoveryPending) throw StateError('Recovery is not active');
     await _client.auth.getUser();
     await _client.auth.updateUser(UserAttributes(password: password));
-    signedInThisVisit = false;
-    await _client.auth.signOut(scope: SignOutScope.local);
-    recoveryPending = false;
-    await _storage.setRecoveryPending(false);
-    notifyListeners();
+    await signOut();
   }
 
   Future<void> oauth(OAuthProvider provider) async {
@@ -238,7 +257,14 @@ class SupabaseIdentityProvider extends ChangeNotifier
     }
   }
 
-  Future<Session> _verifiedSession() async {
+  Future<VerifiedOnboardingSession> verifiedOnboardingSession() async {
+    await initialize();
+    final session = await _verifiedSession();
+    return VerifiedOnboardingSession(session.user.id, session.accessToken);
+  }
+
+  Future<Session> _verifiedSession({bool requireNormalSignIn = true}) async {
+    if (_signedOutLocally) throw StateError('Local cloud session was revoked');
     if (recoveryPending) throw StateError('Recovery session is not permitted');
     var session = _client.auth.currentSession;
     if (session == null) throw StateError('Cloud session missing');
@@ -266,6 +292,21 @@ class SupabaseIdentityProvider extends ChangeNotifier
         _client.auth.currentSession?.accessToken != session.accessToken ||
         _client.auth.currentSession?.user.id != user.id) {
       throw StateError('Cloud identity verification failed');
+    }
+    if (user.email == null || user.emailConfirmedAt == null) {
+      throw StateError('Verified email required');
+    }
+    if (requireNormalSignIn) {
+      final claims = jsonDecode(utf8.decode(base64Url.decode(
+          base64Url.normalize(session.accessToken.split('.')[1])))) as Map;
+      final amr = claims['amr'];
+      if (amr is! List ||
+          !amr.any(
+              (x) => x is Map && ['password', 'oauth'].contains(x['method'])) ||
+          amr.any((x) =>
+              x is Map && ['recovery', 'invite'].contains(x['method']))) {
+        throw StateError('Password sign-in required after OTP verification');
+      }
     }
     return session;
   }

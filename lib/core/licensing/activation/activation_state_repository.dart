@@ -52,6 +52,14 @@ class ActivationStateRepository {
   }) async {
     final db = await _databaseProvider();
     await LicenseActivationTables.ensure(db);
+    // A fresh onboarding installation has no activation receipt. Do not create
+    // a device identity (or touch a default database) merely to deny access.
+    final receipts = await db.query('license_activation_state',
+        columns: ['singleton_id'],
+        where: 'singleton_id = 1 AND status = ?',
+        whereArgs: ['ACTIVE'],
+        limit: 1);
+    if (receipts.isEmpty) return null;
     final identity = await _deviceIdentityService.ensureCurrent();
 
     final rows = await db.query(
