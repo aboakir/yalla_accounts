@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/device_identity/device_identity.dart';
+import 'package:yalla_accounts/core/licensing/customer_bearer_token_provider.dart';
 
 class ActivationTransportException implements Exception {
   const ActivationTransportException(this.message, {this.statusCode});
@@ -62,6 +63,7 @@ abstract class ActivationTransport {
 
 class HttpActivationTransport implements ActivationTransport {
   HttpActivationTransport({
+    this.bearerTokenProvider,
     Uri? baseUri,
     HttpClient? httpClient,
     this.timeout = const Duration(seconds: 15),
@@ -70,6 +72,7 @@ class HttpActivationTransport implements ActivationTransport {
         _httpClient = httpClient ?? HttpClient();
 
   final Uri? _baseUri;
+  final CustomerBearerTokenProvider? bearerTokenProvider;
   final HttpClient _httpClient;
   final Duration timeout;
   final bool allowInsecureLoopbackForTesting;
@@ -82,15 +85,15 @@ class HttpActivationTransport implements ActivationTransport {
   }
 
   @override
-  bool get isConfigured => _baseUri != null;
+  bool get isConfigured => _baseUri != null && bearerTokenProvider != null;
 
   @override
   Future<ActivationChallenge> beginFirstActivation({
     required String activationCode,
     required DeviceIdentity identity,
   }) async {
-    final code = activationCode.trim().toUpperCase();
-    if (code.length < 12 || code.length > 96) {
+    final code = activationCode.trim();
+    if (code.length < 32 || code.length > 128) {
       throw const ActivationTransportException(
           'Invalid activation code format.');
     }
@@ -152,9 +155,17 @@ class HttpActivationTransport implements ActivationTransport {
       );
     }
     _assertSecureBaseUri(base);
+    final token = await bearerTokenProvider?.call().timeout(timeout);
+    if (token == null ||
+        !RegExp(r'^[A-Za-z0-9._~-]{32,4096}$').hasMatch(token)) {
+      throw const ActivationTransportException(
+          'Authenticated customer session is required.');
+    }
     final uri = base.resolve(path);
     try {
       final request = await _httpClient.postUrl(uri).timeout(timeout);
+      request.followRedirects = false;
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set('x-yalla-client', 'yalla-accounts-desktop');
@@ -188,6 +199,11 @@ class HttpActivationTransport implements ActivationTransport {
               : 'Activation request rejected.',
           statusCode: response.statusCode,
         );
+      }
+      if (map['contract_version'] != 2 ||
+          response.headers.value('x-yalla-contract-version') != '2') {
+        throw const ActivationTransportException(
+            'Unsupported licensing contract version.');
       }
       return map;
     } on ActivationTransportException {
