@@ -18,6 +18,7 @@ class ActivationTransportException implements Exception {
 
 class ActivationChallenge {
   const ActivationChallenge({
+    this.installationId,
     required this.challengeId,
     required this.idempotencyKey,
     required this.proofBytesBase64Url,
@@ -25,6 +26,7 @@ class ActivationChallenge {
   });
 
   final String challengeId;
+  final String? installationId;
   final String idempotencyKey;
   final String proofBytesBase64Url;
   final DateTime expiresAt;
@@ -106,8 +108,10 @@ class HttpActivationTransport implements ActivationTransport {
         'idempotency_key': idempotency,
         'device': identity.toRegistrationPayload(),
       },
+      identity.installationId,
     );
     return ActivationChallenge(
+      installationId: identity.installationId,
       challengeId: _requiredString(response, 'challenge_id'),
       idempotencyKey: response['idempotency_key']?.toString() ?? idempotency,
       proofBytesBase64Url: _requiredString(response, 'proof_bytes'),
@@ -135,6 +139,7 @@ class HttpActivationTransport implements ActivationTransport {
           'signature': proof.signatureBase64Url,
         },
       },
+      challenge.installationId,
     );
     return ActivationCompletion(
       activationId: _requiredString(response, 'activation_id'),
@@ -147,6 +152,7 @@ class HttpActivationTransport implements ActivationTransport {
   Future<Map<String, Object?>> _post(
     String path,
     Map<String, Object?> body,
+    String? installationId,
   ) async {
     final base = _baseUri;
     if (base == null) {
@@ -162,10 +168,15 @@ class HttpActivationTransport implements ActivationTransport {
           'Authenticated customer session is required.');
     }
     final uri = base.resolve(path);
+    if (installationId == null || installationId.isEmpty) {
+      throw const ActivationTransportException(
+          'Installation identity is required.');
+    }
     try {
       final request = await _httpClient.postUrl(uri).timeout(timeout);
       request.followRedirects = false;
       request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      request.headers.set('X-Yalla-Installation-Id', installationId);
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set('x-yalla-client', 'yalla-accounts-desktop');

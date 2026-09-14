@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_service.dart';
+import 'package:yalla_accounts/core/licensing/commercial_licensing_providers.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -25,7 +26,7 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
   @override
   void initState() {
     super.initState();
-    _activationService = widget.service ?? ActivationService();
+    _activationService = widget.service ?? ref.read(activationServiceProvider);
   }
 
   Future<void> _activate() async {

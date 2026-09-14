@@ -8,6 +8,11 @@ class CloudSecureStorage extends LocalStorage {
   final String namespace;
   final FlutterSecureStorage storage;
   String get sessionKey => 'yalla_cloud_${namespace}_session';
+  String get recoveryKey => 'yalla_cloud_${namespace}_recovery';
+  Future<bool> isRecoveryPending() async =>
+      await storage.read(key: recoveryKey) == 'true';
+  Future<void> setRecoveryPending(bool value) =>
+      verifiedWrite(recoveryKey, value.toString());
   Future<void> verifiedWrite(String key, String value) async {
     await storage.write(key: key, value: value);
     if (await storage.read(key: key) != value) {

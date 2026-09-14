@@ -21,7 +21,7 @@ import 'package:yalla_accounts/core/services/sync/outbox_sync_transport.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/device_identity/device_identity_service.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
-import 'package:yalla_accounts/core/licensing/validation/periodic_license_validation_service.dart';
+import 'package:yalla_accounts/core/licensing/commercial_licensing_providers.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/services/commercial_settings_service.dart';
 
@@ -130,7 +130,7 @@ Future<void> _bootstrap() async {
     // SEC.012 - periodic online validation. Startup never crashes merely
     // because the network/server is unavailable; the signed offline grace
     // window decides whether writes remain available.
-    PeriodicLicenseValidationScheduler.start();
+    // The Riverpod root starts validation with the authenticated transport.
 
     // Stage 8 - durable local-first sync. The client never calls Supabase
     // directly; it sends a device-signed challenge/complete exchange to the
@@ -287,11 +287,12 @@ class _BootstrapFailureAppState extends State<_BootstrapFailureApp> {
 /// ---------------------------------------------------------------------------
 /// Root App
 /// ---------------------------------------------------------------------------
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(commercialValidationSchedulerProvider);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: MaterialApp(

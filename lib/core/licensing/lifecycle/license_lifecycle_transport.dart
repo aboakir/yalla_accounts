@@ -17,6 +17,7 @@ class LicenseLifecycleTransportException implements Exception {
 
 class LicenseLifecycleChallenge {
   const LicenseLifecycleChallenge({
+    this.installationId,
     required this.challengeId,
     required this.proofBytesBase64Url,
     required this.expiresAt,
@@ -24,6 +25,7 @@ class LicenseLifecycleChallenge {
   });
 
   final String challengeId;
+  final String? installationId;
   final String proofBytesBase64Url;
   final DateTime expiresAt;
   final String action;
@@ -107,9 +109,11 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
         'subscription_id': subscriptionId,
         'device': identity.toRegistrationPayload(),
       },
+      identity.installationId,
     );
 
     return LicenseLifecycleChallenge(
+      installationId: identity.installationId,
       challengeId: _requiredString(response, 'challenge_id'),
       proofBytesBase64Url: _requiredString(response, 'proof_bytes'),
       expiresAt: _requiredDate(response, 'expires_at'),
@@ -140,6 +144,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
           'signature': proof.signatureBase64Url,
         },
       },
+      challenge.installationId,
     );
 
     return LicenseLifecycleCompletion(
@@ -153,6 +158,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
   Future<Map<String, Object?>> _post(
     String path,
     Map<String, Object?> body,
+    String? installationId,
   ) async {
     final base = _baseUri;
     if (base == null) {
@@ -169,10 +175,15 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
     }
 
     final uri = base.resolve(path);
+    if (installationId == null || installationId.isEmpty) {
+      throw const LicenseLifecycleTransportException(
+          'Installation identity is required.');
+    }
     try {
       final request = await _httpClient.postUrl(uri).timeout(timeout);
       request.followRedirects = false;
       request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      request.headers.set('X-Yalla-Installation-Id', installationId);
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set('x-yalla-client', 'yalla-accounts-desktop');
