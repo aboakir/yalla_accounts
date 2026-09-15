@@ -1,4 +1,6 @@
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
+import 'package:yalla_accounts/core/licensing/entitlements/commercial_feature_catalog.dart';
+import 'package:yalla_accounts/core/licensing/entitlements/signed_feature_authorization_service.dart';
 import 'package:flutter/foundation.dart';
 import 'auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
@@ -47,7 +49,12 @@ class AuthorizationGuard {
       PermissionKeys.backupExport,
     };
     if (!readPermissions.contains(permission)) {
-      await LicenseRuntimeService().requireOperationalWrite(permission);
+      final feature = CommercialFeatureCatalog.forPermission(permission);
+      if (feature == null) {
+        await LicenseRuntimeService().requireOperationalWrite(permission);
+      } else {
+        await SignedFeatureAuthorizationService().requireFeature(feature);
+      }
     }
     return actor;
   }

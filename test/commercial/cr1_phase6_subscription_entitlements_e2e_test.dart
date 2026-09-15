@@ -10,12 +10,28 @@ import 'package:yalla_accounts/core/device_identity/device_identity.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_transport.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
 import 'package:yalla_accounts/core/licensing/entitlements/commercial_entitlement_policy.dart';
+import 'package:yalla_accounts/core/licensing/entitlements/signed_feature_authorization_service.dart';
+import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_lifecycle_transport.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/subscription_access_policy.dart';
 import 'package:yalla_accounts/core/services/db/tables/license_runtime_tables.dart';
 
 String _b64(List<int> bytes) => base64Url.encode(bytes).replaceAll('=', '');
 List<int> _decode(String value) => base64Url.decode(base64Url.normalize(value));
+
+// Consumer boundary fed exclusively by the just-verified real HTTP envelope.
+class _SignedRuntime extends LicenseRuntimeService {
+  _SignedRuntime(this.license);
+  final VerifiedLicense license;
+  @override
+  Future<LicenseRuntimeDecision> refreshFromStoredLicense(
+          {DateTime? now}) async =>
+      LicenseRuntimeDecision(
+          license: license,
+          reason: 'verified Gate 6 envelope',
+          mode: SubscriptionAccessPolicy.mode(
+              license, now ?? DateTime.now().toUtc()));
+}
 
 class _Fixture {
   _Fixture(this.process, this.info, this.lines, this.stderrSubscription);
@@ -124,12 +140,14 @@ class _CommercialClient {
       challenge: challenge,
       proof: await proof(challenge.proofBytesBase64Url),
     );
-    return verifier.verify(
+    final verified = await verifier.verify(
       envelope: completion.licenseEnvelope,
       verificationKeyset: completion.verificationKeyset,
       identity: device,
       now: completion.serverTime,
     );
+    await assertAuthority(verified);
+    return verified;
   }
 
   Future<VerifiedLicense> validate(VerifiedLicense current) async {
@@ -143,12 +161,52 @@ class _CommercialClient {
       challenge: challenge,
       proof: await proof(challenge.proofBytesBase64Url),
     );
-    return verifier.verify(
+    final verified = await verifier.verify(
       envelope: completion.licenseEnvelope,
       verificationKeyset: completion.verificationKeyset,
       identity: device,
       now: completion.serverTime,
     );
+    await assertAuthority(verified);
+    return verified;
+  }
+
+  Future<void> assertAuthority(VerifiedLicense license) async {
+    final snapshot = await _action(info, 'SNAPSHOT');
+    final effective = snapshot['effective'] as Map;
+    expect(
+        license.operationalStatus, (snapshot['subscription'] as Map)['status']);
+    expect(license.entitlementRevision, effective['revision']);
+    expect(license.entitlements['PLAN_CODE'], effective['effective_plan_code']);
+    expect(license.entitlements['ACCESS_ALLOWED'], effective['access_allowed']);
+    expect(license.entitlements['MAX_USERS'], effective['max_users']);
+    expect(license.entitlements['MAX_DEVICES'], effective['max_devices']);
+    final service = SignedFeatureAuthorizationService(
+        runtimeService: _SignedRuntime(license));
+    for (final feature in [
+      'ACCOUNTING_CORE',
+      'WORKSHOP_REPAIRS',
+      'PRO_FEATURE'
+    ]) {
+      final enabled = (effective['enabled_features'] as List).contains(feature);
+      expect(license.entitlements[feature] == true, enabled);
+      var invoked = false;
+      Future<void> operation() async {
+        invoked = true;
+      }
+
+      if (enabled &&
+          effective['access_allowed'] == true &&
+          SubscriptionAccessPolicy.mode(license, DateTime.now().toUtc()) ==
+              'WRITABLE') {
+        await service.execute(feature, operation);
+        expect(invoked, isTrue);
+      } else {
+        await expectLater(service.execute(feature, operation),
+            throwsA(isA<SignedFeatureDenied>()));
+        expect(invoked, isFalse);
+      }
+    }
   }
 
   void close() => httpClient.close(force: true);
@@ -248,6 +306,13 @@ void main() {
     expect(license.entitlements['MAX_DEVICES'], 5);
 
     await _action(fixture.info, 'SUBSCRIPTION.TRIAL_CONVERT_TO_PAID');
+    license = await client.validate(license);
+    _expectCommercial(license, status: 'ACTIVE', plan: 'PRO', writable: true);
+    await _action(fixture.info, 'SUBSCRIPTION.CANCEL');
+    license = await client.validate(license);
+    _expectCommercial(license,
+        status: 'CANCELLED', plan: 'FREE', writable: false);
+    await _action(fixture.info, 'SUBSCRIPTION.RESTORE');
     license = await client.validate(license);
     _expectCommercial(license, status: 'ACTIVE', plan: 'PRO', writable: true);
 

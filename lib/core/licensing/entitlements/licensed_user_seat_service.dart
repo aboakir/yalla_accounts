@@ -1,5 +1,8 @@
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
+import '../lifecycle/subscription_access_policy.dart';
+import '../../services/db/tables/license_runtime_tables.dart';
+import 'commercial_entitlement_policy.dart';
 
 class LicensedUserSeatException implements Exception {
   const LicensedUserSeatException(this.code, this.message);
@@ -61,6 +64,15 @@ class LicensedUserSeatService implements UserSeatEntitlementProvider {
       throw const LicensedUserSeatException(
         'INVALID_MAX_USERS',
         'The signed license does not contain a valid MAX_USERS entitlement.',
+      );
+    }
+    if (!CommercialEntitlementPolicy.evaluate(license).valid ||
+        CommercialEntitlementPolicy.accessAllowed(license) != true ||
+        SubscriptionAccessPolicy.mode(license, DateTime.now().toUtc()) !=
+            LicenseRuntimeMode.writable) {
+      throw const LicensedUserSeatException(
+        'SIGNED_ACCESS_DENIED',
+        'Restrictive or incomplete signed authority cannot grant another seat.',
       );
     }
 

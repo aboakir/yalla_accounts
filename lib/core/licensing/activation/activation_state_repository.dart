@@ -143,16 +143,20 @@ class ActivationStateRepository {
         'updated_at': now,
       },
       where: 'singleton_id = 1 AND organization_id = ? '
-          'AND installation_id = ? AND device_id = ?',
+          'AND installation_id = ? AND device_id = ? '
+          'AND entitlement_revision <= ? '
+          "AND julianday(json_extract(signed_license_envelope_json, '\$.payload.issued_at')) <= julianday(?)",
       whereArgs: [
         identity.organizationId,
         identity.installationId,
         identity.deviceId,
+        license.entitlementRevision,
+        license.issuedAt.toUtc().toIso8601String(),
       ],
     );
     if (changed != 1) {
       throw StateError(
-        'SEC.011 cannot refresh a missing or mismatched activation receipt.',
+        'SEC.011 cannot refresh a missing, mismatched or newer activation receipt.',
       );
     }
 

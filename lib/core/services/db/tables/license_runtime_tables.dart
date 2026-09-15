@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../../../licensing/entitlements/commercial_feature_catalog.dart';
 
 class LicenseRuntimeMode {
   static const activationRequired = 'ACTIVATION_REQUIRED';
@@ -202,7 +203,24 @@ class LicenseRuntimeTables {
       }
       if (!_safeIdentifier(name)) continue;
 
+      final feature = CommercialFeatureCatalog.forTable(name);
       for (final operation in const <String>['INSERT', 'UPDATE', 'DELETE']) {
+        if (feature != null) {
+          await db.execute('''
+            CREATE TRIGGER IF NOT EXISTS yalla_cr1_feature_${name}_${operation.toLowerCase()}
+            BEFORE $operation ON $name
+            WHEN EXISTS (
+              SELECT 1 FROM license_activation_state
+              WHERE singleton_id=1 AND status='ACTIVE' AND
+                CASE WHEN json_valid(signed_license_envelope_json)=1
+                THEN json_type(signed_license_envelope_json, '\$.payload.entitlements.$feature') IS NOT 'true'
+                ELSE 1 END
+            )
+            BEGIN
+              SELECT RAISE(ABORT, 'SIGNED_FEATURE_REQUIRED:$feature');
+            END;
+          ''');
+        }
         final triggerName =
             'yalla_sec011_ro_${name}_${operation.toLowerCase()}_clock_v5';
         await db.execute('''
