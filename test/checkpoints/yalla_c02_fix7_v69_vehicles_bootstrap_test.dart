@@ -74,18 +74,16 @@ void main() {
       'lib/core/services/db/database_migration.dart',
     ).readAsStringSync();
 
-    final ensure = source.indexOf(
-      'await ensureP05VehicleCompatibilityBeforeValidation(db);',
+    expect(
+      source,
+      contains('await ensureP05VehicleCompatibilityBeforeValidation(db);'),
     );
-    final validate = source.indexOf('await _validateDatabase(db);');
-
-    expect(ensure, greaterThanOrEqualTo(0));
-    expect(validate, greaterThan(ensure));
+    expect(source, contains('if (oldV < 70) await _upgradeV70(db);'));
+    expect(source, contains('await _validateDatabase(db);'));
     final constants = File(
       'lib/core/services/db/database_constants.dart',
     ).readAsStringSync();
 
-    expect(constants, contains('static const int dbVersion = 69;'));
-    expect(source, isNot(contains('oldV < 70')));
+    expect(constants, contains('static const int dbVersion = 76;'));
   });
 }

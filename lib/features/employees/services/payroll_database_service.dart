@@ -1,6 +1,7 @@
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
-import 'package:yalla_accounts/core/services/db/tables/accounting_tables.dart';
+import 'package:yalla_accounts/core/services/posting_engine.dart';
 import 'package:yalla_accounts/core/services/db/tables/hr_tables.dart';
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 // 📁 lib/features/employees/services/payroll_database_service.dart
 //
 // PayrollDatabaseService — إدارة استحقاق وصرف الرواتب وربطها بالـ GL (v30)
@@ -241,33 +242,6 @@ class PayrollDatabaseService {
     );
   }
 
-  static bool _isBankMethod(String? m) {
-    final s = (m ?? '').toLowerCase();
-    return s.contains('bank') ||
-        s.contains('تحويل') ||
-        s.contains('transfer') ||
-        s.contains('visa') ||
-        s.contains('master') ||
-        s.contains('card') ||
-        s.contains('بطاقة') ||
-        s.contains('شيك') ||
-        s.contains('cheque') ||
-        s.contains('check');
-  }
-
-  static Future<int> _cashOrBankId(String? method) async {
-    final viaBank = _isBankMethod(method);
-    final code = viaBank ? '1010' : '1000';
-    final id = await DBService.getAccountIdByCode(code);
-    if (id != null) return id;
-    return DBService.ensureAccount(
-      code: code,
-      name: viaBank ? 'البنك' : 'الصندوق',
-      type: 'ASSET',
-      normalBalance: 'DEBIT',
-    );
-  }
-
   static double _fix2(num x) => double.parse(x.toStringAsFixed(2));
   static String _iso(Object? v) {
     if (v == null) return DateTime.now().toIso8601String();
@@ -359,8 +333,9 @@ class PayrollDatabaseService {
             periodEnd.toIso8601String().substring(0, 10),
             periodStart.toIso8601String().substring(0, 10)
           ]);
-      if (duplicate.isNotEmpty)
+      if (duplicate.isNotEmpty) {
         throw StateError('يوجد استحقاق مسجل لهذه الفترة.');
+      }
       // سلف معلّقة
       final pendingAdv =
           _fix2(await HRTables.getEmployeeAdvancesTotal(txn, employeeId));
@@ -466,7 +441,7 @@ class PayrollDatabaseService {
           },
       ];
 
-      await AccountingTables.postEntryGLOn(
+      await PostingEngine.postEntryOn(
         ex: txn,
         date: accrualDate,
         source: 'PAYROLL_ACCRUAL',
@@ -547,7 +522,7 @@ class PayrollDatabaseService {
       partyType: 'EMPLOYEE',
       partyId: refreshed.employeeId,
       amount: _fix2(amount),
-      currency: 'ILS',
+      currency: MoneyFormatter.currencyCode,
       date: date,
       method: (method ?? 'cash').toUpperCase(),
       chequeId: null,

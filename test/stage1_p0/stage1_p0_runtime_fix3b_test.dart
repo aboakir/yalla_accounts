@@ -96,7 +96,7 @@ void main() {
     final pdfBlock = _between(
       source,
       'Future<void> _exportPdf() async',
-      '@override\n  Widget build(BuildContext context)',
+      '@override',
     );
     expect(pdfBlock, contains('purchaseCategory,'));
     expect(pdfBlock, contains('rows: pdfRows'));

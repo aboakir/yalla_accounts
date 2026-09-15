@@ -31,10 +31,12 @@ void main() {
         'lib/features/vouchers/screens/receipt_vouchers_list_screen.dart',
       );
 
-      expect(receipts, contains('MediaQuery.sizeOf(context).width < 600'));
+      expect(receipts, contains('final size = MediaQuery.sizeOf(context);'));
+      expect(receipts,
+          contains('final isPhone = size.width < 600 || size.height < 520;'));
       expect(receipts, contains('Widget _phoneMain()'));
-      expect(receipts, contains('Widget _phoneReceiptCard'));
-      expect(receipts, contains('RefreshIndicator'));
+      expect(receipts, contains('VoucherListPhone('));
+      expect(receipts, contains('onRefresh: _load'));
       expect(receipts, contains('_exportReceiptPdf'));
       expect(receipts, contains('P15DocumentService.generateReceiptPdf'));
       expect(receipts, contains('Widget _desktopMain()'));

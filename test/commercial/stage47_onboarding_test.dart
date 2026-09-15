@@ -48,7 +48,13 @@ VerifiedLicense license(
       expiresAt: now.add(const Duration(days: 30)),
       entitlementRevision: 1,
       entitlements: entitlements ??
-          const {'ACCOUNTING_CORE': true, 'MAX_USERS': 5, 'MAX_DEVICES': 2},
+          const {
+            'PLAN_CODE': 'PRO',
+            'ACCESS_ALLOWED': true,
+            'ACCOUNTING_CORE': true,
+            'MAX_USERS': 5,
+            'MAX_DEVICES': 2,
+          },
       validationRequiredAt: now.add(const Duration(days: 7)),
       validationGraceUntil: now.add(const Duration(days: 14)),
       operationalStatus: status);
@@ -304,9 +310,11 @@ void main() {
     }
     expect(
         WorkshopOnboardingService.canStart(license(entitlements: const {
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
           'ACCOUNTING_CORE': true,
           'MAX_USERS': 0,
-          'MAX_DEVICES': 1
+          'MAX_DEVICES': 1,
         })),
         isFalse);
   });
@@ -512,7 +520,7 @@ void main() {
   });
 
   testWidgets(
-      'new owner verifies phone once, saves workshop, then safely retries failed PIN',
+      'new owner saves contact/workshop data and safely retries failed PIN',
       (tester) async {
     final users = Users()..existing = false;
     final phone = Phone();
@@ -527,15 +535,11 @@ void main() {
     await setField(tester, 'رقم الهاتف', '0599999999');
     await tap(tester, 'التالي');
     expect(users.bootstraps, 0);
-    await tap(tester, 'إرسال رمز SMS');
-    await setField(tester, 'رمز التحقق — 6 أرقام', '123456');
-    await tap(tester, 'تحقق من الرمز');
-    await tap(tester, 'التالي');
     await setField(tester, 'اسم الورشة', 'ورشة القدس');
     await setField(tester, 'المدينة', 'الخليل');
     await tap(tester, 'إنشاء الحساب ومتابعة الإعداد');
     expect(find.text('YA-TEST-CODE'), findsOneWidget);
-    expect(phone.consumed, 1);
+    expect(phone.consumed, 0);
     expect(users.request!.workshopName, 'ورشة القدس');
     expect(users.request!.city, 'الخليل');
     expect(users.request!.phone, '0599999999');
@@ -544,10 +548,10 @@ void main() {
     await configurePin(tester);
     expect(find.textContaining('تعذر حفظ حماية الجهاز بأمان'), findsOneWidget);
     unlock.fail = false;
-    await tap(tester, 'حفظ والمتابعة');
+    await configurePin(tester);
     await tap(tester, 'لاحقًا — الدخول إلى لوحة التحكم');
     expect(users.bootstraps, 1);
-    expect(phone.consumed, 1);
+    expect(phone.consumed, 0);
     expect(find.text('DASHBOARD'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

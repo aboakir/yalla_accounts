@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:yalla_accounts/core/services/db/tables/party_tables.dart';
 import 'package:yalla_accounts/features/account_statements/customers/services/customer_account_statement_service.dart';
 import 'package:yalla_accounts/features/finance/services/collection_service.dart';
 
@@ -61,6 +62,7 @@ void main() {
         updated_at TEXT
       )
     ''');
+    await PartyTables.ensure(db);
 
     await db.insert('clients', {'id': 1, 'name': 'Client A', 'account_id': 10});
     await db.insert('repairs', {

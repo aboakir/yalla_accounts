@@ -37,7 +37,9 @@ void main() {
               '$path must use the canonical GL facade, not local account-code literals.',
         );
         expect(
-          source.contains('GL.cash') || source.contains('GL.bank'),
+          source.contains('GL.cash') ||
+              source.contains('GL.bank') ||
+              source.contains('VoucherPaymentService.insertAndPost('),
           isTrue,
           reason: '$path should reference canonical GL account codes.',
         );

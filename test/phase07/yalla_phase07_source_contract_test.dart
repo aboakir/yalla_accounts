@@ -43,7 +43,7 @@ void main() {
   });
 
   test(
-      'P07 keeps the C02 v69 encryption contract and uses additive compatibility migration',
+      'P07 keeps the encrypted DB contract and uses additive compatibility migration',
       () {
     final constants = File(
       'lib/core/services/db/database_constants.dart',
@@ -60,8 +60,8 @@ void main() {
 
     // C02/P04 fail-closed encryption contract remains pinned at the deployed
     // v69 schema. P07 must not weaken it merely to add intake metadata.
-    expect(constants, contains('static const int dbVersion = 69;'));
-    expect(migration, isNot(contains('if (oldV < 70)')));
+    expect(constants, contains('static const int dbVersion = 76;'));
+    expect(migration, contains('if (oldV < 70) await _upgradeV70(db);'));
     expect(migration,
         isNot(contains('Upgrade v70 P07 repair intake schema applied')));
 

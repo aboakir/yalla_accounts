@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/release/release_distribution_config.dart';
+import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/device_unlock_screen.dart';
@@ -371,7 +373,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                                 .activation),
                                                 child: const Text(
                                                     'تفعيل هذا الجهاز')),
-                                          if (_firstOwner)
+                                          if (_firstOwner &&
+                                              !ReleaseDistributionConfig
+                                                  .isStoreDistribution)
                                             TextButton(
                                                 onPressed: _loading
                                                     ? null
@@ -385,6 +389,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                                         true))),
                                                 child: const Text(
                                                     'إنشاء ورشة جديدة')),
+                                          const SizedBox(height: 8),
+                                          const ReleaseLegalLinks(
+                                              compact: true),
                                         ])))))))));
   }
 }

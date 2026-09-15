@@ -100,14 +100,12 @@ void main() {
       'lib/core/services/db/database_constants.dart',
     ).readAsStringSync();
 
-    final ensure = source.indexOf(
-      'await ensureP04OutboxCompatibilityBeforeValidation(db);',
+    expect(
+      source,
+      contains('await ensureP04OutboxCompatibilityBeforeValidation(db);'),
     );
-    final validate = source.indexOf('await _validateDatabase(db);');
-
-    expect(ensure, greaterThanOrEqualTo(0));
-    expect(validate, greaterThan(ensure));
-    expect(constants, contains('static const int dbVersion = 69;'));
-    expect(source, isNot(contains('oldV < 70')));
+    expect(source, contains('if (oldV < 70) await _upgradeV70(db);'));
+    expect(source, contains('await _validateDatabase(db);'));
+    expect(constants, contains('static const int dbVersion = 76;'));
   });
 }

@@ -68,7 +68,8 @@ void main() {
     expect(js, isNot(contains('sessionStorage')));
     expect(js, isNot(contains('Bearer ')));
     expect(html, isNot(contains('sessionToken')));
-    expect(html, contains('Secure admin access'));
+    expect(html, contains('id="authGate"'));
+    expect(html, contains('YALLA <span>CONTROL CENTER</span>'));
   });
 
   test('SEC.015 session policy has rotation, reuse detection, bounded lifetime',

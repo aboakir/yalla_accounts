@@ -10,10 +10,10 @@ void main() {
     final sessions =
         read('lib/features/auth/services/auth_session_service.dart');
 
-    expect(login, contains('تذكر اسم المستخدم على هذا الجهاز'));
-    expect(login, contains('ابقني مسجلًا على هذا الجهاز'));
-    expect(login, contains('لا يتم حفظ كلمة المرور'));
-    expect(login, contains('إنشاء حساب مالك المنشأة'));
+    expect(login, contains('حفظ الدخول على هذا الجهاز باستخدام PIN'));
+    expect(login, contains('نسيت بيانات الدخول'));
+    expect(login, contains('إنشاء ورشة جديدة'));
+    expect(login, contains('DeviceUnlockScaffold'));
 
     expect(sessions, contains('FlutterSecureStorage'));
     expect(sessions, contains('forgetSavedLoginData'));

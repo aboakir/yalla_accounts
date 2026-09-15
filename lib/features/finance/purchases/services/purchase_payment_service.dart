@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../../vouchers/models/voucher_payment_model.dart';
 import '../../../vouchers/services/voucher_payment_service.dart';
@@ -49,7 +50,7 @@ class PurchasePaymentService {
           partyType: 'SUPPLIER',
           partyId: '$supplierId',
           amount: amount,
-          currency: 'ILS',
+          currency: MoneyFormatter.currencyCode,
           date: date,
           method: method.toUpperCase(),
           reference: purchaseId,

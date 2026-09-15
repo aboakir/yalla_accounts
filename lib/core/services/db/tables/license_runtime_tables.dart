@@ -188,6 +188,34 @@ class LicenseRuntimeTables {
     }
   }
 
+  /// Versioned schema upgrades may need to backfill canonical business rows
+  /// while an existing subscription is intentionally READ ONLY. The upgrade
+  /// transaction is trusted internal maintenance, not a user business write.
+  /// Drop only Yalla's commercial write guards for the duration of that
+  /// backfill, then restore the complete current guard set immediately.
+  static Future<void> runTrustedMigrationBackfill(
+    DatabaseExecutor db,
+    Future<void> Function() action,
+  ) async {
+    final triggers = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='trigger' "
+      "AND (name LIKE 'yalla_sec011_ro_%' "
+      "OR name LIKE 'yalla_cr1_feature_%')",
+    );
+    for (final row in triggers) {
+      final name = row['name']?.toString() ?? '';
+      if (_safeIdentifier(name)) {
+        await db.execute('DROP TRIGGER IF EXISTS $name');
+      }
+    }
+
+    try {
+      await action();
+    } finally {
+      await installOperationalTriggers(db);
+    }
+  }
+
   static Future<void> installOperationalTriggers(DatabaseExecutor db) async {
     final rows = await db.rawQuery(
       "SELECT name FROM sqlite_master "

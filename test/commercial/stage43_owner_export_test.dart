@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/core/services/db/database_constants.dart';
 import 'package:yalla_accounts/core/services/current_user_context.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/backup_service.dart';
@@ -70,7 +71,7 @@ void main() {
     await db.close();
     db = await DatabaseMigration.initDatabase(
         pathOverride: dir.path + '/test.db');
-    expect(await db.getVersion(), 72);
+    expect(await db.getVersion(), DatabaseConstants.dbVersion);
     expect((await db.query('clients')).single['name'], 'preserved');
     expect(
         await db.rawQuery(

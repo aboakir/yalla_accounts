@@ -19,19 +19,15 @@ void main() {
     expect(screen, contains('approveCustomerOnboarding'));
   });
 
-  test('SEC.015B customer can submit onboarding request from same login screen',
+  test(
+      'SEC.015B customer onboarding stays in Accounts while Control remains separate',
       () {
     final login = read('lib/features/auth/screens/login_screen.dart');
-    final transport =
-        read('lib/features/auth/services/yalla_admin_auth_service.dart');
-    expect(login, contains('طلب إنشاء منشأة جديدة'));
-    expect(login, contains('ReleaseDistributionConfig.isStoreDistribution'));
-    expect(login, contains('_requestNewCustomerOrganization'));
-    expect(transport, contains('/v1/customer-onboarding/request'));
-    expect(
-        transport, contains('/v1/control-center/customer-onboarding/create'));
-    expect(
-        transport, contains('/v1/control-center/customer-onboarding/approve'));
+    expect(login, contains('CloudAuthScreen'));
+    expect(login, contains('onboarding:'));
+    expect(login, contains('إنشاء ورشة جديدة'));
+    expect(login, isNot(contains('YallaControlCenterScreen')));
+    expect(login, isNot(contains('_requestNewCustomerOrganization')));
   });
 
   test('SEC.015B local dev server persists operational control-center data',

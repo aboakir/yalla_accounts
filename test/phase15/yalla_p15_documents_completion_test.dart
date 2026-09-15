@@ -22,7 +22,9 @@ void main() {
       ).readAsStringSync();
       expect(source, contains('RepairFinancialTruthService.load(repair.id)'));
       expect(source, contains('RepairLineBridge.load(repair.id)'));
-      expect(source, contains('truth?.fileValue ?? repair.fileValue'));
+      expect(source, contains('final grandTotal = truth.fileValue;'));
+      expect(source, contains('final paid = truth.paid;'));
+      expect(source, contains('final remaining = truth.remaining;'));
       expect(source, contains("row['total']"));
       expect(source, contains('PublicTextSanitizer.sanitize(repair.notes)'));
       expect(source, isNot(contains(r'"ملاحظات: ${repair.notes')));

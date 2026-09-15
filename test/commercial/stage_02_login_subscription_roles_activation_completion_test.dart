@@ -40,6 +40,8 @@ VerifiedLicense _license({
     expiresAt: expiresAt ?? now.add(const Duration(days: 30)),
     entitlementRevision: 9,
     entitlements: const <String, Object?>{
+      'PLAN_CODE': 'PRO',
+      'ACCESS_ALLOWED': true,
       'ACCOUNTING_CORE': true,
       'MAX_USERS': 5,
       'MAX_DEVICES': 2,

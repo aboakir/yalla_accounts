@@ -44,10 +44,10 @@ void main() {
           source('lib/features/vouchers/screens/payment_voucher_screen.dart');
       expect(details, contains('ReleaseScopeConfig.employeeAdvancesEnabled'));
       expect(voucher, contains('DropdownMenuItem(value: "موظف"'));
-      expect(voucher,
-          contains('source: expenseType == "موظف" ? "EMP_ADV" : null'));
-      expect(voucher,
-          contains('sourceId: expenseType == "موظف" ? partyId : null'));
+      expect(voucher, contains("'PAYROLL_ENTITLEMENT'"));
+      expect(voucher, contains("'EMPLOYEE_BONUS'"));
+      expect(voucher, contains("'EMP_ADV'"));
+      expect(voucher, contains("sourceId: expenseType == 'موظف'"));
     });
 
     test('supplier cheque entry points are gated without deleting cheque code',
@@ -57,9 +57,9 @@ void main() {
       final account =
           source('lib/features/suppliers/screens/supplier_account_screen.dart');
       expect(suppliers, contains('ReleaseScopeConfig.chequesEnabled'));
-      expect(account, contains('ReleaseScopeConfig.chequesEnabled'));
       expect(suppliers, contains("'/suppliers/cheques'"));
-      expect(account, contains('AppRoutes.supplierCheques'));
+      expect(account, isNot(contains('AppRoutes.supplierCheques')));
+      expect(account, isNot(contains("'/suppliers/cheques'")));
     });
   });
 }

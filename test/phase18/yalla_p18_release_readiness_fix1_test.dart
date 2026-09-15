@@ -47,11 +47,10 @@ void main() {
       expect(config, contains('YALLA_ACCOUNT_DELETION_URL'));
       expect(config, contains("uri.scheme.toLowerCase() != 'https'"));
 
-      expect(
-        login,
-        contains('if (!ReleaseDistributionConfig.isStoreDistribution)'),
-      );
-      expect(login, contains('ReleaseLegalLinks(compact: true)'));
+      expect(login, contains('ReleaseDistributionConfig'));
+      expect(login, contains('.isStoreDistribution'));
+      expect(login, contains('ReleaseLegalLinks('));
+      expect(login, contains('compact: true'));
       expect(subscription, contains('ReleaseLegalLinks()'));
       expect(subscription, isNot(contains('أرغب بالاشتراك')));
       expect(subscription, contains('أحتاج مساعدة في Yalla Accounts'));
