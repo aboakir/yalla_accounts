@@ -95,7 +95,11 @@ class LicenseRuntimeService {
       );
       return decision;
     }
-    final mode = SubscriptionAccessPolicy.mode(license, current);
+    // Tolerance avoids harmless clock-skew lockouts; it must not move license,
+    // trial or grace evaluation backwards, or erode the floor on each refresh.
+    final effectiveTime =
+        current.isAfter(trustedFloor) ? current : trustedFloor;
+    final mode = SubscriptionAccessPolicy.mode(license, effectiveTime);
     final decision = LicenseRuntimeDecision(
         mode: mode,
         reason: SubscriptionAccessPolicy.message(mode),
@@ -107,7 +111,8 @@ class LicenseRuntimeService {
       validationRequiredAt: license.validationRequiredAt,
       validationGraceUntil: license.validationGraceUntil,
     );
-    await _persist(db, decision, source: 'SIGNED_LICENSE');
+    await _persist(db, decision,
+        source: 'SIGNED_LICENSE', effectiveAt: effectiveTime);
     return decision;
   }
 

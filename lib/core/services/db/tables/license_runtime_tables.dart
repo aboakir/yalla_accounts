@@ -204,10 +204,9 @@ class LicenseRuntimeTables {
 
       for (final operation in const <String>['INSERT', 'UPDATE', 'DELETE']) {
         final triggerName =
-            'yalla_sec011_ro_${name}_${operation.toLowerCase()}';
-        await db.execute('DROP TRIGGER IF EXISTS $triggerName');
+            'yalla_sec011_ro_${name}_${operation.toLowerCase()}_clock_v5';
         await db.execute('''
-          CREATE TRIGGER $triggerName
+          CREATE TRIGGER IF NOT EXISTS $triggerName
           BEFORE $operation ON $name
           WHEN
             EXISTS (
@@ -220,11 +219,7 @@ class LicenseRuntimeTables {
                   'READ_ONLY_VALIDATION_REQUIRED'
                 )
             )
-            OR EXISTS (
-              SELECT 1 FROM $table
-              WHERE singleton_id = 1
-                AND datetime(effective_at) > datetime('now', '+2 minutes')
-            )
+            OR ($_clockReadOnlyCondition)
             OR EXISTS (
               SELECT 1 FROM license_validation_state
               WHERE singleton_id = 1
@@ -248,6 +243,32 @@ class LicenseRuntimeTables {
     }
   }
 
+  // Add versioned guards without dropping older protection between statements.
+  // Read the receipt/validation floors too: the first activation can precede
+  // the first runtime refresh. Small clock skew must never extend an expiry.
+  static const _trustedTimeSql = '''
+    max(
+      COALESCE((SELECT julianday(effective_at) FROM license_runtime_state WHERE singleton_id=1),0),
+      COALESCE((SELECT julianday(last_online_validation_at) FROM license_activation_state WHERE singleton_id=1),0),
+      COALESCE((SELECT julianday(server_time_at_success) FROM license_validation_state WHERE singleton_id=1),0)
+    )
+  ''';
+  static const _clockReadOnlyCondition = '''
+    ($_trustedTimeSql) > julianday('now', '+2 minutes')
+    OR EXISTS (
+      SELECT 1 FROM license_runtime_state WHERE singleton_id=1
+      AND julianday(license_expires_at) <= max(julianday('now'), ($_trustedTimeSql))
+    )
+    OR EXISTS (
+      SELECT 1 FROM license_activation_state WHERE singleton_id=1 AND status='ACTIVE'
+      AND julianday(license_expires_at) <= max(julianday('now'), ($_trustedTimeSql))
+    )
+    OR EXISTS (
+      SELECT 1 FROM license_validation_state WHERE singleton_id=1
+      AND julianday(validation_grace_until) <= max(julianday('now'), ($_trustedTimeSql))
+    )
+  ''';
+
   static Future<void> _installUserTriggers(DatabaseExecutor db) async {
     const readOnlyCondition = '''
       EXISTS (
@@ -260,11 +281,7 @@ class LicenseRuntimeTables {
             'READ_ONLY_VALIDATION_REQUIRED'
           )
       )
-      OR EXISTS (
-        SELECT 1 FROM license_runtime_state
-        WHERE singleton_id = 1
-          AND datetime(effective_at) > datetime('now', '+2 minutes')
-      )
+      OR ($_clockReadOnlyCondition)
       OR EXISTS (
         SELECT 1 FROM license_validation_state
         WHERE singleton_id = 1
@@ -279,16 +296,8 @@ class LicenseRuntimeTables {
       )
     ''';
 
-    for (final name in const [
-      'yalla_sec011_ro_users_insert',
-      'yalla_sec011_ro_users_delete',
-      'yalla_sec011_ro_users_business_update',
-    ]) {
-      await db.execute('DROP TRIGGER IF EXISTS $name');
-    }
-
     await db.execute('''
-      CREATE TRIGGER yalla_sec011_ro_users_insert
+      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_insert_clock_v5
       BEFORE INSERT ON users
       WHEN $readOnlyCondition
       BEGIN
@@ -300,7 +309,7 @@ class LicenseRuntimeTables {
     ''');
 
     await db.execute('''
-      CREATE TRIGGER yalla_sec011_ro_users_delete
+      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_delete_clock_v5
       BEFORE DELETE ON users
       WHEN $readOnlyCondition
       BEGIN
@@ -315,7 +324,7 @@ class LicenseRuntimeTables {
     // still sign in and recover access. Business identity, role, status and
     // workshop/subscription fields cannot be changed in READ ONLY.
     await db.execute('''
-      CREATE TRIGGER yalla_sec011_ro_users_business_update
+      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_business_update_clock_v5
       BEFORE UPDATE ON users
       WHEN ($readOnlyCondition) AND (
         NEW.name IS NOT OLD.name OR

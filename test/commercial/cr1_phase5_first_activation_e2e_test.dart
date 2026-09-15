@@ -236,6 +236,27 @@ void main() {
       verifier: verifier,
     );
 
+    const ownerRequest = FirstOwnerBootstrapRequest(
+      ownerName: 'Phase Five Owner',
+      email: email,
+      password: 'Local-owner-password1',
+      workshopName: 'Phase Five Workshop',
+      workshopAddress: 'Phase Five Street',
+      country: 'فلسطين',
+      province: 'الضفة الغربية',
+      city: 'Bethlehem',
+      street: 'Phase Five Street',
+      phone: '+970599555555',
+    );
+    final ownerService = FirstOwnerBootstrapService(
+      databaseProvider: () async => db,
+      activationStateRepository: repository,
+    );
+    await expectLater(ownerService.createFirstOwner(ownerRequest),
+        throwsA(isA<FirstOwnerBootstrapException>()));
+    expect(await db.query('users'), isEmpty);
+    expect(await db.query('auth_sessions'), isEmpty);
+    expect(await db.query('installation_identity'), isEmpty);
     final license = await activation.activateFirstInstallation(activationCode);
     expect(license.organizationId, approved.data['organization_id']);
     expect(license.subscriptionId, approved.data['subscription_id']);
@@ -244,6 +265,36 @@ void main() {
     expect(await repository.hasUsableActivationForCurrentInstallation(), true);
     final installation = (await db.query('installation_identity')).single;
     expect(installation['binding_state'], 'BOUND');
+    final receipt = (await db.query('license_activation_state')).single;
+    expect(receipt['activation_id'], approved.data['activation_id']);
+    expect(receipt['device_id'], installation['device_id']);
+    expect(receipt['installation_id'], installation['installation_id']);
+    final envelope = Map<String, Object?>.from(
+        jsonDecode(receipt['signed_license_envelope_json'] as String) as Map);
+    final keyset = Map<String, Object?>.from(
+        jsonDecode(receipt['verification_keyset_json'] as String) as Map);
+    final device = await deviceService.ensureCurrent();
+    expect(
+        (await verifier.verify(
+                envelope: envelope,
+                verificationKeyset: keyset,
+                identity: device))
+            .licenseId,
+        license.licenseId);
+    await expectLater(
+        LicenseEnvelopeVerifier(trustedPublicKeySha256: {'0' * 64}).verify(
+            envelope: envelope, verificationKeyset: keyset, identity: device),
+        throwsA(isA<LicenseVerificationException>()));
+    final tamperedEnvelope = {
+      ...envelope,
+      'signature': base64Url.encode(List<int>.filled(64, 0)).replaceAll('=', '')
+    };
+    await expectLater(
+        verifier.verify(
+            envelope: tamperedEnvelope,
+            verificationKeyset: keyset,
+            identity: device),
+        throwsA(isA<LicenseVerificationException>()));
 
     final live = await onboarding.refresh();
     expect(live.data['activation_status'], 'REDEEMED');
@@ -265,6 +316,9 @@ void main() {
       phone: '+970599555555',
     ));
     expect(owner.ownerUserId, isNotEmpty);
+    expect((await db.query('users')).length, 1);
+    await expectLater(ownerService.createFirstOwner(ownerRequest),
+        throwsA(isA<FirstOwnerBootstrapException>()));
     expect((await db.query('users')).length, 1);
 
     final secondPair = await Ed25519().newKeyPair();
@@ -290,6 +344,14 @@ void main() {
       ),
       throwsA(isA<ActivationTransportException>()),
     );
+    await expectLater(
+        activationTransport.beginFirstActivation(
+          activationCode: activationCode,
+          identity: device,
+        ),
+        throwsA(isA<ActivationTransportException>()));
+    expect((await onboarding.refresh()).data['started_at'],
+        live.data['started_at']);
 
     secrets.values.clear();
     await expectLater(

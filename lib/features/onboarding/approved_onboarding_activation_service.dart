@@ -93,6 +93,7 @@ class ApprovedOnboardingActivationService {
       }
 
       await _assertFreshPreActivation(txn, currentOrganizationId);
+      await _assertNoOperationalData(txn);
       if (currentOrganizationId == canonicalOrganizationId) {
         return;
       }
@@ -168,11 +169,85 @@ class ApprovedOnboardingActivationService {
           'PLACEHOLDER_ORGANIZATION_NOT_REMOVED',
         );
       }
+      await OrganizationIdentityTables.validate(txn);
+      await OwnerBootstrapTables.validate(txn);
     });
 
-    await OrganizationIdentityTables.validate(db);
-    await OwnerBootstrapTables.validate(db);
     return status;
+  }
+
+  // Legacy accounting tables are single-workshop tables WITHOUT an
+  // organization_id column. A revision-zero sync baseline is not proof that
+  // their contents are installation seeds: upgrades baseline real history too.
+  Future<void> _assertNoOperationalData(DatabaseExecutor db) async {
+    const bootstrapOnly = {
+      'schema_migrations', 'organizations', 'organization_identity',
+      'owner_bootstrap_state', 'license_runtime_state',
+      'auth_roles', 'auth_permissions', 'auth_role_permissions',
+      'backup_runs', 'backup_guardian_settings', 'app_audit_events',
+      'cloud_identity_links', 'pending_customer_onboarding',
+      'sync_entity_registry', 'sync_change_log', 'sync_mutation_context',
+      // Catalogs checked below; these contain no commercial authority.
+      'accounts', 'suppliers', 'parties', 'party_roles',
+      'insurance_companies', 'document_sequences',
+    };
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    );
+    for (final table in tables) {
+      final name = table['name'] as String;
+      final quoted = name.replaceAll('"', '""');
+      if (!bootstrapOnly.contains(name) &&
+          (await db.rawQuery('SELECT 1 FROM "$quoted" LIMIT 1')).isNotEmpty) {
+        throw ApprovedOnboardingActivationException(
+            'LOCAL_DATA_NOT_EMPTY:$name');
+      }
+    }
+    // Only the shipped chart of accounts, general-expenses supplier and its
+    // Party link are allowed. Custom/historical master data must never move.
+    const seedCodes = {
+      '1000',
+      '1010',
+      '1020',
+      '1030',
+      '1200',
+      '1120',
+      '1400',
+      '1410',
+      '2100',
+      '2200',
+      '2140',
+      '2145',
+      '2105',
+      '3100',
+      '4000',
+      '5005',
+      '5100',
+      '5310',
+      '5350',
+      '5900',
+    };
+    final accounts = await db.query('accounts');
+    final suppliers = await db.query('suppliers');
+    final parties = await db.query('parties');
+    final roles = await db.query('party_roles');
+    final sequences = await db.query('document_sequences');
+    if (accounts.any((row) => !seedCodes.contains(row['code'])) ||
+        suppliers.length != 1 ||
+        suppliers.single['name'] != 'المصاريف العامة' ||
+        ['phone', 'address', 'account_id']
+            .any((k) => suppliers.single[k] != null) ||
+        parties.length != 1 ||
+        parties.single['display_name'] != 'المصاريف العامة' ||
+        roles.length != 1 ||
+        roles.single['role'] != 'SUPPLIER' ||
+        roles.single['party_id'] != parties.single['id'] ||
+        roles.single['legacy_id'] != suppliers.single['id'].toString() ||
+        sequences.any((row) => row['next_value'] != 1) ||
+        (await db.query('organizations')).length != 1) {
+      throw const ApprovedOnboardingActivationException(
+          'LOCAL_CATALOG_NOT_PRISTINE');
+    }
   }
 
   Future<void> _assertFreshPreActivation(
