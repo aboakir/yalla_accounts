@@ -19,6 +19,10 @@ class SubscriptionAccessPolicy {
 
   static String mode(VerifiedLicense license, DateTime now) {
     final status = normalize(license.operationalStatus);
+    // Signed server access authority can only reduce local capability.
+    if (license.entitlements['ACCESS_ALLOWED'] == false) {
+      return LicenseRuntimeMode.readOnlySuspended;
+    }
     if (!statuses.contains(status) ||
         status == 'CANCELLED' ||
         status == 'REVOKED') {

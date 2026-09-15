@@ -27,7 +27,9 @@ VerifiedLicense license(String status, DateTime now,
         entitlements: const {
           'ACCOUNTING_CORE': true,
           'MAX_USERS': 5,
-          'MAX_DEVICES': 2
+          'MAX_DEVICES': 2,
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
         },
         validationRequiredAt: now.subtract(const Duration(days: 1)),
         validationGraceUntil: grace ?? now.add(const Duration(days: 7)),
