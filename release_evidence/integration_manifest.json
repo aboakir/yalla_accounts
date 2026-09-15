@@ -1,0 +1,23 @@
+{
+  "change_request": "CR1",
+  "current_phase": 5,
+  "current_phase_manifest": "CR1_PHASE_5_manifest.json",
+  "previous_phase_evidence": ["CR1_PHASE_4_manifest.json"],
+  "status": "PASS",
+  "gate_5_implementation": "PASS",
+  "contract_version": 2,
+  "authority": "Control Server",
+  "tested_code_commits": {
+    "control": "18b019d2ed1e955ea2daaf6abfd2f217618f67aa",
+    "accounts": "38015b7dad457315638a68a36887a61147a9895f"
+  },
+  "final_commit_record": "git notes --ref=cr1-phase5-review show HEAD",
+  "verifier_unchanged": true,
+  "production_supabase_changes": "NONE",
+  "live_acceptance": "BLOCKED_EXTERNAL_LIVE_ACCEPTANCE",
+  "blockers": [],
+  "next_phase": 6,
+  "next_phase_authorized": false,
+  "push_performed": false,
+  "evidence": "CR1_PHASE_5.md"
+}

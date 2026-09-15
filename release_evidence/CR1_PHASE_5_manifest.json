@@ -1,0 +1,223 @@
+{
+  "change_request": "CR1",
+  "phase": 5,
+  "status": "PASS",
+  "gate_5_implementation": "PASS",
+  "contract_version": 2,
+  "review_date": "2026-09-15",
+  "phase_4_bases": {
+    "control": "e8829bc16b78275dccae985d5f964c639612d09f",
+    "accounts": "f7b742c1b6e12adaa6fcc97f4766301d6f73cb25"
+  },
+  "review_start": {
+    "control": "ef81c2e1c58b043108a895cbb3eecebddb907a2e",
+    "accounts": "0a42f62503f485ce34dfa63500c6bab2ca3bde27"
+  },
+  "tested_code_commits": {
+    "control": "18b019d2ed1e955ea2daaf6abfd2f217618f67aa",
+    "accounts": "38015b7dad457315638a68a36887a61147a9895f"
+  },
+  "final_commit_record": {
+    "storage": "Git notes attached to both final evidence commits",
+    "ref": "refs/notes/cr1-phase5-review",
+    "read_command": "git notes --ref=cr1-phase5-review show HEAD",
+    "reason": "The terminal commit pair is recorded after both commits exist; no self-referential commit hashes."
+  },
+  "runtime": {
+    "node": "26.3.0",
+    "flutter": "3.44.8",
+    "dart": "3.12.2"
+  },
+  "tests": {
+    "control_server": {
+      "command": "npm test",
+      "cwd": "D:/yalla_control_cr1_phase5/control_server",
+      "pass": 125,
+      "fail": 0,
+      "skipped": 0,
+      "log": "phase5_review_node_final.log",
+      "sha256": "1DBC396EB310BB5D873C4A07D0880542C47BD58C06C4ED2E05298173D93C7064"
+    },
+    "control_flutter": {
+      "command": "flutter test --no-pub test/device_management_test.dart test/license_activation_management_test.dart test/lifecycle_snapshot_refresh_test.dart test/customer_management_test.dart",
+      "pass": 69,
+      "fail": 0,
+      "log": "phase5_review_flutter.log",
+      "sha256": "FEC9555C01211050E4410873A672BC4B1AF70CEAD694A85E92C217E321F39AB2"
+    },
+    "control_analyzer": {
+      "command": "flutter analyze --no-pub",
+      "result": "NO ISSUES",
+      "log": "phase5_review_control_analyzer.log",
+      "sha256": "D5A404FFBA22680DAD0C0EFE6063ECEB2FCC32BF5EE9FAB2C7455DD6C92BC894"
+    },
+    "accounts": {
+      "environment": {
+        "YALLA_CR1_CONTROL_ROOT": "D:/yalla_control_cr1_phase5/control_server"
+      },
+      "command": "flutter test --no-pub test/commercial/cr1_phase5_first_activation_e2e_test.dart test/commercial/cr1_phase5_canonical_binding_test.dart test/commercial/cr1_phase4_onboarding_e2e_test.dart test/commercial/sec_005_device_identity_test.dart test/commercial/cr1_v2_http_contract_test.dart test/commercial/sec_006_activation_flow_test.dart test/commercial/sec_007_first_owner_bootstrap_test.dart test/commercial/sec_008_regression_activation_flow_test.dart test/commercial/sec_008_regression_owner_bootstrap_test.dart test/commercial/sec_011_lifecycle_contract_test.dart test/commercial/sec_012_db_enforcement_test.dart test/commercial/sec_012_validation_window_test.dart test/commercial/stage46_subscription_access_test.dart",
+      "pass": 39,
+      "fail": 0,
+      "skipped": 0,
+      "log": "phase5_review_accounts_final.log",
+      "sha256": "18746AA4F52224AD16DD64B914627A8121BF8D45518036EDCB380396D0282D31"
+    },
+    "accounts_analyzer": {
+      "command": "flutter analyze --no-pub lib/features/onboarding/approved_onboarding_activation_service.dart lib/features/onboarding/customer_onboarding_screen.dart lib/core/licensing/lifecycle/license_runtime_service.dart lib/core/services/db/tables/license_runtime_tables.dart test/commercial/cr1_phase5_first_activation_e2e_test.dart test/commercial/cr1_phase5_canonical_binding_test.dart test/commercial/stage46_subscription_access_test.dart",
+      "result": "NO ISSUES",
+      "files": 7,
+      "log": "phase5_review_accounts_analyzer.log",
+      "sha256": "73A9F352A8ACAD8F1B1E8B1DC693091A552413242B0C86E42864FC80D8126286"
+    },
+    "git_diff_check": "PASS"
+  },
+  "anti_fraud_matrix": [
+    {
+      "id": 1,
+      "scenario": "valid first activation",
+      "result": "PASS",
+      "evidence": "Accounts cr1_phase5_first_activation_e2e_test + Control accounts-v2"
+    },
+    {
+      "id": 2,
+      "scenario": "reused activation code",
+      "result": "DENY VERIFIED",
+      "evidence": "Phase 5 E2E, same original device with new challenge request"
+    },
+    {
+      "id": 3,
+      "scenario": "same code from second device",
+      "result": "DENY VERIFIED",
+      "evidence": "Phase 5 E2E; Control accounts-v2"
+    },
+    {
+      "id": 4,
+      "scenario": "forged Ed25519 proof",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2 forged/wrong device/installation/customer test"
+    },
+    {
+      "id": 5,
+      "scenario": "wrong device_id",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2"
+    },
+    {
+      "id": 6,
+      "scenario": "wrong installation_id",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2"
+    },
+    {
+      "id": 7,
+      "scenario": "cross-customer access",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2 parallel/cross-customer and Phase 3 identity tests"
+    },
+    {
+      "id": 8,
+      "scenario": "expired activation authority",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2 explicit expired authority: no challenge/device; remains ISSUED"
+    },
+    {
+      "id": 9,
+      "scenario": "expired challenge",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2"
+    },
+    {
+      "id": 10,
+      "scenario": "replayed completion",
+      "result": "NO DUPLICATE MUTATION",
+      "evidence": "Control accounts-v2 concurrent + persisted restart + exact replay"
+    },
+    {
+      "id": 11,
+      "scenario": "same idempotency key, changed request",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2"
+    },
+    {
+      "id": 12,
+      "scenario": "lost private key after BOUND",
+      "result": "FAIL-CLOSED VERIFIED",
+      "evidence": "Phase 5 E2E; Accounts sec_005"
+    },
+    {
+      "id": 13,
+      "scenario": "cloned/reinstalled UNBOUND identity",
+      "result": "NEW IDENTITY VERIFIED",
+      "evidence": "Accounts sec_005: new install/device/key, generation increments"
+    },
+    {
+      "id": 14,
+      "scenario": "BOUND silent rotation",
+      "result": "DENY / RECOVERY REQUIRED",
+      "evidence": "Accounts sec_005; Control V2 installation/generation/key binding"
+    },
+    {
+      "id": 15,
+      "scenario": "revoked device",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2 inactive-state loop; commerce terminal revocation"
+    },
+    {
+      "id": 16,
+      "scenario": "suspended device",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2 inactive-state loop"
+    },
+    {
+      "id": 17,
+      "scenario": "replaced old device",
+      "result": "DENY VERIFIED",
+      "evidence": "Control accounts-v2 inactive-state loop + reviewed replacement HTTP test"
+    },
+    {
+      "id": 18,
+      "scenario": "local clock rollback",
+      "result": "READ ONLY VERIFIED",
+      "evidence": "stage46 service/SQL tests; SEC.012 DB enforcement"
+    },
+    {
+      "id": 19,
+      "scenario": "tampered signed license",
+      "result": "DENY VERIFIED",
+      "evidence": "Phase 5 E2E invalid signature; sec_006 payload tampering"
+    },
+    {
+      "id": 20,
+      "scenario": "wrong signing key",
+      "result": "DENY VERIFIED",
+      "evidence": "Phase 5 E2E untrusted signing anchor; Control signing verifier tests"
+    }
+  ],
+  "canonical_organization_binding": "PASS; fresh server approval, cache consistency only, deny operational/unscoped legacy data, atomic rollback, immutable history preserved, canonical future sync",
+  "first_owner": "PASS; denied before signed activation, one owner after canonical binding, repeat denied",
+  "trial_start": "PASS; NULL at approval, first redemption between measured database timestamps, unchanged by replay/lifecycle/second-device denial; one trial ledger row",
+  "clock_rollback": "PASS; monotonic effective floor, two-minute skew tolerance never reopens expiry/grace, independent versioned SQL guards, recovery/backup retained, fresh corrected online projection restores",
+  "device_lifecycle": "PASS in isolated fixtures; admin-reviewed same-org replacement and terminal old-device denial; physical replacement acceptance separate",
+  "verifier": {
+    "status": "UNCHANGED",
+    "path": "lib/core/licensing/activation/license_envelope_verifier.dart",
+    "git_blob": "3f1471b1c4e005539e2285efbbfdfc5fa7e5f834"
+  },
+  "production_supabase_changes": "NONE",
+  "live_acceptance": "BLOCKED_EXTERNAL_LIVE_ACCEPTANCE",
+  "live_acceptance_requirements": [
+    "deployed production HTTPS Control and actual Supabase/OTP acceptance",
+    "physical device secure storage/private-key durability and reinstall/replacement acceptance"
+  ],
+  "blockers": [],
+  "legacy_authority": {
+    "retained": true,
+    "enabled_by_default": false,
+    "forbidden_in_production": true
+  },
+  "next_phase": 6,
+  "next_phase_authorized": false,
+  "push_performed": false,
+  "backups_deleted": false,
+  "repository": "Accounts"
+}
