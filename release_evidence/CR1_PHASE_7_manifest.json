@@ -1,0 +1,79 @@
+{
+  "change_request": "CR1",
+  "phase": 7,
+  "status": "PASS",
+  "gate_7": "PASS",
+  "review_date": "2026-09-15",
+  "scope": "OFFLINE + SECURE SYNC",
+  "contract_version": 2,
+  "base_commits": {
+    "control": "30a6016a3f979d02c39a4b0026a7575388ee0fa7",
+    "accounts": "b7031729624cbf3d4f19a861c557d55acd85eab1"
+  },
+  "tested_code_commits": {
+    "control": "3386196325839fd992a2943ba2871d3e808caa09",
+    "accounts": "e3900eb71640c32121a96057bd25642bddc2cb4d"
+  },
+  "final_commit_record": "git notes --ref=cr1-phase7-review show HEAD",
+  "migration": {
+    "version": 7,
+    "file": "control_server/schema/sync_v7.sql",
+    "destructive_data_operations": false,
+    "production_applied": false
+  },
+  "authority": "Control Server commercial identity + device proof; Accounts remains local accounting authority",
+  "gate_matrix": {
+    "offline_local_commit": "PASS",
+    "restart_durability": "PASS",
+    "reconnect_retry": "PASS",
+    "timeout_lost_ack_retry": "PASS",
+    "duplicate_send": "PASS_NO_DUPLICATE_MUTATION",
+    "changed_idempotent_payload": "DENY_VERIFIED",
+    "server_database_restart": "PASS",
+    "forged_device_proof": "DENY_VERIFIED",
+    "wrong_installation": "DENY_VERIFIED",
+    "suspended_device": "DENY_VERIFIED",
+    "concurrent_revision": "CONFLICT_QUARANTINED",
+    "financial_remote_candidate": "QUARANTINED_NO_GL_APPLY",
+    "duplicate_financial_posting": 0
+  },
+  "sync_security": {
+    "verified_bearer_required": true,
+    "installation_binding_required": true,
+    "ed25519_device_proof_required": true,
+    "payload_sha256_required": true,
+    "snapshot_sha256_required": true,
+    "remote_financial_auto_apply": false,
+    "client_commercial_authority": false
+  },
+  "tests": {
+    "control_server": {
+      "command": "npm test",
+      "passed": 139,
+      "failed": 0,
+      "skipped": 0
+    },
+    "control_flutter": {
+      "command": "flutter test --no-pub",
+      "passed": 327,
+      "failed": 0
+    },
+    "accounts": {
+      "command": "flutter test --no-pub test/commercial/cr1_phase7_offline_sync_gate_test.dart test/commercial/stage8_offline_sync_completion_test.dart test/sync/stage50_sync_foundation_test.dart test/sync/stage50_sync_real_services_test.dart",
+      "passed": 16,
+      "failed": 0
+    }
+  },
+  "analyzers": {
+    "control": "flutter analyze --no-pub: NO ISSUES",
+    "accounts": "Phase-7 modified/new Dart files: NO ISSUES"
+  },
+  "production_supabase_changes": "NONE",
+  "production_control_db_changes": "NONE",
+  "live_acceptance": "BLOCKED_EXTERNAL_LIVE_ACCEPTANCE",
+  "blockers": [],
+  "push_performed": false,
+  "backups_deleted": false,
+  "next_phase": 8,
+  "next_phase_authorized": false
+}
