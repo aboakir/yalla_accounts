@@ -121,6 +121,60 @@ void main() {
     expect(SubscriptionAccessPolicy.mode(license(' trial ', now), now),
         'WRITABLE');
   });
+  test('local clock rollback behind trusted server time fails closed',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('stage46_clock_');
+    final db = await DatabaseMigration.initDatabase(
+        pathOverride: '${dir.path}/test.db');
+    final orgId = (await db.query('organizations')).first['id'].toString();
+    final trusted = DateTime.now().toUtc();
+    final repo = Repository()
+      ..value = license('ACTIVE', trusted, organizationId: orgId);
+    final service = LicenseRuntimeService(
+        databaseProvider: () async => db, activationStateRepository: repo);
+    try {
+      await service.projectServerLifecycleDecision(
+          license: repo.value!, serverTime: trusted);
+      final rolledBack = await service.refreshFromStoredLicense(
+          now: trusted.subtract(const Duration(hours: 1)));
+      expect(rolledBack.mode, 'READ_ONLY_VALIDATION_REQUIRED');
+      expect(rolledBack.reason, contains('clock'));
+    } finally {
+      await db.close();
+      await dir.delete(recursive: true);
+    }
+  });
+
+  test('DB trigger blocks writes when trusted licensing time is in the future',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('stage46_clock_db_');
+    final db = await DatabaseMigration.initDatabase(
+        pathOverride: '${dir.path}/test.db');
+    final orgId = (await db.query('organizations')).first['id'].toString();
+    final trustedFuture = DateTime.now().toUtc().add(const Duration(hours: 1));
+    final repo = Repository()
+      ..value = license('ACTIVE', trustedFuture, organizationId: orgId);
+    final service = LicenseRuntimeService(
+        databaseProvider: () async => db, activationStateRepository: repo);
+    try {
+      await service.projectServerLifecycleDecision(
+          license: repo.value!, serverTime: trustedFuture);
+      await expectLater(
+          db.insert('clients', {'name': 'blocked-clock', 'type': 'individual'}),
+          throwsA(anything));
+      expect(await db.query('clients'), isEmpty);
+      final correctedServerTime = DateTime.now().toUtc();
+      await service.projectServerLifecycleDecision(
+          license: repo.value!, serverTime: correctedServerTime);
+      await db.insert('clients',
+          {'name': 'allowed-after-validation', 'type': 'individual'});
+      expect((await db.query('clients')).length, 1);
+    } finally {
+      await db.close();
+      await dir.delete(recursive: true);
+    }
+  });
+
   test('missing or invalid signed license cannot authorize writes', () async {
     final dir = await Directory.systemTemp.createTemp('stage46_invalid_');
     final db = await DatabaseMigration.initDatabase(

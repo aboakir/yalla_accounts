@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../cloud_auth/cloud_auth_service.dart';
+import '../activation/screens/activation_screen.dart';
+import 'approved_onboarding_activation_service.dart';
 import 'customer_onboarding_client.dart';
 import 'customer_onboarding_service.dart';
 
@@ -91,6 +93,27 @@ class _CustomerOnboardingScreenState
       }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _continueToActivation() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(approvedOnboardingActivationServiceProvider).prepare();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+        builder: (_) => const ActivationScreen(),
+      ));
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = 'تعذر تجهيز التفعيل. حدّث حالة الطلب ثم أعد المحاولة.';
+        });
+      }
     }
   }
 
@@ -208,9 +231,20 @@ class _CustomerOnboardingScreenState
                                 _ =>
                                   'طلبك قيد مراجعة الإدارة. يمكنك إغلاق التطبيق والعودة لاحقًا.',
                               }),
-                              if (_status!.approved)
+                              if (_status!.approved) ...[
                                 Text(
                                     'معرّف المنشأة: ${_status!.data['organization_id']}'),
+                                const SizedBox(height: 12),
+                                FilledButton.icon(
+                                  key: const Key(
+                                      'continue-commercial-activation'),
+                                  onPressed:
+                                      _busy ? null : _continueToActivation,
+                                  icon:
+                                      const Icon(Icons.verified_user_outlined),
+                                  label: const Text('متابعة إلى تفعيل الجهاز'),
+                                ),
+                              ],
                             ],
                             const SizedBox(height: 16),
                             OutlinedButton(

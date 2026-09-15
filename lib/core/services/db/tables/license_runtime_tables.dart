@@ -205,8 +205,9 @@ class LicenseRuntimeTables {
       for (final operation in const <String>['INSERT', 'UPDATE', 'DELETE']) {
         final triggerName =
             'yalla_sec011_ro_${name}_${operation.toLowerCase()}';
+        await db.execute('DROP TRIGGER IF EXISTS $triggerName');
         await db.execute('''
-          CREATE TRIGGER IF NOT EXISTS $triggerName
+          CREATE TRIGGER $triggerName
           BEFORE $operation ON $name
           WHEN
             EXISTS (
@@ -218,6 +219,11 @@ class LicenseRuntimeTables {
                   'READ_ONLY_REVOKED',
                   'READ_ONLY_VALIDATION_REQUIRED'
                 )
+            )
+            OR EXISTS (
+              SELECT 1 FROM $table
+              WHERE singleton_id = 1
+                AND datetime(effective_at) > datetime('now', '+2 minutes')
             )
             OR EXISTS (
               SELECT 1 FROM license_validation_state
@@ -255,6 +261,11 @@ class LicenseRuntimeTables {
           )
       )
       OR EXISTS (
+        SELECT 1 FROM license_runtime_state
+        WHERE singleton_id = 1
+          AND datetime(effective_at) > datetime('now', '+2 minutes')
+      )
+      OR EXISTS (
         SELECT 1 FROM license_validation_state
         WHERE singleton_id = 1
           AND datetime(validation_grace_until) <= datetime('now')
@@ -268,8 +279,16 @@ class LicenseRuntimeTables {
       )
     ''';
 
+    for (final name in const [
+      'yalla_sec011_ro_users_insert',
+      'yalla_sec011_ro_users_delete',
+      'yalla_sec011_ro_users_business_update',
+    ]) {
+      await db.execute('DROP TRIGGER IF EXISTS $name');
+    }
+
     await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_insert
+      CREATE TRIGGER yalla_sec011_ro_users_insert
       BEFORE INSERT ON users
       WHEN $readOnlyCondition
       BEGIN
@@ -281,7 +300,7 @@ class LicenseRuntimeTables {
     ''');
 
     await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_delete
+      CREATE TRIGGER yalla_sec011_ro_users_delete
       BEFORE DELETE ON users
       WHEN $readOnlyCondition
       BEGIN
@@ -296,7 +315,7 @@ class LicenseRuntimeTables {
     // still sign in and recover access. Business identity, role, status and
     // workshop/subscription fields cannot be changed in READ ONLY.
     await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_business_update
+      CREATE TRIGGER yalla_sec011_ro_users_business_update
       BEFORE UPDATE ON users
       WHEN ($readOnlyCondition) AND (
         NEW.name IS NOT OLD.name OR
