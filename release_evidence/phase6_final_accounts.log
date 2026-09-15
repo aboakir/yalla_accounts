@@ -1,0 +1,1804 @@
+00:00 +0: loading F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart
+00:00 +0: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +1: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +2: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +2: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: direct legacy SQL cannot mutate financial rows without signed feature; data remains readable
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\phase6-feature-review-a3002d5a/test.db
+[DB] onCreate FULL INIT
+00:01 +3: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +4: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +5: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +6: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +7: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:01 +7: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: direct legacy SQL cannot mutate financial rows without signed feature; data remains readable
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:02 +7: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_35d67740/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+00:03 +7: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:03 +7: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+00:03 +8: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:03 +8: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+00:03 +9: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:03 +9: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:03 +9: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\yalla_sec009_seats_60ac6453\seats.db
+[DB] onCreate FULL INIT
+00:03 +10: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:03 +11: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_subscription_entitlements_e2e_test.dart: Phase 6 Gate matrix is reflected through signed Accounts authority
+00:03 +11: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: direct legacy SQL cannot mutate financial rows without signed feature; data remains readable
+All tables created successfully
+00:03 +11: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+Supplier contact details and account links preserved
+00:03 +11: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: direct legacy SQL cannot mutate financial rows without signed feature; data remains readable
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\phase6-feature-review-a3002d5a\test.db
+00:03 +11: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+Supplier contact details and account links preserved
+00:04 +12: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: direct legacy SQL cannot mutate financial rows without signed feature; data remains readable
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: a lower revision or older signed issue time cannot overwrite newer local receipt
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\phase6-feature-review-1d62e6d0/test.db
+[DB] onCreate FULL INIT
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: READ ONLY blocks business writes but keeps auth metadata writable
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\yalla_sec011_runtime_47f63445/runtime.db
+[DB] onCreate FULL INIT
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: a lower revision or older signed issue time cannot overwrite newer local receipt
+Supplier contact details and account links preserved
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: a lower revision or older signed issue time cannot overwrite newer local receipt
+Supplier contact details and account links preserved
+00:04 +13: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: READ ONLY blocks business writes but keeps auth metadata writable
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+00:04 +14: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+00:04 +14: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: a lower revision or older signed issue time cannot overwrite newer local receipt
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:05 +14: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: ACTIVE projects identical local/server policy and enforces SQL writes
+All tables created successfully
+00:05 +14: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: READ ONLY blocks business writes but keeps auth metadata writable
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:05 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+00:05 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: TRIAL projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_68262854/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+00:06 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+All tables created successfully
+00:06 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\yalla_sec012_grace_d04de750/grace.db
+00:06 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: TRIAL projects identical local/server policy and enforces SQL writes
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:06 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+[DB] onCreate FULL INIT
+00:06 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase6_signed_feature_authorization_test.dart: a lower revision or older signed issue time cannot overwrite newer local receipt
+All tables created successfully
+00:06 +15: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+Supplier contact details and account links preserved
+00:06 +16: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+00:06 +16: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+Supplier contact details and account links preserved
+00:06 +16: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: READ ONLY blocks business writes but keeps auth metadata writable
+All tables created successfully
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: WRITABLE mode permits business writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\yalla_sec011_runtime_4aa416f2/writable.db
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: WRITABLE mode permits business writes
+[DB] onCreate FULL INIT
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: WRITABLE mode permits business writes
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: TRIAL projects identical local/server policy and enforces SQL writes
+All tables created successfully
+00:07 +17: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: WRITABLE mode permits business writes
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:07 +18: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+00:07 +19: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+00:07 +19: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: GRACE projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_b2c65a0d/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+00:08 +19: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_012_db_enforcement_test.dart: DB blocks writes after validation grace even if runtime row is writable
+All tables created successfully
+00:08 +20: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_009_licensed_user_seats_test.dart: SEC.009 enforces active seats on create and reactivation
+00:08 +20: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: GRACE projects identical local/server policy and enforces SQL writes
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:08 +21: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/sec_011_read_only_enforcement_test.dart: WRITABLE mode permits business writes
+All tables created successfully
+00:08 +22: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: GRACE projects identical local/server policy and enforces SQL writes
+All tables created successfully
+00:09 +22: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\yalla-phase5-e2e-1fb06d93/accounts.db
+[DB] onCreate FULL INIT
+00:09 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+00:09 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_d046a7f5/test.db
+[DB] onCreate FULL INIT
+00:09 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+Supplier contact details and account links preserved
+00:09 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+Supplier contact details and account links preserved
+00:09 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+Supplier contact details and account links preserved
+00:09 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+Supplier contact details and account links preserved
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - users: 0
+  - auth_sessions: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+DB Tables:
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - password_reset_grants: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - users: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - workshop_settings: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - auth_sessions: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - clients: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - password_reset_grants: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - activation_codes: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - workshop_settings: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - insurance_companies: 10
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - clients: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - repairs: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - activation_codes: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - invoices: 0
+  - repair_lines: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - insurance_companies: 10
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - repairs_images: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - repairs: 0
+  - invoices: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - repair_workflow: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - repair_lines: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - repair_workflow_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - repairs_images: 0
+  - repair_workflow: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - accounts: 20
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - repair_workflow_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - gl_entries: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - accounts: 20
+  - gl_entries: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - gl_lines: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - gl_lines: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - payments: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - payments: 0
+  - journal_entries: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - journal_entries: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - ledger_entries: 0
+  - employees: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - ledger_entries: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - attendance: 0
+  - employee_advances: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - employees: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - payroll_runs: 0
+  - payroll_payments: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - attendance: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - employee_advances: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - payroll_runs: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - receipt_requests: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - payroll_payments: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - suppliers: 1
+  - cheques: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - vouchers: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - cheque_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - monthly_expenses: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - purchase_payments: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - domain_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - insurance_policies: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - outbox_messages: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - insurance_policy_cheques: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - receipt_requests: 0
+  - receipt_headers: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - insurance_policy_installments: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - receipt_allocations: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - insurance_policy_promissories: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - customer_credit_allocations: 0
+  - vouchers: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - invoice_settlements: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - data_health_repair_log: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - purchase_payments: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - document_sequences: 6
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - insurance_policies: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - vehicles: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - insurance_policy_cheques: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - organizations: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - insurance_policy_installments: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - insurance_policy_promissories: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - license_validation_state: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - invoice_settlements: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - license_runtime_state: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - data_health_repair_log: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - owner_bootstrap_state: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - document_sequences: 6
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - auth_roles: 14
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - vehicles: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - auth_permissions: 41
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - organizations: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - auth_role_permissions: 174
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - organization_identity: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - app_audit_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - installation_identity: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - backup_guardian_settings: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - license_activation_state: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - backup_runs: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - license_validation_state: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - windows_import_runs: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - license_runtime_state: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - parties: 1
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXPIRED projects identical local/server policy and enforces SQL writes
+All tables created successfully
+00:10 +23: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+All tables created successfully
+00:11 +24: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+00:11 +24: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: FROZEN projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_63e5910b/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:12 +25: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+00:12 +25: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: CANCELLED projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_ac44d616/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:14 +26: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/cr1_phase5_first_activation_e2e_test.dart: Phase 5 first approved customer activates real device and closes owner gate
+00:14 +26: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXCEPTION projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_6034ce5b/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:15 +27: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: EXCEPTION projects identical local/server policy and enforces SQL writes
+00:15 +28: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: DEMO projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_2f0fd108/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:17 +29: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: SUSPENDED projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_9169fb3b/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:18 +30: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: REVOKED projects identical local/server policy and enforces SQL writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_e03229c5/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:20 +31: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: clock expiry and offline grace override signed writable states
+00:20 +32: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: local clock rollback behind trusted server time fails closed
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_clock_ed2b586b/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:21 +33: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: DB trigger blocks writes when trusted licensing time is in the future
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_clock_db_7e805ea7/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:22 +34: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: clock tolerance is monotonic and cannot reopen expiry or grace
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_tolerance_c26b99bd/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:24 +35: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: DB receipt clock floor is enforced before runtime refresh; technical operations survive
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_receipt_clock_8f5a1724/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:25 +36: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: SQL tolerates small skew but never reopens an already expired license
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_sql_skew_31dc95d8/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:26 +37: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: missing or invalid signed license cannot authorize writes
+[DB] opening v75 @ C:\Users\luay\AppData\Local\Temp\stage46_invalid_59b215b4/test.db
+[DB] onCreate FULL INIT
+Supplier contact details and account links preserved
+Supplier contact details and account links preserved
+أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©
+DB Tables:
+  - users: 0
+  - auth_sessions: 0
+  - password_reset_grants: 0
+  - workshop_settings: 0
+  - clients: 0
+  - activation_codes: 0
+  - insurance_companies: 10
+  - repairs: 0
+  - invoices: 0
+  - repair_lines: 0
+  - repairs_images: 0
+  - repair_workflow: 0
+  - repair_workflow_events: 0
+  - accounts: 20
+  - gl_entries: 0
+  - gl_lines: 0
+  - payments: 0
+  - journal_entries: 0
+  - ledger_entries: 0
+  - employees: 0
+  - attendance: 0
+  - employee_advances: 0
+  - payroll_runs: 0
+  - payroll_payments: 0
+  - suppliers: 1
+  - cheques: 0
+  - cheque_events: 0
+  - monthly_expenses: 0
+  - domain_events: 0
+  - outbox_messages: 0
+  - receipt_requests: 0
+  - receipt_headers: 0
+  - receipt_allocations: 0
+  - customer_credit_allocations: 0
+  - vouchers: 0
+  - purchase_invoices: 0
+  - purchase_invoice_lines: 0
+  - purchase_payments: 0
+  - insurance_policies: 0
+  - insurance_policy_cheques: 0
+  - insurance_policy_installments: 0
+  - insurance_policy_promissories: 0
+  - invoice_settlements: 0
+  - data_health_repair_log: 0
+  - document_sequences: 6
+  - vehicles: 0
+  - organizations: 1
+  - organization_identity: 1
+  - installation_identity: 0
+  - license_activation_state: 0
+  - license_validation_state: 0
+  - license_runtime_state: 1
+  - owner_bootstrap_state: 1
+  - auth_roles: 14
+  - auth_permissions: 41
+  - auth_role_permissions: 174
+  - app_audit_events: 0
+  - backup_guardian_settings: 1
+  - backup_runs: 0
+  - windows_import_runs: 0
+  - parties: 1
+  - party_roles: 1
+  - accounting_audit_events: 0
+All tables created successfully
+00:28 +38: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: Arabic status expiry and readonly message fit Size(430.0, 932.0)
+00:28 +39: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: Arabic status expiry and readonly message fit Size(390.0, 844.0)
+00:29 +40: F:/yalla network/yalla_accounts/YALLA_ACCOUNTS_UNIFIED_LATEST_20260914/test/commercial/stage46_subscription_access_test.dart: Arabic status expiry and readonly message fit Size(844.0, 390.0)
+00:29 +41: All tests passed!
