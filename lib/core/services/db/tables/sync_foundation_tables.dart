@@ -420,14 +420,18 @@ class SyncFoundationTables {
     if (!cols.containsAll(['entity_type', 'entity_id', 'status', 'sent'])) {
       return;
     }
-    await db.execute('''CREATE TRIGGER IF NOT EXISTS trg_sync_outbox_link
+    await db.execute('DROP TRIGGER IF EXISTS trg_sync_outbox_link');
+    await db.execute('''CREATE TRIGGER trg_sync_outbox_link
       AFTER INSERT ON outbox_messages BEGIN
       INSERT OR IGNORE INTO $outboxLinks(outbox_id,change_id)
       SELECT NEW.id,change_id FROM $changes
-      WHERE entity_type=NEW.entity_type AND entity_id=NEW.entity_id
-        AND origin='local' AND NOT EXISTS (
-          SELECT 1 FROM $outboxLinks WHERE outbox_id=NEW.id)
-        ORDER BY sequence DESC LIMIT 1;
+      WHERE origin='local' AND NOT EXISTS (
+        SELECT 1 FROM $outboxLinks WHERE outbox_id=NEW.id)
+        AND ((NEW.idempotency_key LIKE 'sync-change:%'
+              AND change_id=substr(NEW.idempotency_key,13))
+          OR (NEW.idempotency_key NOT LIKE 'sync-change:%'
+              AND entity_type=NEW.entity_type AND entity_id=NEW.entity_id))
+      ORDER BY sequence DESC LIMIT 1;
       END''');
     await db.execute('''CREATE TRIGGER IF NOT EXISTS trg_sync_outbox_ack
       AFTER UPDATE OF sent,status ON outbox_messages

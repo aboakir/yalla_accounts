@@ -8,6 +8,7 @@ import 'package:synchronized/synchronized.dart';
 import '../db_service.dart';
 import '../offline_outbox_service.dart';
 import 'outbox_sync_transport.dart';
+import 'sync_foundation_service.dart';
 import 'sync_state_service.dart';
 
 class OutboxDrainResult {
@@ -115,6 +116,7 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
       var sent = 0;
       var failed = 0;
 
+      await SyncFoundationService.materializeMissingOutbox(db);
       final ready = await OfflineOutboxService.ready(db: db);
       if (ready.isEmpty) {
         final stats = await OfflineOutboxService.queueStats(db);
@@ -140,7 +142,14 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
         }
 
         try {
-          final envelope = OutboxSyncEnvelope.fromRow(row);
+          final metadata = await SyncFoundationService.metadataForOutbox(
+            db,
+            messageId,
+          );
+          final envelope = OutboxSyncEnvelope.fromRow({
+            ...row,
+            if (metadata != null) ...metadata,
+          });
 
           await OfflineOutboxService.markSending(db, envelope.id);
           final stats = await OfflineOutboxService.queueStats(db);

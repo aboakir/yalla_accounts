@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../current_user_context.dart';
 import '../db/tables/sync_foundation_tables.dart';
+import '../offline_outbox_service.dart';
 
 enum SyncChangeOperation { created, updated, voided, restored }
 
@@ -130,6 +131,62 @@ class SyncFoundationService {
         whereArgs: [entityType, localId],
         limit: 1);
     return rows.isEmpty ? null : rows.single;
+  }
+
+  /// Resolve the immutable local change linked to one durable outbox row.
+  /// The wire layer uses this metadata; it never reconstructs a financial
+  /// mutation from the current document after the queued revision has changed.
+  static Future<Map<String, Object?>?> metadataForOutbox(
+    DatabaseExecutor db,
+    String outboxId,
+  ) async {
+    if (!await SyncFoundationTables.isInstalled(db)) return null;
+    final rows = await db.rawQuery('''
+      SELECT c.change_id AS sync_change_id,
+             c.entity_uuid AS sync_entity_uuid,
+             c.revision AS sync_revision,
+             c.operation AS sync_change_operation,
+             c.occurred_at AS sync_occurred_at,
+             c.user_id AS sync_user_id,
+             COALESCE(c.after_json,c.before_json,'{}') AS sync_snapshot_json
+      FROM ${SyncFoundationTables.outboxLinks} l
+      JOIN ${SyncFoundationTables.changes} c ON c.change_id=l.change_id
+      WHERE l.outbox_id=? LIMIT 1
+    ''', [outboxId]);
+    return rows.isEmpty ? null : Map<String, Object?>.from(rows.single);
+  }
+
+  /// Materialize captured local changes that lack a feature-specific outbox.
+  static Future<int> materializeMissingOutbox(DatabaseExecutor db,
+      {int limit = 200}) async {
+    if (!await SyncFoundationTables.isInstalled(db)) return 0;
+    final missing = await db.rawQuery('''
+      SELECT c.change_id,c.entity_type,c.entity_id,c.entity_uuid,c.revision,c.operation
+      FROM ${SyncFoundationTables.changes} c
+      LEFT JOIN ${SyncFoundationTables.outboxLinks} l ON l.change_id=c.change_id
+      WHERE c.origin='local' AND l.outbox_id IS NULL
+      ORDER BY c.sequence ASC LIMIT ?
+    ''', [limit]);
+    var created = 0;
+    for (final row in missing) {
+      final changeId = row['change_id']!.toString();
+      final inserted = await OfflineOutboxService.enqueue(
+        db,
+        channel: OfflineOutboxService.channelSync,
+        operation: row['operation'] == 'voided' ? 'DELETE' : 'UPSERT',
+        entityType: row['entity_type']!.toString(),
+        entityId: row['entity_id']!.toString(),
+        idempotencyKey: 'sync-change:$changeId',
+        payload: <String, dynamic>{
+          'schema': 2,
+          'change_id': changeId,
+          'entity_uuid': row['entity_uuid']!.toString(),
+          'revision': row['revision'],
+        },
+      );
+      if (inserted) created += 1;
+    }
+    return created;
   }
 
   /// Persist the proposal and conflict evidence in one transaction. A matching

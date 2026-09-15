@@ -17,7 +17,6 @@ import 'package:sqflite/sqflite.dart' as sq;
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/outbox_sync_coordinator.dart';
-import 'package:yalla_accounts/core/services/sync/outbox_sync_transport.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/device_identity/device_identity_service.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
@@ -136,10 +135,6 @@ Future<void> _bootstrap() async {
     // directly; it sends a device-signed challenge/complete exchange to the
     // configured Yalla server, which is the only component allowed to journal
     // the mutation through the server-authorized RPC.
-    final syncTransport = SecureServerOutboxSyncTransport();
-    if (syncTransport.isConfigured) {
-      OutboxSyncCoordinator.instance.configureTransport(syncTransport);
-    }
     await OutboxSyncCoordinator.instance.start();
 
     debugPrint(
@@ -293,6 +288,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(commercialValidationSchedulerProvider);
+    ref.watch(commercialSyncSchedulerProvider);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: MaterialApp(

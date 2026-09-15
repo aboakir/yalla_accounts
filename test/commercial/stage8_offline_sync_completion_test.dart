@@ -171,6 +171,7 @@ void main() {
         challengeBody = body;
         request.response.headers.contentType = ContentType.json;
         request.response.write(jsonEncode({
+          'contract_version': 2,
           'challenge_id': '66666666-6666-4666-8666-666666666666',
           'proof_bytes': base64Url.encode(challengeBytes).replaceAll('=', ''),
           'expires_at': DateTime.now()
@@ -193,9 +194,12 @@ void main() {
         request.response.statusCode = proofVerified ? 200 : 403;
         request.response.headers.contentType = ContentType.json;
         request.response.write(jsonEncode({
+          'contract_version': 2,
           'accepted': proofVerified,
           'remote_id': '77777777-7777-4777-8777-777777777777',
           'idempotency_key': 'repair:r-secure:create',
+          'disposition': 'ACCEPTED',
+          'server_time': DateTime.now().toUtc().toIso8601String(),
         }));
         await request.response.close();
         return;
@@ -208,6 +212,7 @@ void main() {
     final transport = SecureServerOutboxSyncTransport(
       baseUri: Uri.parse('http://127.0.0.1:${server.port}/'),
       allowInsecureLoopbackForTesting: true,
+      bearerTokenProvider: () async => 'phase7-test-bearer-token-abcdefghijklmnopqrstuvwxyz',
       licenseProvider: () async => license,
       identityProvider: () async => identity,
       signer: (challenge) async {
@@ -222,6 +227,7 @@ void main() {
     );
 
     const rawPayload = '{"b":2,"a":1}';
+    const snapshotJson = '{"id":"r-secure","notes":"secure"}';
     final envelope = OutboxSyncEnvelope(
       id: 'repair:r-secure:message',
       channel: 'sync',
@@ -232,6 +238,14 @@ void main() {
       payloadJson: rawPayload,
       payload: jsonDecode(rawPayload) as Map<String, dynamic>,
       attemptCount: 2,
+      changeId: '88888888-8888-4888-8888-888888888888',
+      entityUuid: '99999999-9999-4999-8999-999999999999',
+      baseRevision: 0,
+      revision: 1,
+      changeOperation: 'created',
+      occurredAt: '2026-09-15T08:00:00.000Z',
+      localUserId: 'phase7-user',
+      snapshotJson: snapshotJson,
     );
 
     final ack = await transport.send(envelope);

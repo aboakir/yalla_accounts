@@ -8,6 +8,8 @@ import 'customer_bearer_token_provider.dart';
 import 'lifecycle/license_lifecycle_service.dart';
 import 'lifecycle/license_lifecycle_transport.dart';
 import 'validation/periodic_license_validation_service.dart';
+import '../services/sync/outbox_sync_coordinator.dart';
+import '../services/sync/outbox_sync_transport.dart';
 
 final customerBearerTokenProvider = Provider<CustomerBearerTokenProvider>(
     (ref) => ref.watch(supabaseIdentityProvider).verifiedAccessToken);
@@ -26,6 +28,26 @@ final licenseLifecycleTransportProvider =
       httpClient: client,
       bearerTokenProvider: ref.watch(customerBearerTokenProvider));
 });
+final secureSyncTransportProvider = Provider<OutboxSyncTransport?>((ref) {
+  final client = HttpClient();
+  ref.onDispose(() => client.close(force: true));
+  final transport = SecureServerOutboxSyncTransport(
+    httpClient: client,
+    bearerTokenProvider: ref.watch(customerBearerTokenProvider),
+  );
+  return transport.isConfigured ? transport : null;
+});
+
+final commercialSyncSchedulerProvider = Provider<void>((ref) {
+  final transport = ref.watch(secureSyncTransportProvider);
+  if (transport == null) {
+    OutboxSyncCoordinator.instance.clearTransport();
+  } else {
+    OutboxSyncCoordinator.instance.configureTransport(transport);
+  }
+  ref.onDispose(OutboxSyncCoordinator.instance.clearTransport);
+});
+
 final activationServiceProvider = Provider((ref) =>
     ActivationService(transport: ref.watch(activationTransportProvider)));
 final licenseLifecycleServiceProvider = Provider((ref) =>
