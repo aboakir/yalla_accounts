@@ -9,7 +9,7 @@
 //
 // ملاحظة: كل الدوال الأصلية موجودة كما هي 100%
 // ============================================================================
-import 'package:flutter/foundation.dart';
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
@@ -56,7 +56,7 @@ class DBService {
 
   static Future<String> dbFilePath() async {
     final path = await DatabaseConstants.dbFilePath();
-    debugPrint("📌 Using canonical DB path: $path");
+    ReleaseDiagnostics.debug("📌 Using canonical DB path: $path");
     return path;
   }
 

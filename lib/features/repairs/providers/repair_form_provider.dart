@@ -3,6 +3,7 @@
 // ينسخ الصور إلى Documents ويحدّث المسارات قبل الحفظ.
 // مزوّدات القراءة والدفع تبقى مع RepairDatabaseService لاستهلاك القوائم والدفعات.
 
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -365,7 +366,7 @@ class RepairFormNotifier extends StateNotifier<RepairFormData> {
       // ✅ إذا كان هناك شيك معلق، نخزنه مع ربطه بالإصلاح
       if (state.pendingCheque != null) {
         // TODO: إضافة استدعاء لـ ChequeService لحفظ الشيك مع ربطه بالإصلاح
-        debugPrint(
+        ReleaseDiagnostics.debug(
             'تم إضافة شيك مرتبط بالإصلاح: ${state.pendingCheque!.chequeNo}');
 
         // مسح الشيك المعلق بعد الحفظ

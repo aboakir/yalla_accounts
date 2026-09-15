@@ -153,7 +153,8 @@ void main() {
 
     final tx = source.indexOf('await DBService.inTx((txn) async {');
     final outbox = source.indexOf('await OfflineOutboxService.enqueue(', tx);
-    final end = source.indexOf("debugPrint('--- TX END OK ---');", tx);
+    final end =
+        source.indexOf("ReleaseDiagnostics.debug('--- TX END OK ---');", tx);
 
     expect(tx, greaterThanOrEqualTo(0));
     expect(outbox, greaterThan(tx));

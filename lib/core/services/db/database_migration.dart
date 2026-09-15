@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_identity_tables.dart';
 // Database migration compatibility note.
 //
@@ -77,7 +78,7 @@ class DatabaseMigration {
 
     if (res.isEmpty) {
       await db.insert('suppliers', {'name': 'المصاريف العامة'});
-      debugPrint(
+      ReleaseDiagnostics.debug(
           "أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©");
     }
   }
@@ -111,7 +112,7 @@ class DatabaseMigration {
   // ============================================================
   static Future<Database> initDatabase({String? pathOverride}) async {
     final path = pathOverride ?? await DatabaseConstants.dbFilePath();
-    debugPrint(
+    ReleaseDiagnostics.debug(
       '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );
 
@@ -192,7 +193,7 @@ class DatabaseMigration {
   // CREATE ALL
   // ============================================================
   static Future<void> _onCreate(Database db, int version) async {
-    debugPrint('[DB] onCreate FULL INIT');
+    ReleaseDiagnostics.debug('[DB] onCreate FULL INIT');
 
     await UserTables.createAllTables(db);
     await UserTables.createActivationCodesTable(db);
@@ -229,14 +230,14 @@ class DatabaseMigration {
     await _upgradeV74(db);
     await _upgradeV75(db);
     await _upgradeV76(db);
-    debugPrint('All tables created successfully');
+    ReleaseDiagnostics.debug('All tables created successfully');
   }
 
   // ============================================================
   // UPGRADE
   // ============================================================
   static Future<void> _onUpgrade(Database db, int oldV, int newV) async {
-    debugPrint('Upgrade $oldV -> $newV');
+    ReleaseDiagnostics.debug('Upgrade $oldV -> $newV');
     // v70 already contains compatibility schemas. Avoid replaying seed writes
     // under an expired license for additive identity and sync upgrades.
     if (oldV >= 70) {
@@ -280,12 +281,12 @@ class DatabaseMigration {
           info.any((c) => (c['name'] as String) == 'remaining');
 
       if (!hasRemaining) {
-        debugPrint("Adding remaining column to purchases");
+        ReleaseDiagnostics.debug("Adding remaining column to purchases");
         await db.execute(
             "ALTER TABLE purchases ADD COLUMN remaining REAL DEFAULT 0;");
-        debugPrint("remaining added to purchases");
+        ReleaseDiagnostics.debug("remaining added to purchases");
       } else {
-        debugPrint("remaining already exists -- skipping");
+        ReleaseDiagnostics.debug("remaining already exists -- skipping");
       }
     }
 // ------------------------------------------------------------
@@ -305,11 +306,11 @@ class DatabaseMigration {
       // P1.001 - lifecycle/database normalization.
       // Legacy columns may be unused by a newer UI, but migration must never
       // erase customer data merely because a new schema exists.
-      debugPrint(
+      ReleaseDiagnostics.debug(
         "Upgrade v51: preserving legacy purchase detail columns unchanged",
       );
 
-      debugPrint("Upgrade v51 applied successfully");
+      ReleaseDiagnostics.debug("Upgrade v51 applied successfully");
     }
 // ------------------------------------------------------------
     // Upgrade V53 -- add remaining to purchase_invoices
@@ -320,25 +321,25 @@ class DatabaseMigration {
           info.any((c) => (c['name'] as String) == 'remaining');
 
       if (!hasRemaining) {
-        debugPrint(
+        ReleaseDiagnostics.debug(
             "ظ‹ع؛â€؛آ  Adding remaining column to purchase_invoicesأ¢â‚¬آ¦");
         await db.execute(
             "ALTER TABLE purchase_invoices ADD COLUMN remaining REAL DEFAULT 0;");
-        debugPrint("remaining added to purchase_invoices");
+        ReleaseDiagnostics.debug("remaining added to purchase_invoices");
       } else {
-        debugPrint("remaining already exists -- skipping");
+        ReleaseDiagnostics.debug("remaining already exists -- skipping");
       }
     }
     // Database migration compatibility note.
     if (oldV < 56) {
       await ChequeTables.ensureChequesSchema(db);
-      debugPrint("Upgrade v56 cheque lifecycle schema applied");
+      ReleaseDiagnostics.debug("Upgrade v56 cheque lifecycle schema applied");
     }
 
     // P0.010 - permanent data-health infrastructure.
     if (oldV < 58) {
       await _ensureDataHealthSchema(db);
-      debugPrint("Upgrade v58 data-health schema applied");
+      ReleaseDiagnostics.debug("Upgrade v58 data-health schema applied");
     }
 
     // P1.002 - authentication/session hardening.
@@ -354,30 +355,33 @@ class DatabaseMigration {
         WHERE password NOT LIKE 'pbkdf2_sha256$%'
       """);
 
-      debugPrint("Upgrade v59 authentication security schema applied");
+      ReleaseDiagnostics.debug(
+          "Upgrade v59 authentication security schema applied");
     }
 
     if (oldV < 60) {
       await _ensureCommercialConfigurationSchema(db);
-      debugPrint("Upgrade v60 commercial configuration schema applied");
+      ReleaseDiagnostics.debug(
+          "Upgrade v60 commercial configuration schema applied");
     }
 
     // SEC.005 - installation/device identity metadata foundation.
     if (oldV < 64) {
       await DeviceIdentityTables.ensure(db);
-      debugPrint("Upgrade v64 device identity schema applied");
+      ReleaseDiagnostics.debug("Upgrade v64 device identity schema applied");
     }
 
     // SEC.006 - verified online activation receipt/state.
     if (oldV < 65) {
       await LicenseActivationTables.ensure(db);
-      debugPrint("Upgrade v65 activation state schema applied");
+      ReleaseDiagnostics.debug("Upgrade v65 activation state schema applied");
     }
 
     // SEC.007 - one-time First Owner bootstrap lifecycle.
     if (oldV < 66) {
       await OwnerBootstrapTables.ensure(db);
-      debugPrint("Upgrade v66 First Owner bootstrap schema applied");
+      ReleaseDiagnostics.debug(
+          "Upgrade v66 First Owner bootstrap schema applied");
     }
 
     // SEC.008 - canonical roles, permissions and enforcement catalog.
@@ -385,13 +389,14 @@ class DatabaseMigration {
       await UserAuthorizationTables.ensure(db);
       // P16 - roles/audit/backup guardian metadata. Additive and idempotent.
       await P16SecurityTables.ensure(db);
-      debugPrint("Upgrade v67 users/roles/permissions schema applied");
+      ReleaseDiagnostics.debug(
+          "Upgrade v67 users/roles/permissions schema applied");
     }
 
     // SEC.011 - runtime license projection + DB-level operational write guards.
     if (oldV < 68) {
       await LicenseRuntimeTables.ensure(db);
-      debugPrint(
+      ReleaseDiagnostics.debug(
           "أ¢إ“â€¦ Upgrade v68 expiry/read-only lifecycle guards applied");
     }
 
@@ -399,7 +404,7 @@ class DatabaseMigration {
     if (oldV < 69) {
       await LicenseValidationTables.ensure(db);
       await LicenseRuntimeTables.upgradeForSec012(db);
-      debugPrint(
+      ReleaseDiagnostics.debug(
           "أ¢إ“â€¦ Upgrade v69 periodic validation/grace enforcement applied");
     }
 
@@ -1012,7 +1017,7 @@ class DatabaseMigration {
       try {
         await DatabasePlatformPolicy.checkpoint(db);
       } catch (e) {
-        debugPrint("Database migration step");
+        ReleaseDiagnostics.debug("Database migration step");
       }
     }
 
@@ -1036,7 +1041,7 @@ class DatabaseMigration {
     final path = await DatabaseConstants.dbFilePath();
     await deleteDatabase(path);
     await database;
-    debugPrint('Development DB reset completed');
+    ReleaseDiagnostics.debug('Development DB reset completed');
   }
 
   // ============================================================
@@ -1045,11 +1050,11 @@ class DatabaseMigration {
   static Future<void> _debugDump(Database db) async {
     final tables = await db.rawQuery(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-    debugPrint('DB Tables:');
+    ReleaseDiagnostics.debug('DB Tables:');
     for (final t in tables) {
       final name = t['name'] as String;
       final count = await db.rawQuery("SELECT COUNT(*) c FROM $name");
-      debugPrint('  - $name: ${count.first['c']}');
+      ReleaseDiagnostics.debug('  - $name: ${count.first['c']}');
     }
   }
 
@@ -1065,18 +1070,18 @@ class DatabaseMigration {
 
     if (hasCorrect) return;
 
-    debugPrint("linked_payment_ids compatibility update");
+    ReleaseDiagnostics.debug("linked_payment_ids compatibility update");
 
     if (hasOld) {
       await db.execute(
           "ALTER TABLE cheques RENAME COLUMN linked_payment_id TO linked_payment_ids;");
-      debugPrint(
+      ReleaseDiagnostics.debug(
           "أ¢إ“â€‌ ط·آ¥ط·آ¹ط·آ§ط·آ¯ط·آ© ط·ع¾ط·آ³ط¸â€¦ط¸ظ¹ط·آ© ط·آ§ط¸â€‍ط·آ¹ط¸â€¦ط¸ث†ط·آ¯ ط·ع¾ط¸â€¦ط·ع¾ ط·آ¨ط¸â€ ط·آ¬ط·آ§ط·آ­");
       return;
     }
 
     await db.execute("ALTER TABLE cheques ADD COLUMN linked_payment_ids TEXT;");
-    debugPrint("linked_payment_ids compatibility update");
+    ReleaseDiagnostics.debug("linked_payment_ids compatibility update");
   }
 
   // ============================================================
@@ -1097,12 +1102,12 @@ class DatabaseMigration {
     final hasSourceId = cols.any((c) => c['name']?.toString() == 'source_id');
 
     if (!hasSource) {
-      debugPrint("Database migration step");
+      ReleaseDiagnostics.debug("Database migration step");
       await db.execute("ALTER TABLE vouchers ADD COLUMN source TEXT;");
     }
 
     if (!hasSourceId) {
-      debugPrint("Database migration step");
+      ReleaseDiagnostics.debug("Database migration step");
       await db.execute("ALTER TABLE vouchers ADD COLUMN source_id TEXT;");
     }
   }
