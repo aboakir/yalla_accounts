@@ -25,7 +25,9 @@ import 'database_encryption_service.dart';
 import 'tables/user_tables.dart';
 import 'tables/identity_account_tables.dart';
 import 'tables/sync_foundation_tables.dart';
+import 'tables/unified_sync_tables.dart';
 import '../sync/sync_foundation_service.dart';
+import '../sync/unified_sync_queue_service.dart';
 import 'package:yalla_accounts/features/onboarding/services/workshop_onboarding_tables.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_cost_service.dart';
 import 'package:yalla_accounts/features/raw_materials/services/raw_material_service.dart';
@@ -230,6 +232,7 @@ class DatabaseMigration {
     await _upgradeV74(db);
     await _upgradeV75(db);
     await _upgradeV76(db);
+    await _upgradeV77(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -247,6 +250,7 @@ class DatabaseMigration {
       if (oldV < 74) await _upgradeV74(db);
       if (oldV < 75) await _upgradeV75(db);
       if (oldV < 76) await _upgradeV76(db);
+      if (oldV < 77) await _upgradeV77(db);
       return;
     }
 
@@ -418,6 +422,18 @@ class DatabaseMigration {
     if (oldV < 74) await _upgradeV74(db);
     if (oldV < 75) await _upgradeV75(db);
     if (oldV < 76) await _upgradeV76(db);
+    if (oldV < 77) await _upgradeV77(db);
+  }
+
+  static Future<void> _upgradeV77(Database db) async {
+    await SyncFoundationTables.ensure(db);
+    await UnifiedSyncTables.ensure(db);
+    await UnifiedSyncQueueService.resetInterruptedSending(db);
+    await db.insert(
+      'schema_migrations',
+      {'version': 77, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   static Future<void> _upgradeV76(Database db) async {
@@ -999,6 +1015,7 @@ class DatabaseMigration {
     await OrganizationIdentityTables.validate(db);
     await IdentityAccountTables.validate(db);
     await SyncFoundationTables.validate(db);
+    await UnifiedSyncTables.validate(db);
     await DeviceIdentityTables.validate(db);
     await LicenseActivationTables.validate(db);
     await LicenseRuntimeTables.validate(db);

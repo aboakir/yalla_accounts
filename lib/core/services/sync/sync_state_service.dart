@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../db_service.dart';
 import '../offline_outbox_service.dart';
+import 'unified_sync_queue_service.dart';
 
 enum YallaSyncPhase {
   checking,
@@ -113,7 +114,7 @@ class SyncStateService {
   Future<void> refresh({DatabaseExecutor? database}) async {
     try {
       final db = database ?? await DBService.database;
-      final stats = await OfflineOutboxService.queueStats(db);
+      final stats = await UnifiedSyncQueueService.queueStats(db);
       final current = _notifier.value;
 
       final phase = current.phase == YallaSyncPhase.syncing && stats.sending > 0

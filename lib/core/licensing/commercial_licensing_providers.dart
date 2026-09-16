@@ -8,8 +8,8 @@ import 'customer_bearer_token_provider.dart';
 import 'lifecycle/license_lifecycle_service.dart';
 import 'lifecycle/license_lifecycle_transport.dart';
 import 'validation/periodic_license_validation_service.dart';
-import '../services/sync/outbox_sync_coordinator.dart';
-import '../services/sync/outbox_sync_transport.dart';
+import '../services/sync/unified_sync_coordinator_v3.dart';
+import '../services/sync/sync_v3_transport.dart';
 
 final customerBearerTokenProvider = Provider<CustomerBearerTokenProvider>(
     (ref) => ref.watch(supabaseIdentityProvider).verifiedAccessToken);
@@ -28,10 +28,10 @@ final licenseLifecycleTransportProvider =
       httpClient: client,
       bearerTokenProvider: ref.watch(customerBearerTokenProvider));
 });
-final secureSyncTransportProvider = Provider<OutboxSyncTransport?>((ref) {
+final secureSyncTransportProvider = Provider<SyncV3Transport?>((ref) {
   final client = HttpClient();
   ref.onDispose(() => client.close(force: true));
-  final transport = SecureServerOutboxSyncTransport(
+  final transport = HttpSyncV3Transport(
     httpClient: client,
     bearerTokenProvider: ref.watch(customerBearerTokenProvider),
   );
@@ -41,11 +41,11 @@ final secureSyncTransportProvider = Provider<OutboxSyncTransport?>((ref) {
 final commercialSyncSchedulerProvider = Provider<void>((ref) {
   final transport = ref.watch(secureSyncTransportProvider);
   if (transport == null) {
-    OutboxSyncCoordinator.instance.clearTransport();
+    UnifiedSyncCoordinatorV3.instance.clearTransport();
   } else {
-    OutboxSyncCoordinator.instance.configureTransport(transport);
+    UnifiedSyncCoordinatorV3.instance.configureTransport(transport);
   }
-  ref.onDispose(OutboxSyncCoordinator.instance.clearTransport);
+  ref.onDispose(UnifiedSyncCoordinatorV3.instance.clearTransport);
 });
 
 final activationServiceProvider = Provider((ref) =>
