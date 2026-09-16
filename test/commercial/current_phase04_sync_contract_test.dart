@@ -27,6 +27,12 @@ void main() {
         SyncContractV3.deviceProofAlgorithm);
     expect((contract['device_proof'] as Map)['canonicalization'],
         SyncContractV3.deviceProofCanonicalization);
+    final tombstone = Map<String, dynamic>.from(contract['tombstone'] as Map);
+    final restore = Map<String, dynamic>.from(tombstone['restore'] as Map);
+    expect(tombstone['silent_resurrection'], 'REJECT');
+    expect(restore['operation'], 'UPSERT');
+    expect(restore['payload_marker'], SyncContractV3.tombstoneRestoreMarker);
+    expect(restore['required_value'], isTrue);
   });
   test('Phase 04 bounds and checkpoints fail closed', () {
     expect(() => SyncContractV3.requirePushBatchSize(0), throwsRangeError);
