@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yalla://contracts/sync/v3/push-response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sync_contract_version", "results", "server_time"],
+  "properties": {
+    "sync_contract_version": { "const": 3 },
+    "results": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["change_id", "idempotency_key", "disposition"],
+        "properties": {
+          "change_id": { "type": "string", "format": "uuid" },
+          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 300 },
+          "disposition": { "enum": ["ACKNOWLEDGED", "CONFLICT", "REJECTED"] },
+          "server_sequence": { "type": ["integer", "null"], "minimum": 1 },
+          "conflict": { "$ref": "yalla://contracts/sync/v3/conflict" },
+          "error_code": { "type": "string", "maxLength": 80 }
+        }
+      }
+    },
+    "server_time": { "type": "string", "format": "date-time" }
+  }
+}

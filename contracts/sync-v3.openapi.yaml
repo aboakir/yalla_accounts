@@ -1,0 +1,58 @@
+openapi: 3.1.0
+info:
+  title: Yalla Accounts Final Sync API
+  version: 3.0.0
+  description: Offline-first batch push/pull contract with revisions, idempotency and checkpoints.
+x-yalla-sync-contract-version: 3
+paths:
+  /v1/sync/push:
+    post:
+      operationId: pushSyncChangesV3
+      parameters:
+        - in: header
+          name: X-Yalla-Sync-Contract-Version
+          required: true
+          schema: { type: integer, const: 3 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './schemas/sync-v3-push-request.schema.json'
+      responses:
+        '200':
+          description: Per-change deterministic acknowledgements.
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/sync-v3-push-response.schema.json'
+        '400':
+          description: Invalid contract, batch or change.
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/sync-v3-error.schema.json'
+        '403': { description: Organization, installation or device denied }
+        '409': { description: Idempotency, revision or tombstone conflict }
+        '413': { description: Batch or payload limit exceeded }
+  /v1/sync/pull:
+    post:
+      operationId: pullSyncChangesV3
+      parameters:
+        - in: header
+          name: X-Yalla-Sync-Contract-Version
+          required: true
+          schema: { type: integer, const: 3 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './schemas/sync-v3-pull-request.schema.json'
+      responses:
+        '200':
+          description: Ordered changes after the supplied durable checkpoint.
+          content:
+            application/json:
+              schema:
+                $ref: './schemas/sync-v3-pull-response.schema.json'

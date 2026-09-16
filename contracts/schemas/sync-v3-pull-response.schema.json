@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yalla://contracts/sync/v3/pull-response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sync_contract_version", "from_server_sequence", "next_server_sequence",
+    "has_more", "changes", "server_time"
+  ],
+  "properties": {
+    "sync_contract_version": { "const": 3 },
+    "from_server_sequence": { "type": "integer", "minimum": 0 },
+    "next_server_sequence": { "type": "integer", "minimum": 0 },
+    "has_more": { "type": "boolean" },
+    "changes": {
+      "type": "array",
+      "maxItems": 200,
+      "items": { "$ref": "yalla://contracts/sync/v3/server-change" }
+    },
+    "server_time": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "name": "Yalla Accounts Final Sync Contract",
+  "sync_contract_version": 3,
+  "status": "CURRENT",
+  "transport": {
+    "required_scheme": "https",
+    "version_header": "x-yalla-sync-contract-version",
+    "installation_header": "x-yalla-installation-id",
+    "authorization": "Bearer"
+  },
+  "batch_limits": {
+    "push_max_changes": 50,
+    "pull_max_changes": 200,
+    "change_payload_max_bytes": 524288,
+    "request_max_bytes": 2097152
+  },
+  "required_change_fields": [
+    "change_id",
+    "organization_id",
+    "entity_type",
+    "entity_id",
+    "entity_uuid",
+    "operation",
+    "base_revision",
+    "idempotency_key",
+    "occurred_at",
+    "payload"
+  ],
+  "operations": ["UPSERT", "DELETE"],
+  "outbox_states": ["PENDING", "SENDING", "ACKNOWLEDGED", "CONFLICT", "REJECTED"],
+  "push": {
+    "request_schema": "schemas/sync-v3-push-request.schema.json",
+    "response_schema": "schemas/sync-v3-push-response.schema.json"
+  },
+  "pull": {
+    "request_schema": "schemas/sync-v3-pull-request.schema.json",
+    "response_schema": "schemas/sync-v3-pull-response.schema.json",
+    "checkpoint_field": "after_server_sequence",
+    "next_checkpoint_field": "next_server_sequence"
+  },
+  "conflict": {
+    "schema": "schemas/sync-v3-conflict.schema.json",
+    "silent_overwrite": false,
+    "financial_manual_override": false,
+    "commercial_authority_manual_override": false
+  },
+  "error": {
+    "schema": "schemas/sync-v3-error.schema.json",
+    "stable_codes": true
+  },
+  "compatibility": {
+    "unknown_request_fields": "REJECT",
+    "unknown_response_fields": "IGNORE",
+    "unsupported_version": "REJECT",
+    "server_may_support_older_versions": true,
+    "client_must_send_exact_version": true
+  },
+  "error_codes": {
+    "SYNC_CONTRACT_VERSION_UNSUPPORTED": 400,
+    "SYNC_BATCH_TOO_LARGE": 413,
+    "SYNC_CHANGE_INVALID": 400,
+    "SYNC_IDEMPOTENCY_CONFLICT": 409,
+    "SYNC_REVISION_CONFLICT": 409,
+    "SYNC_TOMBSTONE_CONFLICT": 409,
+    "SYNC_CHECKPOINT_INVALID": 400,
+    "SYNC_DEVICE_DENIED": 403,
+    "SYNC_ORGANIZATION_DENIED": 403,
+    "SYNC_ENTITY_TYPE_DENIED": 400,
+    "SYNC_SERVER_BUSY": 503
+  },
+  "ordering": {
+    "server_sequence": "strictly increasing per accepted server change",
+    "pull_order": "server_sequence ASC",
+    "checkpoint_semantics": "last durably applied server_sequence"
+  },
+  "idempotency": {
+    "same_key_same_payload": "RETURN_ORIGINAL_RESULT",
+    "same_key_different_payload": "REJECT"
+  },
+  "concurrency": {
+    "strategy": "OPTIMISTIC_ENTITY_REVISION",
+    "last_write_wins": false,
+    "server_sequence_is_revision": false
+  }
+}

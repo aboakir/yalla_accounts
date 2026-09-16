@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yalla://contracts/sync/v3/push-request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sync_contract_version", "organization_id", "installation_id", "device_id", "changes"
+  ],
+  "properties": {
+    "sync_contract_version": { "const": 3 },
+    "organization_id": { "type": "string", "format": "uuid" },
+    "installation_id": { "type": "string", "format": "uuid" },
+    "device_id": { "type": "string", "format": "uuid" },
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": { "$ref": "yalla://contracts/sync/v3/change" }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yalla://contracts/sync/v3/change",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "change_id", "organization_id", "entity_type", "entity_id", "entity_uuid",
+    "operation", "base_revision", "revision", "idempotency_key", "occurred_at", "payload"
+  ],
+  "properties": {
+    "change_id": { "type": "string", "format": "uuid" },
+    "organization_id": { "type": "string", "format": "uuid" },
+    "entity_type": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "entity_id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "entity_uuid": { "type": "string", "format": "uuid" },
+    "operation": { "enum": ["UPSERT", "DELETE"] },
+    "base_revision": { "type": "integer", "minimum": 0 },
+    "revision": { "type": "integer", "minimum": 1 },
+    "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "local_user_id": { "type": ["string", "null"], "maxLength": 160 },
+    "payload": { "type": "object" },
+    "payload_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
