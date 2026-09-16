@@ -26,6 +26,8 @@ import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:yalla_accounts/core/services/events/app_event_bus.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_auto_accounting_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_sync_reference_service.dart';
+import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
 class RepairsService {
   final Database db;
@@ -80,7 +82,18 @@ class RepairsService {
     final id = repair.id.isEmpty ? const Uuid().v4() : repair.id;
 
     await SyncFoundationService.transaction(db, (txn) async {
-      final data = repair.copyWith(id: id).toMap();
+      int? vehicleId;
+      if (repair.vehicleNumber.trim().isNotEmpty) {
+        vehicleId = await VehicleService.upsertFromRepairOn(
+          txn, number: repair.vehicleNumber, type: repair.vehicleType,
+          model: repair.vehicleModel, clientId: repair.clientId);
+      }
+      final syncRefs = await RepairSyncReferenceService.resolve(
+        txn, clientId: repair.clientId, vehicleId: vehicleId);
+      final data = repair.copyWith(id: id).toMap()
+        ..['customer_party_uuid'] = syncRefs.customerPartyUuid
+        ..['vehicle_entity_uuid'] = syncRefs.vehicleEntityUuid
+        ..['is_active'] = 1;
       await txn.insert('repairs', data,
           conflictAlgorithm: ConflictAlgorithm.replace);
 
@@ -103,7 +116,18 @@ class RepairsService {
     if (repair.id.isEmpty) throw ArgumentError('repair.id is required');
 
     return await SyncFoundationService.transaction<int>(db, (txn) async {
-      final data = repair.toMap()..remove('invoice_id');
+      int? vehicleId;
+      if (repair.vehicleNumber.trim().isNotEmpty) {
+        vehicleId = await VehicleService.upsertFromRepairOn(
+          txn, number: repair.vehicleNumber, type: repair.vehicleType,
+          model: repair.vehicleModel, clientId: repair.clientId);
+      }
+      final syncRefs = await RepairSyncReferenceService.resolve(
+        txn, clientId: repair.clientId, vehicleId: vehicleId);
+      final data = repair.toMap()
+        ..remove('invoice_id')
+        ..['customer_party_uuid'] = syncRefs.customerPartyUuid
+        ..['vehicle_entity_uuid'] = syncRefs.vehicleEntityUuid;
 
       final rows = await txn.update(
         'repairs',

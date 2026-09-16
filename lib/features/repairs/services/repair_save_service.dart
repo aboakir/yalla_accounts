@@ -21,6 +21,7 @@ import 'package:yalla_accounts/features/repairs/providers/repair_form_provider.d
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_sync_reference_service.dart';
 
 class RepairSaveService {
   static Future<String> save({
@@ -72,7 +73,7 @@ class RepairSaveService {
       // ------------------------------------------------------------
       // بناء نموذج الإصلاح
       // ------------------------------------------------------------
-      await VehicleService.upsertFromRepairOn(
+      final vehicleId = await VehicleService.upsertFromRepairOn(
         txn,
         number: form.vehicleNumber.trim(),
         type: form.vehicleType.trim(),
@@ -128,7 +129,13 @@ class RepairSaveService {
       // ------------------------------------------------------------
       // INSERT repairs
       // ------------------------------------------------------------
-      await txn.insert('repairs', _toDb(repair),
+      final syncRefs = await RepairSyncReferenceService.resolve(
+        txn, clientId: clientId, vehicleId: vehicleId);
+      final repairRow = _toDb(repair)
+        ..['customer_party_uuid'] = syncRefs.customerPartyUuid
+        ..['vehicle_entity_uuid'] = syncRefs.vehicleEntityUuid
+        ..['is_active'] = 1;
+      await txn.insert('repairs', repairRow,
           conflictAlgorithm: ConflictAlgorithm.replace);
 
       // ------------------------------------------------------------

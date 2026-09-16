@@ -235,6 +235,7 @@ class DatabaseMigration {
     await _upgradeV77(db);
     await _upgradeV78(db);
     await _upgradeV79(db);
+    await _upgradeV80(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -255,6 +256,7 @@ class DatabaseMigration {
       if (oldV < 77) await _upgradeV77(db);
       if (oldV < 78) await _upgradeV78(db);
       if (oldV < 79) await _upgradeV79(db);
+      if (oldV < 80) await _upgradeV80(db);
       return;
     }
 
@@ -429,6 +431,128 @@ class DatabaseMigration {
     if (oldV < 77) await _upgradeV77(db);
     if (oldV < 78) await _upgradeV78(db);
     if (oldV < 79) await _upgradeV79(db);
+    if (oldV < 80) await _upgradeV80(db);
+  }
+
+  static Future<void> _upgradeV80(Database db) async {
+    final oldContext = await db.query(SyncFoundationTables.context,
+        where: 'singleton_id=1', limit: 1);
+    await db.insert(
+      SyncFoundationTables.context,
+      {
+        'singleton_id': 1,
+        'user_id': null,
+        'origin': 'remote',
+        'remote_entity_type': '__migration__',
+        'remote_entity_uuid': '00000000-0000-4000-8000-000000000080',
+        'remote_revision': 1,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    try {
+      await RepairTables.ensureRepairsSchema(db);
+      await SyncFoundationTables.ensure(db);
+      await _backfillRepairSyncReferences(db);
+      await UnifiedSyncTables.ensure(db);
+      await UnifiedSyncTables.refreshRepairPayloadsForMigration(db);
+    } finally {
+      if (oldContext.isEmpty) {
+        await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
+      } else {
+        await db.insert(
+          SyncFoundationTables.context,
+          Map<String, Object?>.from(oldContext.single),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    }
+    await UnifiedSyncQueueService.resetInterruptedSending(db);
+    await db.insert(
+      'schema_migrations',
+      {'version': 80, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  static Future<void> _backfillRepairSyncReferences(Database db) async {
+    final rows = await db.query(
+      'repairs',
+      columns: const [
+        'id',
+        'client_id',
+        'vehicleNumber',
+        'customer_party_uuid',
+        'vehicle_entity_uuid'
+      ],
+    );
+    for (final row in rows) {
+      String? partyUuid = row['customer_party_uuid']?.toString().trim();
+      if (partyUuid != null && partyUuid.isEmpty) partyUuid = null;
+      final rawClient = row['client_id'];
+      final clientId = rawClient is num
+          ? rawClient.toInt()
+          : int.tryParse(rawClient?.toString() ?? '');
+      if (partyUuid == null && clientId != null) {
+        final partyId = await PartyTables.resolvePartyId(
+          db,
+          role: 'CUSTOMER',
+          legacyId: clientId,
+        );
+        if (partyId != null) {
+          final registry = await db.query(
+            SyncFoundationTables.registry,
+            columns: const ['entity_uuid'],
+            where: 'entity_type=? AND local_id=?',
+            whereArgs: ['party', partyId],
+            limit: 1,
+          );
+          if (registry.isNotEmpty) {
+            partyUuid = registry.single['entity_uuid']?.toString();
+          }
+        }
+      }
+
+      String? vehicleUuid = row['vehicle_entity_uuid']?.toString().trim();
+      if (vehicleUuid != null && vehicleUuid.isEmpty) vehicleUuid = null;
+      if (vehicleUuid == null) {
+        final normalized = VehicleTables.normalizeNumber(
+          row['vehicleNumber']?.toString() ?? '',
+        );
+        if (normalized.isNotEmpty) {
+          final vehicles = await db.query(
+            VehicleTables.tableName,
+            columns: const ['id'],
+            where: 'normalized_number=?',
+            whereArgs: [normalized],
+            limit: 2,
+          );
+          if (vehicles.length == 1) {
+            final registry = await db.query(
+              SyncFoundationTables.registry,
+              columns: const ['entity_uuid'],
+              where: 'entity_type=? AND local_id=?',
+              whereArgs: ['vehicle', vehicles.single['id'].toString()],
+              limit: 1,
+            );
+            if (registry.isNotEmpty) {
+              vehicleUuid = registry.single['entity_uuid']?.toString();
+            }
+          }
+        }
+      }
+
+      final update = <String, Object?>{};
+      if (partyUuid != null && row['customer_party_uuid'] != partyUuid) {
+        update['customer_party_uuid'] = partyUuid;
+      }
+      if (vehicleUuid != null && row['vehicle_entity_uuid'] != vehicleUuid) {
+        update['vehicle_entity_uuid'] = vehicleUuid;
+      }
+      if (update.isNotEmpty) {
+        await db
+            .update('repairs', update, where: 'id=?', whereArgs: [row['id']]);
+      }
+    }
   }
 
   static Future<void> _upgradeV79(Database db) async {

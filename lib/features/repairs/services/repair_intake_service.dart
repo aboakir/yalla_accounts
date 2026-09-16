@@ -8,6 +8,7 @@ import 'package:yalla_accounts/features/clients/services/client_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair_intake_draft.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_payer_bridge.dart';
 import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_sync_reference_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_service.dart';
 
 /// P07 canonical intake save path.
@@ -90,13 +91,16 @@ class RepairIntakeService {
               : draft.clientType.trim(),
         );
 
-    await VehicleService.upsertFromRepairOn(
+    final vehicleId = await VehicleService.upsertFromRepairOn(
       db,
       number: vehicleNumber,
       type: draft.vehicleType.trim(),
       model: draft.vehicleModel.trim(),
       clientId: clientId,
     );
+
+    final syncRefs = await RepairSyncReferenceService.resolve(
+      db, clientId: clientId, vehicleId: vehicleId);
 
     final repairId = DBService.newUuid();
     final now = DateTime.now().toUtc().toIso8601String();
@@ -119,6 +123,9 @@ class RepairIntakeService {
             draft.clientType.trim().isEmpty ? 'أفراد' : draft.clientType.trim(),
         'beneficiaryName': clientName,
         'client_id': clientId,
+        'customer_party_uuid': syncRefs.customerPartyUuid,
+        'vehicle_entity_uuid': syncRefs.vehicleEntityUuid,
+        'is_active': 1,
         'insuranceStatus': '',
         'repairType': '',
         'vehicleStatus': 'بانتظار الإصلاح',

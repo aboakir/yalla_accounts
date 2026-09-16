@@ -10,6 +10,32 @@ class UnifiedSyncTables {
   static const outbox = 'sync_outbox';
   static const inbox = 'sync_inbox';
   static const checkpoint = 'sync_checkpoint';
+  static String _wirePayload(String row) {
+    final raw = "COALESCE($row.after_json,$row.before_json,'{}')";
+    final vehicle = "json_remove($raw,'\$.id','\$.client_id')";
+    final repairBase = "json_remove($raw,"
+        "'\$.id','\$.client_id','\$.invoiceNumber','\$.invoiceId','\$.invoice_id',"
+        "'\$.parts','\$.works','\$.fileValue','\$.paidAmount','\$.paymentStatus',"
+        "'\$.paymentType','\$.finalApprovedAmount','\$.workCost','\$.incomeAmount',"
+        "'\$.actualCost','\$.transferFromAccount','\$.transferToAccount',"
+        "'\$.transferCompany','\$.transferDate','\$.transferAmount',"
+        "'\$.transferImagePath','\$.isLedgerEnabled','\$.isLedgerSynced',"
+        "'\$.total_paid_amount','\$.imagePaths','\$.thumbnail_path',"
+        "'\$.thumbnail_updated_at','\$.customer_signature_path')";
+    final repair = repairBase;
+    final line = "json_set(json_remove($raw,'\$.id','\$.repair_id'),"
+        "'\$.repair_entity_uuid',(SELECT entity_uuid FROM ${SyncFoundationTables.registry} "
+        "WHERE entity_type='repair' AND local_id=CAST(json_extract($raw,'\$.repair_id') AS TEXT) LIMIT 1))";
+    final workflow =
+        "json_set(json_remove($raw,'\$.repair_id','\$.responsible_employee_id'),"
+        "'\$.repair_entity_uuid',(SELECT entity_uuid FROM ${SyncFoundationTables.registry} "
+        "WHERE entity_type='repair' AND local_id=CAST(json_extract($raw,'\$.repair_id') AS TEXT) LIMIT 1))";
+    return "CASE WHEN $row.entity_type='vehicle' THEN $vehicle "
+        "WHEN $row.entity_type='repair' THEN $repair "
+        "WHEN $row.entity_type='repair_line' THEN $line "
+        "WHEN $row.entity_type='repair_workflow' THEN $workflow "
+        "ELSE $raw END";
+  }
 
   static Future<void> ensure(DatabaseExecutor db) async {
     await db.execute('''CREATE TABLE IF NOT EXISTS $outbox (
@@ -63,6 +89,7 @@ class UnifiedSyncTables {
       updated_at TEXT NOT NULL
     )''');
 
+    final wirePayload = _wirePayload('NEW');
     await db.execute('DROP TRIGGER IF EXISTS trg_sync_v3_change_to_outbox');
     await db.execute('''CREATE TRIGGER trg_sync_v3_change_to_outbox
       AFTER INSERT ON ${SyncFoundationTables.changes}
@@ -78,12 +105,8 @@ class UnifiedSyncTables {
           CASE WHEN NEW.revision>0 THEN NEW.revision-1 ELSE 0 END,NEW.revision,
           'sync-change:' || NEW.change_id,NEW.occurred_at,
           CASE WHEN NEW.operation='restored' THEN
-            json_set(CASE WHEN NEW.entity_type='vehicle' THEN
-            json_remove(COALESCE(NEW.after_json,NEW.before_json,'{}'),'\$.id','\$.client_id')
-          ELSE COALESCE(NEW.after_json,NEW.before_json,'{}') END,'\$._sync_restore',json('true'))
-          ELSE CASE WHEN NEW.entity_type='vehicle' THEN
-            json_remove(COALESCE(NEW.after_json,NEW.before_json,'{}'),'\$.id','\$.client_id')
-          ELSE COALESCE(NEW.after_json,NEW.before_json,'{}') END END,
+            json_set($wirePayload,'\$._sync_restore',json('true'))
+          ELSE $wirePayload END,
           'PENDING',NEW.occurred_at,NEW.occurred_at);
       END''');
 
@@ -93,6 +116,7 @@ class UnifiedSyncTables {
   }
 
   static Future<void> _backfillLocalChanges(DatabaseExecutor db) async {
+    final wirePayload = _wirePayload('c');
     await db.execute(
       '''INSERT OR IGNORE INTO $outbox(
       outbox_id,change_id,organization_id,entity_type,entity_id,entity_uuid,
@@ -103,12 +127,8 @@ class UnifiedSyncTables {
         CASE WHEN c.revision>0 THEN c.revision-1 ELSE 0 END,c.revision,
         'sync-change:' || c.change_id,c.occurred_at,
         CASE WHEN c.operation='restored' THEN
-          json_set(CASE WHEN c.entity_type='vehicle' THEN
-          json_remove(COALESCE(c.after_json,c.before_json,'{}'),'\$.id','\$.client_id')
-        ELSE COALESCE(c.after_json,c.before_json,'{}') END,'\$._sync_restore',json('true'))
-        ELSE CASE WHEN c.entity_type='vehicle' THEN
-          json_remove(COALESCE(c.after_json,c.before_json,'{}'),'\$.id','\$.client_id')
-        ELSE COALESCE(c.after_json,c.before_json,'{}') END END,
+          json_set($wirePayload,'\$._sync_restore',json('true'))
+        ELSE $wirePayload END,
         'PENDING',c.occurred_at,c.occurred_at
       FROM ${SyncFoundationTables.changes} c
       WHERE c.origin='local' AND c.operation IN ('created','updated','voided','restored')
@@ -120,9 +140,7 @@ class UnifiedSyncTables {
   static Future<void> _supersedeMasterPartyProjectionRows(
     DatabaseExecutor db,
   ) async {
-    await db.execute(
-      'DROP TRIGGER IF EXISTS trg_sync_v3_outbox_state_guard',
-    );
+    await db.execute('DROP TRIGGER IF EXISTS trg_sync_v3_outbox_state_guard');
     await db.rawUpdate('''UPDATE $outbox
       SET state='REJECTED',
           last_error='SYNC_SUPERSEDED_BY_MASTER_PARTY',
@@ -130,6 +148,35 @@ class UnifiedSyncTables {
           updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
       WHERE entity_type IN ('client','supplier')
         AND state IN ('PENDING','SENDING','CONFLICT')''');
+  }
+
+  static Future<void> refreshRepairPayloadsForMigration(
+    DatabaseExecutor db,
+  ) async {
+    final wirePayload = _wirePayload('c');
+    final enrichedPayload = "CASE WHEN c.entity_type='repair' THEN json_set("
+        "$wirePayload,'\$.customer_party_uuid',COALESCE("
+        "json_extract($wirePayload,'\$.customer_party_uuid'),"
+        "(SELECT customer_party_uuid FROM repairs WHERE id=CAST(c.entity_id AS TEXT))),"
+        "'\$.vehicle_entity_uuid',COALESCE("
+        "json_extract($wirePayload,'\$.vehicle_entity_uuid'),"
+        "(SELECT vehicle_entity_uuid FROM repairs WHERE id=CAST(c.entity_id AS TEXT))),"
+        "'\$.is_active',COALESCE(json_extract($wirePayload,'\$.is_active'),"
+        "(SELECT is_active FROM repairs WHERE id=CAST(c.entity_id AS TEXT)),1)) "
+        "ELSE $wirePayload END";
+    await db.execute(
+      'DROP TRIGGER IF EXISTS trg_sync_v3_outbox_identity_guard',
+    );
+    await db.rawUpdate('''UPDATE $outbox
+      SET payload_json=(SELECT CASE WHEN c.operation='restored' THEN
+        json_set($enrichedPayload,'\$._sync_restore',json('true'))
+        ELSE $enrichedPayload END
+        FROM ${SyncFoundationTables.changes} c
+        WHERE c.change_id=$outbox.change_id),
+        updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      WHERE entity_type IN ('repair','repair_line','repair_workflow')
+        AND state='PENDING' ''');
+    await _installGuards(db);
   }
 
   static Future<void> _installGuards(DatabaseExecutor db) async {

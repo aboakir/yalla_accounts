@@ -93,6 +93,9 @@ class RepairTables {
         invoiceId TEXT,
         invoice_id TEXT,
         client_id INTEGER,
+        customer_party_uuid TEXT,
+        vehicle_entity_uuid TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
         thumbnail_path TEXT,
         thumbnail_updated_at TEXT,
 
@@ -388,7 +391,11 @@ class RepairTables {
     await _ensureColumn(db, 'repairs', 'quote_valid_until', 'TEXT');
     await _ensureColumn(db, 'repairs', 'approved_at', 'TEXT');
     await _ensureColumn(db, 'repairs', 'approved_by', 'TEXT');
-    await _ensureColumn(db, 'repairs', 'client_id', 'INTEGER'); // ← أضف هذا فقط
+    await _ensureColumn(db, 'repairs', 'client_id', 'INTEGER');
+    await _ensureColumn(db, 'repairs', 'customer_party_uuid', 'TEXT');
+    await _ensureColumn(db, 'repairs', 'vehicle_entity_uuid', 'TEXT');
+    await _ensureColumn(db, 'repairs', 'is_active',
+        'INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))');
     await ensureP07IntakeSchema(db);
     await ensureP09WorkflowSchema(db);
     await _ensureRepairsExtraCols(db);
