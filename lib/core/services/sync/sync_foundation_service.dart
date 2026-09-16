@@ -103,9 +103,18 @@ class SyncFoundationService {
     if (!await SyncFoundationTables.isInstalled(executor)) return action();
     final old = await executor.query(SyncFoundationTables.context,
         where: 'singleton_id=1', limit: 1);
+    if (old.isNotEmpty && old.single['origin'] == 'remote') return action();
     final userId = await CurrentUserContext.userId();
     await executor.insert(
-        SyncFoundationTables.context, {'singleton_id': 1, 'user_id': userId},
+        SyncFoundationTables.context,
+        {
+          'singleton_id': 1,
+          'user_id': userId,
+          'origin': 'local',
+          'remote_entity_type': null,
+          'remote_entity_uuid': null,
+          'remote_revision': null
+        },
         conflictAlgorithm: ConflictAlgorithm.replace);
     try {
       return await action();
@@ -114,9 +123,49 @@ class SyncFoundationService {
         await executor.delete(SyncFoundationTables.context,
             where: 'singleton_id=1');
       } else {
-        await executor.update(
-            SyncFoundationTables.context, {'user_id': old.single['user_id']},
+        await executor.insert(
+            SyncFoundationTables.context, Map<String, Object?>.from(old.single),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+  }
+
+  static Future<T> withRemoteMutation<T>(
+    Transaction transaction, {
+    required String entityType,
+    required String entityUuid,
+    required int revision,
+    required Future<T> Function() action,
+  }) async {
+    if (entityType.trim().isEmpty ||
+        entityUuid.trim().length != 36 ||
+        revision < 1) {
+      throw ArgumentError('Invalid remote sync identity/revision.');
+    }
+    if (!await SyncFoundationTables.isInstalled(transaction)) return action();
+    final old = await transaction.query(SyncFoundationTables.context,
+        where: 'singleton_id=1', limit: 1);
+    await transaction.insert(
+        SyncFoundationTables.context,
+        {
+          'singleton_id': 1,
+          'user_id': null,
+          'origin': 'remote',
+          'remote_entity_type': entityType,
+          'remote_entity_uuid': entityUuid,
+          'remote_revision': revision,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    try {
+      return await action();
+    } finally {
+      if (old.isEmpty) {
+        await transaction.delete(SyncFoundationTables.context,
             where: 'singleton_id=1');
+      } else {
+        await transaction.insert(
+            SyncFoundationTables.context, Map<String, Object?>.from(old.single),
+            conflictAlgorithm: ConflictAlgorithm.replace);
       }
     }
   }
@@ -165,6 +214,7 @@ class SyncFoundationService {
       FROM ${SyncFoundationTables.changes} c
       LEFT JOIN ${SyncFoundationTables.outboxLinks} l ON l.change_id=c.change_id
       WHERE c.origin='local' AND l.outbox_id IS NULL
+        AND c.entity_type NOT IN ('client','supplier')
       ORDER BY c.sequence ASC LIMIT ?
     ''', [limit]);
     var created = 0;

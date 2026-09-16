@@ -67,6 +67,7 @@ class UnifiedSyncTables {
     await db.execute('''CREATE TRIGGER trg_sync_v3_change_to_outbox
       AFTER INSERT ON ${SyncFoundationTables.changes}
       WHEN NEW.origin='local' AND NEW.operation IN ('created','updated','voided','restored')
+        AND NEW.entity_type NOT IN ('client','supplier')
       BEGIN
         INSERT INTO $outbox(outbox_id,change_id,organization_id,entity_type,
           entity_id,entity_uuid,operation,base_revision,revision,idempotency_key,
@@ -80,6 +81,7 @@ class UnifiedSyncTables {
       END''');
 
     await _backfillLocalChanges(db);
+    await _supersedeMasterPartyProjectionRows(db);
     await _installGuards(db);
   }
 
@@ -96,8 +98,24 @@ class UnifiedSyncTables {
         COALESCE(c.after_json,c.before_json,'{}'),'PENDING',c.occurred_at,c.occurred_at
       FROM ${SyncFoundationTables.changes} c
       WHERE c.origin='local' AND c.operation IN ('created','updated','voided','restored')
+        AND c.entity_type NOT IN ('client','supplier')
         AND NOT EXISTS (SELECT 1 FROM $outbox o WHERE o.change_id=c.change_id)''',
     );
+  }
+
+  static Future<void> _supersedeMasterPartyProjectionRows(
+    DatabaseExecutor db,
+  ) async {
+    await db.execute(
+      'DROP TRIGGER IF EXISTS trg_sync_v3_outbox_state_guard',
+    );
+    await db.rawUpdate('''UPDATE $outbox
+      SET state='REJECTED',
+          last_error='SYNC_SUPERSEDED_BY_MASTER_PARTY',
+          next_attempt_at=NULL,
+          updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      WHERE entity_type IN ('client','supplier')
+        AND state IN ('PENDING','SENDING','CONFLICT')''');
   }
 
   static Future<void> _installGuards(DatabaseExecutor db) async {
@@ -157,8 +175,7 @@ class UnifiedSyncTables {
       );
       if (found.isEmpty) throw StateError('Phase 05 missing $table.');
     }
-    final orphaned =
-        Sqflite.firstIntValue(
+    final orphaned = Sqflite.firstIntValue(
           await db.rawQuery('''
       SELECT COUNT(*) FROM $outbox o LEFT JOIN ${SyncFoundationTables.changes} c
         ON c.change_id=o.change_id WHERE c.change_id IS NULL

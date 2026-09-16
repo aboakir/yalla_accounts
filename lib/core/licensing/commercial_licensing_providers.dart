@@ -9,6 +9,7 @@ import 'lifecycle/license_lifecycle_service.dart';
 import 'lifecycle/license_lifecycle_transport.dart';
 import 'validation/periodic_license_validation_service.dart';
 import '../services/sync/unified_sync_coordinator_v3.dart';
+import '../services/sync/unified_sync_inbound_router.dart';
 import '../services/sync/sync_v3_transport.dart';
 
 final customerBearerTokenProvider = Provider<CustomerBearerTokenProvider>(
@@ -40,12 +41,18 @@ final secureSyncTransportProvider = Provider<SyncV3Transport?>((ref) {
 
 final commercialSyncSchedulerProvider = Provider<void>((ref) {
   final transport = ref.watch(secureSyncTransportProvider);
+  UnifiedSyncCoordinatorV3.instance.configureInboundApplier(
+    UnifiedSyncInboundRouter.apply,
+  );
   if (transport == null) {
     UnifiedSyncCoordinatorV3.instance.clearTransport();
   } else {
     UnifiedSyncCoordinatorV3.instance.configureTransport(transport);
   }
-  ref.onDispose(UnifiedSyncCoordinatorV3.instance.clearTransport);
+  ref.onDispose(() {
+    UnifiedSyncCoordinatorV3.instance.clearTransport();
+    UnifiedSyncCoordinatorV3.instance.clearInboundApplier();
+  });
 });
 
 final activationServiceProvider = Provider((ref) =>

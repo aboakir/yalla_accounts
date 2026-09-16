@@ -120,6 +120,14 @@ class SyncFoundationTables {
       ))
           .isNotEmpty;
 
+  static Future<void> _ensureColumn(DatabaseExecutor db, String table,
+      String column, String definition) async {
+    final info = await db.rawQuery('PRAGMA table_info($table)');
+    if (!info.any((row) => row['name']?.toString() == column)) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
+    }
+  }
+
   static Future<void> ensure(DatabaseExecutor db) async {
     await db.execute('''CREATE TABLE IF NOT EXISTS $registry (
       entity_uuid TEXT PRIMARY KEY NOT NULL,
@@ -136,8 +144,18 @@ class SyncFoundationTables {
     )''');
     await db.execute('''CREATE TABLE IF NOT EXISTS $context (
       singleton_id INTEGER PRIMARY KEY CHECK(singleton_id=1),
-      user_id TEXT
+      user_id TEXT,
+      origin TEXT NOT NULL DEFAULT 'local' CHECK(origin IN ('local','remote')),
+      remote_entity_type TEXT,
+      remote_entity_uuid TEXT,
+      remote_revision INTEGER CHECK(remote_revision IS NULL OR remote_revision > 0)
     )''');
+    await _ensureColumn(db, context, 'origin',
+        "TEXT NOT NULL DEFAULT 'local' CHECK(origin IN ('local','remote'))");
+    await _ensureColumn(db, context, 'remote_entity_type', 'TEXT');
+    await _ensureColumn(db, context, 'remote_entity_uuid', 'TEXT');
+    await _ensureColumn(db, context, 'remote_revision',
+        'INTEGER CHECK(remote_revision IS NULL OR remote_revision > 0)');
     await db.execute('''CREATE TABLE IF NOT EXISTS $changes (
       sequence INTEGER PRIMARY KEY AUTOINCREMENT,
       change_id TEXT NOT NULL UNIQUE,
@@ -238,6 +256,12 @@ class SyncFoundationTables {
             'AND organization_id=$org)'
         : 'NULL';
 
+    for (final table in const ['clients', 'suppliers']) {
+      for (final op in const ['insert', 'update', 'delete']) {
+        await db.execute('DROP TRIGGER IF EXISTS trg_sync_${table}_$op');
+      }
+    }
+
     for (final entry in documents.entries) {
       if (!tables.contains(entry.key)) continue;
       final columns = (await db.rawQuery('PRAGMA table_info(${entry.key})'))
@@ -280,6 +304,7 @@ class SyncFoundationTables {
             "('void','voided','cancelled','canceled','reversed','deleted')",
       for (final column in ['is_voided', 'is_deleted'])
         if (columns.contains(column)) 'COALESCE($prefix$column,0)=1',
+      if (columns.contains('is_active')) 'COALESCE(${prefix}is_active,1)=0',
     ];
     return predicates.isEmpty
         ? '0'
@@ -309,6 +334,16 @@ class SyncFoundationTables {
         'baseline:' || entity_uuid FROM $registry
       WHERE entity_type='$type' AND revision=0 AND NOT EXISTS (
         SELECT 1 FROM $changes c WHERE c.idempotency_key='baseline:' || $registry.entity_uuid)''');
+    const contextOrigin =
+        "COALESCE((SELECT origin FROM $context WHERE singleton_id=1),'local')";
+    const remoteEntityType =
+        '(SELECT remote_entity_type FROM $context WHERE singleton_id=1)';
+    const remoteUuid =
+        '(SELECT remote_entity_uuid FROM $context WHERE singleton_id=1)';
+    final remoteTarget =
+        "($contextOrigin='remote' AND $remoteEntityType='$type')";
+    const remoteRevision =
+        '(SELECT remote_revision FROM $context WHERE singleton_id=1)';
     const sessionActor = '(SELECT user_id FROM $context WHERE singleton_id=1)';
     var insertActor = columns.contains('created_by')
         ? "COALESCE($sessionActor,NULLIF(TRIM(NEW.created_by),''))"
@@ -349,7 +384,8 @@ class SyncFoundationTables {
         $actor,$_now,$operation,$revision,$before,$after,
         CASE WHEN $org IS NOT NULL AND $device IS NOT NULL AND $actor IS NOT NULL
           THEN 'attributed' ELSE 'unavailable' END,'local',
-        entity_uuid || ':' || $revision FROM $registry WHERE $key;
+        entity_uuid || ':' || $revision FROM $registry WHERE $key
+          AND $contextOrigin<>'remote';
       ''';
     }
 
@@ -373,7 +409,8 @@ class SyncFoundationTables {
           onlyMoved ? ' AND OLD."${parent.$2}" IS NOT NEW."${parent.$2}"' : '';
       final key =
           "entity_type='${parent.$1}' AND local_id=CAST($prefix\"${parent.$2}\" AS TEXT)$moved";
-      return '''UPDATE $registry SET revision=revision+1,updated_at=$_now WHERE $key;
+      return '''UPDATE $registry SET revision=revision+1,updated_at=$_now
+        WHERE $key AND $contextOrigin<>'remote';
         ${log("'updated'", 'snapshot_json', 'snapshot_json', key, actor)}''';
     }
 
@@ -381,19 +418,32 @@ class SyncFoundationTables {
       AFTER INSERT ON "$table" WHEN NEW."$pk" IS NOT NULL BEGIN
       INSERT OR IGNORE INTO $registry(entity_uuid,entity_type,local_id,
         organization_id,revision,is_voided,snapshot_json,financial_json,
-        created_at,updated_at) SELECT $_uuid,'$type',CAST(NEW."$pk" AS TEXT),
-        $org,0,$newVoided,$newSnapshot,$newMoney,$_now,$_now
+        created_at,updated_at) SELECT
+        CASE WHEN $remoteTarget THEN $remoteUuid ELSE $_uuid END,
+        '$type',CAST(NEW."$pk" AS TEXT),$org,
+        CASE WHEN $remoteTarget THEN $remoteRevision-1 ELSE 0 END,
+        $newVoided,$newSnapshot,$newMoney,$_now,$_now
         WHERE NOT EXISTS (SELECT 1 FROM $registry WHERE $rowKey);
+      SELECT CASE WHEN $remoteTarget AND NOT EXISTS (
+        SELECT 1 FROM $registry WHERE $rowKey AND entity_uuid=$remoteUuid
+          AND revision+1=$remoteRevision)
+        THEN RAISE(ABORT,'SYNC_REMOTE_REVISION_CONFLICT') END;
       ${log("CASE WHEN revision=0 THEN 'created' WHEN is_voided=1 AND $newVoided=0 THEN 'restored' ELSE 'updated' END", 'CASE WHEN revision=0 THEN NULL ELSE snapshot_json END', newSnapshot, rowKey, insertActor, nextRevision: true)}
-      UPDATE $registry SET revision=revision+1,is_voided=$newVoided,
-        snapshot_json=$newSnapshot,financial_json=$newMoney,updated_at=$_now
+      UPDATE $registry SET
+        revision=CASE WHEN $remoteTarget THEN $remoteRevision WHEN $contextOrigin='remote' THEN revision ELSE revision+1 END,
+        is_voided=$newVoided,snapshot_json=$newSnapshot,financial_json=$newMoney,updated_at=$_now
         WHERE $rowKey;
       ${touchParent('NEW.', insertActor)}
       END''');
     await db.execute('''CREATE TRIGGER trg_sync_${table}_update
       AFTER UPDATE ON "$table" WHEN $newSnapshot IS NOT $oldSnapshot BEGIN
-      UPDATE $registry SET revision=revision+1,is_voided=$newVoided,
-        snapshot_json=$newSnapshot,financial_json=$newMoney,updated_at=$_now
+      SELECT CASE WHEN $remoteTarget AND NOT EXISTS (
+        SELECT 1 FROM $registry WHERE $rowKey AND entity_uuid=$remoteUuid
+          AND revision+1=$remoteRevision)
+        THEN RAISE(ABORT,'SYNC_REMOTE_REVISION_CONFLICT') END;
+      UPDATE $registry SET
+        revision=CASE WHEN $remoteTarget THEN $remoteRevision WHEN $contextOrigin='remote' THEN revision ELSE revision+1 END,
+        is_voided=$newVoided,snapshot_json=$newSnapshot,financial_json=$newMoney,updated_at=$_now
         WHERE $rowKey;
       ${log("CASE WHEN $oldVoided=0 AND $newVoided=1 THEN 'voided' WHEN $oldVoided=1 AND $newVoided=0 THEN 'restored' ELSE 'updated' END", oldSnapshot, newSnapshot, rowKey, updateActor)}
       ${touchParent('OLD.', updateActor)}
@@ -402,8 +452,13 @@ class SyncFoundationTables {
     final oldKey = "entity_type='$type' AND local_id=CAST(OLD.\"$pk\" AS TEXT)";
     await db.execute('''CREATE TRIGGER trg_sync_${table}_delete
       AFTER DELETE ON "$table" BEGIN
-      UPDATE $registry SET revision=revision+1,is_voided=1,updated_at=$_now
-        WHERE $oldKey;
+      SELECT CASE WHEN $remoteTarget AND NOT EXISTS (
+        SELECT 1 FROM $registry WHERE $oldKey AND entity_uuid=$remoteUuid
+          AND revision+1=$remoteRevision)
+        THEN RAISE(ABORT,'SYNC_REMOTE_REVISION_CONFLICT') END;
+      UPDATE $registry SET
+        revision=CASE WHEN $remoteTarget THEN $remoteRevision WHEN $contextOrigin='remote' THEN revision ELSE revision+1 END,
+        is_voided=1,updated_at=$_now WHERE $oldKey;
       ${log("'voided'", oldSnapshot, 'NULL', oldKey, sessionActor)}
       ${touchParent('OLD.', sessionActor)}
       END''');

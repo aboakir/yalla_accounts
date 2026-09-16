@@ -1,7 +1,12 @@
-import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/party_tables.dart';
+import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.dart';
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:uuid/uuid.dart';
 
 class PartyBalanceSummary {
   const PartyBalanceSummary({
@@ -95,7 +100,8 @@ class PartyFinancialService {
     final db = database ?? await DBService.database;
     int? customerId;
     int? supplierId;
-    await db.transaction((txn) async {
+    final partyId = const Uuid().v4();
+    await SyncFoundationService.transaction(db, (txn) async {
       final existing = await txn.rawQuery(
           'SELECT id FROM parties WHERE LOWER(TRIM(display_name))=LOWER(?) AND merged_into_id IS NULL',
           [name.trim()]);
@@ -103,49 +109,84 @@ class PartyFinancialService {
         throw StateError(
             'توجد جهة بهذا الاسم. استخدم سجلها الحالي أو خيار الربط.');
       }
-      if (customer) {
-        customerId = await txn.insert('clients', {
-          'name': name.trim(),
-          'type': 'أفراد',
+      final now = DateTime.now().toUtc().toIso8601String();
+      final roles = <String>[
+        if (customer) 'CUSTOMER',
+        if (supplier) 'SUPPLIER',
+      ]..sort();
+      await PartyTables.setLegacyProjectionSuppressed(txn, true);
+      try {
+        await txn.insert('parties', {
+          'id': partyId,
+          'display_name': name.trim(),
           'phone': phone.trim(),
-          'address': address.trim(),
           'email': '',
-          'notes': ''
+          'address': address.trim(),
+          'notes': '',
+          'role_codes': jsonEncode(roles),
+          'is_active': 1,
+          'merged_into_id': null,
+          'created_at': now,
+          'updated_at': now,
         });
-        await OfflineOutboxService.enqueue(txn,
+        if (customer) {
+          customerId = await txn.insert('clients', {
+            'name': name.trim(),
+            'type': 'أفراد',
+            'phone': phone.trim(),
+            'address': address.trim(),
+            'email': '',
+            'notes': ''
+          });
+          await txn.insert('party_roles', {
+            'party_id': partyId,
+            'role': 'CUSTOMER',
+            'legacy_id': customerId.toString(),
+            'created_at': now,
+          });
+        }
+        if (supplier) {
+          supplierId = await txn.insert('suppliers', {
+            'name': name.trim(),
+            'phone': phone.trim(),
+            'address': address.trim()
+          });
+          await txn.update(
+              'suppliers', {'pid': 'S${supplierId.toString().padLeft(4, '0')}'},
+              where: 'id=?', whereArgs: [supplierId]);
+          await txn.insert('party_roles', {
+            'party_id': partyId,
+            'role': 'SUPPLIER',
+            'legacy_id': supplierId.toString(),
+            'created_at': now,
+          });
+        }
+        if (!await SyncFoundationTables.isInstalled(txn)) {
+          await OfflineOutboxService.enqueue(
+            txn,
             channel: OfflineOutboxService.channelSync,
             operation: 'UPSERT',
-            entityType: 'client',
-            entityId: '$customerId',
-            idempotencyKey: 'client:$customerId:create',
+            entityType: 'party',
+            entityId: partyId,
+            idempotencyKey: 'party:$partyId:create',
             payload: {
-              'schema': 1,
-              'entity_type': 'client',
-              'entity_id': customerId,
-              'name': name.trim(),
-              'type': 'أفراد',
+              'schema': 3,
+              'id': partyId,
+              'display_name': name.trim(),
               'phone': phone.trim(),
-              'address': address.trim(),
               'email': '',
-              'notes': ''
-            });
-      }
-      if (supplier) {
-        supplierId = await txn.insert('suppliers', {
-          'name': name.trim(),
-          'phone': phone.trim(),
-          'address': address.trim()
-        });
-        await txn.update(
-            'suppliers', {'pid': 'S${supplierId.toString().padLeft(4, '0')}'},
-            where: 'id=?', whereArgs: [supplierId]);
-      }
-      if (customerId != null && supplierId != null) {
-        await linkCustomerAndSupplier(
-            customerId: customerId!, supplierId: supplierId!, executor: txn);
+              'address': address.trim(),
+              'notes': '',
+              'role_codes': roles,
+              'is_active': 1,
+              'created_at': now,
+            },
+          );
+        }
+      } finally {
+        await PartyTables.setLegacyProjectionSuppressed(txn, false);
       }
     });
-    // Use the same lazy account initialization as the existing master-data forms.
     if (database == null) {
       if (customerId != null) {
         try {

@@ -6,7 +6,7 @@ import 'package:uuid/uuid.dart';
 
 class DatabaseConstants {
   static const String dbName = 'yalla_accounts.db';
-  static const int dbVersion = 77;
+  static const int dbVersion = 78;
   static const String supplierPidPrefix = 'S';
 
   static final Uuid _uuid = const Uuid();

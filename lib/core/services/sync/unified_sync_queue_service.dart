@@ -40,8 +40,8 @@ class UnifiedSyncQueueService {
     final now = DateTime.now().toUtc().toIso8601String();
     return (await db.query(
       UnifiedSyncTables.outbox,
-      where:
-          "state='PENDING' AND (next_attempt_at IS NULL OR next_attempt_at<=?)",
+      where: "state='PENDING' AND entity_type NOT IN ('client','supplier') "
+          "AND (next_attempt_at IS NULL OR next_attempt_at<=?)",
       whereArgs: [now],
       orderBy: 'created_at ASC,outbox_id ASC',
       limit: limit,
@@ -265,7 +265,8 @@ class UnifiedSyncQueueService {
     final rows = await db.rawQuery('''SELECT
       SUM(CASE WHEN state='PENDING' THEN 1 ELSE 0 END) AS pending,
       SUM(CASE WHEN state='SENDING' THEN 1 ELSE 0 END) AS sending,
-      SUM(CASE WHEN state IN ('CONFLICT','REJECTED') THEN 1 ELSE 0 END) AS failed
+      SUM(CASE WHEN state='CONFLICT' OR (state='REJECTED' AND
+        COALESCE(last_error,'')<>'SYNC_SUPERSEDED_BY_MASTER_PARTY') THEN 1 ELSE 0 END) AS failed
       FROM ${UnifiedSyncTables.outbox}''');
     final row = rows.isEmpty ? const <String, Object?>{} : rows.single;
     return UnifiedSyncQueueStats(

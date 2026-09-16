@@ -233,6 +233,7 @@ class DatabaseMigration {
     await _upgradeV75(db);
     await _upgradeV76(db);
     await _upgradeV77(db);
+    await _upgradeV78(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -251,6 +252,7 @@ class DatabaseMigration {
       if (oldV < 75) await _upgradeV75(db);
       if (oldV < 76) await _upgradeV76(db);
       if (oldV < 77) await _upgradeV77(db);
+      if (oldV < 78) await _upgradeV78(db);
       return;
     }
 
@@ -423,6 +425,24 @@ class DatabaseMigration {
     if (oldV < 75) await _upgradeV75(db);
     if (oldV < 76) await _upgradeV76(db);
     if (oldV < 77) await _upgradeV77(db);
+    if (oldV < 78) await _upgradeV78(db);
+  }
+
+  static Future<void> _upgradeV78(Database db) async {
+    await LicenseRuntimeTables.runTrustedMigrationBackfill(
+      db,
+      () async {
+        await PartyTables.ensure(db);
+        await SyncFoundationTables.ensure(db);
+        await UnifiedSyncTables.ensure(db);
+      },
+    );
+    await UnifiedSyncQueueService.resetInterruptedSending(db);
+    await db.insert(
+      'schema_migrations',
+      {'version': 78, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   static Future<void> _upgradeV77(Database db) async {
