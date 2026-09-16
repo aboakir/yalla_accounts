@@ -19,6 +19,8 @@ class PurchaseInvoicesTable {
       CREATE TABLE IF NOT EXISTS purchase_invoices (
         id TEXT PRIMARY KEY,
         supplier_id INTEGER NOT NULL,
+        supplier_party_uuid TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
 
         invoice_number TEXT,
         purchase_type TEXT,
@@ -92,6 +94,9 @@ class PurchaseInvoicesTable {
   // ===========================================================================
   static Future<void> _ensurePurchaseInvoicesSchema(DatabaseExecutor db) async {
 // الرأس
+    await _ensureColumn(db, 'purchase_invoices', 'supplier_party_uuid', 'TEXT');
+    await _ensureColumn(db, 'purchase_invoices', 'is_active',
+        'INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))');
     await _ensureColumn(db, 'purchase_invoices', 'amount_total', 'REAL');
     await _ensureColumn(db, 'purchase_invoices', 'purchase_type', 'TEXT');
     await _ensureColumn(db, 'purchase_invoices', 'subtotal', 'REAL');

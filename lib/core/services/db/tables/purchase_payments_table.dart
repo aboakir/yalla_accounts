@@ -18,6 +18,7 @@ class PurchasePaymentsTable {
         id TEXT PRIMARY KEY,
 
         invoice_id TEXT NOT NULL,   -- يرتبط بفاتورة الشراء
+        purchase_invoice_entity_uuid TEXT,
         amount REAL NOT NULL,
         date TEXT NOT NULL,
 
@@ -50,6 +51,8 @@ class PurchasePaymentsTable {
   // 🧱 ENSURE SCHEMA — بدون supplier_pid نهائيًا
   // ===========================================================================
   static Future<void> _ensureSchema(DatabaseExecutor db) async {
+    await _ensureColumn(
+        db, 'purchase_payments', 'purchase_invoice_entity_uuid', 'TEXT');
     await _ensureColumn(db, 'purchase_payments', 'gl_entry_id', 'INTEGER');
     await _ensureColumn(db, 'purchase_payments', 'created_at', 'TEXT');
     await _ensureColumn(db, 'purchase_payments', 'updated_at', 'TEXT');
@@ -91,6 +94,7 @@ class PurchasePaymentsTable {
       CREATE TABLE $table (
         id TEXT PRIMARY KEY,
         invoice_id TEXT NOT NULL,
+        purchase_invoice_entity_uuid TEXT,
         amount REAL NOT NULL,
         date TEXT NOT NULL,
         method TEXT,

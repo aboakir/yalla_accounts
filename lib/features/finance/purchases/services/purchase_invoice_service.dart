@@ -3,6 +3,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/purchase_invoices_table.dart';
+import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.dart';
+import 'package:yalla_accounts/features/finance/purchases/services/purchase_sync_reference_service.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
@@ -152,9 +154,17 @@ class PurchaseInvoiceService {
 
     final now = DateTime.now().toIso8601String();
     await SyncFoundationService.transaction(db, (tx) async {
+      final supplierPartyUuid =
+          await PurchaseSyncReferenceService.supplierPartyUuid(tx, supplierId);
+      if (await SyncFoundationTables.isInstalled(tx) &&
+          supplierPartyUuid == null) {
+        throw StateError('PURCHASE_SUPPLIER_PARTY_MAPPING_MISSING');
+      }
       await tx.insert(_tableHeader, {
         'id': invoiceId,
         'supplier_id': supplierId,
+        'supplier_party_uuid': supplierPartyUuid,
+        'is_active': 1,
         'date': date.toIso8601String(),
         'note': note,
         'subtotal': total,

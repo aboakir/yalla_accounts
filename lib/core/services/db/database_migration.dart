@@ -236,6 +236,7 @@ class DatabaseMigration {
     await _upgradeV78(db);
     await _upgradeV79(db);
     await _upgradeV80(db);
+    await _upgradeV81(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -257,6 +258,7 @@ class DatabaseMigration {
       if (oldV < 78) await _upgradeV78(db);
       if (oldV < 79) await _upgradeV79(db);
       if (oldV < 80) await _upgradeV80(db);
+      if (oldV < 81) await _upgradeV81(db);
       return;
     }
 
@@ -432,6 +434,75 @@ class DatabaseMigration {
     if (oldV < 78) await _upgradeV78(db);
     if (oldV < 79) await _upgradeV79(db);
     if (oldV < 80) await _upgradeV80(db);
+    if (oldV < 81) await _upgradeV81(db);
+  }
+
+  static Future<void> _upgradeV81(Database db) async {
+    final oldContext = await db.query(SyncFoundationTables.context,
+        where: 'singleton_id=1', limit: 1);
+    await db.insert(
+      SyncFoundationTables.context,
+      {
+        'singleton_id': 1,
+        'user_id': null,
+        'origin': 'remote',
+        'remote_entity_type': '__migration__',
+        'remote_entity_uuid': '00000000-0000-4000-8000-000000000081',
+        'remote_revision': 1,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    try {
+      await PurchaseInvoicesTable.createAllTables(db);
+      await PurchasePaymentsTable.createAllTables(db);
+      await SyncFoundationTables.ensure(db);
+      await _backfillPurchaseSyncReferences(db);
+      await UnifiedSyncTables.ensure(db);
+      await UnifiedSyncTables.refreshPurchasePayloadsForMigration(db);
+    } finally {
+      if (oldContext.isEmpty) {
+        await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
+      } else {
+        await db.insert(SyncFoundationTables.context,
+            Map<String, Object?>.from(oldContext.single),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+    await UnifiedSyncQueueService.resetInterruptedSending(db);
+    await db.insert(
+      'schema_migrations',
+      {'version': 81, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  static Future<void> _backfillPurchaseSyncReferences(Database db) async {
+    await db.execute('''
+      UPDATE purchase_invoices
+      SET supplier_party_uuid=(
+        SELECT r.entity_uuid
+        FROM party_roles pr
+        JOIN ${SyncFoundationTables.registry} r
+          ON r.entity_type='party' AND r.local_id=pr.party_id
+        WHERE pr.role='SUPPLIER'
+          AND pr.legacy_id=CAST(purchase_invoices.supplier_id AS TEXT)
+        LIMIT 1
+      )
+      WHERE supplier_id IS NOT NULL
+        AND (supplier_party_uuid IS NULL OR TRIM(supplier_party_uuid)='')
+    ''');
+    await db.execute('''
+      UPDATE purchase_payments
+      SET purchase_invoice_entity_uuid=(
+        SELECT r.entity_uuid FROM ${SyncFoundationTables.registry} r
+        WHERE r.entity_type='purchase_invoice'
+          AND r.local_id=CAST(purchase_payments.invoice_id AS TEXT)
+        LIMIT 1
+      )
+      WHERE invoice_id IS NOT NULL
+        AND (purchase_invoice_entity_uuid IS NULL
+          OR TRIM(purchase_invoice_entity_uuid)='')
+    ''');
   }
 
   static Future<void> _upgradeV80(Database db) async {

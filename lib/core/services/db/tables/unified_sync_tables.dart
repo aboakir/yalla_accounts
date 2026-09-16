@@ -30,10 +30,24 @@ class UnifiedSyncTables {
         "json_set(json_remove($raw,'\$.repair_id','\$.responsible_employee_id'),"
         "'\$.repair_entity_uuid',(SELECT entity_uuid FROM ${SyncFoundationTables.registry} "
         "WHERE entity_type='repair' AND local_id=CAST(json_extract($raw,'\$.repair_id') AS TEXT) LIMIT 1))";
+    final purchaseInvoice =
+        "json_remove($raw,'\$.supplier_id','\$.gl_entry_id',"
+        "'\$.paid_total','\$.remaining','\$.status')";
+    final purchaseLine = "json_set(json_remove($raw,'\$.id','\$.invoice_id'),"
+        "'\$.purchase_invoice_entity_uuid',(SELECT entity_uuid FROM ${SyncFoundationTables.registry} "
+        "WHERE entity_type='purchase_invoice' AND local_id=CAST(json_extract($raw,'\$.invoice_id') AS TEXT) LIMIT 1))";
+    final purchasePayment =
+        "json_set(json_remove($raw,'\$.id','\$.invoice_id','\$.gl_entry_id'),"
+        "'\$.purchase_invoice_entity_uuid',COALESCE(json_extract($raw,'\$.purchase_invoice_entity_uuid'),"
+        "(SELECT entity_uuid FROM ${SyncFoundationTables.registry} WHERE entity_type='purchase_invoice' "
+        "AND local_id=CAST(json_extract($raw,'\$.invoice_id') AS TEXT) LIMIT 1)))";
     return "CASE WHEN $row.entity_type='vehicle' THEN $vehicle "
         "WHEN $row.entity_type='repair' THEN $repair "
         "WHEN $row.entity_type='repair_line' THEN $line "
         "WHEN $row.entity_type='repair_workflow' THEN $workflow "
+        "WHEN $row.entity_type='purchase_invoice' THEN $purchaseInvoice "
+        "WHEN $row.entity_type='purchase_invoice_line' THEN $purchaseLine "
+        "WHEN $row.entity_type='purchase_payment' THEN $purchasePayment "
         "ELSE $raw END";
   }
 
@@ -175,6 +189,33 @@ class UnifiedSyncTables {
         WHERE c.change_id=$outbox.change_id),
         updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
       WHERE entity_type IN ('repair','repair_line','repair_workflow')
+        AND state='PENDING' ''');
+    await _installGuards(db);
+  }
+
+  static Future<void> refreshPurchasePayloadsForMigration(
+    DatabaseExecutor db,
+  ) async {
+    final wirePayload = _wirePayload('c');
+    final enrichedPayload =
+        "CASE WHEN c.entity_type='purchase_invoice' THEN json_set("
+        "$wirePayload,'\$.supplier_party_uuid',COALESCE("
+        "json_extract($wirePayload,'\$.supplier_party_uuid'),"
+        "(SELECT supplier_party_uuid FROM purchase_invoices WHERE id=CAST(c.entity_id AS TEXT))),"
+        "'\$.is_active',COALESCE(json_extract($wirePayload,'\$.is_active'),"
+        "(SELECT is_active FROM purchase_invoices WHERE id=CAST(c.entity_id AS TEXT)),1)) "
+        "ELSE $wirePayload END";
+    await db.execute(
+      'DROP TRIGGER IF EXISTS trg_sync_v3_outbox_identity_guard',
+    );
+    await db.rawUpdate('''UPDATE $outbox
+      SET payload_json=(SELECT CASE WHEN c.operation='restored' THEN
+        json_set($enrichedPayload,'\$._sync_restore',json('true'))
+        ELSE $enrichedPayload END
+        FROM ${SyncFoundationTables.changes} c
+        WHERE c.change_id=$outbox.change_id),
+        updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      WHERE entity_type IN ('purchase_invoice','purchase_invoice_line','purchase_payment')
         AND state='PENDING' ''');
     await _installGuards(db);
   }

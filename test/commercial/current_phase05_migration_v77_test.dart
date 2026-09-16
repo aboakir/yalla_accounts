@@ -19,8 +19,8 @@ void main() {
       var db = await DatabaseMigration.initDatabase(pathOverride: path);
 
       try {
-        expect(DatabaseConstants.dbVersion, 80);
-        expect(await db.getVersion(), 80);
+        expect(DatabaseConstants.dbVersion, greaterThanOrEqualTo(77));
+        expect(await db.getVersion(), DatabaseConstants.dbVersion);
         await db.insert('suppliers', {'name': 'Preserved Supplier'});
         final before = await db.query(
           'suppliers',
@@ -41,7 +41,7 @@ void main() {
         await db.close();
 
         db = await DatabaseMigration.initDatabase(pathOverride: path);
-        expect(await db.getVersion(), 80);
+        expect(await db.getVersion(), DatabaseConstants.dbVersion);
         expect(
           await db.query(
             'schema_migrations',
