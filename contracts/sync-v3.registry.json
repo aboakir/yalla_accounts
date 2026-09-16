@@ -108,5 +108,13 @@
       "changes_or_checkpoint"
     ],
     "replay_protection": "request_id plus server idempotency/replay record"
+  },
+  "tombstone": {
+    "silent_resurrection": "REJECT",
+    "restore": {
+      "operation": "UPSERT",
+      "payload_marker": "_sync_restore",
+      "required_value": true
+    }
   }
 }

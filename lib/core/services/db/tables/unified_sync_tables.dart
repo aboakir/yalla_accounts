@@ -77,7 +77,14 @@ class UnifiedSyncTables {
           CASE WHEN NEW.operation='voided' THEN 'DELETE' ELSE 'UPSERT' END,
           CASE WHEN NEW.revision>0 THEN NEW.revision-1 ELSE 0 END,NEW.revision,
           'sync-change:' || NEW.change_id,NEW.occurred_at,
-          COALESCE(NEW.after_json,NEW.before_json,'{}'),'PENDING',NEW.occurred_at,NEW.occurred_at);
+          CASE WHEN NEW.operation='restored' THEN
+            json_set(CASE WHEN NEW.entity_type='vehicle' THEN
+            json_remove(COALESCE(NEW.after_json,NEW.before_json,'{}'),'\$.id','\$.client_id')
+          ELSE COALESCE(NEW.after_json,NEW.before_json,'{}') END,'\$._sync_restore',json('true'))
+          ELSE CASE WHEN NEW.entity_type='vehicle' THEN
+            json_remove(COALESCE(NEW.after_json,NEW.before_json,'{}'),'\$.id','\$.client_id')
+          ELSE COALESCE(NEW.after_json,NEW.before_json,'{}') END END,
+          'PENDING',NEW.occurred_at,NEW.occurred_at);
       END''');
 
     await _backfillLocalChanges(db);
@@ -95,7 +102,14 @@ class UnifiedSyncTables {
         c.entity_uuid,CASE WHEN c.operation='voided' THEN 'DELETE' ELSE 'UPSERT' END,
         CASE WHEN c.revision>0 THEN c.revision-1 ELSE 0 END,c.revision,
         'sync-change:' || c.change_id,c.occurred_at,
-        COALESCE(c.after_json,c.before_json,'{}'),'PENDING',c.occurred_at,c.occurred_at
+        CASE WHEN c.operation='restored' THEN
+          json_set(CASE WHEN c.entity_type='vehicle' THEN
+          json_remove(COALESCE(c.after_json,c.before_json,'{}'),'\$.id','\$.client_id')
+        ELSE COALESCE(c.after_json,c.before_json,'{}') END,'\$._sync_restore',json('true'))
+        ELSE CASE WHEN c.entity_type='vehicle' THEN
+          json_remove(COALESCE(c.after_json,c.before_json,'{}'),'\$.id','\$.client_id')
+        ELSE COALESCE(c.after_json,c.before_json,'{}') END END,
+        'PENDING',c.occurred_at,c.occurred_at
       FROM ${SyncFoundationTables.changes} c
       WHERE c.origin='local' AND c.operation IN ('created','updated','voided','restored')
         AND c.entity_type NOT IN ('client','supplier')

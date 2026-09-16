@@ -9,26 +9,26 @@ class VehicleTables {
     var value = input.trim();
 
     const arabicDigits = <String, String>{
-      '٠': '0',
-      '١': '1',
-      '٢': '2',
-      '٣': '3',
-      '٤': '4',
-      '٥': '5',
-      '٦': '6',
-      '٧': '7',
-      '٨': '8',
-      '٩': '9',
-      '۰': '0',
-      '۱': '1',
-      '۲': '2',
-      '۳': '3',
-      '۴': '4',
-      '۵': '5',
-      '۶': '6',
-      '۷': '7',
-      '۸': '8',
-      '۹': '9',
+      '\u0660': '0',
+      '\u0661': '1',
+      '\u0662': '2',
+      '\u0663': '3',
+      '\u0664': '4',
+      '\u0665': '5',
+      '\u0666': '6',
+      '\u0667': '7',
+      '\u0668': '8',
+      '\u0669': '9',
+      '\u06F0': '0',
+      '\u06F1': '1',
+      '\u06F2': '2',
+      '\u06F3': '3',
+      '\u06F4': '4',
+      '\u06F5': '5',
+      '\u06F6': '6',
+      '\u06F7': '7',
+      '\u06F8': '8',
+      '\u06F9': '9',
     };
 
     arabicDigits.forEach((from, to) {
@@ -48,6 +48,8 @@ class VehicleTables {
         type TEXT NOT NULL DEFAULT '',
         model TEXT NOT NULL DEFAULT '',
         client_id INTEGER,
+        owner_party_uuid TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
         notes TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -55,15 +57,14 @@ class VehicleTables {
       )
     ''');
 
-    await _ensureColumn(
-      db,
-      'normalized_number',
-      "TEXT NOT NULL DEFAULT ''",
-    );
+    await _ensureColumn(db, 'normalized_number', "TEXT NOT NULL DEFAULT ''");
     await _ensureColumn(db, 'number', "TEXT NOT NULL DEFAULT ''");
     await _ensureColumn(db, 'type', "TEXT NOT NULL DEFAULT ''");
     await _ensureColumn(db, 'model', "TEXT NOT NULL DEFAULT ''");
     await _ensureColumn(db, 'client_id', 'INTEGER');
+    await _ensureColumn(db, 'owner_party_uuid', 'TEXT');
+    await _ensureColumn(db, 'is_active',
+        'INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1))');
     await _ensureColumn(db, 'notes', "TEXT NOT NULL DEFAULT ''");
     await _ensureColumn(db, 'created_at', 'TEXT');
     await _ensureColumn(db, 'updated_at', 'TEXT');
@@ -75,6 +76,10 @@ class VehicleTables {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_vehicles_client '
       'ON $tableName(client_id);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_vehicles_owner_party_uuid '
+      'ON $tableName(owner_party_uuid);',
     );
 
     await _backfillFromRepairs(db);
@@ -88,9 +93,7 @@ class VehicleTables {
     final info = await db.rawQuery('PRAGMA table_info($tableName)');
     final exists = info.any((row) => row['name']?.toString() == column);
     if (!exists) {
-      await db.execute(
-        'ALTER TABLE $tableName ADD COLUMN $column $definition',
-      );
+      await db.execute('ALTER TABLE $tableName ADD COLUMN $column $definition');
     }
   }
 
@@ -140,20 +143,41 @@ class VehicleTables {
       if (existing.isNotEmpty) continue;
 
       await db.insert(
-        tableName,
-        {
-          'normalized_number': normalized,
-          'number': number,
-          'type': type,
-          'model': model,
-          'client_id': clientId,
-          'notes': '',
-          'created_at': timestamp,
-          'updated_at': timestamp,
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+          tableName,
+          {
+            'normalized_number': normalized,
+            'number': number,
+            'type': type,
+            'model': model,
+            'client_id': clientId,
+            'notes': '',
+            'created_at': timestamp,
+            'updated_at': timestamp,
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore);
     }
+  }
+
+  static Future<void> backfillOwnerPartyUuid(DatabaseExecutor db) async {
+    final required = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('party_roles','sync_entity_registry','vehicles')",
+    );
+    if (required.length != 3) return;
+
+    await db.execute('''
+      UPDATE vehicles
+      SET owner_party_uuid=(
+        SELECT r.entity_uuid
+        FROM party_roles pr
+        JOIN sync_entity_registry r
+          ON r.entity_type='party' AND r.local_id=pr.party_id
+        WHERE pr.role='CUSTOMER'
+          AND pr.legacy_id=CAST(vehicles.client_id AS TEXT)
+        LIMIT 1
+      )
+      WHERE client_id IS NOT NULL
+        AND (owner_party_uuid IS NULL OR TRIM(owner_party_uuid)='')
+    ''');
   }
 
   static int? _asInt(Object? value) {

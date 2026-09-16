@@ -19,8 +19,8 @@ void main() {
     final path = '${dir.path}/fixture.db';
     var db = await DatabaseMigration.initDatabase(pathOverride: path);
     try {
-      expect(DatabaseConstants.dbVersion, 78);
-      expect(await db.getVersion(), 78);
+      expect(DatabaseConstants.dbVersion, 79);
+      expect(await db.getVersion(), 79);
       await db.insert('parties', {
         'id': 'CUSTOMER:900',
         'display_name': 'Preserved Party',
@@ -94,7 +94,7 @@ void main() {
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 78);
+      expect(await db.getVersion(), 79);
       expect(
         await db
             .query('schema_migrations', where: 'version=?', whereArgs: [78]),

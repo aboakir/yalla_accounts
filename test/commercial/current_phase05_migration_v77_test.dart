@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -19,8 +19,8 @@ void main() {
       var db = await DatabaseMigration.initDatabase(pathOverride: path);
 
       try {
-        expect(DatabaseConstants.dbVersion, 78);
-        expect(await db.getVersion(), 78);
+        expect(DatabaseConstants.dbVersion, 79);
+        expect(await db.getVersion(), 79);
         await db.insert('suppliers', {'name': 'Preserved Supplier'});
         final before = await db.query(
           'suppliers',
@@ -41,7 +41,7 @@ void main() {
         await db.close();
 
         db = await DatabaseMigration.initDatabase(pathOverride: path);
-        expect(await db.getVersion(), 78);
+        expect(await db.getVersion(), 79);
         expect(
           await db.query(
             'schema_migrations',

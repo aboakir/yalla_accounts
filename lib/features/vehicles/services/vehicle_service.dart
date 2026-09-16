@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
+import 'package:yalla_accounts/core/services/db/tables/party_tables.dart';
+import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.dart';
 import 'package:yalla_accounts/core/services/db/tables/vehicle_tables.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
@@ -25,6 +27,7 @@ class VehicleService {
       SELECT v.*, c.name AS client_name
       FROM vehicles v
       LEFT JOIN clients c ON c.id = v.client_id
+      WHERE COALESCE(v.is_active,1)=1
       ORDER BY LOWER(v.type) ASC, v.number ASC
     ''');
 
@@ -67,6 +70,29 @@ class VehicleService {
         vehicle.type.toLowerCase().contains(q) ||
         vehicle.model.toLowerCase().contains(q) ||
         vehicle.clientName.toLowerCase().contains(q);
+  }
+
+  static Future<String?> _ownerPartyUuidForClient(
+    DatabaseExecutor db,
+    int? clientId,
+  ) async {
+    if (clientId == null || !await SyncFoundationTables.isInstalled(db)) {
+      return null;
+    }
+    final partyId = await PartyTables.resolvePartyId(
+      db,
+      role: 'CUSTOMER',
+      legacyId: clientId,
+    );
+    if (partyId == null) return null;
+    final rows = await db.query(
+      SyncFoundationTables.registry,
+      columns: const ['entity_uuid'],
+      where: 'entity_type=? AND local_id=?',
+      whereArgs: ['party', partyId],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.single['entity_uuid']?.toString();
   }
 
   static Future<List<Vehicle>> getByClientId(int clientId) async {
@@ -115,6 +141,8 @@ class VehicleService {
       }
 
       final now = DateTime.now().toUtc().toIso8601String();
+      final ownerPartyUuid =
+          await _ownerPartyUuidForClient(txn, vehicle.clientId);
       final id = await txn.insert(
         VehicleTables.tableName,
         {
@@ -123,6 +151,8 @@ class VehicleService {
           'type': vehicle.type.trim(),
           'model': vehicle.model.trim(),
           'client_id': vehicle.clientId,
+          'owner_party_uuid': ownerPartyUuid,
+          'is_active': 1,
           'notes': vehicle.notes.trim(),
           'created_at': now,
           'updated_at': now,
@@ -130,23 +160,25 @@ class VehicleService {
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
 
-      await OfflineOutboxService.enqueue(
-        txn,
-        channel: OfflineOutboxService.channelSync,
-        operation: 'UPSERT',
-        entityType: 'vehicle',
-        entityId: id.toString(),
-        idempotencyKey: 'vehicle:$id:create',
-        payload: {
-          'schema': 1,
-          'entity_type': 'vehicle',
-          'entity_id': id,
-          'number': vehicle.number.trim(),
-          'type': vehicle.type.trim(),
-          'model': vehicle.model.trim(),
-          'client_id': vehicle.clientId,
-        },
-      );
+      if (!await SyncFoundationTables.isInstalled(txn)) {
+        await OfflineOutboxService.enqueue(
+          txn,
+          channel: OfflineOutboxService.channelSync,
+          operation: 'UPSERT',
+          entityType: 'vehicle',
+          entityId: id.toString(),
+          idempotencyKey: 'vehicle:$id:create',
+          payload: {
+            'schema': 1,
+            'entity_type': 'vehicle',
+            'entity_id': id,
+            'number': vehicle.number.trim(),
+            'type': vehicle.type.trim(),
+            'model': vehicle.model.trim(),
+            'client_id': vehicle.clientId,
+          },
+        );
+      }
 
       return id;
     });
@@ -171,6 +203,8 @@ class VehicleService {
       }
 
       final now = DateTime.now().toUtc().toIso8601String();
+      final ownerPartyUuid =
+          await _ownerPartyUuidForClient(txn, vehicle.clientId);
       final changed = await txn.update(
         VehicleTables.tableName,
         {
@@ -179,14 +213,15 @@ class VehicleService {
           'type': vehicle.type.trim(),
           'model': vehicle.model.trim(),
           'client_id': vehicle.clientId,
+          'owner_party_uuid': ownerPartyUuid,
           'notes': vehicle.notes.trim(),
           'updated_at': now,
         },
-        where: 'id = ?',
+        where: 'id = ? AND COALESCE(is_active,1)=1',
         whereArgs: [id],
       );
 
-      if (changed > 0) {
+      if (changed > 0 && !await SyncFoundationTables.isInstalled(txn)) {
         await OfflineOutboxService.enqueue(
           txn,
           channel: OfflineOutboxService.channelSync,
@@ -222,9 +257,10 @@ class VehicleService {
       throw StateError('رقم المركبة مطلوب');
     }
 
+    final ownerPartyUuid = await _ownerPartyUuidForClient(db, clientId);
     final existing = await db.query(
       VehicleTables.tableName,
-      columns: const ['id'],
+      columns: const ['id', 'is_active'],
       where: 'normalized_number = ?',
       whereArgs: [normalized],
       limit: 1,
@@ -233,6 +269,9 @@ class VehicleService {
     final now = DateTime.now().toUtc().toIso8601String();
 
     if (existing.isNotEmpty) {
+      if (existing.first['is_active'] == 0) {
+        throw StateError('VEHICLE_TOMBSTONE_RESTORE_REQUIRED');
+      }
       final rawId = existing.first['id'];
       final id = rawId is int
           ? rawId
@@ -247,6 +286,7 @@ class VehicleService {
           if (type.trim().isNotEmpty) 'type': type.trim(),
           if (model.trim().isNotEmpty) 'model': model.trim(),
           if (clientId != null) 'client_id': clientId,
+          if (ownerPartyUuid != null) 'owner_party_uuid': ownerPartyUuid,
           'updated_at': now,
         },
         where: 'id = ?',
@@ -263,6 +303,8 @@ class VehicleService {
         'type': type.trim(),
         'model': model.trim(),
         'client_id': clientId,
+        'owner_party_uuid': ownerPartyUuid,
+        'is_active': 1,
         'notes': '',
         'created_at': now,
         'updated_at': now,
@@ -270,25 +312,100 @@ class VehicleService {
       conflictAlgorithm: ConflictAlgorithm.abort,
     );
 
-    await OfflineOutboxService.enqueue(
-      db,
-      channel: OfflineOutboxService.channelSync,
-      operation: 'UPSERT',
-      entityType: 'vehicle',
-      entityId: id.toString(),
-      idempotencyKey: 'vehicle:$id:create',
-      payload: {
-        'schema': 1,
-        'entity_type': 'vehicle',
-        'entity_id': id,
-        'number': number.trim(),
-        'type': type.trim(),
-        'model': model.trim(),
-        'client_id': clientId,
-      },
-    );
+    if (!await SyncFoundationTables.isInstalled(db)) {
+      await OfflineOutboxService.enqueue(
+        db,
+        channel: OfflineOutboxService.channelSync,
+        operation: 'UPSERT',
+        entityType: 'vehicle',
+        entityId: id.toString(),
+        idempotencyKey: 'vehicle:$id:create',
+        payload: {
+          'schema': 1,
+          'entity_type': 'vehicle',
+          'entity_id': id,
+          'number': number.trim(),
+          'type': type.trim(),
+          'model': model.trim(),
+          'client_id': clientId,
+        },
+      );
+    }
 
     return id;
+  }
+
+  static Future<int> deactivateVehicle(int id) async {
+    return DBService.inTx<int>((txn) async {
+      final rows = await txn.query(
+        VehicleTables.tableName,
+        columns: const ['number', 'is_active'],
+        where: 'id=?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (rows.isEmpty || rows.single['is_active'] == 0) return 0;
+      final now = DateTime.now().toUtc().toIso8601String();
+      final changed = await txn.update(
+        VehicleTables.tableName,
+        {'is_active': 0, 'updated_at': now},
+        where: 'id=? AND COALESCE(is_active,1)=1',
+        whereArgs: [id],
+      );
+      if (changed > 0 && !await SyncFoundationTables.isInstalled(txn)) {
+        await OfflineOutboxService.enqueue(
+          txn,
+          channel: OfflineOutboxService.channelSync,
+          operation: 'DELETE',
+          entityType: 'vehicle',
+          entityId: id.toString(),
+          idempotencyKey: 'vehicle:$id:delete:$now',
+          payload: {'schema': 1, 'entity_type': 'vehicle', 'entity_id': id},
+        );
+      }
+      return changed;
+    });
+  }
+
+  static Future<int> restoreVehicle(Vehicle vehicle) async {
+    final id = vehicle.id;
+    if (id == null) throw StateError('لا يمكن استعادة مركبة بدون رقم داخلي');
+    return DBService.inTx<int>((txn) async {
+      final duplicate =
+          await findDuplicateIdOn(txn, vehicle.number, excludeId: id);
+      if (duplicate != null) throw DuplicateVehicleException(vehicle.number);
+      final ownerPartyUuid =
+          await _ownerPartyUuidForClient(txn, vehicle.clientId);
+      final now = DateTime.now().toUtc().toIso8601String();
+      final changed = await txn.update(
+        VehicleTables.tableName,
+        {
+          'normalized_number': VehicleTables.normalizeNumber(vehicle.number),
+          'number': vehicle.number.trim(),
+          'type': vehicle.type.trim(),
+          'model': vehicle.model.trim(),
+          'client_id': vehicle.clientId,
+          'owner_party_uuid': ownerPartyUuid,
+          'notes': vehicle.notes.trim(),
+          'is_active': 1,
+          'updated_at': now,
+        },
+        where: 'id=? AND is_active=0',
+        whereArgs: [id],
+      );
+      if (changed > 0 && !await SyncFoundationTables.isInstalled(txn)) {
+        await OfflineOutboxService.enqueue(
+          txn,
+          channel: OfflineOutboxService.channelSync,
+          operation: 'UPSERT',
+          entityType: 'vehicle',
+          entityId: id.toString(),
+          idempotencyKey: 'vehicle:$id:restore:$now',
+          payload: {'schema': 1, 'entity_type': 'vehicle', 'entity_id': id},
+        );
+      }
+      return changed;
+    });
   }
 
   static Future<List<Repair>> getHistory(int vehicleId) async {

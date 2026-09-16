@@ -234,6 +234,7 @@ class DatabaseMigration {
     await _upgradeV76(db);
     await _upgradeV77(db);
     await _upgradeV78(db);
+    await _upgradeV79(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -253,6 +254,7 @@ class DatabaseMigration {
       if (oldV < 76) await _upgradeV76(db);
       if (oldV < 77) await _upgradeV77(db);
       if (oldV < 78) await _upgradeV78(db);
+      if (oldV < 79) await _upgradeV79(db);
       return;
     }
 
@@ -426,6 +428,43 @@ class DatabaseMigration {
     if (oldV < 76) await _upgradeV76(db);
     if (oldV < 77) await _upgradeV77(db);
     if (oldV < 78) await _upgradeV78(db);
+    if (oldV < 79) await _upgradeV79(db);
+  }
+
+  static Future<void> _upgradeV79(Database db) async {
+    final oldContext = await db.query(SyncFoundationTables.context,
+        where: 'singleton_id=1', limit: 1);
+    await db.insert(
+      SyncFoundationTables.context,
+      {
+        'singleton_id': 1,
+        'user_id': null,
+        'origin': 'remote',
+        'remote_entity_type': '__migration__',
+        'remote_entity_uuid': '00000000-0000-4000-8000-000000000079',
+        'remote_revision': 1,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    try {
+      await VehicleTables.ensure(db);
+      await VehicleTables.backfillOwnerPartyUuid(db);
+      await SyncFoundationTables.ensure(db);
+      await UnifiedSyncTables.ensure(db);
+    } finally {
+      if (oldContext.isEmpty) {
+        await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
+      } else {
+        await db.insert(SyncFoundationTables.context,
+            Map<String, Object?>.from(oldContext.single),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+    await db.insert(
+      'schema_migrations',
+      {'version': 79, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   static Future<void> _upgradeV78(Database db) async {

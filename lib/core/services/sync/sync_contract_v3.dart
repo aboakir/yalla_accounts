@@ -9,6 +9,7 @@ class SyncContractV3 {
   static const int requestMaxBytes = 2097152;
   static const String deviceProofAlgorithm = 'ED25519';
   static const String deviceProofCanonicalization = 'SORTED_JSON_UTF8_V1';
+  static const String tombstoneRestoreMarker = '_sync_restore';
 
   static const Set<String> outboxStates = {
     'PENDING',

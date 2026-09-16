@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/features/parties/services/party_sync_service.dart';
+import 'package:yalla_accounts/features/vehicles/services/vehicle_sync_service.dart';
 
 import 'unified_sync_queue_service.dart';
 
@@ -13,6 +14,9 @@ class UnifiedSyncInboundRouter {
     switch (change.entityType) {
       case 'party':
         await PartySyncService.applyInbound(transaction, change);
+        return;
+      case 'vehicle':
+        await VehicleSyncService.applyInbound(transaction, change);
         return;
       // Phase 06 compatibility: obsolete wire projections from pre-master-Party clients.
       // Their legacy IDs are device-local and must never be applied remotely.
