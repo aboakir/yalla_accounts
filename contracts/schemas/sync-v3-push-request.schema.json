@@ -4,18 +4,44 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "sync_contract_version", "organization_id", "installation_id", "device_id", "changes"
+    "sync_contract_version",
+    "organization_id",
+    "installation_id",
+    "device_id",
+    "changes",
+    "request_id",
+    "device_proof"
   ],
   "properties": {
-    "sync_contract_version": { "const": 3 },
-    "organization_id": { "type": "string", "format": "uuid" },
-    "installation_id": { "type": "string", "format": "uuid" },
-    "device_id": { "type": "string", "format": "uuid" },
+    "sync_contract_version": {
+      "const": 3
+    },
+    "organization_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "installation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid"
+    },
     "changes": {
       "type": "array",
       "minItems": 1,
       "maxItems": 50,
-      "items": { "$ref": "yalla://contracts/sync/v3/change" }
+      "items": {
+        "$ref": "yalla://contracts/sync/v3/change"
+      }
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_proof": {
+      "$ref": "yalla://contracts/sync/v3/device-proof"
     }
   }
 }

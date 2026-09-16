@@ -2,8 +2,9 @@ openapi: 3.1.0
 info:
   title: Yalla Accounts Final Sync API
   version: 3.0.0
-  description: Offline-first batch push/pull contract with revisions, idempotency and checkpoints.
+  description: Offline-first batch push/pull contract with revisions, idempotency, checkpoints and Ed25519 device proof.
 x-yalla-sync-contract-version: 3
+x-yalla-device-proof: ED25519 over SHA-256 canonical request body (excluding device_proof)
 paths:
   /v1/sync/push:
     post:

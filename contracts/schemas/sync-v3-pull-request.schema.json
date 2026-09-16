@@ -4,15 +4,46 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "sync_contract_version", "organization_id", "installation_id", "device_id",
-    "after_server_sequence", "limit"
+    "sync_contract_version",
+    "organization_id",
+    "installation_id",
+    "device_id",
+    "after_server_sequence",
+    "limit",
+    "request_id",
+    "device_proof"
   ],
   "properties": {
-    "sync_contract_version": { "const": 3 },
-    "organization_id": { "type": "string", "format": "uuid" },
-    "installation_id": { "type": "string", "format": "uuid" },
-    "device_id": { "type": "string", "format": "uuid" },
-    "after_server_sequence": { "type": "integer", "minimum": 0 },
-    "limit": { "type": "integer", "minimum": 1, "maximum": 200 }
+    "sync_contract_version": {
+      "const": 3
+    },
+    "organization_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "installation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "after_server_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "request_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "device_proof": {
+      "$ref": "yalla://contracts/sync/v3/device-proof"
+    }
   }
 }

@@ -7,6 +7,8 @@ class SyncContractV3 {
   static const int pullMaxChanges = 200;
   static const int changePayloadMaxBytes = 524288;
   static const int requestMaxBytes = 2097152;
+  static const String deviceProofAlgorithm = 'ED25519';
+  static const String deviceProofCanonicalization = 'SORTED_JSON_UTF8_V1';
 
   static const Set<String> outboxStates = {
     'PENDING',
@@ -25,6 +27,8 @@ class SyncContractV3 {
     'SYNC_TOMBSTONE_CONFLICT': 409,
     'SYNC_CHECKPOINT_INVALID': 400,
     'SYNC_DEVICE_DENIED': 403,
+    'SYNC_DEVICE_PROOF_INVALID': 403,
+    'SYNC_REPLAY_DETECTED': 409,
     'SYNC_ORGANIZATION_DENIED': 403,
     'SYNC_ENTITY_TYPE_DENIED': 400,
     'SYNC_SERVER_BUSY': 503,

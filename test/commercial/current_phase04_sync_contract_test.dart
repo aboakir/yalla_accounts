@@ -22,6 +22,11 @@ void main() {
     expect(limits['pull_max_changes'], SyncContractV3.pullMaxChanges);
     expect(errors, SyncContractV3.errorStatus);
     expect((contract['concurrency'] as Map)['last_write_wins'], isFalse);
+    expect((contract['device_proof'] as Map)['required'], isTrue);
+    expect((contract['device_proof'] as Map)['algorithm'],
+        SyncContractV3.deviceProofAlgorithm);
+    expect((contract['device_proof'] as Map)['canonicalization'],
+        SyncContractV3.deviceProofCanonicalization);
   });
   test('Phase 04 bounds and checkpoints fail closed', () {
     expect(() => SyncContractV3.requirePushBatchSize(0), throwsRangeError);
@@ -50,5 +55,7 @@ void main() {
       'REJECT',
     );
     expect((contract['conflict'] as Map)['silent_overwrite'], isFalse);
+    expect((contract['device_proof'] as Map)['signed_material'],
+        'SHA256_CANONICAL_REQUEST_WITHOUT_DEVICE_PROOF');
   });
 }

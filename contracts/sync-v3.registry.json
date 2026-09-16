@@ -26,8 +26,17 @@
     "occurred_at",
     "payload"
   ],
-  "operations": ["UPSERT", "DELETE"],
-  "outbox_states": ["PENDING", "SENDING", "ACKNOWLEDGED", "CONFLICT", "REJECTED"],
+  "operations": [
+    "UPSERT",
+    "DELETE"
+  ],
+  "outbox_states": [
+    "PENDING",
+    "SENDING",
+    "ACKNOWLEDGED",
+    "CONFLICT",
+    "REJECTED"
+  ],
   "push": {
     "request_schema": "schemas/sync-v3-push-request.schema.json",
     "response_schema": "schemas/sync-v3-push-response.schema.json"
@@ -66,7 +75,9 @@
     "SYNC_DEVICE_DENIED": 403,
     "SYNC_ORGANIZATION_DENIED": 403,
     "SYNC_ENTITY_TYPE_DENIED": 400,
-    "SYNC_SERVER_BUSY": 503
+    "SYNC_SERVER_BUSY": 503,
+    "SYNC_DEVICE_PROOF_INVALID": 403,
+    "SYNC_REPLAY_DETECTED": 409
   },
   "ordering": {
     "server_sequence": "strictly increasing per accepted server change",
@@ -81,5 +92,21 @@
     "strategy": "OPTIMISTIC_ENTITY_REVISION",
     "last_write_wins": false,
     "server_sequence_is_revision": false
+  },
+  "device_proof": {
+    "required": true,
+    "algorithm": "ED25519",
+    "key_generation_required": true,
+    "signed_material": "SHA256_CANONICAL_REQUEST_WITHOUT_DEVICE_PROOF",
+    "canonicalization": "SORTED_JSON_UTF8_V1",
+    "binds": [
+      "sync_contract_version",
+      "request_id",
+      "organization_id",
+      "installation_id",
+      "device_id",
+      "changes_or_checkpoint"
+    ],
+    "replay_protection": "request_id plus server idempotency/replay record"
   }
 }

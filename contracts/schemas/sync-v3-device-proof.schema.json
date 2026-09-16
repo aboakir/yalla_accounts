@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "yalla://contracts/sync/v3/device-proof",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["algorithm", "key_generation", "body_sha256", "signature"],
+  "properties": {
+    "algorithm": { "const": "ED25519" },
+    "key_generation": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+    "body_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "signature": { "type": "string", "pattern": "^[A-Za-z0-9_-]{86}$" }
+  }
+}
