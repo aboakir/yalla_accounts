@@ -1,17 +1,18 @@
 {
   "change_request": "CR1",
-  "current_phase": 13,
-  "current_phase_manifest": "CR1_PHASE_13_manifest.json",
+  "phase": 13,
   "status": "PASS",
-  "gate_13": {
+  "gate": {
     "full_e2e": "PASS",
     "accounting_integrity": "PASS",
     "commercial_integrity": "PASS",
     "audit": "PASS"
   },
-  "contract_version": 2,
-  "sync_contract_version": 3,
-  "accounts_db_schema_version": 82,
+  "contracts": {
+    "commercial": 2,
+    "sync": 3,
+    "accounts_db_schema": 82
+  },
   "tested_source_commits": {
     "accounts": "5f17061198ca428333411c010ddf2eebe5f56faa",
     "control": "718cb9c5ee624416c779fed1823a6e3b9b8673dd",
@@ -21,18 +22,28 @@
     "control": "5ddcca148ea5e9a05628176bb50d39284be2048c",
     "backend": "9da92e4f464db4341779df4bbc03aaae4411ebca"
   },
-  "phase13_tests": {
-    "accounts_e2e": 5,
-    "control_e2e_admin": 105,
-    "backend_commercial_e2e": 51,
-    "failures": 0
+  "tests": {
+    "accounts_e2e": {"pass": 5, "fail": 0},
+    "control_e2e_admin": {"pass": 105, "fail": 0},
+    "backend_commercial_e2e": {"pass": 51, "fail": 0},
+    "control_analyzer_issues": 0
   },
-  "remote_financial_auto_apply": false,
+  "accounting_journey": [
+    "Customer",
+    "Repair",
+    "Purchase",
+    "Job Cost",
+    "Invoice",
+    "Receipt",
+    "GL",
+    "Statement",
+    "Profit"
+  ],
+  "suspension_policy_verified": true,
   "production_data_used": false,
   "production_mutation": false,
   "blockers": [],
   "next_phase": 14,
   "next_phase_authorized": true,
-  "push_performed": false,
   "evidence": "CR1_PHASE_13.md"
 }
