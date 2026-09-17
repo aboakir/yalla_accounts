@@ -51,6 +51,8 @@ void main() {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     addTearDown(db.close);
     await TechnicalTables.createAllTables(db);
+    await db.execute(
+        'CREATE TABLE sync_outbox(state TEXT NOT NULL,last_error TEXT)');
     await _enqueue(db, 'r-local');
 
     final status = SyncStateService(
@@ -74,6 +76,8 @@ void main() {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     addTearDown(db.close);
     await TechnicalTables.createAllTables(db);
+    await db.execute(
+        'CREATE TABLE sync_outbox(state TEXT NOT NULL,last_error TEXT)');
     await _enqueue(db, 'r-ack');
 
     final status = SyncStateService(
@@ -109,6 +113,8 @@ void main() {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     addTearDown(db.close);
     await TechnicalTables.createAllTables(db);
+    await db.execute(
+        'CREATE TABLE sync_outbox(state TEXT NOT NULL,last_error TEXT)');
     await _enqueue(db, 'r-mismatch');
 
     final status = SyncStateService(
@@ -137,6 +143,8 @@ void main() {
     final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
     addTearDown(db.close);
     await TechnicalTables.createAllTables(db);
+    await db.execute(
+        'CREATE TABLE sync_outbox(state TEXT NOT NULL,last_error TEXT)');
     await _enqueue(db, 'r-offline');
 
     final status = SyncStateService(

@@ -101,7 +101,8 @@ void main() {
       final source =
           read('lib/core/widgets/mobile/yalla_sync_status_strip.dart');
       expect(source, contains('snapshot.transportConfigured'));
-      expect(source, contains('OutboxSyncCoordinator.instance.drain()'));
+      expect(source, contains('UnifiedSyncCoordinatorV3.instance.cycle()'));
+      expect(source, isNot(contains('OutboxSyncCoordinator.instance.drain()')));
       expect(source, contains("'إعادة المحاولة'"));
     });
   });

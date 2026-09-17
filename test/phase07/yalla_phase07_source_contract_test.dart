@@ -58,9 +58,14 @@ void main() {
       'lib/features/repairs/services/repair_intake_service.dart',
     ).readAsStringSync();
 
-    // C02/P04 fail-closed encryption contract remains pinned at the deployed
-    // v69 schema. P07 must not weaken it merely to add intake metadata.
-    expect(constants, contains('static const int dbVersion = 76;'));
+    // C02/P04 fail-closed encryption contract remains present as later
+    // schema versions advance. P07 must not weaken it merely to add intake metadata.
+    final version = int.parse(
+      RegExp(r'static const int dbVersion = (\d+);')
+          .firstMatch(constants)!
+          .group(1)!,
+    );
+    expect(version, greaterThanOrEqualTo(76));
     expect(migration, contains('if (oldV < 70) await _upgradeV70(db);'));
     expect(migration,
         isNot(contains('Upgrade v70 P07 repair intake schema applied')));

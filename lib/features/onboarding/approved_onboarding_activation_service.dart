@@ -189,6 +189,7 @@ class ApprovedOnboardingActivationService {
       'sync_entity_registry', 'sync_change_log', 'sync_mutation_context',
       // Catalogs checked below; these contain no commercial authority.
       'accounts', 'suppliers', 'parties', 'party_roles',
+      'party_projection_guard',
       'insurance_companies', 'document_sequences',
     };
     final tables = await db.rawQuery(

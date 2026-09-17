@@ -20,8 +20,8 @@ void main() {
     final path = '${dir.path}/fixture.db';
     var db = await DatabaseMigration.initDatabase(pathOverride: path);
     try {
-      expect(DatabaseConstants.dbVersion, 81);
-      expect(await db.getVersion(), 81);
+      expect(DatabaseConstants.dbVersion, greaterThanOrEqualTo(81));
+      expect(await db.getVersion(), DatabaseConstants.dbVersion);
       final supplierId = await db.insert('suppliers', {
         'name': 'Migration Supplier',
         'phone': '',
@@ -111,7 +111,7 @@ void main() {
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 81);
+      expect(await db.getVersion(), DatabaseConstants.dbVersion);
       expect(
         await db
             .query('schema_migrations', where: 'version=?', whereArgs: [81]),

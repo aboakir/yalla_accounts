@@ -106,6 +106,11 @@ void main() {
     );
     expect(source, contains('if (oldV < 70) await _upgradeV70(db);'));
     expect(source, contains('await _validateDatabase(db);'));
-    expect(constants, contains('static const int dbVersion = 76;'));
+    final version = int.parse(
+      RegExp(r'static const int dbVersion = (\d+);')
+          .firstMatch(constants)!
+          .group(1)!,
+    );
+    expect(version, greaterThanOrEqualTo(76));
   });
 }

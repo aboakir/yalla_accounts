@@ -19,7 +19,7 @@ void main() {
     expect(strip, contains('تعذرت المزامنة'));
     expect(
       main,
-      contains('await OutboxSyncCoordinator.instance.start();'),
+      contains('await UnifiedSyncCoordinatorV3.instance.start();'),
     );
   });
 

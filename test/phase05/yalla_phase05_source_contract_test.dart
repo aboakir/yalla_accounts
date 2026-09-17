@@ -64,7 +64,12 @@ void main() {
       'lib/core/routes/app_routes.dart',
     ).readAsStringSync();
 
-    expect(constants, contains('static const int dbVersion = 76;'));
+    final version = int.parse(
+      RegExp(r'static const int dbVersion = (\d+);')
+          .firstMatch(constants)!
+          .group(1)!,
+    );
+    expect(version, greaterThanOrEqualTo(76));
     expect(
         routes, contains("static const vehiclesList = '/repairs/vehicles';"));
     expect(routes, contains('const VehiclesListScreen()'));

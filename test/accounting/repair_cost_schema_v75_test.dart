@@ -7,7 +7,12 @@ void main() {
         File('lib/core/services/db/database_constants.dart').readAsStringSync();
     final migration =
         File('lib/core/services/db/database_migration.dart').readAsStringSync();
-    expect(constants, contains('dbVersion = 76'));
+    final version = int.parse(
+      RegExp(r'static const int dbVersion = (\d+);')
+          .firstMatch(constants)!
+          .group(1)!,
+    );
+    expect(version, greaterThanOrEqualTo(75));
     expect(migration, contains('if (oldV < 75) await _upgradeV75(db);'));
     expect(migration, contains('await RepairCostService.ensureSchema(db);'));
     expect(migration, contains("'version': 75"));

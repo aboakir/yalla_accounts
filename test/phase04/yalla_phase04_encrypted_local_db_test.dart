@@ -48,7 +48,12 @@ void main() {
     expect(migration, contains('await openDatabase('));
     expect(backup,
         contains('DatabaseEncryptionService.openReadOnlyCandidate(path)'));
-    expect(constants, contains('static const int dbVersion = 76;'));
+    final version = int.parse(
+      RegExp(r'static const int dbVersion = (\d+);')
+          .firstMatch(constants)!
+          .group(1)!,
+    );
+    expect(version, greaterThanOrEqualTo(76));
     expect(gradle, contains('"proguard-rules.pro"'));
     expect(proguard, contains('-keep class net.sqlcipher.** { *; }'));
     // P04.1 is a security regression test, not a chronology lock.
