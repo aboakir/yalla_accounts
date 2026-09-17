@@ -104,8 +104,11 @@ Future<void> _bootstrap() async {
     final path = await DBService.dbFilePath();
     ReleaseDiagnostics.debug('DB path resolved: $path');
 
+    final dbOpenTimeout = isDesktop
+        ? const Duration(seconds: 15)
+        : const Duration(seconds: 120);
     final db = await DBService.database.timeout(
-      const Duration(seconds: 15),
+      dbOpenTimeout,
       onTimeout: () {
         throw TimeoutException('DB open timed out');
       },

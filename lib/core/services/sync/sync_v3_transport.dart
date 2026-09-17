@@ -75,12 +75,15 @@ abstract interface class SyncV3Transport {
 }
 
 class SyncV3TransportException implements Exception {
-  const SyncV3TransportException(this.message, {this.statusCode, this.code});
+  const SyncV3TransportException(this.message,
+      {this.statusCode, this.code, this.supportRequestId});
   final String message;
   final int? statusCode;
   final String? code;
+  final String? supportRequestId;
   @override
-  String toString() => 'SyncV3TransportException: $message';
+  String toString() =>
+      'SyncV3TransportException: $message${supportRequestId == null ? '' : ' [request: $supportRequestId]'}';
 }
 
 class HttpSyncV3Transport implements SyncV3Transport {
@@ -294,11 +297,16 @@ class HttpSyncV3Transport implements SyncV3Transport {
             statusCode: response.statusCode);
       }
       final map = Map<String, Object?>.from(decoded);
+      final supportRequestId =
+          map['request_id']?.toString().trim().isNotEmpty == true
+              ? map['request_id']!.toString().trim()
+              : response.headers.value('x-request-id')?.trim();
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw SyncV3TransportException(
             map['message']?.toString() ?? 'Sync request rejected.',
             statusCode: response.statusCode,
-            code: map['code']?.toString());
+            code: map['code']?.toString(),
+            supportRequestId: supportRequestId);
       }
       if (map['sync_contract_version'] != SyncContractV3.version) {
         throw SyncV3TransportException(

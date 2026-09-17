@@ -8,12 +8,15 @@ import 'package:yalla_accounts/core/device_identity/device_identity.dart';
 import 'package:yalla_accounts/core/licensing/customer_bearer_token_provider.dart';
 
 class ActivationTransportException implements Exception {
-  const ActivationTransportException(this.message, {this.statusCode});
+  const ActivationTransportException(this.message,
+      {this.statusCode, this.supportRequestId});
   final String message;
   final int? statusCode;
+  final String? supportRequestId;
 
   @override
-  String toString() => 'ActivationTransportException: $message';
+  String toString() =>
+      'ActivationTransportException: $message${supportRequestId == null ? '' : ' [request: $supportRequestId]'}';
 }
 
 class ActivationChallenge {
@@ -200,8 +203,11 @@ class HttpActivationTransport implements ActivationTransport {
         );
       }
       final map = decoded.map<String, Object?>(
-        (key, value) => MapEntry(key.toString(), value),
-      );
+          (key, value) => MapEntry(key.toString(), value));
+      final supportRequestId =
+          map['request_id']?.toString().trim().isNotEmpty == true
+              ? map['request_id']!.toString().trim()
+              : response.headers.value('x-request-id')?.trim();
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final message = map['message']?.toString().trim();
         throw ActivationTransportException(
@@ -209,6 +215,7 @@ class HttpActivationTransport implements ActivationTransport {
               ? message!
               : 'Activation request rejected.',
           statusCode: response.statusCode,
+          supportRequestId: supportRequestId,
         );
       }
       if (map['contract_version'] != 2 ||

@@ -6,13 +6,16 @@ import 'package:yalla_accounts/core/device_identity/device_identity.dart';
 import 'package:yalla_accounts/core/licensing/customer_bearer_token_provider.dart';
 
 class LicenseLifecycleTransportException implements Exception {
-  const LicenseLifecycleTransportException(this.message, {this.statusCode});
+  const LicenseLifecycleTransportException(this.message,
+      {this.statusCode, this.supportRequestId});
 
   final String message;
   final int? statusCode;
+  final String? supportRequestId;
 
   @override
-  String toString() => 'LicenseLifecycleTransportException: $message';
+  String toString() =>
+      'LicenseLifecycleTransportException: $message${supportRequestId == null ? '' : ' [request: $supportRequestId]'}';
 }
 
 class LicenseLifecycleChallenge {
@@ -207,8 +210,11 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
         );
       }
       final map = decoded.map<String, Object?>(
-        (key, value) => MapEntry(key.toString(), value),
-      );
+          (key, value) => MapEntry(key.toString(), value));
+      final supportRequestId =
+          map['request_id']?.toString().trim().isNotEmpty == true
+              ? map['request_id']!.toString().trim()
+              : response.headers.value('x-request-id')?.trim();
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final message = map['message']?.toString().trim();
         throw LicenseLifecycleTransportException(
@@ -216,6 +222,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
               ? message!
               : 'License lifecycle request rejected.',
           statusCode: response.statusCode,
+          supportRequestId: supportRequestId,
         );
       }
       if (map['contract_version'] != 2 ||
