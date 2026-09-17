@@ -1,58 +1,53 @@
 # CR1 Phase 11 — Production Infrastructure
 
 Status: PASS (implementation Gate 11).
-Reviewed 2026-09-15. Phase 12 is not executed by this evidence.
-No production Supabase mutation, production PostgreSQL mutation, push, reset, clean, or protected historical-file deletion was performed.
+Reviewed 2026-09-17 on the current Phase 10 baseline.
+No production Supabase mutation, production PostgreSQL mutation, DNS change, public deployment, push, reset, or customer-database mutation was performed.
 
 ## Proven revision pair
 
-- Phase 10 base — Control: `5ae9ca277c59a88280f72e1db42c79cffa4026a2`
-- Phase 10 base — Accounts: `763010eeabf3a2d039198fd2347270a7c035128e`
-- Tested Phase 11 Control code: `fe789db29c2d552dce7d6f1a8d4c14f64a9a0fbc`
-- Tested Phase 11 Accounts code: `69016ac128196f9b522b4a66b1af1ec24ed5cc24`
-- Final evidence-commit pair is recorded with `git notes --ref=cr1-phase11-review show HEAD`.
+- Phase 10 Accounts base: `40a6b55bcbcf712412fab163be0ae35046059df3`
+- Phase 10 Backend base: `3240f1ee5b26cc1ba4b51abc537ad65558c49930`
+- Phase 11 Accounts implementation: `624ec25ebc33cff47497a9bc87ab3b5346432e3f`
+- Phase 11 Backend certification: `beb34b2be866cfee9ab94eaa519f15847319c56f`
 
-## Control production infrastructure delivered
+## Production infrastructure proven
 
-1. Production requires explicit `CONTROL_PUBLIC_ORIGIN` as an HTTPS origin; Host and Origin are checked against it.
-2. Public socket binding remains denied unless production mode and `CONTROL_ALLOW_PUBLIC_BIND=true` are both explicit.
-3. Production HTTP requests fail closed unless TLS is active.
-4. Added `/health/live` and DB-aware `/health/ready`; readiness returns 503 while draining.
-5. SIGTERM initiates drain, closes idle connections, bounds shutdown, and closes the DB pool.
-6. Added production preflight for config, PostgreSQL runtime role, schema checksums, DB connectivity, and audit-chain integrity without automatic DDL.7. Added hardened systemd service, production env templates, TLS reverse-proxy reference, verified PostgreSQL backup timer, and disposable restore drill.
-8. Backup jobs use `PGSERVICE`/`PGPASSFILE`, `pg_dump` custom format, `pg_restore --list`, and SHA-256 sidecars; passwords are not placed on the command line.
-9. Normal server startup does not initialize or migrate the schema; database changes remain an explicit maintenance operation.
-
-## Accounts production-build contract
-
-- Added `deploy/production_defines.example.json` and a deployment runbook.
-- Added `tools/validate_production_defines.dart`; incomplete, placeholder, non-HTTPS, invalid signing-pin, or secret-bearing configs fail validation.
-- The real `deploy/production_defines.json` is excluded from Git.
-- Activation, lifecycle validation, sync, onboarding, and legacy admin transport all use the same `YALLA_LICENSING_BASE_URL` contract.
-- Only the Supabase publishable key is accepted in the public build contract; Service Role/private/database credentials are forbidden.
+1. Accounts production defines are validated and fail closed on placeholders, unsafe URLs, invalid pins, service-role/private/database credentials, and incomplete configuration.
+2. All commercial transports use the same `YALLA_LICENSING_BASE_URL` origin contract.
+3. The real `deploy/production_defines.json` remains excluded from Git; public builds accept only the Supabase publishable key.
+4. Control backend production origin, HTTPS/public-bind controls, health/readiness, drain-aware shutdown, explicit schema preflight, and no-auto-migration startup remain enforced.
+5. Hardened deployment artifacts include systemd, TLS reverse-proxy reference, verified PostgreSQL backup/restore workflow, and credential-safe `PGSERVICE`/`PGPASSFILE` use.
+6. The mobile sync retry action now invokes `UnifiedSyncCoordinatorV3`, matching the production startup coordinator instead of the legacy Outbox coordinator.
+7. Fresh approved onboarding correctly treats `party_projection_guard` as technical bootstrap state, not customer operational data.
+8. Historical migration tests validate their intended migration floors without falsely pinning the current DB to v76/v81; current DB remains v82.
 
 ## Gate 11 verification
 
-- Accounts full regression: `flutter test --no-pub --concurrency=1` — 687 passed, 21 skipped, 0 failed.
-- Accounts Phase 11 infrastructure gate — 4/4 passed.
-- Accounts validator + gate analyzer — no issues.
-- Production-defines CLI: example placeholders rejected; complete contract accepted.
-- Android debug APK with validated `--dart-define-from-file` — BUILD PASS.
-- Control Flutter full regression — 327 passed, 0 failed.
-- Control analyzer — no issues.
-- Control Server full regression — 143 passed, 0 failed, 0 skipped.
-- Control Phase 11 infrastructure gate — 4/4 passed.
-- `npm audit --omit=dev` — 0 vulnerabilities.
-- `git diff --check` — PASS on both repositories.## Deployment truth
+- Accounts Phase 11 infrastructure gate: 4/4 PASS.
+- Accounts full regression before the final UI-only retry wiring correction: 712 passed, 21 historical/environment skips, 0 failed.
+- Post-correction impacted regression: 34/34 PASS.
+- Post-correction full `test/sync` regression: 30/30 PASS.
+- Analyzer on all modified production/test files: 0 issues.
+- Production-defines CLI: placeholder example rejected with nonzero exit; complete production contract accepted.
+- Android debug APK built successfully with validated production defines: `build/app/outputs/flutter-apk/app-debug.apk` (193850139 bytes).
+- Backend isolated regression: 160/160 PASS.
+- Control-dependent repository tests: 4/4 PASS in `D:/yalla_control` without modifying its existing uncommitted user work.
+- `npm audit --omit=dev`: 0 vulnerabilities.
+- `git diff --check`: PASS.
+- Changed-file secret scan: 0 hits.
 
-This Gate proves the production infrastructure contract, deployment artifacts, preflight behavior, health/readiness behavior, validated Accounts build configuration, and regression safety in isolated/local test environments. It does not claim that a public production host, DNS, TLS certificate, production PostgreSQL instance, off-host backup target, or live workshop traffic has been deployed.
+## Deployment truth
 
-Production Supabase changes: NONE.
-Production Control database changes: NONE.
+This Gate proves the production infrastructure contract, deployment artifacts, validated build configuration, health/readiness behavior, backup/restore references, current sync retry wiring, and regression safety in isolated/local environments.
+
+It does **not** claim that a public production host, DNS, TLS certificate, production PostgreSQL instance, off-host backup target, or live workshop traffic has been deployed. Those require later deployment/acceptance phases and real infrastructure values.
+
 Production public deployment performed: NONE.
+Production database mutation performed: NONE.
 Codex usage: NONE.
 Live acceptance: `BLOCKED_EXTERNAL_LIVE_ACCEPTANCE`.
 Implementation blockers: NONE.
 
 Gate 11: PASS.
-Next phase: 12 — CI/CD and release engineering; DO NOT EXECUTE from this evidence commit.
+Next phase: 12 — CI/CD and release engineering.
