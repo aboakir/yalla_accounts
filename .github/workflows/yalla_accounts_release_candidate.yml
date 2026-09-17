@@ -1,0 +1,135 @@
+name: Yalla Accounts Release Candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accounts-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.44.8'
+  NODE_VERSION: '24'
+
+jobs:
+  candidate:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Enforce controlled release ref
+        shell: pwsh
+        run: |
+          if (-not ($env:GITHUB_REF.StartsWith('refs/heads/release/') -or $env:GITHUB_REF.StartsWith('refs/tags/v'))) {
+            throw 'Release candidates may run only from release/* branches or v* tags.'
+          }
+
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pinned Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve locked dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Validate local release matrix
+        shell: pwsh
+        run: node tools/release/validate_release_matrix.mjs
+
+      - name: Materialize production defines from secrets
+        shell: pwsh
+        env:
+          LICENSING_URL: ${{ secrets.YALLA_LICENSING_BASE_URL }}
+          LICENSE_PIN: ${{ secrets.YALLA_LICENSE_TRUSTED_KEY_SHA256 }}
+          SUPABASE_URL: ${{ secrets.YALLA_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.YALLA_SUPABASE_PUBLISHABLE_KEY }}
+          PRIVACY_URL: ${{ secrets.YALLA_PRIVACY_URL }}
+          TERMS_URL: ${{ secrets.YALLA_TERMS_URL }}
+          DELETE_URL: ${{ secrets.YALLA_ACCOUNT_DELETION_URL }}
+        run: |
+          $required = @($env:LICENSING_URL,$env:LICENSE_PIN,$env:SUPABASE_URL,$env:SUPABASE_KEY,$env:PRIVACY_URL,$env:TERMS_URL,$env:DELETE_URL)
+          if ($required | Where-Object { [string]::IsNullOrWhiteSpace($_) }) { throw 'Required release configuration is missing.' }
+          $data = [ordered]@{
+            YALLA_LICENSING_BASE_URL = $env:LICENSING_URL
+            YALLA_LICENSE_TRUSTED_KEY_SHA256 = $env:LICENSE_PIN
+            YALLA_SUPABASE_URL = $env:SUPABASE_URL
+            YALLA_SUPABASE_PUBLISHABLE_KEY = $env:SUPABASE_KEY
+            YALLA_CLOUD_AUTH_RELEASE_READY = $true
+            YALLA_CLOUD_OAUTH_ENABLED = $false
+            YALLA_STORE_DISTRIBUTION = $true
+            YALLA_PRIVACY_URL = $env:PRIVACY_URL
+            YALLA_TERMS_URL = $env:TERMS_URL
+            YALLA_ACCOUNT_DELETION_URL = $env:DELETE_URL
+          }
+          $data | ConvertTo-Json | Set-Content deploy\production_defines.json -Encoding utf8
+          dart run tools/validate_production_defines.dart deploy/production_defines.json
+
+      - name: Release gate tests
+        shell: pwsh
+        run: flutter test --no-pub --concurrency=1
+      - name: Analyze release source
+        shell: pwsh
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Materialize Android signing
+        shell: pwsh
+        env:
+          KEYSTORE_B64: ${{ secrets.YALLA_ANDROID_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.YALLA_ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.YALLA_ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.YALLA_ANDROID_KEY_ALIAS }}
+        run: |
+          $required = @($env:KEYSTORE_B64,$env:STORE_PASSWORD,$env:KEY_PASSWORD,$env:KEY_ALIAS)
+          if ($required | Where-Object { [string]::IsNullOrWhiteSpace($_) }) { throw 'Android release signing secrets are missing.' }
+          [IO.File]::WriteAllBytes('android\app\yalla-release.jks',[Convert]::FromBase64String($env:KEYSTORE_B64))
+          @("storePassword=$env:STORE_PASSWORD","keyPassword=$env:KEY_PASSWORD","keyAlias=$env:KEY_ALIAS","storeFile=yalla-release.jks") |
+            Set-Content android\key.properties -Encoding ascii
+      - name: Build signed Android APK and AAB
+        shell: pwsh
+        run: |
+          flutter build apk --release --build-number ${{ github.run_number }} --dart-define-from-file=deploy/production_defines.json
+          flutter build appbundle --release --build-number ${{ github.run_number }} --dart-define-from-file=deploy/production_defines.json
+
+      - name: Build Windows release
+        shell: pwsh
+        run: flutter build windows --release --build-number ${{ github.run_number }} --dart-define-from-file=deploy/production_defines.json
+
+      - name: Package release candidate
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item build\app\outputs\flutter-apk\app-release.apk dist\Yalla_Accounts_Android.apk
+          Copy-Item build\app\outputs\bundle\release\app-release.aab dist\Yalla_Accounts_Android.aab
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Yalla_Accounts_Windows.zip -Force
+          node tools/release/write_artifact_manifest.mjs --component accounts --artifact dist/Yalla_Accounts_Android.apk --artifact dist/Yalla_Accounts_Android.aab --artifact dist/Yalla_Accounts_Windows.zip --out dist/release-manifest.json
+          Get-FileHash dist\Yalla_Accounts_Android.apk -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt
+          Get-FileHash dist\Yalla_Accounts_Android.aab -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt -Append
+          Get-FileHash dist\Yalla_Accounts_Windows.zip -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt -Append
+      - name: Remove transient release inputs
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item deploy\production_defines.json -Force -ErrorAction SilentlyContinue
+          Remove-Item android\key.properties -Force -ErrorAction SilentlyContinue
+          Remove-Item android\app\yalla-release.jks -Force -ErrorAction SilentlyContinue
+
+      - name: Upload release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: yalla-accounts-rc-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

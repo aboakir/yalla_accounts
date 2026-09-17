@@ -1,0 +1,88 @@
+name: Yalla Accounts CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: accounts-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.8'
+  NODE_VERSION: '24'
+
+jobs:
+  verify:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pinned Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve locked dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Validate release matrix
+        shell: pwsh
+        run: node tools/release/validate_release_matrix.mjs
+
+      - name: Analyze source
+        shell: pwsh
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Full test suite
+        shell: pwsh
+        run: flutter test --no-pub --concurrency=1
+
+      - name: Accounting regression
+        shell: pwsh
+        run: flutter test --no-pub --concurrency=1 test/accounting
+
+      - name: Licensing and identity regression
+        shell: pwsh
+        run: >-
+          flutter test --no-pub --concurrency=1
+          test/cloud_auth
+          test/commercial/sec_005_device_identity_test.dart
+          test/commercial/stage46_subscription_access_test.dart
+
+      - name: Sync regression
+        shell: pwsh
+        run: flutter test --no-pub --concurrency=1 test/sync
+
+      - name: Build Windows release
+        shell: pwsh
+        run: flutter build windows --release --build-number ${{ github.run_number }}
+
+      - name: Package CI artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Yalla_Accounts_Windows.zip -Force
+          node tools/release/write_artifact_manifest.mjs --component accounts --artifact dist/Yalla_Accounts_Windows.zip --out dist/release-manifest.json
+
+      - name: Upload provenance artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yalla-accounts-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7

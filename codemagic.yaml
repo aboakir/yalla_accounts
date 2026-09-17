@@ -1,88 +1,92 @@
-﻿workflows:
-  ios_unsigned:
-    name: Yalla Accounts Unsigned iPhone
+workflows:
+  ios_verification:
+    name: Yalla Accounts iOS Verification
     instance_type: mac_mini_m2
-    max_build_duration: 30
+    max_build_duration: 60
 
     environment:
-      flutter: stable
+      groups:
+        - yalla_release
+      flutter: 3.44.8
       xcode: latest
       cocoapods: default
 
     scripts:
-      - name: Verify Yalla Accounts source
+      - name: Verify source and toolchain
         script: |
           set -euo pipefail
           test -f pubspec.yaml
           grep -Eq '^name:[[:space:]]*yalla_accounts[[:space:]]*$' pubspec.yaml
-          test -d ios
-          echo "Yalla Accounts source verified."
+          flutter --version
+          xcodebuild -version
+          pod --version
 
-      - name: Disable Flutter Swift Package Manager
+      - name: Resolve locked dependencies
         script: |
           set -euo pipefail
-          flutter config --no-enable-swift-package-manager
-          flutter config --list | grep -i swift || true
+          flutter pub get --enforce-lockfile
 
-      - name: Get Flutter packages cleanly
+      - name: Materialize protected production defines
         script: |
           set -euo pipefail
-          flutter clean
-          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
-          flutter pub get
+          python3 - <<'PY'
+          import json, os
+          required = [
+            'YALLA_LICENSING_BASE_URL','YALLA_LICENSE_TRUSTED_KEY_SHA256',
+            'YALLA_SUPABASE_URL','YALLA_SUPABASE_PUBLISHABLE_KEY',
+            'YALLA_PRIVACY_URL','YALLA_TERMS_URL','YALLA_ACCOUNT_DELETION_URL'
+          ]
+          missing = [k for k in required if not os.environ.get(k, '').strip()]
+          if missing: raise SystemExit('Missing protected release inputs: ' + ','.join(missing))
+          data = {
+            'YALLA_LICENSING_BASE_URL': os.environ['YALLA_LICENSING_BASE_URL'],
+            'YALLA_LICENSE_TRUSTED_KEY_SHA256': os.environ['YALLA_LICENSE_TRUSTED_KEY_SHA256'],
+            'YALLA_SUPABASE_URL': os.environ['YALLA_SUPABASE_URL'],
+            'YALLA_SUPABASE_PUBLISHABLE_KEY': os.environ['YALLA_SUPABASE_PUBLISHABLE_KEY'],
+            'YALLA_CLOUD_AUTH_RELEASE_READY': True,
+            'YALLA_CLOUD_OAUTH_ENABLED': False,
+            'YALLA_STORE_DISTRIBUTION': True,
+            'YALLA_PRIVACY_URL': os.environ['YALLA_PRIVACY_URL'],
+            'YALLA_TERMS_URL': os.environ['YALLA_TERMS_URL'],
+            'YALLA_ACCOUNT_DELETION_URL': os.environ['YALLA_ACCOUNT_DELETION_URL'],
+          }
+          open('deploy/production_defines.json','w',encoding='utf-8').write(json.dumps(data))
+          PY
+          dart run tools/validate_production_defines.dart deploy/production_defines.json
+          node tools/release/validate_release_matrix.mjs
+      - name: Analyze and verify iOS contract
+        script: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --no-pub test/commercial/ios_database_architecture_contract_test.dart
 
-      - name: Install iOS pods
+      - name: Install canonical CocoaPods input
         script: |
           set -euo pipefail
           test -f ci/Podfile
-          rm -f ios/Podfile
           cp ci/Podfile ios/Podfile
-
-          cd ios
-          pod deintegrate || true
-          rm -rf Pods Podfile.lock .symlinks
-          cd ..
-
-          flutter pub get
-
           cd ios
           pod install --repo-update
 
-
-
-      - name: Build unsigned iPhone release
+      - name: Build unsigned iOS verification artifact
         script: |
           set -euo pipefail
-          flutter build ios \
-            --release \
-            --no-codesign \
-            --dart-define=YALLA_LICENSING_BASE_URL=https://b563e2490e02a2.lhr.life \
-            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=256da347315a3b53df365fa431fd4b77fad4d0a1bae8f102b6815523173bb25a
+          flutter build ios --release --no-codesign \
+            --dart-define-from-file=deploy/production_defines.json
 
-      - name: Package unsigned IPA
+      - name: Package and hash IPA
         script: |
           set -euo pipefail
           APP="build/ios/iphoneos/Runner.app"
           OUT="build/ios/ipa"
-
           test -d "$APP"
-
           rm -rf "$OUT"
           mkdir -p "$OUT/Payload"
           cp -R "$APP" "$OUT/Payload/Runner.app"
-
-          (
-            cd "$OUT"
-            zip -qry "Yalla_Accounts_Unsigned_iPhone.ipa" Payload
-          )
-
-          test -f "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
-          ls -lh "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
-
+          (cd "$OUT" && zip -qry "Yalla_Accounts_Unsigned_iPhone.ipa" Payload)
+          shasum -a 256 "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa" > "$OUT/SHA256.txt"
+          rm -f deploy/production_defines.json
     artifacts:
       - build/ios/ipa/Yalla_Accounts_Unsigned_iPhone.ipa
-      - build/ios/iphoneos/Runner.app
+      - build/ios/ipa/SHA256.txt
       - /tmp/xcodebuild_logs/*.log
-
-
-

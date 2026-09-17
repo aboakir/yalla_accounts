@@ -1,4 +1,4 @@
-name: Yalla Accounts Unsigned iPhone
+name: Yalla Accounts iOS Build Verification
 
 on:
   workflow_dispatch:
@@ -6,223 +6,92 @@ on:
 permissions:
   contents: read
 
-jobs:
-  build_unsigned_ios:
-    name: build_unsigned_ios
-    runs-on: macos-15
-    timeout-minutes: 45
+concurrency:
+  group: accounts-ios-${{ github.ref }}
+  cancel-in-progress: false
 
+env:
+  FLUTTER_VERSION: '3.44.8'
+
+jobs:
+  unsigned_ios_verification:
+    runs-on: macos-15
+    timeout-minutes: 60
     steps:
       - name: Checkout exact source
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Set up Flutter stable
+      - name: Set up pinned Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - name: Toolchain diagnostics
+      - name: Record Apple toolchain
         run: |
           set -euo pipefail
           flutter --version
-          dart --version
           xcodebuild -version
           pod --version
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
 
-      - name: Disable Flutter Swift Package Manager
-        run: |
-          set -euo pipefail
-          flutter config --no-enable-swift-package-manager
-          flutter config --list | grep -i swift || true
-
-      - name: Remove unused speech_to_text safely from iPhone test snapshot
+      - name: Materialize validated production defines
+        env:
+          LICENSING_URL: ${{ secrets.YALLA_LICENSING_BASE_URL }}
+          LICENSE_PIN: ${{ secrets.YALLA_LICENSE_TRUSTED_KEY_SHA256 }}
+          SUPABASE_URL: ${{ secrets.YALLA_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.YALLA_SUPABASE_PUBLISHABLE_KEY }}
+          PRIVACY_URL: ${{ secrets.YALLA_PRIVACY_URL }}
+          TERMS_URL: ${{ secrets.YALLA_TERMS_URL }}
+          DELETE_URL: ${{ secrets.YALLA_ACCOUNT_DELETION_URL }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("pubspec.yaml")
-          text = p.read_text()
-          lines = text.splitlines(keepends=True)
-
-          target = "  speech_to_text: ^6.6.0"
-          matches = [
-              i for i, line in enumerate(lines)
-              if line.rstrip("\r\n") == target
-          ]
-
-          if len(matches) != 1:
-              raise SystemExit(
-                  f"Expected exactly one exact dependency line {target!r}; found {len(matches)}"
-              )
-
-          idx = matches[0]
-          del lines[idx]
-          updated = "".join(lines)
-
-          # Guard against the R5 failure mode: never damage indentation
-          # of the following dependency or any other top-level dependency line.
-          if "\nflutter_slidable:" in updated or updated.startswith("flutter_slidable:"):
-              raise SystemExit("Indentation guard failed: flutter_slidable lost dependency indentation")
-
-          if "  flutter_slidable: ^3.1.0" not in updated:
-              raise SystemExit("Expected flutter_slidable dependency line not preserved exactly")
-
-          if "speech_to_text:" in updated:
-              raise SystemExit("speech_to_text dependency still present after exact line removal")
-
-          p.write_text(updated)
-          PY
-
-          echo "Dependency edit verification:"
-          grep -n -E "badges:|flutter_slidable:|url_launcher:" pubspec.yaml
-
-          if grep -n "^flutter_slidable:" pubspec.yaml; then
-            echo "ERROR: malformed pubspec indentation detected"
-            exit 1
-          fi
-
-      - name: Clean and resolve Flutter dependencies
-        run: |
-          set -euo pipefail
-          flutter clean
-          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
-          flutter pub get
-
-      - name: Verify iOS database architecture contract
-        run: |
-          set -euo pipefail
-          flutter test test/commercial/ios_database_architecture_contract_test.dart
-
-      - name: Force iOS 15 CocoaPods modular headers
-        run: |
-          set -euo pipefail
-
-          rm -f ios/Podfile
-          cp ci/Podfile ios/Podfile
-
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          p = Path("ios/Runner.xcodeproj/project.pbxproj")
-          s = p.read_text()
-          s = re.sub(
-              r"IPHONEOS_DEPLOYMENT_TARGET\s*=\s*[0-9.]+\s*;",
-              "IPHONEOS_DEPLOYMENT_TARGET = 15.0;",
-              s,
-          )
-          lines = [
-              line for line in s.splitlines()
-              if "FlutterGeneratedPluginSwiftPackage" not in line
-          ]
-          p.write_text("\n".join(lines) + "\n")
-          PY
-
-          PLIST="ios/Runner/Info.plist"
-          add_plist_string () {
-            local key="$1"
-            local value="$2"
-            if ! /usr/libexec/PlistBuddy -c "Print :$key" "$PLIST" >/dev/null 2>&1; then
-              /usr/libexec/PlistBuddy -c "Add :$key string $value" "$PLIST"
-            fi
+          import json, os
+          required = ['LICENSING_URL','LICENSE_PIN','SUPABASE_URL','SUPABASE_KEY','PRIVACY_URL','TERMS_URL','DELETE_URL']
+          missing = [k for k in required if not os.environ.get(k, '').strip()]
+          if missing: raise SystemExit('Missing protected release inputs: ' + ','.join(missing))
+          data = {
+            'YALLA_LICENSING_BASE_URL': os.environ['LICENSING_URL'],
+            'YALLA_LICENSE_TRUSTED_KEY_SHA256': os.environ['LICENSE_PIN'],
+            'YALLA_SUPABASE_URL': os.environ['SUPABASE_URL'],
+            'YALLA_SUPABASE_PUBLISHABLE_KEY': os.environ['SUPABASE_KEY'],
+            'YALLA_CLOUD_AUTH_RELEASE_READY': True,
+            'YALLA_CLOUD_OAUTH_ENABLED': False,
+            'YALLA_STORE_DISTRIBUTION': True,
+            'YALLA_PRIVACY_URL': os.environ['PRIVACY_URL'],
+            'YALLA_TERMS_URL': os.environ['TERMS_URL'],
+            'YALLA_ACCOUNT_DELETION_URL': os.environ['DELETE_URL'],
           }
+          open('deploy/production_defines.json','w',encoding='utf-8').write(json.dumps(data))
+          PY
+          dart run tools/validate_production_defines.dart deploy/production_defines.json
+          node tools/release/validate_release_matrix.mjs
 
-          add_plist_string NSCameraUsageDescription "Yalla Accounts uses the camera to attach business documents and images."
-          add_plist_string NSPhotoLibraryUsageDescription "Yalla Accounts uses your photo library to attach business documents and images."
-          add_plist_string NSMicrophoneUsageDescription "Yalla Accounts may use the microphone for supported voice input."
-          add_plist_string NSSpeechRecognitionUsageDescription "Yalla Accounts may use speech recognition for supported voice input."
-
-          grep -n "platform :ios" ios/Podfile
-          grep -n "use_modular_headers!" ios/Podfile
-
-      - name: Install CocoaPods cleanly
+      - name: Verify iOS architecture contract
         run: |
           set -euo pipefail
-          cd ios
-          pod deintegrate || true
-          rm -rf Pods Podfile.lock .symlinks
-          cd ..
-          flutter pub get
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --no-pub test/commercial/ios_database_architecture_contract_test.dart
+
+      - name: Install CocoaPods from canonical repository Podfile
+        run: |
+          set -euo pipefail
+          test -f ci/Podfile
+          cp ci/Podfile ios/Podfile
           cd ios
           pod install --repo-update
 
-      - name: Verify CocoaPods integration
+      - name: Build unsigned iOS release verification artifact
         run: |
           set -euo pipefail
-          test -d ios/Pods
-          test -f ios/Podfile.lock
-
-          if grep -n "speech_to_text" ios/Podfile.lock; then
-            echo "ERROR: speech_to_text unexpectedly present in iOS Podfile.lock"
-            exit 1
-          fi
-
-          if [ -e ios/.symlinks/plugins/speech_to_text ]; then
-            echo "ERROR: speech_to_text plugin symlink unexpectedly exists"
-            exit 1
-          fi
-
-          grep -n "sqlite3_flutter_libs" ios/Podfile.lock | head || true
-
-          if grep -R "FlutterGeneratedPluginSwiftPackage" ios/Runner.xcodeproj/project.pbxproj >/dev/null 2>&1; then
-            echo "ERROR: SwiftPM integration still present in Xcode project"
-            exit 1
-          fi
-
-      - name: Verify licensing build configuration
-        run: |
-          set -euo pipefail
-
-          # Split the marker literals so the verifier cannot match its own
-          # source line after the workflow template is rendered.
-          base_marker="__YALLA""_BASE_URL__"
-          key_marker="__YALLA""_KEY_HASH__"
-
-          if grep -F "$base_marker" .github/workflows/yalla_unsigned_ios.yml; then
-            echo "ERROR: YALLA licensing URL placeholder was not replaced"
-            exit 1
-          fi
-
-          if grep -F "$key_marker" .github/workflows/yalla_unsigned_ios.yml; then
-            echo "ERROR: YALLA signing-key placeholder was not replaced"
-            exit 1
-          fi
-
-          grep -F -- "--dart-define=YALLA_LICENSING_BASE_URL=https://" .github/workflows/yalla_unsigned_ios.yml >/dev/null
-          grep -E -- "--dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=[0-9a-f]{64}" .github/workflows/yalla_unsigned_ios.yml >/dev/null
-
-          echo "Test licensing build configuration: PRESENT"
-
-      - name: Build unsigned iOS release
-        run: |
-          set -euo pipefail
-          flutter config --no-enable-swift-package-manager
-          echo "Licensing endpoint: https://48171af98adfd7.lhr.life"
-          echo "Pinned test signing-key SHA256: aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091"
-
-          flutter build ios \
-            --release \
-            --no-codesign \
+          flutter build ios --release --no-codesign \
             --build-number "${GITHUB_RUN_NUMBER}" \
-            --dart-define=YALLA_LICENSING_BASE_URL=https://48171af98adfd7.lhr.life \
-            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=aaa1893058900664d0bd52533abf254abeb6682356b0395314361ce5c9789091
+            --dart-define-from-file=deploy/production_defines.json
 
-      - name: Verify app and brand
-        run: |
-          set -euo pipefail
-          APP="build/ios/iphoneos/Runner.app"
-          test -d "$APP"
-          test -f "$APP/Info.plist"
-          echo "Built app: $APP"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$APP/Info.plist" || true
-          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
-          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" "$APP/Info.plist" || true
-          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
-          /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$APP/Info.plist"
-
-      - name: Create unsigned IPA
+      - name: Package and hash unsigned IPA
         run: |
           set -euo pipefail
           rm -rf dist Payload
@@ -230,11 +99,12 @@ jobs:
           cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
           ditto -c -k --sequesterRsrc --keepParent Payload dist/Yalla_Accounts_Unsigned_iPhone.ipa
           shasum -a 256 dist/Yalla_Accounts_Unsigned_iPhone.ipa | tee dist/SHA256.txt
+          rm -f deploy/production_defines.json
 
-      - name: Upload unsigned iPhone artifact
+      - name: Upload unsigned verification artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Yalla-Accounts-Unsigned-iPhone
+          name: yalla-accounts-ios-verification-${{ github.sha }}
           path: dist/
           if-no-files-found: error
           retention-days: 7
