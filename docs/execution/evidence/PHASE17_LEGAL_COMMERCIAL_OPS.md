@@ -1,14 +1,10 @@
 # Phase 17 — Legal & Commercial Operations
 
-Status: IMPLEMENTATION_READY / LEGAL_COUNSEL_EXTERNAL
+Status: IMPLEMENTATION_READY / LEGAL_REVIEW_EXTERNAL
 
-- Yalla Accounts exposes Privacy, Terms and account-deletion entry points for release builds.
-- A signed-in customer can submit a deletion request from the subscription screen.
-- Submission requires a freshly network-verified Supabase bearer token and HTTPS Control origin.
-- The client never performs local destructive account/GL deletion from this request.
-- The server-issued request id is shown to the customer for support correlation.
-- Trial, cancellation, renewal, payment and read-only behavior remain server-authoritative.
-- Phase 17 tests cover authenticated request, fail-closed missing identity and insecure-origin denial.
-- Accounting source of truth remains the local Accounts GL; no legal workflow rewrites it.
-
-External gate: production legal text must be approved for each launch jurisdiction before final commercial GO.
+Evidence:
+- Subscription screen exposes privacy, terms, deletion information and authenticated deletion request entry.
+- Deletion request requires a freshly verified Supabase bearer session and HTTPS Control Server endpoint.
+- Client receives a durable server request id; no local financial or workshop data is deleted by this action.
+- Existing signed-license read-only behavior remains unchanged for expired/suspended/revoked authority.
+- Final jurisdiction-specific legal wording, refund obligations, store declarations and counsel approval remain external gates.
