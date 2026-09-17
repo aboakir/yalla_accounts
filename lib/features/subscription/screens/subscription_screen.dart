@@ -8,6 +8,7 @@ import 'package:yalla_accounts/core/licensing/activation/activation_state_reposi
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
+import 'package:yalla_accounts/core/privacy/account_deletion_request_button.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -47,9 +48,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       return;
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تعذر فتح واتساب')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تعذر فتح واتساب')));
   }
 
   void _exitApp() {
@@ -70,10 +71,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       appBar: AppBar(
         title: const Text('الاشتراك والترخيص'),
         actions: [
-          IconButton(
-            onPressed: _exitApp,
-            icon: const Icon(Icons.close),
-          ),
+          IconButton(onPressed: _exitApp, icon: const Icon(Icons.close)),
         ],
       ),
       body: Center(
@@ -109,9 +107,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     FilledButton.icon(
                                       onPressed: () =>
                                           Navigator.pushReplacementNamed(
-                                        context,
-                                        AppRoutes.activation,
-                                      ),
+                                            context,
+                                            AppRoutes.activation,
+                                          ),
                                       icon: const Icon(Icons.verified_outlined),
                                       label: const Text('فتح التفعيل'),
                                     ),
@@ -131,9 +129,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     Text(
                                       'الحالة: ${license.operationalStatus}',
                                     ),
-                                    Text(
-                                      'الاشتراك: ${license.subscriptionId}',
-                                    ),
+                                    Text('الاشتراك: ${license.subscriptionId}'),
                                     Text(
                                       'انتهاء الترخيص: '
                                       '${_formatDate(license.expiresAt)}',
@@ -153,6 +149,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         label: const Text('الدعم الفني عبر واتساب'),
                       ),
                       const SizedBox(height: 12),
+                      const AccountDeletionRequestButton(),
+                      const SizedBox(height: 8),
                       const ReleaseLegalLinks(),
                     ],
                   ),
