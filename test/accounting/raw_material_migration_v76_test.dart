@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/database_constants.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
@@ -17,8 +16,8 @@ void main() {
     var db = await DatabaseMigration.initDatabase(pathOverride: path);
 
     try {
-      expect(DatabaseConstants.dbVersion, 76);
-      expect(await db.getVersion(), 76);
+      expect(DatabaseConstants.dbVersion, greaterThanOrEqualTo(76));
+      expect(await db.getVersion(), DatabaseConstants.dbVersion);
 
       await db.delete(
         'schema_migrations',
@@ -30,7 +29,7 @@ void main() {
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 76);
+      expect(await db.getVersion(), DatabaseConstants.dbVersion);
 
       final columns = await db.rawQuery('PRAGMA table_info(raw_materials)');
       expect(

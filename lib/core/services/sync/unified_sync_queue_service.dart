@@ -43,7 +43,13 @@ class UnifiedSyncQueueService {
       where: "state='PENDING' AND entity_type NOT IN ('client','supplier') "
           "AND (next_attempt_at IS NULL OR next_attempt_at<=?)",
       whereArgs: [now],
-      orderBy: 'created_at ASC,outbox_id ASC',
+      orderBy: "CASE entity_type "
+          "WHEN 'inventory_item' THEN 0 "
+          "WHEN 'inventory_warehouse' THEN 0 "
+          "WHEN 'inventory_item_alternative' THEN 1 "
+          "WHEN 'inventory_item_compatibility' THEN 1 "
+          "WHEN 'inventory_movement' THEN 2 ELSE 1 END ASC,"
+          "created_at ASC,outbox_id ASC",
       limit: limit,
     ))
         .map(Map<String, Object?>.from)
@@ -313,8 +319,11 @@ class UnifiedSyncQueueService {
 }
 
 class UnifiedSyncQueueStats {
-  const UnifiedSyncQueueStats(
-      {required this.pending, required this.sending, required this.failed});
+  const UnifiedSyncQueueStats({
+    required this.pending,
+    required this.sending,
+    required this.failed,
+  });
   final int pending;
   final int sending;
   final int failed;

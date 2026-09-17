@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/features/parties/services/party_sync_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_sync_service.dart';
+import 'package:yalla_accounts/features/inventory/services/inventory_sync_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_sync_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_sync_service.dart';
 
@@ -29,6 +30,13 @@ class UnifiedSyncInboundRouter {
       case 'purchase_invoice_line':
       case 'purchase_payment':
         await PurchaseSyncService.applyInbound(transaction, change);
+        return;
+      case 'inventory_item':
+      case 'inventory_warehouse':
+      case 'inventory_movement':
+      case 'inventory_item_alternative':
+      case 'inventory_item_compatibility':
+        await InventorySyncService.applyInbound(transaction, change);
         return;
       // Phase 06 compatibility: obsolete wire projections from pre-master-Party clients.
       // Their legacy IDs are device-local and must never be applied remotely.

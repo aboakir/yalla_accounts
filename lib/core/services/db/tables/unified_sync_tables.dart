@@ -41,6 +41,16 @@ class UnifiedSyncTables {
         "'\$.purchase_invoice_entity_uuid',COALESCE(json_extract($raw,'\$.purchase_invoice_entity_uuid'),"
         "(SELECT entity_uuid FROM ${SyncFoundationTables.registry} WHERE entity_type='purchase_invoice' "
         "AND local_id=CAST(json_extract($raw,'\$.invoice_id') AS TEXT) LIMIT 1)))";
+    final inventoryItem =
+        "json_remove($raw,'\$.id','\$.legacy_source','\$.legacy_source_id',"
+        "'\$.quantity','\$.quantityInStock','\$.stock_quantity','\$.on_hand','\$.reserved','\$.available')";
+    final inventoryWarehouse = "json_remove($raw,'\$.id')";
+    final inventoryMovement =
+        "json_remove($raw,'\$.id','\$.item_id','\$.warehouse_id',"
+        "'\$.quantity','\$.quantityInStock','\$.stock_quantity','\$.on_hand','\$.reserved','\$.available')";
+    final inventoryAlternative =
+        "json_remove($raw,'\$.id','\$.item_id','\$.alternative_item_id')";
+    final inventoryCompatibility = "json_remove($raw,'\$.id','\$.item_id')";
     return "CASE WHEN $row.entity_type='vehicle' THEN $vehicle "
         "WHEN $row.entity_type='repair' THEN $repair "
         "WHEN $row.entity_type='repair_line' THEN $line "
@@ -48,6 +58,11 @@ class UnifiedSyncTables {
         "WHEN $row.entity_type='purchase_invoice' THEN $purchaseInvoice "
         "WHEN $row.entity_type='purchase_invoice_line' THEN $purchaseLine "
         "WHEN $row.entity_type='purchase_payment' THEN $purchasePayment "
+        "WHEN $row.entity_type='inventory_item' THEN $inventoryItem "
+        "WHEN $row.entity_type='inventory_warehouse' THEN $inventoryWarehouse "
+        "WHEN $row.entity_type='inventory_movement' THEN $inventoryMovement "
+        "WHEN $row.entity_type='inventory_item_alternative' THEN $inventoryAlternative "
+        "WHEN $row.entity_type='inventory_item_compatibility' THEN $inventoryCompatibility "
         "ELSE $raw END";
   }
 

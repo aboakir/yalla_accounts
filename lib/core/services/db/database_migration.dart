@@ -56,6 +56,7 @@ import 'tables/receipt_tables.dart';
 import 'tables/voucher_tables.dart';
 import 'tables/purchase_invoices_table.dart';
 import 'tables/purchase_payments_table.dart';
+import 'tables/inventory_tables.dart';
 
 class DatabaseMigration {
   static Database? _database;
@@ -237,6 +238,7 @@ class DatabaseMigration {
     await _upgradeV79(db);
     await _upgradeV80(db);
     await _upgradeV81(db);
+    await _upgradeV82(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -259,6 +261,7 @@ class DatabaseMigration {
       if (oldV < 79) await _upgradeV79(db);
       if (oldV < 80) await _upgradeV80(db);
       if (oldV < 81) await _upgradeV81(db);
+      if (oldV < 82) await _upgradeV82(db);
       return;
     }
 
@@ -435,6 +438,42 @@ class DatabaseMigration {
     if (oldV < 79) await _upgradeV79(db);
     if (oldV < 80) await _upgradeV80(db);
     if (oldV < 81) await _upgradeV81(db);
+    if (oldV < 82) await _upgradeV82(db);
+  }
+
+  static Future<void> _upgradeV82(Database db) async {
+    await InventoryTables.ensure(db);
+    await SyncFoundationTables.ensure(db);
+    final oldContext = await db.query(SyncFoundationTables.context,
+        where: 'singleton_id=1', limit: 1);
+    await db.insert(
+        SyncFoundationTables.context,
+        {
+          'singleton_id': 1,
+          'user_id': null,
+          'origin': 'remote',
+          'remote_entity_type': '__migration__',
+          'remote_entity_uuid': '00000000-0000-4000-8000-000000000082',
+          'remote_revision': 1
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    try {
+      await InventoryTables.backfillLegacyStock(db);
+      await UnifiedSyncTables.ensure(db);
+    } finally {
+      if (oldContext.isEmpty) {
+        await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
+      } else {
+        await db.insert(SyncFoundationTables.context,
+            Map<String, Object?>.from(oldContext.single),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+    await UnifiedSyncQueueService.resetInterruptedSending(db);
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert('schema_migrations',
+        {'version': 82, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+        conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV81(Database db) async {
