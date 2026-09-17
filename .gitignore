@@ -47,3 +47,4 @@ app.*.map.json
 # Production release inputs (real values stay outside source control)
 /deploy/production_defines.json
 /output/
+/dist/
