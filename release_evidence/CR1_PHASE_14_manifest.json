@@ -1,0 +1,26 @@
+{
+  "change_request": "CR1",
+  "phase": 14,
+  "status": "BLOCKED_EXTERNAL",
+  "gate": "REAL_DEVICE_ACCEPTANCE_100_PERCENT_REQUIRED",
+  "available": {
+    "real_windows": true,
+    "android_sdk": true,
+    "adb": true
+  },
+  "missing": {
+    "physical_android": true,
+    "physical_iphone": true,
+    "public_https_staging_service": true
+  },
+  "production_code_changed": false,
+  "production_data_used": false,
+  "blockers": [
+    "NO_PHYSICAL_ANDROID_CONNECTED",
+    "NO_PHYSICAL_IPHONE_CONNECTED",
+    "NO_CURRENT_PUBLIC_HTTPS_STAGING_SERVICE"
+  ],
+  "next_phase_work_allowed": true,
+  "final_release_blocked": true,
+  "evidence": "CR1_PHASE_14.md"
+}
