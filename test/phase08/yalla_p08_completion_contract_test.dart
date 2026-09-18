@@ -17,7 +17,11 @@ void main() {
         () {
       expect(details, contains('AppRoutes.receiptVoucher'));
       expect(details, contains('_repair.remainingAmount <= 0.005'));
-      expect(details, contains('if (remaining > 0.005)'));
+      expect(details, contains('showPaymentAction && remaining > 0.005'));
+      expect(
+        details,
+        contains('final canAddPayment = _repair.remainingAmount > 0.005'),
+      );
       expect(details, isNot(contains('PaymentService.insertAndPostReceipt')));
       expect(details, isNot(contains('final payment = Payment(')));
     });

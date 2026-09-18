@@ -290,7 +290,7 @@ void main() {
       'lib/features/finance/advances/services/advance_service.dart',
     ).readAsStringSync();
     expect(
-      advanceService.contains(r"'$_ACC_EMP_ADV_CODE.E$employeeId'"),
+      advanceService.contains(r"'$_accEmpAdvCode.E$employeeId'"),
       isTrue,
     );
 
