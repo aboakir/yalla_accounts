@@ -5,8 +5,5 @@
   "YALLA_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_REPLACE_ME",
   "YALLA_CLOUD_AUTH_RELEASE_READY": true,
   "YALLA_CLOUD_OAUTH_ENABLED": false,
-  "YALLA_STORE_DISTRIBUTION": true,
-  "YALLA_PRIVACY_URL": "https://www.example.com/privacy",
-  "YALLA_TERMS_URL": "https://www.example.com/terms",
-  "YALLA_ACCOUNT_DELETION_URL": "https://www.example.com/account-deletion"
+  "YALLA_STORE_DISTRIBUTION": true
 }

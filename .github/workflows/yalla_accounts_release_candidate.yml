@@ -56,11 +56,8 @@ jobs:
           LICENSE_PIN: ${{ secrets.YALLA_LICENSE_TRUSTED_KEY_SHA256 }}
           SUPABASE_URL: ${{ secrets.YALLA_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.YALLA_SUPABASE_PUBLISHABLE_KEY }}
-          PRIVACY_URL: ${{ secrets.YALLA_PRIVACY_URL }}
-          TERMS_URL: ${{ secrets.YALLA_TERMS_URL }}
-          DELETE_URL: ${{ secrets.YALLA_ACCOUNT_DELETION_URL }}
         run: |
-          $required = @($env:LICENSING_URL,$env:LICENSE_PIN,$env:SUPABASE_URL,$env:SUPABASE_KEY,$env:PRIVACY_URL,$env:TERMS_URL,$env:DELETE_URL)
+          $required = @($env:LICENSING_URL,$env:LICENSE_PIN,$env:SUPABASE_URL,$env:SUPABASE_KEY)
           if ($required | Where-Object { [string]::IsNullOrWhiteSpace($_) }) { throw 'Required release configuration is missing.' }
           $data = [ordered]@{
             YALLA_LICENSING_BASE_URL = $env:LICENSING_URL
@@ -70,9 +67,6 @@ jobs:
             YALLA_CLOUD_AUTH_RELEASE_READY = $true
             YALLA_CLOUD_OAUTH_ENABLED = $false
             YALLA_STORE_DISTRIBUTION = $true
-            YALLA_PRIVACY_URL = $env:PRIVACY_URL
-            YALLA_TERMS_URL = $env:TERMS_URL
-            YALLA_ACCOUNT_DELETION_URL = $env:DELETE_URL
           }
           $data | ConvertTo-Json | Set-Content deploy\production_defines.json -Encoding utf8
           dart run tools/validate_production_defines.dart deploy/production_defines.json

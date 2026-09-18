@@ -43,14 +43,11 @@ jobs:
           LICENSE_PIN: ${{ secrets.YALLA_LICENSE_TRUSTED_KEY_SHA256 }}
           SUPABASE_URL: ${{ secrets.YALLA_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.YALLA_SUPABASE_PUBLISHABLE_KEY }}
-          PRIVACY_URL: ${{ secrets.YALLA_PRIVACY_URL }}
-          TERMS_URL: ${{ secrets.YALLA_TERMS_URL }}
-          DELETE_URL: ${{ secrets.YALLA_ACCOUNT_DELETION_URL }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import json, os
-          required = ['LICENSING_URL','LICENSE_PIN','SUPABASE_URL','SUPABASE_KEY','PRIVACY_URL','TERMS_URL','DELETE_URL']
+          required = ['LICENSING_URL','LICENSE_PIN','SUPABASE_URL','SUPABASE_KEY']
           missing = [k for k in required if not os.environ.get(k, '').strip()]
           if missing: raise SystemExit('Missing protected release inputs: ' + ','.join(missing))
           data = {
@@ -61,9 +58,6 @@ jobs:
             'YALLA_CLOUD_AUTH_RELEASE_READY': True,
             'YALLA_CLOUD_OAUTH_ENABLED': False,
             'YALLA_STORE_DISTRIBUTION': True,
-            'YALLA_PRIVACY_URL': os.environ['PRIVACY_URL'],
-            'YALLA_TERMS_URL': os.environ['TERMS_URL'],
-            'YALLA_ACCOUNT_DELETION_URL': os.environ['DELETE_URL'],
           }
           open('deploy/production_defines.json','w',encoding='utf-8').write(json.dumps(data))
           PY

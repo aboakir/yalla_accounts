@@ -1,67 +1,52 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import 'package:yalla_accounts/core/release/release_distribution_config.dart';
+import 'package:yalla_accounts/core/legal/local_legal_documents.dart';
 
 class ReleaseLegalLinks extends StatelessWidget {
-  const ReleaseLegalLinks({
-    super.key,
-    this.compact = false,
-  });
+  const ReleaseLegalLinks({super.key, this.compact = false});
 
   final bool compact;
 
-  Future<void> _open(
-    BuildContext context, {
-    required String rawUrl,
-    required String missingMessage,
-  }) async {
-    final uri = ReleaseDistributionConfig.httpsUri(rawUrl);
-    if (uri == null) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(missingMessage)),
-      );
-      return;
-    }
-
-    final opened = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
+  void _open(BuildContext context, LocalLegalDocument document) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LocalLegalDocumentScreen(document: document),
+      ),
     );
-    if (!opened && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تعذر فتح الرابط')),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final buttons = <Widget>[
       TextButton(
-        onPressed: () => _open(
-          context,
-          rawUrl: ReleaseDistributionConfig.privacyUrl,
-          missingMessage: 'رابط سياسة الخصوصية غير مهيأ في هذا الإصدار.',
-        ),
+        key: const Key('localPrivacyPolicyLink'),
+        onPressed: () => _open(context, LocalLegalDocuments.privacy),
         child: const Text('سياسة الخصوصية'),
       ),
       TextButton(
-        onPressed: () => _open(
-          context,
-          rawUrl: ReleaseDistributionConfig.termsUrl,
-          missingMessage: 'رابط شروط الاستخدام غير مهيأ في هذا الإصدار.',
-        ),
+        key: const Key('localTermsLink'),
+        onPressed: () => _open(context, LocalLegalDocuments.terms),
         child: const Text('شروط الاستخدام'),
       ),
       TextButton(
-        onPressed: () => _open(
-          context,
-          rawUrl: ReleaseDistributionConfig.accountDeletionUrl,
-          missingMessage: 'مسار طلب حذف الحساب غير مهيأ في هذا الإصدار.',
-        ),
+        key: const Key('localAccountDeletionLink'),
+        onPressed: () => _open(context, LocalLegalDocuments.deletion),
         child: const Text('طلب حذف الحساب والبيانات'),
+      ),
+      TextButton(
+        key: const Key('localRefundLink'),
+        onPressed: () => _open(context, LocalLegalDocuments.refund),
+        child: const Text('الإلغاء والاسترداد'),
+      ),
+      TextButton(
+        key: const Key('localSupportLink'),
+        onPressed: () => _open(context, LocalLegalDocuments.support),
+        child: const Text('الدعم والشكاوى'),
+      ),
+      TextButton(
+        key: const Key('localContactLink'),
+        onPressed: () => _open(context, LocalLegalDocuments.contact),
+        child: const Text('اتصل بنا'),
       ),
     ];
 

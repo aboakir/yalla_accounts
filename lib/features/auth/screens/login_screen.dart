@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/core/release/release_distribution_config.dart';
 import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
@@ -376,9 +375,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                                 .activation),
                                                 child: const Text(
                                                     'تفعيل هذا الجهاز')),
-                                          if (_firstOwner &&
-                                              !ReleaseDistributionConfig
-                                                  .isStoreDistribution)
+                                          if (_firstOwner)
                                             TextButton(
                                                 onPressed: _loading
                                                     ? null

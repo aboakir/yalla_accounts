@@ -31,9 +31,6 @@ void validateProductionDefines(Map<String, Object?> data) {
     'YALLA_CLOUD_AUTH_RELEASE_READY',
     'YALLA_CLOUD_OAUTH_ENABLED',
     'YALLA_STORE_DISTRIBUTION',
-    'YALLA_PRIVACY_URL',
-    'YALLA_TERMS_URL',
-    'YALLA_ACCOUNT_DELETION_URL',
   };
   final missing = required.difference(data.keys.toSet());
   if (missing.isNotEmpty) {
@@ -49,12 +46,6 @@ void validateProductionDefines(Map<String, Object?> data) {
     data['YALLA_SUPABASE_URL'],
     'YALLA_SUPABASE_URL',
     originOnly: true,
-  );
-  _httpsUri(data['YALLA_PRIVACY_URL'], 'YALLA_PRIVACY_URL');
-  _httpsUri(data['YALLA_TERMS_URL'], 'YALLA_TERMS_URL');
-  _httpsUri(
-    data['YALLA_ACCOUNT_DELETION_URL'],
-    'YALLA_ACCOUNT_DELETION_URL',
   );
   final hashes = data['YALLA_LICENSE_TRUSTED_KEY_SHA256'];
   if (hashes is! String ||

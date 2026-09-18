@@ -22,12 +22,12 @@ class _CustomerOnboardingScreenState
       'organization_name',
       'phone',
       'city',
-      'address'
+      'address',
     ])
-      key: TextEditingController()
+      key: TextEditingController(),
   };
   bool _busy = true, _newRequest = false;
-  String _country = 'PS';
+  final String _country = 'PS';
   String? _error;
   CustomerOnboardingStatus? _status;
   @override
@@ -88,8 +88,10 @@ class _CustomerOnboardingScreenState
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error =
-            'لم يتأكد إرسال الطلب. أعد المحاولة بنفس البيانات أو حدّث الحالة.');
+        setState(
+          () => _error =
+              'لم يتأكد إرسال الطلب. أعد المحاولة بنفس البيانات أو حدّث الحالة.',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -104,9 +106,9 @@ class _CustomerOnboardingScreenState
     try {
       await ref.read(approvedOnboardingActivationServiceProvider).prepare();
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-        builder: (_) => const ActivationScreen(),
-      ));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const ActivationScreen()),
+      );
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -145,110 +147,115 @@ class _CustomerOnboardingScreenState
 
   @override
   Widget build(BuildContext context) => Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-          appBar: AppBar(title: const Text('تسجيل ورشة جديدة'), actions: [
-            IconButton(
+        textDirection: TextDirection.rtl,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('تسجيل ورشة جديدة'),
+            actions: [
+              IconButton(
                 onPressed: _busy ? null : _logout,
                 tooltip: 'تسجيل الخروج',
-                icon: const Icon(Icons.logout)),
-          ]),
+                icon: const Icon(Icons.logout),
+              ),
+            ],
+          ),
           body: Center(
-              child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'إعداد المالك والورشة لا يمنح صلاحية تشغيلية. يبدأ التشغيل بعد موافقة الإدارة والتفعيل التجاري.',
+                    ),
+                    const SizedBox(height: 20),
+                    if (_busy) const LinearProgressIndicator(),
+                    if (_error != null)
+                      Text(_error!, key: const Key('onboarding-error')),
+                    if (_newRequest)
+                      Form(
+                        key: _form,
+                        child: Column(
                           children: [
-                            const Text(
-                                'إعداد المالك والورشة لا يمنح صلاحية تشغيلية. يبدأ التشغيل بعد موافقة الإدارة والتفعيل التجاري.'),
-                            const SizedBox(height: 20),
-                            if (_busy) const LinearProgressIndicator(),
-                            if (_error != null)
-                              Text(_error!, key: const Key('onboarding-error')),
-                            if (_newRequest)
-                              Form(
-                                  key: _form,
-                                  child: Column(children: [
-                                    for (final field in const {
-                                      'owner_name': 'اسم المالك',
-                                      'organization_name': 'اسم الورشة',
-                                      'phone': 'الهاتف',
-                                      'city': 'المدينة',
-                                      'address': 'العنوان (اختياري)'
-                                    }.entries)
-                                      Padding(
-                                          padding:
-                                              const EdgeInsets.only(bottom: 12),
-                                          child: TextFormField(
-                                              controller: _fields[field.key],
-                                              enabled: !_busy,
-                                              key: Key(field.key),
-                                              decoration: InputDecoration(
-                                                  labelText: field.value),
-                                              validator: (v) =>
-                                                  field.key != 'address' &&
-                                                          (v?.trim().isEmpty ??
-                                                              true)
-                                                      ? 'هذا الحقل مطلوب'
-                                                      : null)),
-                                    DropdownButtonFormField<String>(
-                                        initialValue: _country,
-                                        decoration: const InputDecoration(
-                                            labelText: 'الدولة'),
-                                        items: const [
-                                          DropdownMenuItem(
-                                              value: 'PS',
-                                              child: Text('فلسطين')),
-                                          DropdownMenuItem(
-                                              value: 'JO',
-                                              child: Text('الأردن')),
-                                          DropdownMenuItem(
-                                              value: 'EG', child: Text('مصر')),
-                                          DropdownMenuItem(
-                                              value: 'SY', child: Text('سوريا'))
-                                        ],
-                                        onChanged: _busy
-                                            ? null
-                                            : (v) =>
-                                                setState(() => _country = v!)),
-                                    const SizedBox(height: 16),
-                                    FilledButton(
-                                        onPressed: _busy ? null : _submit,
-                                        child:
-                                            const Text('إرسال طلب الانضمام')),
-                                  ])),
-                            if (_status != null) ...[
-                              Text('رقم الطلب: ${_status!.requestId}'),
-                              Text(_status!.status,
-                                  key: const Key('onboarding-status')),
-                              Text(switch (_status!.status) {
-                                'APPROVED' =>
-                                  'تمت الموافقة. بيانات المالك محفوظة بانتظار مرحلة تفعيل الجهاز. التشغيل ما زال مقفلًا.',
-                                'REJECTED' =>
-                                  'لم تتم الموافقة على الطلب. تواصل مع الإدارة.',
-                                _ =>
-                                  'طلبك قيد مراجعة الإدارة. يمكنك إغلاق التطبيق والعودة لاحقًا.',
-                              }),
-                              if (_status!.approved) ...[
-                                Text(
-                                    'معرّف المنشأة: ${_status!.data['organization_id']}'),
-                                const SizedBox(height: 12),
-                                FilledButton.icon(
-                                  key: const Key(
-                                      'continue-commercial-activation'),
-                                  onPressed:
-                                      _busy ? null : _continueToActivation,
-                                  icon:
-                                      const Icon(Icons.verified_user_outlined),
-                                  label: const Text('متابعة إلى تفعيل الجهاز'),
+                            for (final field in const {
+                              'owner_name': 'اسم المالك',
+                              'organization_name': 'اسم الورشة',
+                              'phone': 'الهاتف',
+                              'city': 'المدينة',
+                              'address': 'العنوان (اختياري)',
+                            }.entries)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: TextFormField(
+                                  controller: _fields[field.key],
+                                  enabled: !_busy,
+                                  key: Key(field.key),
+                                  decoration: InputDecoration(
+                                    labelText: field.value,
+                                  ),
+                                  validator: (v) => field.key != 'address' &&
+                                          (v?.trim().isEmpty ?? true)
+                                      ? 'هذا الحقل مطلوب'
+                                      : null,
+                                ),
+                              ),
+                            DropdownButtonFormField<String>(
+                              initialValue: _country,
+                              decoration: const InputDecoration(
+                                labelText: 'الدولة',
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'PS',
+                                  child: Text('فلسطين'),
                                 ),
                               ],
-                            ],
+                              onChanged: null,
+                            ),
                             const SizedBox(height: 16),
-                            OutlinedButton(
-                                onPressed: _busy ? null : _refresh,
-                                child: const Text('تحديث الحالة من الخادم')),
-                          ]))))));
+                            FilledButton(
+                              onPressed: _busy ? null : _submit,
+                              child: const Text('إرسال طلب الانضمام'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (_status != null) ...[
+                      Text('رقم الطلب: ${_status!.requestId}'),
+                      Text(_status!.status,
+                          key: const Key('onboarding-status')),
+                      Text(switch (_status!.status) {
+                        'APPROVED' =>
+                          'تمت الموافقة. بيانات المالك محفوظة بانتظار مرحلة تفعيل الجهاز. التشغيل ما زال مقفلًا.',
+                        'REJECTED' =>
+                          'لم تتم الموافقة على الطلب. تواصل مع الإدارة.',
+                        _ =>
+                          'طلبك قيد مراجعة الإدارة. يمكنك إغلاق التطبيق والعودة لاحقًا.',
+                      }),
+                      if (_status!.approved) ...[
+                        Text(
+                            'معرّف المنشأة: ${_status!.data['organization_id']}'),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          key: const Key('continue-commercial-activation'),
+                          onPressed: _busy ? null : _continueToActivation,
+                          icon: const Icon(Icons.verified_user_outlined),
+                          label: const Text('متابعة إلى تفعيل الجهاز'),
+                        ),
+                      ],
+                    ],
+                    const SizedBox(height: 16),
+                    OutlinedButton(
+                      onPressed: _busy ? null : _refresh,
+                      child: const Text('تحديث الحالة من الخادم'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }

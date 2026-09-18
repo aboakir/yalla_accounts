@@ -33,8 +33,7 @@ workflows:
           import json, os
           required = [
             'YALLA_LICENSING_BASE_URL','YALLA_LICENSE_TRUSTED_KEY_SHA256',
-            'YALLA_SUPABASE_URL','YALLA_SUPABASE_PUBLISHABLE_KEY',
-            'YALLA_PRIVACY_URL','YALLA_TERMS_URL','YALLA_ACCOUNT_DELETION_URL'
+            'YALLA_SUPABASE_URL','YALLA_SUPABASE_PUBLISHABLE_KEY'
           ]
           missing = [k for k in required if not os.environ.get(k, '').strip()]
           if missing: raise SystemExit('Missing protected release inputs: ' + ','.join(missing))
@@ -46,9 +45,6 @@ workflows:
             'YALLA_CLOUD_AUTH_RELEASE_READY': True,
             'YALLA_CLOUD_OAUTH_ENABLED': False,
             'YALLA_STORE_DISTRIBUTION': True,
-            'YALLA_PRIVACY_URL': os.environ['YALLA_PRIVACY_URL'],
-            'YALLA_TERMS_URL': os.environ['YALLA_TERMS_URL'],
-            'YALLA_ACCOUNT_DELETION_URL': os.environ['YALLA_ACCOUNT_DELETION_URL'],
           }
           open('deploy/production_defines.json','w',encoding='utf-8').write(json.dumps(data))
           PY
