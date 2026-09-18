@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Production release inputs (real values stay outside source control)
+/deploy/production_defines.json

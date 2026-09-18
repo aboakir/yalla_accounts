@@ -40,7 +40,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Future<void> _openWhatsApp() async {
     final url =
-        'https://wa.me/$whatsappNumber?text=أحتاج مساعدة في Yalla Accounts';
+        'https://wa.me/$whatsappNumber?text=أحتاج مساعدة في Yallah Accounts';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);

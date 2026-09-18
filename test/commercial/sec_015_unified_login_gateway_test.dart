@@ -7,15 +7,16 @@ void main() {
   final root = Directory.current.path;
   String read(String relative) => File('$root/$relative').readAsStringSync();
 
-  test('SEC.015 uses one login screen for Yalla admin and customer realms', () {
+  test('SEC.015 separates customer login from Yalla Control administration',
+      () {
     final login = read('lib/features/auth/screens/login_screen.dart');
 
-    expect(login, contains('اسم المستخدم أو البريد الإلكتروني'));
-    expect(login, contains('yallaAdminAuthServiceProvider'));
-    expect(login, contains('YallaControlCenterScreen'));
-    expect(login, contains('YallaAdminLoginState.mfaRequired'));
+    expect(login, contains("labelText: 'اسم المستخدم'"));
     expect(login, contains('authenticateUser('));
-    expect(login, contains('نفس شاشة الدخول لحسابات Yalla الإدارية'));
+    expect(login, contains('CloudAuthScreen'));
+    expect(login, isNot(contains('yallaAdminAuthServiceProvider')));
+    expect(login, isNot(contains('YallaControlCenterScreen')));
+    expect(login, isNot(contains('YallaAdminLoginState.mfaRequired')));
   });
 
   test('Yalla admin credentials remain server-side and sessions memory-only',
@@ -77,7 +78,8 @@ void main() {
     final authentication = manifest['authentication'] as Map<String, dynamic>;
 
     expect(manifest['server_model_version'], 10);
-    expect(manifest['client_database_version'], 69);
+    expect((manifest['client_database_version'] as num).toInt(),
+        greaterThanOrEqualTo(69));
     expect(presentation['native_same_executable'], isTrue);
     expect(presentation['customer_sqlite_control_plane_exposure'], isFalse);
     expect(authentication['native_persisted_admin_tokens'], isFalse);

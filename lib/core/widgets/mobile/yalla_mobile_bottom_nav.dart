@@ -20,6 +20,12 @@ class YallaMobileBottomNav extends StatelessWidget {
   void _go(BuildContext context, String route) {
     final current = ModalRoute.of(context)?.settings.name;
     if (current == route) return;
+    if (!AppRoutes.isRegisteredRoute(route)) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('هذا الرابط غير متاح حاليًا.')),
+      );
+      return;
+    }
     Navigator.of(context).pushNamedAndRemoveUntil(route, (r) => r.isFirst);
   }
 

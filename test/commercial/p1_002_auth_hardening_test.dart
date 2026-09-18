@@ -382,7 +382,8 @@ void main() {
     final startup = source('lib/features/startup/startup_screen.dart');
 
     expect(routes.contains('const LoginScreen()'), isTrue);
-    expect(routes.contains('const RegisterUserScreen()'), isTrue);
+    expect(routes.contains('const WorkshopOnboardingScreen()'), isTrue);
+    expect(routes.contains('const ForgotAccessScreen()'), isTrue);
     expect(routes.contains('const LogoutScreen()'), isTrue);
     expect(routes.contains('AuthenticatedRouteGate'), isTrue);
     expect(

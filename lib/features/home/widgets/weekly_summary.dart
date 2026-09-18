@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
@@ -102,7 +103,8 @@ class WeeklySummary extends StatelessWidget {
       final text = isMoney ? nf2.format(value) : nf0.format(value);
       return Expanded(
         child: InkWell(
-          onTap: route == null ? null : () => Navigator.pushNamed(ctx, route),
+          onTap:
+              route == null ? null : () => AppRoutes.pushNamedSafe(ctx, route),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(

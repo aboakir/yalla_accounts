@@ -18,11 +18,13 @@ import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class PaymentListScreen extends StatefulWidget {
   final String? initialRepairId;
+  final String? initialPaymentId;
   final bool allowReverse;
 
   const PaymentListScreen({
     super.key,
     this.initialRepairId,
+    this.initialPaymentId,
     this.allowReverse = false,
   });
 
@@ -122,6 +124,11 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
           return p.repairId == scopedRepairId ||
               p.relatedRepairId == scopedRepairId;
         }).toList();
+      }
+
+      final scopedPaymentId = widget.initialPaymentId?.trim();
+      if (scopedPaymentId != null && scopedPaymentId.isNotEmpty) {
+        rows = rows.where((p) => p.id == scopedPaymentId).toList();
       }
 
       // بحث نصي شامل

@@ -20,11 +20,12 @@ import 'package:yalla_accounts/core/services/sync/outbox_sync_coordinator.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/device_identity/device_identity_service.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
-import 'package:yalla_accounts/core/licensing/validation/periodic_license_validation_service.dart';
+import 'package:yalla_accounts/core/licensing/commercial_licensing_providers.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/settings/services/commercial_settings_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_theme.dart';
 import 'package:yalla_accounts/shared/widgets/yalla_mobile_adaptive.dart';
 
@@ -50,8 +51,10 @@ class _YallaObserver extends ProviderObserver {
     StackTrace stackTrace,
     ProviderContainer container,
   ) {
-    debugPrint(
-      '🧨 [ProviderError] ${provider.name ?? provider.runtimeType}: $error\n$stackTrace',
+    ReleaseDiagnostics.debug(
+      'Provider failed: ${provider.name ?? provider.runtimeType}',
+      error: error,
+      stack: stackTrace,
     );
     super.providerDidFail(provider, error, stackTrace, container);
   }
@@ -94,12 +97,12 @@ Future<void> _bootstrap() async {
   if (isDesktop) {
     sqfliteFfiInit();
     sq.databaseFactory = databaseFactoryFfi;
-    debugPrint("📌 Using sqflite_common_ffi (Desktop mode)");
+    ReleaseDiagnostics.debug('Using sqflite_common_ffi (Desktop mode)');
   }
 
   try {
     final path = await DBService.dbFilePath();
-    debugPrint('📂 DB Path = $path');
+    ReleaseDiagnostics.debug('DB path resolved: $path');
 
     final db = await DBService.database.timeout(
       const Duration(seconds: 15),
@@ -121,37 +124,41 @@ Future<void> _bootstrap() async {
     // signed expired/suspended/revoked license becomes DB-enforced READ ONLY.
     final runtimeDecision =
         await LicenseRuntimeService().refreshFromStoredLicense();
-    debugPrint(
-      '🔐 SEC.011 runtime mode: ${runtimeDecision.mode} '
+    ReleaseDiagnostics.debug(
+      'SEC.011 runtime mode: ${runtimeDecision.mode} '
       '(${runtimeDecision.reason})',
     );
 
     // SEC.012 - periodic online validation. Startup never crashes merely
     // because the network/server is unavailable; the signed offline grace
     // window decides whether writes remain available.
-    PeriodicLicenseValidationScheduler.start();
+    // The Riverpod root starts validation with the authenticated transport.
 
-    // P04.3 - keep the visible local/sync state current. No workshop-sync
-    // endpoint is invented here; the coordinator drains only after an
-    // authoritative OutboxSyncTransport is configured.
+    // Stage 8 - durable local-first sync. The client never calls Supabase
+    // directly; it sends a device-signed challenge/complete exchange to the
+    // configured Yalla server, which is the only component allowed to journal
+    // the mutation through the server-authorized RPC.
     await OutboxSyncCoordinator.instance.start();
 
-    debugPrint(
-      '✅ DB + commercial presentation settings + device identity + '
+    ReleaseDiagnostics.debug(
+      'DB + commercial presentation settings + device identity + '
       'license runtime + periodic validation ready',
     );
   } catch (e, st) {
-    debugPrint('🛑 DB bootstrap failed: $e\n$st');
+    ReleaseDiagnostics.debug('DB bootstrap failed', error: e, stack: st);
     Error.throwWithStackTrace(e, st);
   }
 
   FlutterError.onError = (details) {
-    debugPrint('🧨 FlutterError: ${details.exceptionAsString()}');
-    if (details.stack != null) debugPrint(details.stack.toString());
+    ReleaseDiagnostics.debug(
+      'Flutter framework error',
+      error: details.exception,
+      stack: details.stack,
+    );
   };
 
   ui.PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint('🧨 Platform error: $error\n$stack');
+    ReleaseDiagnostics.debug('Platform error', error: error, stack: stack);
     return true;
   };
 }
@@ -171,11 +178,11 @@ void main() {
         ),
       );
     } catch (error, stack) {
-      debugPrint('🛑 Startup blocked: $error\n$stack');
+      ReleaseDiagnostics.debug('Startup blocked', error: error, stack: stack);
       runApp(_BootstrapFailureApp(error: error));
     }
   }, (error, stack) {
-    debugPrint('❗ Uncaught error: $error\n$stack');
+    ReleaseDiagnostics.debug('Uncaught zone error', error: error, stack: stack);
   });
 }
 
@@ -235,7 +242,7 @@ class _BootstrapFailureAppState extends State<_BootstrapFailureApp> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'تعذر فتح قاعدة بيانات Yalla Accounts بأمان',
+                      'تعذر فتح قاعدة بيانات Yallah Accounts بأمان',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 22,
@@ -250,7 +257,7 @@ class _BootstrapFailureAppState extends State<_BootstrapFailureApp> {
                     ),
                     const SizedBox(height: 16),
                     SelectableText(
-                      _error.toString(),
+                      ReleaseDiagnostics.publicFailureText(_error),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
@@ -281,15 +288,17 @@ class _BootstrapFailureAppState extends State<_BootstrapFailureApp> {
 /// ---------------------------------------------------------------------------
 /// Root App
 /// ---------------------------------------------------------------------------
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(commercialValidationSchedulerProvider);
+    ref.watch(commercialSyncSchedulerProvider);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: MaterialApp(
-        title: 'Yalla Accounts',
+        title: 'Yallah Accounts',
         debugShowCheckedModeBanner: false,
         navigatorKey: AppRoutes.navigatorKey,
 

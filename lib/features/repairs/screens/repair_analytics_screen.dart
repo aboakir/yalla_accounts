@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_stats_provider.dart';
 import 'package:yalla_accounts/features/repairs/widgets/payment_status_pie_chart.dart';
@@ -27,7 +28,7 @@ class RepairAnalyticsScreen extends ConsumerWidget {
       drawer: isDesktop
           ? null
           : const Drawer(
-              child: YallaSidebar(currentRoute: '/repair-analytics')),
+              child: YallaSidebar(currentRoute: AppRoutes.repairAnalytics)),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: const Text("تحليلات إصلاح المركبات",
@@ -39,7 +40,7 @@ class RepairAnalyticsScreen extends ConsumerWidget {
           if (isDesktop)
             const SizedBox(
                 width: 260,
-                child: YallaSidebar(currentRoute: '/repair-analytics')),
+                child: YallaSidebar(currentRoute: AppRoutes.repairAnalytics)),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 /// Delegate لعملية البحث متعدد النطاقات
 class GlobalSearchDelegate extends SearchDelegate<void> {
@@ -63,7 +64,7 @@ class GlobalSearchDelegate extends SearchDelegate<void> {
                   subtitle: Text(item.subtitle ?? ''),
                   onTap: () {
                     close(context, null);
-                    Navigator.pushNamed(context, item.route);
+                    AppRoutes.pushNamedSafe(context, item.route);
                   },
                 );
               },

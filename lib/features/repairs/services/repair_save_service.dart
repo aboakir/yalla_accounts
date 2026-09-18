@@ -9,11 +9,11 @@
 // - ترحيل دفعة أولية إن وجدت
 // بدون أي سطر ناقص — جاهزة للاستعمال مباشرة
 
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:flutter/foundation.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
@@ -28,7 +28,7 @@ class RepairSaveService {
     required double? actualCost,
     required bool isLedgerEnabled,
   }) async {
-    debugPrint('=== RepairSaveService.save START ===');
+    ReleaseDiagnostics.debug('=== RepairSaveService.save START ===');
 
     final form = ref.read(repairFormProvider);
     final notifier = ref.read(repairFormProvider.notifier);
@@ -49,7 +49,7 @@ class RepairSaveService {
     // 2) Transaction
     // ===========================
     await DBService.inTx((txn) async {
-      debugPrint('--- TX BEGIN ---');
+      ReleaseDiagnostics.debug('--- TX BEGIN ---');
 
       // ------------------------------------------------------------
       // إنشاء جداول الخطوط والصور لو ناقصه
@@ -194,7 +194,7 @@ class RepairSaveService {
         },
       );
 
-      debugPrint('--- TX END OK ---');
+      ReleaseDiagnostics.debug('--- TX END OK ---');
     });
 
     // إفراغ النموذج
@@ -268,19 +268,6 @@ class RepairSaveService {
     if (m.contains('شيك')) return PaymentType.check;
     if (m.contains('قسط')) return PaymentType.installment;
     return PaymentType.insuranceTransfer;
-  }
-
-  static String _mapMethod(String m) {
-    if (m.contains('نقد')) return 'cash';
-    if (m.contains('شيك')) return 'cheque';
-    if (m.contains('قسط')) return 'installment';
-    return 'bank';
-  }
-
-  static String _mapAccountName(String m) {
-    if (m.contains('نقد')) return 'الصندوق';
-    if (m.contains('شيك')) return 'البنك';
-    return 'البنك';
   }
 
   static Map<String, dynamic> _toDb(Repair r) => {

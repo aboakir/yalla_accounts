@@ -3,7 +3,7 @@
 // توليد PDF احترافي لسند الصرف
 // - استخدام خطوط Cairo
 // - دعم RTL بالكامل
-// - إدراج شعار YALLA ACCOUNTS
+// - إدراج شعار YALLAH ACCOUNTS
 // - تصميم حديث يناسب مستوى التطبيق
 // - دالة generate() تُرجع Uint8List جاهز للطباعة أو الحفظ
 
@@ -34,9 +34,9 @@ class PaymentVoucherPdf {
     final fontBoldData = await rootBundle.load("assets/fonts/Cairo-Bold.ttf");
     final ttfBold = pw.Font.ttf(fontBoldData);
 
-    // تحميل شعار YALLA ACCOUNTS
+    // تحميل شعار YALLAH ACCOUNTS
     final logoData = await rootBundle
-        .load("assets/logo/yalla_logo.png")
+        .load("assets/branding/yallah_mark.png")
         .then((v) => v.buffer.asUint8List());
 
     pdf.addPage(
@@ -65,7 +65,7 @@ class PaymentVoucherPdf {
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text("YALLA ACCOUNTS",
+                        pw.Text("YALLAH ACCOUNTS",
                             style: pw.TextStyle(font: ttfBold, fontSize: 18)),
                         pw.SizedBox(height: 4),
                         pw.Text("سند صرف",
@@ -133,7 +133,7 @@ class PaymentVoucherPdf {
                     children: [
                       pw.Divider(),
                       pw.Text(
-                        "تم إنشاء السند بواسطة نظام YALLA ACCOUNTS",
+                        "تم إنشاء السند بواسطة نظام YALLAH ACCOUNTS",
                         style: pw.TextStyle(
                             font: ttf, fontSize: 12, color: PdfColors.grey600),
                       ),

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// P1.002 compatibility shim.
@@ -8,7 +8,7 @@ import 'package:sqflite/sqflite.dart';
 /// first-run registration flow.
 class UserSeeder {
   static Future<void> seed(Database db) async {
-    debugPrint(
+    ReleaseDiagnostics.debug(
       'ℹ P1.002: default-user seeding disabled; first owner must be explicit.',
     );
   }
@@ -16,7 +16,7 @@ class UserSeeder {
   static Future<void> seedIfEmpty(Database db) => seed(db);
 
   static Future<void> seedActivationCodes(Database db) async {
-    debugPrint(
+    ReleaseDiagnostics.debug(
       'ℹ P1.002: legacy activation-code seeding disabled.',
     );
   }

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/layouts/responsive_builder.dart';
 
 class QuickActions extends StatelessWidget {
@@ -66,17 +67,7 @@ class _ActionButton extends StatelessWidget {
   const _ActionButton({required this.item});
 
   Future<void> _go(BuildContext context, String route) async {
-    try {
-      await Navigator.of(context).pushNamed(route);
-    } on FlutterError catch (_) {
-      // حماية إذا لم يكن المسار معرّفًا في AppRoutes
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('المسار غير متاح حالياً: $route'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    await AppRoutes.pushNamedSafe(context, route);
   }
 
   @override

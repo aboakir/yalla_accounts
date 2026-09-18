@@ -147,7 +147,15 @@ class _SidebarHeaderState extends ConsumerState<SidebarHeader> {
   }
 
   Widget _logoFallback() {
-    return const Icon(Icons.store, size: 40, color: AppColors.primary);
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: Image.asset(
+        'assets/branding/yallah_mark.png',
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.store, size: 40, color: AppColors.primary),
+      ),
+    );
   }
 
   Widget _loadLogoImage(String? logoPath) {

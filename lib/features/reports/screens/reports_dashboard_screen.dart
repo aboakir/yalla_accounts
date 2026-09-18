@@ -22,7 +22,7 @@ class ReportsDashboardScreen extends StatelessWidget {
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => Navigator.pushNamed(context, route),
+      onTap: () => AppRoutes.pushNamedSafe(context, route),
       child: Card(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

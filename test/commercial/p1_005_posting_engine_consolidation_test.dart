@@ -123,7 +123,7 @@ void main() {
       isFalse,
     );
     expect(
-      source.contains("getGlEntryIdBySource('VOUCHER', voucherId)"),
+      source.contains('VoucherPaymentService.reverseVoucher('),
       isTrue,
     );
   });

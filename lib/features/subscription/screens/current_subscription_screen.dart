@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
+import 'package:yalla_accounts/core/licensing/entitlements/commercial_entitlement_policy.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/subscription_access_policy.dart';
 
 class CurrentSubscriptionScreen extends StatefulWidget {
@@ -71,6 +72,9 @@ class _CurrentSubscriptionScreenState extends State<CurrentSubscriptionScreen> {
                                                   .titleLarge),
                                           const SizedBox(height: 16),
                                           if (license != null) ...[
+                                            Text(
+                                                'الخطة: ${CommercialEntitlementPolicy.planCode(license) ?? 'غير معروفة'}'),
+                                            const SizedBox(height: 6),
                                             Text(
                                                 'تاريخ الانتهاء: ${_date(license.expiresAt)}'),
                                             const SizedBox(height: 12),

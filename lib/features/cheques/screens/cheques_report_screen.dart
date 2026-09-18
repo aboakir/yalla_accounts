@@ -584,7 +584,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
 
       // ملخص علوي
       sheet.appendRow([
-        TextCellValue("تقرير الشيكات (Yalla Accounts)"),
+        TextCellValue("تقرير الشيكات (Yallah Accounts)"),
       ]);
       sheet.appendRow([
         TextCellValue("عدد الشيكات"),
@@ -691,7 +691,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const YallaAppBar(
-        workshopName: "Yalla Accounts",
+        workshopName: "Yallah Accounts",
         showThemeToggle: false,
         showSearch: false,
       ),

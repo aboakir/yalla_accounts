@@ -9,7 +9,7 @@
 //
 // ملاحظة: كل الدوال الأصلية موجودة كما هي 100%
 // ============================================================================
-import 'package:flutter/foundation.dart';
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
@@ -56,7 +56,7 @@ class DBService {
 
   static Future<String> dbFilePath() async {
     final path = await DatabaseConstants.dbFilePath();
-    debugPrint("📌 Using canonical DB path: $path");
+    ReleaseDiagnostics.debug("📌 Using canonical DB path: $path");
     return path;
   }
 
@@ -350,32 +350,19 @@ class DBService {
 // ---------------------------------------------------------------------------
   static Future<double> getSupplierBalance(int supplierId) async {
     final db = await database;
-
-    // مجموع الفواتير
-    final inv = await db.rawQuery("""
-    SELECT COALESCE(SUM(amount_total), 0) AS total
-    FROM purchase_invoices
-    WHERE supplier_id = ?;
-  """, [supplierId]);
-
-    final totalInvoices = (inv.first["total"] as num?)?.toDouble() ?? 0.0;
-
-    // مجموع المدفوعات
-    final pay = await db.rawQuery("""
-    SELECT COALESCE(SUM(amount), 0) AS total
-    FROM payments
-    WHERE party_type = 'SUPPLIER' AND party_id = ?;
-  """, [supplierId]);
-
-    final totalPayments = (pay.first["total"] as num?)?.toDouble() ?? 0.0;
-
-    return totalInvoices - totalPayments;
+    final code = '2200.S${supplierId.toString().padLeft(4, '0')}';
+    final rows = await db.rawQuery('''
+      SELECT COALESCE(SUM(l.credit-l.debit),0) AS balance
+      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
+      WHERE a.code=?
+    ''', [code]);
+    final raw = rows.isEmpty ? 0 : rows.first['balance'];
+    return raw is num ? raw.toDouble() : double.tryParse('$raw') ?? 0.0;
   }
 
   // ==========================================================================
   // 💳 CHEQUES
   // ==========================================================================
-
   static Future<void> checkAutoChequeReturns() async =>
       ChequeTables.checkAutoChequeReturns();
 

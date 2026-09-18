@@ -218,7 +218,7 @@ ORDER BY name ASC
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: const YallaAppBar(
-        workshopName: "Yalla Accounts",
+        workshopName: "Yallah Accounts",
         showThemeToggle: false,
         showSearch: false,
       ),

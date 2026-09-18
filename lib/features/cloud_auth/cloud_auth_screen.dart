@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'cloud_auth_service.dart';
 import 'supabase_identity_provider.dart';
+import '../onboarding/customer_onboarding_screen.dart';
 
 class CloudAccountLinkTile extends ConsumerWidget {
   const CloudAccountLinkTile({super.key});
@@ -24,8 +25,9 @@ class CloudAccountLinkTile extends ConsumerWidget {
 }
 
 class CloudAuthScreen extends ConsumerStatefulWidget {
-  const CloudAuthScreen({super.key, this.linkUser});
+  const CloudAuthScreen({super.key, this.linkUser, this.onboarding = false});
   final AppUser? linkUser;
+  final bool onboarding;
   @override
   ConsumerState<CloudAuthScreen> createState() => _CloudAuthScreenState();
 }
@@ -33,10 +35,13 @@ class CloudAuthScreen extends ConsumerStatefulWidget {
 class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _code = TextEditingController();
   final _localPassword = TextEditingController();
   late SupabaseIdentityProvider _identity;
   bool _busy = true;
   bool _create = false;
+  bool _awaitingSignupCode = false;
+  bool _awaitingRecoveryCode = false;
   String? _message;
   @override
   void initState() {
@@ -79,6 +84,14 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
   }
 
   Future<void> _finish() async {
+    if (widget.onboarding) {
+      await _identity.verifiedOnboardingSession();
+      if (mounted) {
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => const CustomerOnboardingScreen()));
+      }
+      return;
+    }
     final user = widget.linkUser;
     if (user != null) {
       await ref.read(cloudAuthServiceProvider).link(user, _localPassword.text);
@@ -93,30 +106,45 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
 
   Future<void> _submit() => _run(() async {
         if (_identity.recoveryPending) {
-          if (_password.text.length < 10) {
-            _message = 'استخدم كلمة مرور من 10 أحرف على الأقل.';
-            return;
-          }
           await _identity.updateRecoveredPassword(_password.text);
           _password.clear();
           _message = 'تم تغيير كلمة المرور السحابية. سجّل الدخول من جديد.';
-        } else if (_create) {
+          return;
+        }
+        if (_awaitingRecoveryCode) {
+          await _identity.verifyRecoveryCode(_email.text, _code.text);
+          _code.clear();
+          _awaitingRecoveryCode = false;
+          _message = 'تم التحقق. أدخل كلمة المرور الجديدة.';
+          return;
+        }
+        if (_awaitingSignupCode) {
+          await _identity.verifySignupCode(_email.text, _code.text);
+          _code.clear();
+          _awaitingSignupCode = false;
+          _create = false;
+          // OTP and recovery sessions share Supabase's OTP AMR. Only a fresh
+          // password sign-in may proceed into normal onboarding/commercial use.
+          _message = 'تم تأكيد البريد. أدخل كلمة المرور للمتابعة الآمنة.';
+          return;
+        }
+        if (_create) {
           await _identity.signUp(_email.text, _password.text);
           _password.clear();
-          _message =
-              'راجع بريدك لتأكيد الحساب ثم سجّل الدخول. بيانات الورشة تبقى محلية.';
-          _create = false;
-        } else {
-          await _identity.signIn(_email.text, _password.text);
-          _password.clear();
-          await _finish();
+          _awaitingSignupCode = true;
+          _message = 'أرسلنا رمز تحقق إلى بريدك. أدخله هنا لإكمال التسجيل.';
+          return;
         }
+        await _identity.signIn(_email.text, _password.text);
+        _password.clear();
+        await _finish();
       });
   @override
   void dispose() {
     _identity.removeListener(_changed);
     _email.dispose();
     _password.dispose();
+    _code.dispose();
     _localPassword.dispose();
     super.dispose();
   }
@@ -159,19 +187,33 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                                 labelText:
                                                     'البريد الإلكتروني')),
                                       const SizedBox(height: 12),
-                                      TextField(
-                                          controller: _password,
-                                          enabled: !_busy,
-                                          obscureText: true,
-                                          autocorrect: false,
-                                          enableSuggestions: false,
-                                          decoration: InputDecoration(
-                                              labelText: _identity
-                                                      .recoveryPending
-                                                  ? 'كلمة المرور الجديدة'
-                                                  : 'كلمة المرور السحابية')),
+                                      if (_awaitingSignupCode ||
+                                          _awaitingRecoveryCode)
+                                        TextField(
+                                            controller: _code,
+                                            enabled: !_busy,
+                                            keyboardType: TextInputType.number,
+                                            textDirection: TextDirection.ltr,
+                                            autocorrect: false,
+                                            enableSuggestions: false,
+                                            decoration: const InputDecoration(
+                                                labelText: 'رمز التحقق'))
+                                      else
+                                        TextField(
+                                            controller: _password,
+                                            enabled: !_busy,
+                                            obscureText: true,
+                                            autocorrect: false,
+                                            enableSuggestions: false,
+                                            decoration: InputDecoration(
+                                                labelText: _identity
+                                                        .recoveryPending
+                                                    ? 'كلمة المرور الجديدة'
+                                                    : 'كلمة المرور السحابية')),
                                       if (widget.linkUser != null &&
-                                          !_identity.recoveryPending) ...[
+                                          !_identity.recoveryPending &&
+                                          !_awaitingSignupCode &&
+                                          !_awaitingRecoveryCode) ...[
                                         const SizedBox(height: 12),
                                         TextField(
                                             controller: _localPassword,
@@ -197,10 +239,16 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                               ? 'جارٍ التحقق…'
                                               : _identity.recoveryPending
                                                   ? 'حفظ كلمة المرور'
-                                                  : _create
-                                                      ? 'إنشاء حساب سحابي'
-                                                      : 'دخول')),
-                                      if (!_identity.recoveryPending) ...[
+                                                  : _awaitingSignupCode
+                                                      ? 'تأكيد رمز التسجيل'
+                                                      : _awaitingRecoveryCode
+                                                          ? 'تأكيد رمز الاستعادة'
+                                                          : _create
+                                                              ? 'إرسال رمز التسجيل'
+                                                              : 'دخول')),
+                                      if (!_identity.recoveryPending &&
+                                          !_awaitingSignupCode &&
+                                          !_awaitingRecoveryCode) ...[
                                         TextButton(
                                             onPressed: _busy
                                                 ? null
@@ -208,8 +256,11 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                                       await _identity
                                                           .resetPassword(
                                                               _email.text);
+                                                      _awaitingRecoveryCode =
+                                                          true;
+                                                      _code.clear();
                                                       _message =
-                                                          'إن كان البريد مسجلًا سيصلك رابط الاستعادة. افتحه على هذا الجهاز ثم ارجع إلى الدخول السحابي.';
+                                                          'إن كان البريد مسجلًا سيصلك رمز استعادة. أدخله هنا على نفس الجهاز.';
                                                     }),
                                             child: const Text(
                                                 'نسيت كلمة المرور السحابية')),
@@ -239,7 +290,8 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                               child: const Text(
                                                   'الدخول باستخدام Apple'))
                                         ],
-                                        if (_identity.signedInThisVisit)
+                                        if (_identity.signedInThisVisit ||
+                                            widget.onboarding)
                                           FilledButton.tonal(
                                               onPressed: _busy
                                                   ? null

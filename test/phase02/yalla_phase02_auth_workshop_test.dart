@@ -27,7 +27,7 @@ void main() {
   });
 
   test(
-      'P02 first owner remains activation-authoritative and phone OTP is server-authoritative',
+      'P02 first owner remains activation-authoritative and records contact phone without client OTP',
       () {
     final register =
         source('lib/features/auth/screens/register_user_screen.dart');
@@ -40,10 +40,10 @@ void main() {
     expect(bootstrap, contains("'phone1': phone"));
     expect(register, isNot(contains('OTP =')));
     expect(register, isNot(contains('generateOtp')));
-    expect(register, contains('startCustomerPhoneVerification'));
-    expect(register, contains('verifyCustomerPhoneOtp'));
-    expect(register, contains('consumeCustomerPhoneVerification'));
-    expect(register, contains('تحقق من رقم الهاتف بواسطة رمز SMS أولًا'));
+    expect(register, isNot(contains('startCustomerPhoneVerification')));
+    expect(register, contains('لا يُطلب رمز SMS لإنشاء الحساب'));
+    expect(
+        register, contains('الجهاز مفعّلًا بترخيص صالح صادر من Yalla Control'));
   });
 
   test('P02 OTP client never generates or persists OTP material', () {
@@ -64,11 +64,14 @@ void main() {
     expect(transport, isNot(contains('FlutterSecureStorage')));
   });
 
-  test('P02 registration is a four-step mobile flow', () {
+  test('P02 registration is a three-step activation-authoritative mobile flow',
+      () {
     final s = source('lib/features/auth/screens/register_user_screen.dart');
-    for (final marker in ['1/4', '2/4', '3/4', '4/4']) {
+    for (final marker in ['1/3', '2/3', '3/3']) {
       expect(s, contains(marker));
     }
-    expect(s, contains('ابدأ استخدام Yalla Accounts'));
+    expect(s, isNot(contains('4/4')));
+    expect(s, contains('إنشاء الحساب ومتابعة الإعداد'));
+    expect(s, contains("'حفظته'"));
   });
 }

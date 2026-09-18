@@ -45,6 +45,8 @@ class _PurchasesDashboardScreenState
   double _raw30 = 0.0;
   double _parts30 = 0.0;
   double _tools30 = 0.0;
+  double _paint30 = 0.0;
+  double _insurance30 = 0.0;
   double _other30 = 0.0;
 
   @override
@@ -89,14 +91,24 @@ class _PurchasesDashboardScreenState
         DateTime.now().subtract(const Duration(days: 30)).toIso8601String();
 
     final rows = await db.rawQuery('''
-      SELECT pl.category, IFNULL(SUM(pl.total),0) AS total
+      SELECT CASE
+        WHEN UPPER(COALESCE(pl.category,''))='PAINT' THEN 'PAINT'
+        WHEN UPPER(COALESCE(pl.category,''))='OTHER'
+             AND COALESCE(p.note,'') LIKE '%تأمين%' THEN 'INSURANCE'
+        ELSE UPPER(COALESCE(pl.category,'OTHER'))
+      END AS category, IFNULL(SUM(pl.total),0) AS total
       FROM purchase_invoice_lines pl
       JOIN purchase_invoices p ON p.id = pl.invoice_id
       WHERE p.date >= ?
-      GROUP BY pl.category
+      GROUP BY CASE
+        WHEN UPPER(COALESCE(pl.category,''))='PAINT' THEN 'PAINT'
+        WHEN UPPER(COALESCE(pl.category,''))='OTHER'
+             AND COALESCE(p.note,'') LIKE '%تأمين%' THEN 'INSURANCE'
+        ELSE UPPER(COALESCE(pl.category,'OTHER'))
+      END
     ''', [sinceIso]);
 
-    double raw = 0, parts = 0, tools = 0, other = 0;
+    double raw = 0, parts = 0, tools = 0, paint = 0, insurance = 0, other = 0;
 
     for (final r in rows) {
       final cat = (r['category'] ?? '').toString().toUpperCase();
@@ -111,6 +123,12 @@ class _PurchasesDashboardScreenState
         case 'TOOLS':
           tools = t;
           break;
+        case 'PAINT':
+          paint = t;
+          break;
+        case 'INSURANCE':
+          insurance = t;
+          break;
         default:
           other = other + t;
       }
@@ -119,6 +137,8 @@ class _PurchasesDashboardScreenState
     _raw30 = raw;
     _parts30 = parts;
     _tools30 = tools;
+    _paint30 = paint;
+    _insurance30 = insurance;
     _other30 = other;
   }
 
@@ -194,6 +214,8 @@ class _PurchasesDashboardScreenState
                     _MiniKpiChip(label: 'مواد خام', value: n.format(_raw30)),
                     _MiniKpiChip(label: 'قطع', value: n.format(_parts30)),
                     _MiniKpiChip(label: 'عدة', value: n.format(_tools30)),
+                    _MiniKpiChip(label: 'دهان', value: n.format(_paint30)),
+                    _MiniKpiChip(label: 'تأمين', value: n.format(_insurance30)),
                     _MiniKpiChip(label: 'أخرى', value: n.format(_other30)),
                   ],
                 ),
@@ -473,7 +495,7 @@ class _SummaryBlock extends ConsumerWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(p.supplierId.toString() ?? '-'),
+                  child: Text(p.supplierId.toString()),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),

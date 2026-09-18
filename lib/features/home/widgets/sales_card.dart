@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 
 class SalesCard extends StatelessWidget {
@@ -178,8 +179,7 @@ class _LatestInvoicesList extends StatelessWidget {
               subtitle: Text('${r['date']}'),
               trailing: Text(nf.format((r['total'] as num?) ?? 0),
                   style: const TextStyle(fontWeight: FontWeight.w800)),
-              onTap: () =>
-                  Navigator.pushNamed(context, '/finance/invoices/${r['id']}'),
+              onTap: () => AppRoutes.openInvoice(context, '${r['id']}'),
             );
           },
           separatorBuilder: (_, __) => const Divider(height: 8),
@@ -228,8 +228,7 @@ class _OverdueInvoicesList extends StatelessWidget {
               trailing: Text(nf.format((r['total'] as num?) ?? 0),
                   style: const TextStyle(
                       fontWeight: FontWeight.w800, color: Colors.orange)),
-              onTap: () =>
-                  Navigator.pushNamed(context, '/finance/invoices/${r['id']}'),
+              onTap: () => AppRoutes.openInvoice(context, '${r['id']}'),
             );
           },
           separatorBuilder: (_, __) => const Divider(height: 8),

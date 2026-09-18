@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
@@ -86,7 +87,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
   Future<void> _logout() async {
     await ref.read(authSessionServiceProvider).logout();
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   Future<void> _toggleFreeze(AppUser user) async {
@@ -226,7 +227,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
             tooltip: 'طلبات الاشتراك المعلقة',
             icon: const Icon(Icons.subscriptions),
             onPressed: () {
-              Navigator.pushNamed(context, '/admin-subscriptions');
+              Navigator.pushNamed(context, AppRoutes.adminSubscriptions);
             },
           ),
           IconButton(

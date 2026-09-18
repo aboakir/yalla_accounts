@@ -50,7 +50,7 @@ void main() {
     final required = (schema['required'] as List).cast<String>();
     final props = schema['properties'] as Map<String, dynamic>;
 
-    expect(source, contains("'api_version': 2"));
+    expect(source, contains("'contract_version': 2"));
     expect(source, isNot(contains("'activation_kind': 'FIRST'")));
     expect(required, isNot(contains('activation_kind')));
     expect(props.containsKey('activation_kind'), isFalse);

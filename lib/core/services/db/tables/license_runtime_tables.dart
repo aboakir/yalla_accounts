@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../../../licensing/entitlements/commercial_feature_catalog.dart';
 
 class LicenseRuntimeMode {
   static const activationRequired = 'ACTIVATION_REQUIRED';
@@ -187,6 +188,34 @@ class LicenseRuntimeTables {
     }
   }
 
+  /// Versioned schema upgrades may need to backfill canonical business rows
+  /// while an existing subscription is intentionally READ ONLY. The upgrade
+  /// transaction is trusted internal maintenance, not a user business write.
+  /// Drop only Yalla's commercial write guards for the duration of that
+  /// backfill, then restore the complete current guard set immediately.
+  static Future<void> runTrustedMigrationBackfill(
+    DatabaseExecutor db,
+    Future<void> Function() action,
+  ) async {
+    final triggers = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='trigger' "
+      "AND (name LIKE 'yalla_sec011_ro_%' "
+      "OR name LIKE 'yalla_cr1_feature_%')",
+    );
+    for (final row in triggers) {
+      final name = row['name']?.toString() ?? '';
+      if (_safeIdentifier(name)) {
+        await db.execute('DROP TRIGGER IF EXISTS $name');
+      }
+    }
+
+    try {
+      await action();
+    } finally {
+      await installOperationalTriggers(db);
+    }
+  }
+
   static Future<void> installOperationalTriggers(DatabaseExecutor db) async {
     final rows = await db.rawQuery(
       "SELECT name FROM sqlite_master "
@@ -202,9 +231,26 @@ class LicenseRuntimeTables {
       }
       if (!_safeIdentifier(name)) continue;
 
+      final feature = CommercialFeatureCatalog.forTable(name);
       for (final operation in const <String>['INSERT', 'UPDATE', 'DELETE']) {
+        if (feature != null) {
+          await db.execute('''
+            CREATE TRIGGER IF NOT EXISTS yalla_cr1_feature_${name}_${operation.toLowerCase()}
+            BEFORE $operation ON $name
+            WHEN EXISTS (
+              SELECT 1 FROM license_activation_state
+              WHERE singleton_id=1 AND status='ACTIVE' AND
+                CASE WHEN json_valid(signed_license_envelope_json)=1
+                THEN json_type(signed_license_envelope_json, '\$.payload.entitlements.$feature') IS NOT 'true'
+                ELSE 1 END
+            )
+            BEGIN
+              SELECT RAISE(ABORT, 'SIGNED_FEATURE_REQUIRED:$feature');
+            END;
+          ''');
+        }
         final triggerName =
-            'yalla_sec011_ro_${name}_${operation.toLowerCase()}';
+            'yalla_sec011_ro_${name}_${operation.toLowerCase()}_clock_v5';
         await db.execute('''
           CREATE TRIGGER IF NOT EXISTS $triggerName
           BEFORE $operation ON $name
@@ -219,6 +265,7 @@ class LicenseRuntimeTables {
                   'READ_ONLY_VALIDATION_REQUIRED'
                 )
             )
+            OR ($_clockReadOnlyCondition)
             OR EXISTS (
               SELECT 1 FROM license_validation_state
               WHERE singleton_id = 1
@@ -242,6 +289,32 @@ class LicenseRuntimeTables {
     }
   }
 
+  // Add versioned guards without dropping older protection between statements.
+  // Read the receipt/validation floors too: the first activation can precede
+  // the first runtime refresh. Small clock skew must never extend an expiry.
+  static const _trustedTimeSql = '''
+    max(
+      COALESCE((SELECT julianday(effective_at) FROM license_runtime_state WHERE singleton_id=1),0),
+      COALESCE((SELECT julianday(last_online_validation_at) FROM license_activation_state WHERE singleton_id=1),0),
+      COALESCE((SELECT julianday(server_time_at_success) FROM license_validation_state WHERE singleton_id=1),0)
+    )
+  ''';
+  static const _clockReadOnlyCondition = '''
+    ($_trustedTimeSql) > julianday('now', '+2 minutes')
+    OR EXISTS (
+      SELECT 1 FROM license_runtime_state WHERE singleton_id=1
+      AND julianday(license_expires_at) <= max(julianday('now'), ($_trustedTimeSql))
+    )
+    OR EXISTS (
+      SELECT 1 FROM license_activation_state WHERE singleton_id=1 AND status='ACTIVE'
+      AND julianday(license_expires_at) <= max(julianday('now'), ($_trustedTimeSql))
+    )
+    OR EXISTS (
+      SELECT 1 FROM license_validation_state WHERE singleton_id=1
+      AND julianday(validation_grace_until) <= max(julianday('now'), ($_trustedTimeSql))
+    )
+  ''';
+
   static Future<void> _installUserTriggers(DatabaseExecutor db) async {
     const readOnlyCondition = '''
       EXISTS (
@@ -254,6 +327,7 @@ class LicenseRuntimeTables {
             'READ_ONLY_VALIDATION_REQUIRED'
           )
       )
+      OR ($_clockReadOnlyCondition)
       OR EXISTS (
         SELECT 1 FROM license_validation_state
         WHERE singleton_id = 1
@@ -269,7 +343,7 @@ class LicenseRuntimeTables {
     ''';
 
     await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_insert
+      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_insert_clock_v5
       BEFORE INSERT ON users
       WHEN $readOnlyCondition
       BEGIN
@@ -281,7 +355,7 @@ class LicenseRuntimeTables {
     ''');
 
     await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_delete
+      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_delete_clock_v5
       BEFORE DELETE ON users
       WHEN $readOnlyCondition
       BEGIN
@@ -296,7 +370,7 @@ class LicenseRuntimeTables {
     // still sign in and recover access. Business identity, role, status and
     // workshop/subscription fields cannot be changed in READ ONLY.
     await db.execute('''
-      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_business_update
+      CREATE TRIGGER IF NOT EXISTS yalla_sec011_ro_users_business_update_clock_v5
       BEFORE UPDATE ON users
       WHEN ($readOnlyCondition) AND (
         NEW.name IS NOT OLD.name OR

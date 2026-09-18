@@ -27,7 +27,9 @@ VerifiedLicense license(String status, DateTime now,
         entitlements: const {
           'ACCOUNTING_CORE': true,
           'MAX_USERS': 5,
-          'MAX_DEVICES': 2
+          'MAX_DEVICES': 2,
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
         },
         validationRequiredAt: now.subtract(const Duration(days: 1)),
         validationGraceUntil: grace ?? now.add(const Duration(days: 7)),
@@ -121,6 +123,186 @@ void main() {
     expect(SubscriptionAccessPolicy.mode(license(' trial ', now), now),
         'WRITABLE');
   });
+  test('local clock rollback behind trusted server time fails closed',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('stage46_clock_');
+    final db = await DatabaseMigration.initDatabase(
+        pathOverride: '${dir.path}/test.db');
+    final orgId = (await db.query('organizations')).first['id'].toString();
+    final trusted = DateTime.now().toUtc();
+    final repo = Repository()
+      ..value = license('ACTIVE', trusted, organizationId: orgId);
+    final service = LicenseRuntimeService(
+        databaseProvider: () async => db, activationStateRepository: repo);
+    try {
+      await service.projectServerLifecycleDecision(
+          license: repo.value!, serverTime: trusted);
+      final rolledBack = await service.refreshFromStoredLicense(
+          now: trusted.subtract(const Duration(hours: 1)));
+      expect(rolledBack.mode, 'READ_ONLY_VALIDATION_REQUIRED');
+      expect(rolledBack.reason, contains('clock'));
+    } finally {
+      await db.close();
+      await dir.delete(recursive: true);
+    }
+  });
+
+  test('DB trigger blocks writes when trusted licensing time is in the future',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('stage46_clock_db_');
+    final db = await DatabaseMigration.initDatabase(
+        pathOverride: '${dir.path}/test.db');
+    final orgId = (await db.query('organizations')).first['id'].toString();
+    final trustedFuture = DateTime.now().toUtc().add(const Duration(hours: 1));
+    final repo = Repository()
+      ..value = license('ACTIVE', trustedFuture, organizationId: orgId);
+    final service = LicenseRuntimeService(
+        databaseProvider: () async => db, activationStateRepository: repo);
+    try {
+      await service.projectServerLifecycleDecision(
+          license: repo.value!, serverTime: trustedFuture);
+      await expectLater(
+          db.insert('clients', {'name': 'blocked-clock', 'type': 'individual'}),
+          throwsA(anything));
+      expect(await db.query('clients'), isEmpty);
+      final correctedServerTime = DateTime.now().toUtc();
+      await service.projectServerLifecycleDecision(
+          license: repo.value!, serverTime: correctedServerTime);
+      await db.insert('clients',
+          {'name': 'allowed-after-validation', 'type': 'individual'});
+      expect((await db.query('clients')).length, 1);
+    } finally {
+      await db.close();
+      await dir.delete(recursive: true);
+    }
+  });
+
+  test('clock tolerance is monotonic and cannot reopen expiry or grace',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('stage46_tolerance_');
+    final db = await DatabaseMigration.initDatabase(
+        pathOverride: '${dir.path}/test.db');
+    addTearDown(() async {
+      await db.close();
+      await dir.delete(recursive: true);
+    });
+    final org = (await db.query('organizations')).single['id'] as String;
+    final trusted = DateTime.now().toUtc();
+    final repo = Repository()
+      ..value = license('ACTIVE', trusted, organizationId: org);
+    final service = LicenseRuntimeService(
+        databaseProvider: () async => db, activationStateRepository: repo);
+    await service.projectServerLifecycleDecision(
+        license: repo.value!, serverTime: trusted);
+    for (var i = 0; i < 3; i++) {
+      final result = await service.refreshFromStoredLicense(
+          now: trusted.subtract(const Duration(seconds: 90)));
+      expect(result.mode, 'WRITABLE');
+      final floor = DateTime.parse((await db.query('license_runtime_state'))
+          .single['effective_at'] as String);
+      expect(floor.isBefore(trusted), isFalse);
+    }
+    for (final status in ['ACTIVE', 'TRIAL', 'GRACE']) {
+      repo.value = license(status, trusted,
+          organizationId: org,
+          expiry: trusted.subtract(const Duration(seconds: 30)));
+      expect(
+          (await service.refreshFromStoredLicense(
+                  now: trusted.subtract(const Duration(seconds: 90))))
+              .mode,
+          'READ_ONLY_EXPIRED');
+    }
+    repo.value = license('ACTIVE', trusted,
+        organizationId: org,
+        grace: trusted.subtract(const Duration(seconds: 30)));
+    expect(
+        (await service.refreshFromStoredLicense(
+                now: trusted.subtract(const Duration(seconds: 90))))
+            .mode,
+        'READ_ONLY_VALIDATION_REQUIRED');
+  });
+
+  test(
+      'DB receipt clock floor is enforced before runtime refresh; technical operations survive',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('stage46_receipt_clock_');
+    final db = await DatabaseMigration.initDatabase(
+        pathOverride: '${dir.path}/test.db');
+    addTearDown(() async {
+      await db.close();
+      await dir.delete(recursive: true);
+    });
+    final org = (await db.query('organizations')).single['id'] as String;
+    final trusted = DateTime.now().toUtc().add(const Duration(hours: 1));
+    await db.insert('users', {
+      'id': 'clock-owner',
+      'name': 'owner',
+      'password': 'test',
+      'role': 'owner',
+      'is_owner': 1,
+      'status': 'active',
+      'organization_id': org
+    });
+    final repo = Repository()
+      ..value = license('ACTIVE', trusted, organizationId: org);
+    final service = LicenseRuntimeService(
+        databaseProvider: () async => db, activationStateRepository: repo);
+    await service.projectServerLifecycleDecision(
+        license: repo.value!, serverTime: trusted);
+    // Emulate a runtime projection not yet refreshed after the trusted receipt.
+    await db.update('license_runtime_state',
+        {'effective_at': DateTime.now().toUtc().toIso8601String()});
+    await expectLater(
+        db.insert('clients', {'name': 'denied', 'type': 'individual'}),
+        throwsA(anything));
+    await expectLater(db.update('users', {'role': 'admin'}), throwsA(anything));
+    await db.update(
+        'users', {'failed_login_count': 0, 'password': 'recovered-test'});
+    await db.update('backup_guardian_settings', {'weekly_enabled': 1});
+    await db.insert('app_audit_events', {
+      'created_at': trusted.toIso8601String(),
+      'action': 'BACKUP_CREATED',
+      'entity_type': 'BACKUP'
+    });
+    await service.projectServerLifecycleDecision(
+        license: repo.value!, serverTime: DateTime.now().toUtc());
+    await db.insert('clients', {'name': 'corrected', 'type': 'individual'});
+    expect((await db.query('clients')).length, 1);
+  });
+
+  test('SQL tolerates small skew but never reopens an already expired license',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('stage46_sql_skew_');
+    final db = await DatabaseMigration.initDatabase(
+        pathOverride: '${dir.path}/test.db');
+    addTearDown(() async {
+      await db.close();
+      await dir.delete(recursive: true);
+    });
+    final org = (await db.query('organizations')).single['id'] as String;
+    final trusted = DateTime.now().toUtc().add(const Duration(seconds: 90));
+    final repo = Repository()
+      ..value = license('ACTIVE', trusted, organizationId: org);
+    final service = LicenseRuntimeService(
+        databaseProvider: () async => db, activationStateRepository: repo);
+    await service.projectServerLifecycleDecision(
+        license: repo.value!, serverTime: trusted);
+    await db
+        .insert('clients', {'name': 'within tolerance', 'type': 'individual'});
+    repo.value = license('TRIAL', trusted,
+        organizationId: org,
+        expiry: trusted.subtract(const Duration(seconds: 30)));
+    await service.projectServerLifecycleDecision(
+        license: repo.value!, serverTime: trusted);
+    // Adversarial stale writable projection; SQL must still use the floor.
+    await db.update('license_runtime_state', {'mode': 'WRITABLE'});
+    await expectLater(
+        db.insert('clients',
+            {'name': 'expired even within tolerance', 'type': 'individual'}),
+        throwsA(anything));
+    expect((await db.query('clients')).length, 1);
+  });
+
   test('missing or invalid signed license cannot authorize writes', () async {
     final dir = await Directory.systemTemp.createTemp('stage46_invalid_');
     final db = await DatabaseMigration.initDatabase(

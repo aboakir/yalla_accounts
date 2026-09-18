@@ -146,6 +146,7 @@ class _SupplierAccountScreenState extends State<SupplierAccountScreen> {
     required bool detailed,
   }) async {
     final bytes = await _pdf(statement, detailed: detailed);
+    if (!mounted) return;
     final fileName = detailed
         ? 'supplier_statement_${widget.supplierId}_detailed.pdf'
         : 'supplier_statement_${widget.supplierId}_summary.pdf';

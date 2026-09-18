@@ -22,6 +22,8 @@ VerifiedLicense _license({
     entitlementRevision: 12,
     entitlements: entitlements ??
         const <String, Object?>{
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
           'ACCOUNTING_CORE': true,
           'MAX_USERS': 5,
           'MAX_DEVICES': 2,
@@ -45,18 +47,33 @@ void main() {
     final noAccounting = CommercialEntitlementPolicy.evaluate(
       _license(
         entitlements: const <String, Object?>{
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
           'ACCOUNTING_CORE': false,
           'MAX_USERS': 5,
           'MAX_DEVICES': 2,
         },
       ),
     );
-    expect(noAccounting.valid, isFalse);
-    expect(noAccounting.code, 'ACCOUNTING_CORE_NOT_ENTITLED');
+    expect(noAccounting.valid, isTrue);
+    expect(
+        CommercialEntitlementPolicy.isEnabled(
+          _license(entitlements: const <String, Object?>{
+            'PLAN_CODE': 'PARTS_ONLY',
+            'ACCESS_ALLOWED': true,
+            'ACCOUNTING_CORE': false,
+            'MAX_USERS': 5,
+            'MAX_DEVICES': 2,
+          }),
+          'ACCOUNTING_CORE',
+        ),
+        isFalse);
 
     final badUsers = CommercialEntitlementPolicy.evaluate(
       _license(
         entitlements: const <String, Object?>{
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
           'ACCOUNTING_CORE': true,
           'MAX_USERS': 0,
           'MAX_DEVICES': 2,
@@ -69,6 +86,8 @@ void main() {
     final badDevices = CommercialEntitlementPolicy.evaluate(
       _license(
         entitlements: const <String, Object?>{
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
           'ACCOUNTING_CORE': true,
           'MAX_USERS': 5,
           'MAX_DEVICES': '2',
@@ -81,6 +100,8 @@ void main() {
     final badFeature = CommercialEntitlementPolicy.evaluate(
       _license(
         entitlements: const <String, Object?>{
+          'PLAN_CODE': 'PRO',
+          'ACCESS_ALLOWED': true,
           'ACCOUNTING_CORE': true,
           'MAX_USERS': 5,
           'MAX_DEVICES': 2,
@@ -90,6 +111,26 @@ void main() {
     );
     expect(badFeature.valid, isFalse);
     expect(badFeature.code, 'ENTITLEMENT_TYPE_INVALID');
+
+    final badPlan = CommercialEntitlementPolicy.evaluate(_license(
+      entitlements: const <String, Object?>{
+        'PLAN_CODE': '',
+        'ACCESS_ALLOWED': true,
+        'MAX_USERS': 5,
+        'MAX_DEVICES': 2,
+      },
+    ));
+    expect(badPlan.code, 'PLAN_CODE_INVALID');
+
+    final badAccess = CommercialEntitlementPolicy.evaluate(_license(
+      entitlements: const <String, Object?>{
+        'PLAN_CODE': 'PRO',
+        'ACCESS_ALLOWED': 'yes',
+        'MAX_USERS': 5,
+        'MAX_DEVICES': 2,
+      },
+    ));
+    expect(badAccess.code, 'ACCESS_ALLOWED_INVALID');
   });
 
   test('Stage 04 commercial gate consumes signed entitlement policy', () {
@@ -100,7 +141,8 @@ void main() {
     final policy = read(
       'lib/core/licensing/entitlements/commercial_entitlement_policy.dart',
     );
-    expect(policy, contains("'ACCOUNTING_CORE_NOT_ENTITLED'"));
+    expect(policy, contains("'PLAN_CODE_INVALID'"));
+    expect(policy, contains("'ACCESS_ALLOWED_INVALID'"));
     expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),
         contains("'ACTIVE'"));
     expect(read('lib/core/licensing/lifecycle/subscription_access_policy.dart'),

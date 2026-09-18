@@ -234,37 +234,6 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
     if (mounted) setState(() {});
   }
 
-  // ===== Sidebar on mobile: custom right panel =====
-  Future<void> _openSidebarPanel() async {
-    await showGeneralDialog(
-      context: context,
-      barrierLabel: 'sidebar',
-      barrierDismissible: true,
-      barrierColor: Colors.black38,
-      transitionDuration: const Duration(milliseconds: 220),
-      pageBuilder: (_, __, ___) {
-        return Align(
-          alignment: Alignment.centerRight,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 300,
-              height: MediaQuery.of(context).size.height,
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: const YallaSidebar(currentRoute: '/employees/salary'),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (_, anim, __, child) {
-        final offset = Tween<Offset>(
-                begin: const Offset(1, 0), end: Offset.zero)
-            .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
-        return SlideTransition(position: offset, child: child);
-      },
-    );
-  }
-
   Widget _settingsBanner(BuildContext context) {
     final wsAsync = ref.watch(workshopSettingsProvider);
     return wsAsync.when(
@@ -333,12 +302,6 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
       showUserAvatar: true,
       showSearch: false,
       showNotifications: false,
-      leading: isDesktop
-          ? null
-          : IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: _openSidebarPanel,
-            ),
       extraActions: [
         Padding(
           padding: const EdgeInsets.only(right: 8.0),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show NumberFormat, DateFormat;
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 String voucherMethodLabel(Object? raw) {
@@ -178,7 +179,7 @@ class VoucherListPhone extends StatelessWidget {
             Text(numberLabel(row),
                 style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 10),
-            Text('${money((row['amount'] as num?) ?? 0)} ₪',
+            Text(MoneyFormatter.format((row['amount'] as num?) ?? 0),
                 textDirection: TextDirection.ltr,
                 textAlign: TextAlign.right,
                 style: TextStyle(

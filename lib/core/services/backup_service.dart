@@ -162,7 +162,7 @@ class BackupService {
     await validateDatabaseCandidate(dst);
 
     if (alsoShare) {
-      await Share.shareXFiles([XFile(dst)], text: 'Yalla Accounts DB Backup');
+      await Share.shareXFiles([XFile(dst)], text: 'Yallah Accounts DB Backup');
     }
     return dst;
   }
@@ -188,7 +188,7 @@ class BackupService {
       ..sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
     if (files.isEmpty) throw StateError('لا توجد نسخة احتياطية سابقة.');
     await Share.shareXFiles([XFile(files.first.path)],
-        text: 'Yalla Accounts Backup');
+        text: 'Yallah Accounts Backup');
   }
 
   // -----------------------------------------------------------------------
@@ -418,8 +418,8 @@ class BackupService {
         : '';
     final shareResult = await Share.shareXFiles(
       [XFile(file.path)],
-      subject: 'Yalla Accounts — نسخة احتياطية مشفرة',
-      text: 'نسخة Yalla Accounts مشفرة بالكامل.'
+      subject: 'Yallah Accounts — نسخة احتياطية مشفرة',
+      text: 'نسخة Yallah Accounts مشفرة بالكامل.'
           '${email == null || email.isEmpty ? '' : '\nالبريد المستهدف: $email'}'
           '$sizeNote\nاحتفظ بكلمة حماية النسخ في مكان منفصل.',
     );
@@ -710,7 +710,7 @@ class BackupService {
       ]) {
         if (!names.contains(required)) {
           throw StateError(
-              'Backup is not a Yalla Accounts database: missing table $required.');
+              'Backup is not a Yallah Accounts database: missing table $required.');
         }
       }
       return version;

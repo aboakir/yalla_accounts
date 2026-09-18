@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 class FinancialTableCard extends StatelessWidget {
   final String title;
@@ -95,18 +96,7 @@ class FinancialTableCard extends StatelessWidget {
                 size: 18, color: Colors.blueGrey),
           ],
         ),
-        onTap: () {
-          try {
-            Navigator.pushNamed(context, route);
-          } on FlutterError catch (_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('المسار غير متاح حالياً: $route'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        },
+        onTap: () => AppRoutes.pushNamedSafe(context, route),
       ),
     );
   }

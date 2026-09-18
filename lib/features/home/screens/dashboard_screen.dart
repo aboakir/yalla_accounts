@@ -62,7 +62,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               arguments: repair);
         }
       } else {
-        await Navigator.pushNamed(context, route);
+        await AppRoutes.pushNamedSafe(context, route);
       }
       if (mounted) await _load();
     } catch (_) {

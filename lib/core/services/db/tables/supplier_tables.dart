@@ -3,8 +3,8 @@
 // Supplier schema: additive upgrades preserve contact details and account links.
 // -----------------------------------------------------------------------------
 
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:flutter/foundation.dart';
 
 class SupplierTables {
   // ===========================================================================
@@ -51,7 +51,8 @@ class SupplierTables {
     }
     await db.execute(
         "UPDATE suppliers SET pid='S' || printf('%04d',id) WHERE pid IS NULL OR TRIM(pid)=''");
-    debugPrint('Supplier contact details and account links preserved');
+    ReleaseDiagnostics.debug(
+        'Supplier contact details and account links preserved');
   }
 
   // ===========================================================================
@@ -108,6 +109,7 @@ class SupplierTables {
     if (r.isNotEmpty) return;
 
     await db.insert('suppliers', {'name': 'المصاريف العامة'});
-    debugPrint("✔ Created default supplier: المصاريف العامة (S0000)");
+    ReleaseDiagnostics.debug(
+        "✔ Created default supplier: المصاريف العامة (S0000)");
   }
 }

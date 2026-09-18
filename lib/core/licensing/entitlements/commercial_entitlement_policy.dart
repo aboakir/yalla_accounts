@@ -38,10 +38,20 @@ class CommercialEntitlementPolicy {
   static CommercialEntitlementDecision evaluate(VerifiedLicense license) {
     final entitlements = license.entitlements;
 
-    if (entitlements['ACCOUNTING_CORE'] != true) {
+    final planCode = entitlements['PLAN_CODE'];
+    if (planCode is! String ||
+        planCode.trim().isEmpty ||
+        planCode.length > 80) {
       return const CommercialEntitlementDecision.invalid(
-        code: 'ACCOUNTING_CORE_NOT_ENTITLED',
-        message: 'The signed license does not enable ACCOUNTING_CORE.',
+        code: 'PLAN_CODE_INVALID',
+        message: 'PLAN_CODE must be a non-empty signed string.',
+      );
+    }
+
+    if (entitlements['ACCESS_ALLOWED'] is! bool) {
+      return const CommercialEntitlementDecision.invalid(
+        code: 'ACCESS_ALLOWED_INVALID',
+        message: 'ACCESS_ALLOWED must be a signed boolean.',
       );
     }
 
@@ -70,7 +80,16 @@ class CommercialEntitlementPolicy {
           message: 'Signed entitlement keys must not be empty.',
         );
       }
-
+      if (key == 'PLAN_CODE') continue;
+      if (key == 'ACCESS_ALLOWED') {
+        if (value is! bool) {
+          return const CommercialEntitlementDecision.invalid(
+            code: 'ACCESS_ALLOWED_INVALID',
+            message: 'ACCESS_ALLOWED must be a signed boolean.',
+          );
+        }
+        continue;
+      }
       if (key.startsWith('MAX_')) {
         if (value is! int || value < 0) {
           return const CommercialEntitlementDecision.invalid(
@@ -80,7 +99,6 @@ class CommercialEntitlementPolicy {
         }
         continue;
       }
-
       if (value is! bool) {
         return const CommercialEntitlementDecision.invalid(
           code: 'ENTITLEMENT_TYPE_INVALID',
@@ -103,5 +121,17 @@ class CommercialEntitlementPolicy {
     if (!decision.valid) return null;
     final value = license.entitlements[entitlementKey];
     return value is int ? value : null;
+  }
+
+  static String? planCode(VerifiedLicense license) {
+    final decision = evaluate(license);
+    if (!decision.valid) return null;
+    return (license.entitlements['PLAN_CODE'] as String).trim();
+  }
+
+  static bool? accessAllowed(VerifiedLicense license) {
+    final decision = evaluate(license);
+    if (!decision.valid) return null;
+    return license.entitlements['ACCESS_ALLOWED'] as bool;
   }
 }

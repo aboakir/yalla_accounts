@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 
 class RecentRepairs extends StatelessWidget {
@@ -42,7 +43,7 @@ class RecentRepairs extends StatelessWidget {
                         '${r['beneficiaryName'] ?? ''} • ${r['receivedDate'] ?? ''} • ${r['status'] ?? ''}'),
                     trailing: const Icon(Icons.chevron_left),
                     onTap: () =>
-                        Navigator.pushNamed(context, '/repairs/${r['id']}'),
+                        AppRoutes.openRepairById(context, '${r['id']}'),
                   );
                 }).toList(),
               );

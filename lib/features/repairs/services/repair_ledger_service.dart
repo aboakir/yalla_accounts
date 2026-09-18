@@ -18,7 +18,6 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/models/ledger_entry.dart';
 import 'package:yalla_accounts/features/finance/services/ledger_database_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
-import 'package:yalla_accounts/features/finance/services/work_cost_calculator.dart';
 
 class RepairLedgerService {
   static const String _refType = 'Repair'; // توحيد الكابيتالايزيشن
@@ -33,9 +32,8 @@ class RepairLedgerService {
         (repair.finalApprovedAmount ?? repair.totalFileValue);
     if (revenueAmount <= 0) return;
 
-    // 3) تكلفة العمل (إن لم تكن مخزنة نحسبها للشهر)
-    final double costAmount = (repair.workCost ??
-        await WorkCostCalculator.calculateForMonth(repair.receivedDate));
+    // 3) تكلفة الملف الفعلية فقط. يمنع استخدام أي تقدير شهري للعمل.
+    final double costAmount = repair.workCost ?? 0.0;
 
     final String isoDate = repair.receivedDate.toIso8601String();
     final String displayName = repair.beneficiaryName;

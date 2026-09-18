@@ -28,8 +28,12 @@ void main() {
       RegExp(r'await _assertInvoiceMutable\(txn, id\);')
           .allMatches(source)
           .length,
-      greaterThanOrEqualTo(2),
+      greaterThanOrEqualTo(1),
     );
+    expect(source.contains('FinancialVoidService.voidInvoice('), isTrue);
+    expect(
+        source.contains('RepairAutoAccountingService.deleteRepair('), isTrue);
+    expect(source.contains("txn.delete('invoices'"), isFalse);
   });
 
   test('Group 2 mobile shell exposes truthful sync strip', () {

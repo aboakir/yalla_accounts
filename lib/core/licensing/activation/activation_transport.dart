@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/device_identity/device_identity.dart';
+import 'package:yalla_accounts/core/licensing/customer_bearer_token_provider.dart';
 
 class ActivationTransportException implements Exception {
   const ActivationTransportException(this.message, {this.statusCode});
@@ -17,6 +18,7 @@ class ActivationTransportException implements Exception {
 
 class ActivationChallenge {
   const ActivationChallenge({
+    this.installationId,
     required this.challengeId,
     required this.idempotencyKey,
     required this.proofBytesBase64Url,
@@ -24,6 +26,7 @@ class ActivationChallenge {
   });
 
   final String challengeId;
+  final String? installationId;
   final String idempotencyKey;
   final String proofBytesBase64Url;
   final DateTime expiresAt;
@@ -62,6 +65,7 @@ abstract class ActivationTransport {
 
 class HttpActivationTransport implements ActivationTransport {
   HttpActivationTransport({
+    this.bearerTokenProvider,
     Uri? baseUri,
     HttpClient? httpClient,
     this.timeout = const Duration(seconds: 15),
@@ -70,6 +74,7 @@ class HttpActivationTransport implements ActivationTransport {
         _httpClient = httpClient ?? HttpClient();
 
   final Uri? _baseUri;
+  final CustomerBearerTokenProvider? bearerTokenProvider;
   final HttpClient _httpClient;
   final Duration timeout;
   final bool allowInsecureLoopbackForTesting;
@@ -82,29 +87,31 @@ class HttpActivationTransport implements ActivationTransport {
   }
 
   @override
-  bool get isConfigured => _baseUri != null;
+  bool get isConfigured => _baseUri != null && bearerTokenProvider != null;
 
   @override
   Future<ActivationChallenge> beginFirstActivation({
     required String activationCode,
     required DeviceIdentity identity,
   }) async {
-    final code = activationCode.trim().toUpperCase();
-    if (code.length < 12 || code.length > 96) {
+    final code = activationCode.trim();
+    if (code.length < 32 || code.length > 128) {
       throw const ActivationTransportException(
           'Invalid activation code format.');
     }
     final idempotency = const Uuid().v4();
     final response = await _post(
-      '/v1/activations/challenge',
+      '/v1/accounts-integration/activation/challenge',
       {
-        'api_version': 2,
+        'contract_version': 2,
         'activation_code': code,
         'idempotency_key': idempotency,
         'device': identity.toRegistrationPayload(),
       },
+      identity.installationId,
     );
     return ActivationChallenge(
+      installationId: identity.installationId,
       challengeId: _requiredString(response, 'challenge_id'),
       idempotencyKey: response['idempotency_key']?.toString() ?? idempotency,
       proofBytesBase64Url: _requiredString(response, 'proof_bytes'),
@@ -121,9 +128,9 @@ class HttpActivationTransport implements ActivationTransport {
       throw const ActivationTransportException('Activation challenge expired.');
     }
     final response = await _post(
-      '/v1/activations/complete',
+      '/v1/accounts-integration/activation/complete',
       {
-        'api_version': 2,
+        'contract_version': 2,
         'challenge_id': challenge.challengeId,
         'idempotency_key': challenge.idempotencyKey,
         'device_id': proof.deviceId,
@@ -132,6 +139,7 @@ class HttpActivationTransport implements ActivationTransport {
           'signature': proof.signatureBase64Url,
         },
       },
+      challenge.installationId,
     );
     return ActivationCompletion(
       activationId: _requiredString(response, 'activation_id'),
@@ -144,6 +152,7 @@ class HttpActivationTransport implements ActivationTransport {
   Future<Map<String, Object?>> _post(
     String path,
     Map<String, Object?> body,
+    String? installationId,
   ) async {
     final base = _baseUri;
     if (base == null) {
@@ -152,12 +161,26 @@ class HttpActivationTransport implements ActivationTransport {
       );
     }
     _assertSecureBaseUri(base);
+    final token = await bearerTokenProvider?.call().timeout(timeout);
+    if (token == null ||
+        !RegExp(r'^[A-Za-z0-9._~-]{32,4096}$').hasMatch(token)) {
+      throw const ActivationTransportException(
+          'Authenticated customer session is required.');
+    }
     final uri = base.resolve(path);
+    if (installationId == null || installationId.isEmpty) {
+      throw const ActivationTransportException(
+          'Installation identity is required.');
+    }
     try {
       final request = await _httpClient.postUrl(uri).timeout(timeout);
+      request.followRedirects = false;
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      request.headers.set('X-Yalla-Installation-Id', installationId);
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set('x-yalla-client', 'yalla-accounts-desktop');
+      request.headers.set('x-yalla-contract-version', '2');
       request.write(jsonEncode(body));
       final response = await request.close().timeout(timeout);
       final raw = await utf8.decoder.bind(response).join().timeout(timeout);
@@ -187,6 +210,11 @@ class HttpActivationTransport implements ActivationTransport {
               : 'Activation request rejected.',
           statusCode: response.statusCode,
         );
+      }
+      if (map['contract_version'] != 2 ||
+          response.headers.value('x-yalla-contract-version') != '2') {
+        throw const ActivationTransportException(
+            'Unsupported licensing contract version.');
       }
       return map;
     } on ActivationTransportException {

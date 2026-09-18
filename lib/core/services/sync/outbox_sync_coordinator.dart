@@ -8,6 +8,7 @@ import 'package:synchronized/synchronized.dart';
 import '../db_service.dart';
 import '../offline_outbox_service.dart';
 import 'outbox_sync_transport.dart';
+import 'sync_foundation_service.dart';
 import 'sync_state_service.dart';
 
 class OutboxDrainResult {
@@ -33,6 +34,7 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
   OutboxSyncCoordinator({
     required SyncStateService status,
     this.sendTimeout = const Duration(seconds: 20),
+    this.retryInterval = const Duration(seconds: 30),
   }) : _status = status;
 
   static final OutboxSyncCoordinator instance = OutboxSyncCoordinator(
@@ -41,9 +43,11 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
 
   final SyncStateService _status;
   final Duration sendTimeout;
+  final Duration retryInterval;
   final Lock _drainLock = Lock();
 
   OutboxSyncTransport? _transport;
+  Timer? _retryTimer;
   bool _started = false;
 
   bool get transportConfigured => _transport != null;
@@ -53,8 +57,13 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
     _started = true;
     WidgetsBinding.instance.addObserver(this);
     _status.setTransportConfigured(transportConfigured);
+    final db = await DBService.database;
+    await OfflineOutboxService.resetInterruptedSending(db);
     await _status.start();
-    await drain();
+    await drain(database: db);
+    _retryTimer = Timer.periodic(retryInterval, (_) {
+      unawaited(drain());
+    });
   }
 
   void configureTransport(OutboxSyncTransport transport) {
@@ -66,6 +75,14 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
   void clearTransport() {
     _transport = null;
     _status.setTransportConfigured(false);
+  }
+
+  Future<void> stop() async {
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    WidgetsBinding.instance.removeObserver(this);
+    _started = false;
+    await _status.dispose();
   }
 
   @override
@@ -99,6 +116,7 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
       var sent = 0;
       var failed = 0;
 
+      await SyncFoundationService.materializeMissingOutbox(db);
       final ready = await OfflineOutboxService.ready(db: db);
       if (ready.isEmpty) {
         final stats = await OfflineOutboxService.queueStats(db);
@@ -124,7 +142,14 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
         }
 
         try {
-          final envelope = OutboxSyncEnvelope.fromRow(row);
+          final metadata = await SyncFoundationService.metadataForOutbox(
+            db,
+            messageId,
+          );
+          final envelope = OutboxSyncEnvelope.fromRow({
+            ...row,
+            if (metadata != null) ...metadata,
+          });
 
           await OfflineOutboxService.markSending(db, envelope.id);
           final stats = await OfflineOutboxService.queueStats(db);

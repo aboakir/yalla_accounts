@@ -39,6 +39,8 @@ class _FakeActivationStateRepository extends ActivationStateRepository {
 VerifiedLicense _license({
   required String organizationId,
   Object? maxUsers = 2,
+  String status = 'ACTIVE',
+  bool accessAllowed = true,
 }) {
   final now = DateTime.now().toUtc();
   return VerifiedLicense(
@@ -52,11 +54,14 @@ VerifiedLicense _license({
     expiresAt: now.add(const Duration(days: 30)),
     entitlementRevision: 9,
     entitlements: <String, Object?>{
+      'PLAN_CODE': 'PRO',
+      'ACCESS_ALLOWED': accessAllowed,
       'MAX_USERS': maxUsers,
       'MAX_DEVICES': 2,
     },
     validationRequiredAt: now.add(const Duration(days: 30)),
     validationGraceUntil: now.add(const Duration(days: 37)),
+    operationalStatus: status,
   );
 }
 
@@ -114,6 +119,19 @@ void main() {
     );
   });
 
+  test('restrictive signed states cannot authorize new seats', () {
+    for (final status in ['SUSPENDED', 'EXPIRED', 'CANCELLED']) {
+      expect(
+          () => LicensedUserSeatService.fromVerifiedLicense(
+              _license(organizationId: 'org', status: status)),
+          throwsA(isA<LicensedUserSeatException>()));
+    }
+    expect(
+        () => LicensedUserSeatService.fromVerifiedLicense(
+            _license(organizationId: 'org', accessAllowed: false)),
+        throwsA(isA<LicensedUserSeatException>()));
+  });
+
   test('SEC.009 enforces active seats on create and reactivation', () async {
     final temp = await Directory.systemTemp.createTemp('yalla_sec009_seats_');
     final path = '${temp.path}${Platform.pathSeparator}seats.db';
@@ -168,7 +186,7 @@ void main() {
           id: '',
           name: 'employee009',
           email: '',
-          role: RoleKeys.employee,
+          role: RoleKeys.staff,
           status: 'active',
           createdAt: DateTime.now(),
         ),
@@ -181,7 +199,7 @@ void main() {
             id: '',
             name: 'blocked009',
             email: '',
-            role: RoleKeys.technician,
+            role: RoleKeys.viewer,
             status: 'active',
             createdAt: DateTime.now(),
           ),
@@ -201,7 +219,7 @@ void main() {
           id: '',
           name: 'frozen009',
           email: '',
-          role: RoleKeys.technician,
+          role: RoleKeys.viewer,
           status: 'frozen',
           createdAt: DateTime.now(),
         ),
@@ -238,6 +256,21 @@ void main() {
         "SELECT COUNT(*) AS c FROM users WHERE status = 'active'",
       );
       expect((active.single['c'] as num).toInt(), 2);
+      final retainedUsers = await db.query('users', orderBy: 'id');
+      final downgradedUsers = UserService(
+        databaseProvider: provider,
+        userSeatEntitlementProvider: _FixedSeatProvider(
+            LicensedUserSeatService.fromVerifiedLicense(
+                _license(organizationId: organizationId, maxUsers: 1))),
+      );
+      await expectLater(
+        downgradedUsers.updateStatus(employee['id']!.toString(), 'active'),
+        throwsA(isA<LicensedUserSeatException>()
+            .having((e) => e.code, 'code', 'SEAT_LIMIT_REACHED')),
+      );
+      expect(await db.query('users', orderBy: 'id'), retainedUsers,
+          reason:
+              'lower signed quota blocks new seats; never deletes existing users');
       expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
       expect(
         (await db.rawQuery('PRAGMA integrity_check')).first.values.first,

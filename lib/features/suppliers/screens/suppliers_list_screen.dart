@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------
 // 📁 lib/features/suppliers/screens/supplier_list_screen.dart
-// شاشة قائمة الموردين — النسخة النهائية Yalla Accounts
+// شاشة قائمة الموردين — النسخة النهائية Yallah Accounts
 // -----------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
@@ -164,12 +164,12 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
 
             if (value == "account") {
               // شاشة كشف حساب المورد (سيتم ربطها لاحقًا)
-              // Navigator.pushNamed(context, '/suppliers/account', arguments: s);
+              // الحساب التفصيلي يفتح من مسار ذمم المورد المسجل مركزيًا.
             }
 
             if (value == "payables") {
               // صفحة ذمم المورد (سيتم إضافتها لاحقًا)
-              // Navigator.pushNamed(context, '/suppliers/payables', arguments: s);
+              // يمنع استخدام أي Route نصي غير مسجل من هذه الشاشة.
             }
           },
           itemBuilder: (context) => [

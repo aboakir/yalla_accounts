@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
@@ -194,7 +195,8 @@ class _AccountSecurityScreenState extends ConsumerState<AccountSecurityScreen> {
       await ref.read(authSessionServiceProvider).revokeAllForUser(user.id);
       ref.read(currentUserProvider.notifier).state = null;
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
     } catch (e) {
       _showError('تعذر إنهاء الجلسات: $e');
     } finally {
@@ -289,7 +291,7 @@ class _AccountSecurityScreenState extends ConsumerState<AccountSecurityScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(16),
                       child: Text(
-                        'Yalla Accounts لا يعرض كلمة المرور القديمة ولا يخزنها كنص على الكمبيوتر.',
+                        'Yallah Accounts لا يعرض كلمة المرور القديمة ولا يخزنها كنص على الكمبيوتر.',
                       ),
                     ),
                   ),

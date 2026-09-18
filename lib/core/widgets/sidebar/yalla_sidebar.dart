@@ -7,7 +7,6 @@
 // ——————————————————————————————————————————————
 
 import 'package:flutter/material.dart';
-import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -30,7 +29,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   late final Animation<double> _widthAnim;
   bool _isCollapsed = false;
   String _searchQuery = '';
-  final String _version = '';
   bool _isNavigating = false; // Debounce
 
   // ===== Routes =====
@@ -38,23 +36,39 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   // Repairs
   static const rRepairsRoot = '/repairs';
+  static const rRepairsOverview = AppRoutes.repairs;
   static const rRepairsDashboard = '/repairs/dashboard';
   static const rRepairsAdd = '/repairs/add';
   static const rVehiclesList = AppRoutes.vehiclesList;
   static const rRepairReports = '/repairs/reports';
+  static const rRepairAnalytics = AppRoutes.repairAnalytics;
+  static const rVehiclesArrears = AppRoutes.vehiclesArrears;
+  static const rRepairsDebts = AppRoutes.debts;
 
   // Employees
   static const rEmpRoot = '/employees';
   static const rEmpList = '/employees/list';
   static const rEmpAdd = '/employees/add';
-  static const rEmpAdvances = '/employees/list';
   static const rEmpAttendance = '/employees/attendance';
   static const rEmpSalaries = '/employees/salaries';
+  static const rEmpDashboard = AppRoutes.employeeDashboard;
+  static const rReportsPayroll = AppRoutes.reportsPayroll;
+  static const rReportsAdvances = AppRoutes.reportsAdvances;
 
   // Purchases
   static const rPurchRoot = '/purchases';
   static const rPurchList = AppRoutes.purchasesList;
   static const rPurchCreate = '/purchases/create';
+  static const rPurchDashboard = AppRoutes.purchasesDashboard;
+  static const rPurchPayments = AppRoutes.purchasePayments;
+  static const rPurchByMonth = AppRoutes.purchasesByMonth;
+  static const rPurchAging = AppRoutes.purchasesSuppliersAging;
+  static const rPurchUnposted = AppRoutes.purchasesUnposted;
+  static const rPurchAudit = AppRoutes.purchasesGLAudit;
+  static const rPurchTools = AppRoutes.purchaseTools;
+  static const rPurchPaint = AppRoutes.purchasePaint;
+  static const rPurchInsurance = AppRoutes.purchaseInsurance;
+  static const rPurchOther = AppRoutes.purchaseOther;
 
   // Cheques
   static const rChequesRoot = '/cheques';
@@ -83,24 +97,31 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rJournalEntries = '/finance/journal/entries';
   static const rFinanceAccountLedger = '/finance/account-ledger';
   static const rIncomeStatement = '/finance/income-statement';
-  static const rReportsBalanceSheet = '/reports/balance-sheet';
+  static const rExpenses = AppRoutes.expenses;
+  static const rCashAccount = AppRoutes.cashAccount;
+  static const rBankAccount = AppRoutes.bankAccount;
+  static const rFinanceGL = AppRoutes.financeGL;
+  static const rFinanceGeneralJournal = AppRoutes.financeGeneralJournal;
+  static const rReportsBalanceSheet = AppRoutes.reportsBalanceSheet;
 
   // Reports
   static const rReportsRoot = '/reports';
   static const rReportsDashboard = '/reports';
   static const rReportsAttendance = '/reports/attendance';
   static const rReportsTrialBalance = '/reports/trial-balance';
+  static const rReportsARAging = AppRoutes.reportsARAging;
+  static const rReportsGeneralLedger = AppRoutes.reportsGeneralLedger;
 
   // Settings
   static const rSettingsRoot = '/settings';
   static const rSettingsWorkshop = '/settings/workshop';
-  static const rSettingsUser = '/settings/user';
-  static const rSettingsUI = '/settings/ui';
-  static const rSettingsSupport = '/settings/support';
   static const rSettingsSecurityData = '/settings/security-data';
   static const rTechnicalSupport = AppRoutes.technicalSupport;
 
   static const rSubscription = '/subscription';
+  static const rGlobalSearch = AppRoutes.globalSearch;
+  static const rRawMaterials = AppRoutes.rawMaterials;
+  static const rRawMaterialAdd = AppRoutes.rawMaterialAdd;
 
 // ===== السندات المالية =====
   static const rReceiptVoucher = AppRoutes.receiptVoucher;
@@ -181,11 +202,15 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   }
 
   void _navigate(String route) async {
-    print("NAVIGATING TO: $route");
-
     if (_isNavigating || route.isEmpty) return;
 
     if (!mounted) return;
+    if (!AppRoutes.isRegisteredRoute(route)) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('هذا الرابط غير متاح حاليًا.')),
+      );
+      return;
+    }
 
     final compactNavigation = !context.isDesktopWidth;
     final drawerNavigator = Navigator.of(context);
@@ -209,8 +234,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     if (drawerIsOpen && drawerNavigator.canPop()) {
       drawerNavigator.pop();
     }
-
-    print(">>> SIDEBAR NAVIGATE TO: $route");
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!targetNavigator.mounted) {
@@ -355,34 +378,67 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     // 1) إصلاح المركبات
     final repairsItems = [
+      (
+        Icons.dashboard_customize_outlined,
+        'نظرة عامة للإصلاحات',
+        rRepairsOverview
+      ),
       (Icons.dashboard, 'شاشة الإصلاحات', rRepairsDashboard),
+      (
+        Icons.folder_copy_outlined,
+        'قائمة ملفات الإصلاح',
+        AppRoutes.repairsList
+      ),
       (Icons.add, 'إدخال مركبة جديدة', rRepairsAdd),
       (Icons.list, 'قائمة المركبات', rVehiclesList),
+      (Icons.account_balance_wallet_outlined, 'ذمم المركبات', rVehiclesArrears),
+      (Icons.receipt_long_outlined, 'الإصلاحات والذمم', rRepairsDebts),
+      (Icons.analytics_outlined, 'تحليلات الإصلاح', rRepairAnalytics),
       (Icons.bar_chart, 'تقارير الإصلاح', rRepairReports),
     ].where((e) => _matches(e.$2)).toList();
 
     // 2) شؤون الموظفين
     final employeesItems = [
+      (Icons.dashboard_outlined, 'لوحة الموظفين', rEmpDashboard),
       (Icons.list_alt, 'قائمة الموظفين', rEmpList),
       (Icons.person_add, 'إضافة موظف', rEmpAdd),
       (Icons.receipt_long, 'الرواتب', rEmpSalaries),
-      if (ReleaseScopeConfig.employeeAdvancesEnabled)
-        (Icons.savings, 'السلف والمكافآت', rEmpAdvances),
       (Icons.access_time, 'الحضور والانصراف', rEmpAttendance),
     ].where((e) => _matches(e.$2)).toList();
 
-    // 3) المشتريات
+    // 3) المشتريات والمصروفات
     final purchasesItems = [
-      (Icons.add, 'إدخال مشتريات', rPurchCreate),
-      (Icons.list_alt, 'قائمة المشتريات', AppRoutes.purchasesList),
-    ];
+      (Icons.dashboard_outlined, 'لوحة المشتريات', rPurchDashboard),
+      (Icons.add_shopping_cart, 'إدخال مشتريات', rPurchCreate),
+      (Icons.format_paint_outlined, 'مشتريات مواد الدهان', rPurchPaint),
+      (Icons.handyman_outlined, 'مشتريات العِدّة والأدوات', rPurchTools),
+      (Icons.verified_user_outlined, 'مشتريات التأمين', rPurchInsurance),
+      (Icons.more_horiz, 'مشتريات أخرى', rPurchOther),
+      (Icons.list_alt, 'قائمة المشتريات', rPurchList),
+      (Icons.calendar_month_outlined, 'المشتريات حسب الشهر', rPurchByMonth),
+      (Icons.payments_outlined, 'مدفوعات الموردين', rPurchPayments),
+      (Icons.timeline_outlined, 'أعمار ذمم الموردين', rPurchAging),
+      (Icons.pending_actions_outlined, 'مشتريات غير مرحلة', rPurchUnposted),
+      (Icons.fact_check_outlined, 'تدقيق قيود المشتريات', rPurchAudit),
+    ].where((e) => _matches(e.$2)).toList();
 
     // 4) الشيكات
     final chequesItems = [
-      (Icons.dashboard, 'شاشة الشيكات', rChequesDashboard),
+      (Icons.dashboard, 'لوحة الشيكات', rChequesDashboard),
       (Icons.add, 'إضافة شيك', rChequesAdd),
       (Icons.list, 'قائمة الشيكات', rChequesList),
       (Icons.call_received, 'شيكات واردة', rChequesIncoming),
+      (Icons.call_made, 'شيكات صادرة', rChequesOutgoing),
+      (
+        Icons.account_balance_outlined,
+        'إيداع وتحصيل الشيكات',
+        rChequesCollection
+      ),
+      (Icons.verified_outlined, 'شيكات محصلة', rChequesCollected),
+      (Icons.schedule_outlined, 'شيكات آجلة', rChequesPostdated),
+      (Icons.undo, 'شيكات راجعة', rChequesReturned),
+      (Icons.cancel_outlined, 'شيكات ملغاة', rChequesCancelled),
+      (Icons.assessment_outlined, 'تقرير الشيكات', AppRoutes.chequesReport),
     ].where((e) => _matches(e.$2)).toList();
 
     // 5) العملاء والموردون
@@ -393,11 +449,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
           title: 'الجهات وكشف الحساب الشامل',
           route: '/parties'));
     }
-    if (_matches('قائمة العملاء')) {
-      clientsSuppliersItems.add(
-          _tile(icon: Icons.people, title: 'قائمة العملاء', route: rClients));
-    }
-
     if (_matches('إضافة جهة')) {
       clientsSuppliersItems.add(_actionTile(
         icon: Icons.person_add_alt_1,
@@ -405,32 +456,73 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         onTap: _navigateAddParty,
       ));
     }
+    if (_matches('قائمة العملاء')) {
+      clientsSuppliersItems.add(
+          _tile(icon: Icons.people, title: 'قائمة العملاء', route: rClients));
+    }
+    if (_matches('إضافة عميل')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.person_add_outlined,
+          title: 'إضافة عميل',
+          route: rClientAdd));
+    }
+    if (_matches('ذمم العملاء')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.request_page, title: 'ذمم العملاء', route: rClientAR));
+    }
+    if (_matches('قائمة الموردين')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.local_shipping_outlined,
+          title: 'قائمة الموردين',
+          route: rSuppliers));
+    }
+    if (_matches('إضافة مورد')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.person_add_alt_outlined,
+          title: 'إضافة مورد',
+          route: rSupplierAdd));
+    }
+    if (_matches('ذمم الموردين')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'ذمم الموردين',
+          route: AppRoutes.suppliersPayablesList));
+    }
+    if (_matches('ديون الموردين')) {
+      clientsSuppliersItems.add(_tile(
+          icon: Icons.receipt_long_outlined,
+          title: 'ديون الموردين',
+          route: AppRoutes.suppliersDebts));
+    }
     if (_matches('الذمم المدينة والدائنة')) {
       clientsSuppliersItems.add(_actionTile(
-        icon: Icons.account_balance_wallet,
+        icon: Icons.compare_arrows,
         title: 'الذمم المدينة والدائنة',
         onTap: _navigateAgingBoth,
       ));
     }
 
-    // 6) المالية
+    // 6) المالية والمحاسبة
     final financeItems = [
+      (Icons.dashboard, 'اللوحة المالية', rFinanceDashboard),
+      (Icons.account_balance_wallet_outlined, 'الصندوق', rCashAccount),
+      (Icons.account_balance_outlined, 'البنك', rBankAccount),
+      (
+        Icons.collections_bookmark_outlined,
+        'التحصيل والذمم',
+        rCollectionDashboard
+      ),
+      (Icons.payments_outlined, 'حركات الدفع والتحصيل', AppRoutes.payments),
+      (Icons.stacked_bar_chart, 'قائمة الدخل', rIncomeStatement),
+      (
+        Icons.account_balance_wallet,
+        'الميزانية العمومية',
+        rReportsBalanceSheet
+      ),
       (Icons.list_alt, 'قيود اليومية', rJournalEntries),
       (Icons.menu_book, 'دفتر الأستاذ', rFinanceAccountLedger),
-      if (ReleaseScopeConfig.extendedFinanceEnabled) ...[
-        (Icons.dashboard, 'لوحة مالية', rFinanceDashboard),
-        (
-          Icons.collections_bookmark_outlined,
-          'التحصيل والذمم',
-          rCollectionDashboard
-        ),
-        (Icons.stacked_bar_chart, 'قائمة الدخل', rIncomeStatement),
-        (
-          Icons.account_balance_wallet,
-          'الميزانية العمومية',
-          rReportsBalanceSheet
-        ),
-      ],
+      (Icons.receipt_long_outlined, 'اليومية العامة', rFinanceGeneralJournal),
+      (Icons.manage_search_outlined, 'متصفح القيود المحاسبية', rFinanceGL),
     ].where((e) => _matches(e.$2)).toList();
 
     // ===== NEW: سندات مالية =====
@@ -443,7 +535,12 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 // ===== NEW: وكيل التأمين =====
     final insuranceAgentItems = [
       (Icons.home, 'الشاشة الرئيسية', rInsuranceHome),
-      (Icons.add_circle_outline, ' إضافة تأمين جديد', rInsuranceAddNew),
+      (
+        Icons.receipt_long_outlined,
+        'فواتير التأمين',
+        AppRoutes.insuranceInvoices
+      ),
+      (Icons.add_circle_outline, 'إضافة تأمين جديد', rInsuranceAddNew),
       (Icons.calculate, 'حاسبة التأمين', rInsuranceCalculator),
       (Icons.list_alt, 'قائمة التأمينات', rInsurancePoliciesList),
       (Icons.contacts, 'جهات الاتصال', rInsuranceContacts),
@@ -453,280 +550,270 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (Icons.print, 'التقارير والطباعة', rInsuranceReports),
     ].where((e) => _matches(e.$2)).toList();
 
-    // 7) التقارير
+    // 7) المخزون والمواد
+    final inventoryItems = [
+      (Icons.inventory_2_outlined, 'المواد الخام', rRawMaterials),
+      (Icons.add_box_outlined, 'إضافة مادة خام', rRawMaterialAdd),
+    ].where((e) => _matches(e.$2)).toList();
+
+    // 8) التقارير
     final reportsItems = [
       (Icons.dashboard, 'لوحة التقارير', rReportsDashboard),
-      (Icons.check_circle, 'تقارير حضور وغياب', rReportsAttendance),
-      (Icons.balance, 'تقارير مالية', rReportsTrialBalance),
+      (Icons.balance, 'ميزان المراجعة', rReportsTrialBalance),
+      (Icons.schedule_outlined, 'تقادم ذمم العملاء', rReportsARAging),
+      (Icons.menu_book_outlined, 'الأستاذ العام', rReportsGeneralLedger),
+      (
+        Icons.account_balance_wallet_outlined,
+        'الميزانية العمومية',
+        rReportsBalanceSheet
+      ),
+      (Icons.check_circle, 'تقرير الحضور والغياب', rReportsAttendance),
+      (Icons.payments_outlined, 'تقرير الرواتب', rReportsPayroll),
+      (Icons.savings_outlined, 'تقرير السلف والمكافآت', rReportsAdvances),
     ].where((e) => _matches(e.$2)).toList();
 
     return AnimatedBuilder(
       animation: _widthAnim,
       builder: (_, __) => Material(
         color: Theme.of(context).scaffoldBackgroundColor,
-        child: SizedBox(
-          width: _widthAnim.value,
-          child: Column(
-            children: [
-              SidebarHeader(
-                isCollapsed: _isCollapsed,
-                onToggle: _toggleCollapse,
-                showToggle: context.isDesktopWidth,
-              ),
-// إخفاء مربع البحث بدون حذفه
-              Visibility(
-                visible: false,
-                maintainState: false,
-                maintainAnimation: false,
-                maintainSize: false,
-                child: (!_isCollapsed)
-                    ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SidebarSearch(
-                          initialQuery: _searchQuery,
-                          onChanged: (q) => setState(() => _searchQuery = q),
-                          hintText: 'بحث...',
-                        ),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    _tile(
-                        icon: Icons.dashboard,
-                        title: 'لوحة التحكم',
-                        route: rDashboard),
-
-                    // إصلاح المركبات
-                    if (repairsItems.isNotEmpty || !hasSearch)
-                      _group(
-                        icon: Icons.build,
-                        title: 'إصلاح المركبات',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.startsWith(rRepairsRoot) ??
-                                false,
-                        children: repairsItems
-                            .map((e) =>
-                                _tile(icon: e.$1, title: e.$2, route: e.$3))
-                            .toList(),
-                      ),
-                    // ===== NEW: وكيل التأمين =====
-                    if (insuranceAgentItems.isNotEmpty || !hasSearch)
-                      _group(
-                        icon: Icons.verified_user,
-                        title: 'وكيل التأمين',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.startsWith(rInsuranceRoot) ??
-                                false,
-                        children: insuranceAgentItems
-                            .map((e) =>
-                                _tile(icon: e.$1, title: e.$2, route: e.$3))
-                            .toList(),
-                      ),
-
-                    // ===== NEW: السندات المالية =====
-                    if (vouchersItems.isNotEmpty || !hasSearch)
-                      _group(
-                        icon: Icons.receipt_long,
-                        title: 'السندات المالية',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.contains('voucher') ?? false,
-                        children: vouchersItems
-                            .map((e) =>
-                                _tile(icon: e.$1, title: e.$2, route: e.$3))
-                            .toList(),
-                      ),
-
-                    // شؤون الموظفين
-                    if (employeesItems.isNotEmpty || !hasSearch)
-                      _group(
-                        icon: Icons.people_alt,
-                        title: 'شؤون الموظفين',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.startsWith(rEmpRoot) ?? false,
-                        children: employeesItems
-                            .map((e) =>
-                                _tile(icon: e.$1, title: e.$2, route: e.$3))
-                            .toList(),
-                      ),
-
-                    // مشتريات
-                    if (purchasesItems.isNotEmpty || !hasSearch)
-                      _group(
-                        icon: Icons.shopping_cart,
-                        title: 'المشتريات',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.startsWith(rPurchRoot) ??
-                                false,
-                        children: purchasesItems
-                            .map((e) =>
-                                _tile(icon: e.$1, title: e.$2, route: e.$3))
-                            .toList(),
-                      ),
-
-                    // العملاء والموردون
-                    if (clientsSuppliersItems.isNotEmpty || !hasSearch)
-                      _group(
-                        icon: Icons.group,
-                        title: 'العملاء والموردون',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.startsWith('/clients') ==
-                                    true ||
-                                widget.currentRoute?.startsWith('/suppliers') ==
-                                    true,
-                        children: clientsSuppliersItems,
-                      ),
-
-                    // المالية
-                    if (financeItems.isNotEmpty || !hasSearch)
-                      _group(
-                        icon: Icons.account_balance,
-                        title: 'المالية',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.startsWith(rFinanceRoot) ??
-                                false,
-                        children: financeItems
-                            .map((e) =>
-                                _tile(icon: e.$1, title: e.$2, route: e.$3))
-                            .toList(),
-                      ),
-
-                    // شيكات
-                    if (ReleaseScopeConfig.chequesEnabled &&
-                        (chequesItems.isNotEmpty || !hasSearch))
-                      _group(
-                        icon: Icons.receipt_long,
-                        title: 'الشيكات',
-                        isInitiallyExpanded:
-                            widget.currentRoute?.startsWith(rChequesRoot) ??
-                                false,
-                        children: chequesItems
-                            .map((e) =>
-                                _tile(icon: e.$1, title: e.$2, route: e.$3))
-                            .toList(),
-                      ),
-
-// ===== إصدار لاحق (قسم غير فعّال) =====
-                    _group(
-                      icon: Icons.lock_clock,
-                      title: 'إصدار لاحق',
-                      isInitiallyExpanded: false,
-                      children: [
-                        if (ReleaseScopeConfig.chequesEnabled)
-                          ListTile(
-                            dense: true,
-                            title: Text(
-                              'إدارة الشيكات',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            leading: const Icon(Icons.receipt_long,
-                                color: Colors.grey),
-                            onTap: null, // غير مفعّل
-                          ),
-                        ListTile(
-                          dense: true,
-                          title: Text(
-                            'ذمم العملاء والموردين',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          leading: const Icon(Icons.account_balance_wallet,
-                              color: Colors.grey),
-                          onTap: null,
-                        ),
-                        ListTile(
-                          dense: true,
-                          title: Text(
-                            'التقارير المالية المتقدمة',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          leading:
-                              const Icon(Icons.assessment, color: Colors.grey),
-                          onTap: null,
-                        ),
-                        ListTile(
-                          dense: true,
-                          title: Text(
-                            'إدارة الفواتير المتقدمة',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          leading: const Icon(Icons.request_page,
-                              color: Colors.grey),
-                          onTap: null,
-                        ),
-                        ListTile(
-                          dense: true,
-                          title: Text(
-                            'تقارير الرواتب',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          leading:
-                              const Icon(Icons.payments, color: Colors.grey),
-                          onTap: null,
-                        ),
-                        ListTile(
-                          dense: true,
-                          title: Text(
-                            'إدارة المخزون',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          leading:
-                              const Icon(Icons.inventory_2, color: Colors.grey),
-                          onTap: null,
-                        ),
-                      ],
-                    ),
-
-                    // الإعدادات
-                    _group(
-                      icon: Icons.settings,
-                      title: 'الإعدادات',
-                      isInitiallyExpanded:
-                          widget.currentRoute?.startsWith(rSettingsRoot) ??
-                              false,
-                      children: [
-                        _tile(
-                            icon: Icons.store,
-                            title: 'إعدادات الورشة',
-                            route: rSettingsWorkshop),
-                        _tile(
-                            icon: Icons.shield_outlined,
-                            title: 'حماية البيانات',
-                            route: rSettingsSecurityData),
-                        _tile(
-                            icon: Icons.verified_outlined,
-                            title: 'حالة الاشتراك',
-                            route: '/current-subscription'),
-                        _tile(
-                            icon: Icons.support_agent,
-                            title: 'الدعم الفني',
-                            route: rTechnicalSupport),
-                        ListTile(
-                          leading:
-                              const Icon(Icons.logout, color: Colors.redAccent),
-                          title: _isCollapsed
-                              ? const SizedBox.shrink()
-                              : const Text('تسجيل خروج',
-                                  style: TextStyle(color: Colors.redAccent)),
-                          dense: true,
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 16),
-                          onTap: () {
-                            final scaffoldState = Scaffold.maybeOf(context);
-                            if (scaffoldState?.isDrawerOpen == true) {
-                              Navigator.of(context).pop();
-                            }
-                            _navigate(rLogout);
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
+        child: SafeArea(
+          child: SizedBox(
+            width: context.isDesktopWidth ? _widthAnim.value : 300,
+            child: Column(
+              children: [
+                SidebarHeader(
+                  isCollapsed: _isCollapsed,
+                  onToggle: _toggleCollapse,
+                  showToggle: context.isDesktopWidth,
                 ),
-              ),
-              const SizedBox.shrink(),
-            ],
+// البحث داخل عناصر القائمة
+                Visibility(
+                  visible: true,
+                  maintainState: false,
+                  maintainAnimation: false,
+                  maintainSize: false,
+                  child: (!_isCollapsed)
+                      ? Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: SidebarSearch(
+                            initialQuery: _searchQuery,
+                            onChanged: (q) => setState(() => _searchQuery = q),
+                            hintText: 'بحث...',
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      _tile(
+                          icon: Icons.dashboard,
+                          title: 'لوحة التحكم',
+                          route: rDashboard),
+                      _tile(
+                          icon: Icons.search,
+                          title: 'البحث الشامل',
+                          route: rGlobalSearch),
+
+                      // إصلاح المركبات
+                      if (repairsItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.build,
+                          title: 'إصلاح المركبات',
+                          isInitiallyExpanded:
+                              widget.currentRoute?.startsWith(rRepairsRoot) ??
+                                  false,
+                          children: repairsItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+                      // ===== NEW: وكيل التأمين =====
+                      if (insuranceAgentItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.verified_user,
+                          title: 'وكيل التأمين',
+                          isInitiallyExpanded:
+                              widget.currentRoute?.startsWith(rInsuranceRoot) ??
+                                  false,
+                          children: insuranceAgentItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // ===== NEW: السندات المالية =====
+                      if (vouchersItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.receipt_long,
+                          title: 'السندات المالية',
+                          isInitiallyExpanded:
+                              widget.currentRoute?.contains('voucher') ?? false,
+                          children: vouchersItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // شؤون الموظفين
+                      if (employeesItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.people_alt,
+                          title: 'شؤون الموظفين',
+                          isInitiallyExpanded:
+                              widget.currentRoute?.startsWith(rEmpRoot) ??
+                                  false,
+                          children: employeesItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // المشتريات والمصروفات
+                      if (purchasesItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.shopping_cart,
+                          title: 'المشتريات',
+                          isInitiallyExpanded:
+                              (widget.currentRoute?.startsWith(rPurchRoot) ??
+                                  false),
+                          children: purchasesItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // العملاء والموردون
+                      _tile(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'المصروفات',
+                          route: rExpenses),
+
+                      if (clientsSuppliersItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.group,
+                          title: 'العملاء والموردون',
+                          isInitiallyExpanded: widget.currentRoute
+                                      ?.startsWith('/clients') ==
+                                  true ||
+                              widget.currentRoute?.startsWith('/suppliers') ==
+                                  true ||
+                              widget.currentRoute?.startsWith('/parties') ==
+                                  true,
+                          children: clientsSuppliersItems,
+                        ),
+
+                      // المالية والمحاسبة
+                      if (financeItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.account_balance,
+                          title: 'المالية والمحاسبة',
+                          isInitiallyExpanded:
+                              widget.currentRoute?.startsWith(rFinanceRoot) ??
+                                  false,
+                          children: financeItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // الشيكات
+                      if (chequesItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.receipt_long,
+                          title: 'الشيكات',
+                          isInitiallyExpanded:
+                              widget.currentRoute?.startsWith(rChequesRoot) ??
+                                  false,
+                          children: chequesItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // المخزون والمواد
+                      if (inventoryItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.inventory_2_outlined,
+                          title: 'المخزون والمواد',
+                          isInitiallyExpanded: widget.currentRoute
+                                  ?.startsWith('/raw_materials') ??
+                              false,
+                          children: inventoryItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // التقارير
+                      if (reportsItems.isNotEmpty || !hasSearch)
+                        _group(
+                          icon: Icons.assessment_outlined,
+                          title: 'التقارير',
+                          isInitiallyExpanded:
+                              widget.currentRoute?.startsWith(rReportsRoot) ??
+                                  false,
+                          children: reportsItems
+                              .map((e) =>
+                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .toList(),
+                        ),
+
+                      // الإعدادات
+                      _group(
+                        icon: Icons.settings,
+                        title: 'الإعدادات',
+                        isInitiallyExpanded:
+                            widget.currentRoute?.startsWith(rSettingsRoot) ??
+                                false,
+                        children: [
+                          _tile(
+                              icon: Icons.store,
+                              title: 'إعدادات الورشة',
+                              route: rSettingsWorkshop),
+                          _tile(
+                              icon: Icons.shield_outlined,
+                              title: 'حماية البيانات',
+                              route: rSettingsSecurityData),
+                          _tile(
+                              icon: Icons.verified_outlined,
+                              title: 'حالة الاشتراك',
+                              route: '/current-subscription'),
+                          _tile(
+                              icon: Icons.workspace_premium_outlined,
+                              title: 'الاشتراك والخطط',
+                              route: rSubscription),
+                          _tile(
+                              icon: Icons.support_agent,
+                              title: 'الدعم الفني',
+                              route: rTechnicalSupport),
+                          ListTile(
+                            leading: const Icon(Icons.logout,
+                                color: Colors.redAccent),
+                            title: _isCollapsed
+                                ? const SizedBox.shrink()
+                                : const Text('تسجيل خروج',
+                                    style: TextStyle(color: Colors.redAccent)),
+                            dense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16),
+                            onTap: () {
+                              final scaffoldState = Scaffold.maybeOf(context);
+                              if (scaffoldState?.isDrawerOpen == true) {
+                                Navigator.of(context).pop();
+                              }
+                              _navigate(rLogout);
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox.shrink(),
+              ],
+            ),
           ),
         ),
       ),

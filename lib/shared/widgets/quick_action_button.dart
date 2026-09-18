@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 class QuickActionButton extends StatefulWidget {
   final IconData icon;
@@ -35,17 +36,7 @@ class _QuickActionButtonState extends State<QuickActionButton> {
   }
 
   Future<void> _navigate(BuildContext context) async {
-    try {
-      await Navigator.pushNamed(context, widget.route);
-    } on FlutterError catch (_) {
-      // حماية من مسار غير معرّف
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('المسار غير متاح حالياً: ${widget.route}'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+    await AppRoutes.pushNamedSafe(context, widget.route);
   }
 
   @override

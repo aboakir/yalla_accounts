@@ -7,7 +7,7 @@ import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_
 // - يحافظ على camelCase في relatedRepairId.
 // - يضيف فهارس مساعدة عند توفر جدول payments.
 //
-// © Yalla Accounts.
+// © Yallah Accounts.
 
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';

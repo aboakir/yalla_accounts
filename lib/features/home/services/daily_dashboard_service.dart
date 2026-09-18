@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/services/financial_overview_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
@@ -107,7 +108,8 @@ class DailyDashboardService {
 
   static Future<DailyDashboardData> loadOn(
       DatabaseExecutor db, DashboardPeriod selected, DateTime now,
-      {String name = 'ورشتي', String? logo, String currency = '₪'}) async {
+      {String name = 'ورشتي', String? logo, String? currency}) async {
+    currency ??= MoneyFormatter.symbol;
     final start = selected.start(now);
     final day = DashboardPeriod.today.start(now);
     final end = day.add(const Duration(days: 1));

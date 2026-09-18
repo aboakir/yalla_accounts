@@ -36,11 +36,27 @@ class _Supplier {
 // SCREEN
 // ============================================================================
 class PurchaseCreateScreen extends StatefulWidget {
-  const PurchaseCreateScreen({super.key});
+  const PurchaseCreateScreen({
+    super.key,
+    this.initialPurchaseType = 'OTHER',
+    this.initialNote,
+  });
 
-  static Future<void> open(BuildContext ctx) async {
+  final String initialPurchaseType;
+  final String? initialNote;
+
+  static Future<void> open(
+    BuildContext ctx, {
+    String initialPurchaseType = 'OTHER',
+    String? initialNote,
+  }) async {
     await Navigator.of(ctx).push(
-      MaterialPageRoute(builder: (_) => const PurchaseCreateScreen()),
+      MaterialPageRoute(
+        builder: (_) => PurchaseCreateScreen(
+          initialPurchaseType: initialPurchaseType,
+          initialNote: initialNote,
+        ),
+      ),
     );
   }
 
@@ -57,7 +73,8 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
   final _noteCtrl = TextEditingController();
 
   DateTime _date = DateTime.now();
-  final String _method = "credit"; // cash | bank | credit
+  String _method = "credit"; // cash | bank | credit
+  late String _purchaseType;
   bool _saving = false;
 
   final List<_LineModel> _lines = [_LineModel()];
@@ -79,6 +96,15 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
     if (_lines.length <= 1) return;
     _lines.removeAt(i);
     _recalc();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    const allowed = {'PARTS', 'RAW', 'PAINT', 'TOOLS', 'OTHER'};
+    final requested = widget.initialPurchaseType.trim().toUpperCase();
+    _purchaseType = allowed.contains(requested) ? requested : 'OTHER';
+    _noteCtrl.text = widget.initialNote?.trim() ?? '';
   }
 
   @override
@@ -154,6 +180,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
   Future<_Supplier?> _openSupplierPicker(bool byPid) async {
     final ctrl = TextEditingController();
     List<_Supplier> results = await _searchSuppliers("", byPid);
+    if (!mounted) return null;
 
     return showDialog<_Supplier>(
       context: context,
@@ -340,6 +367,7 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
         date: _date,
         note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
         method: _method,
+        purchaseType: _purchaseType,
         items: items.map((l) {
           return {
             "item_name": l.name,
@@ -362,7 +390,11 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
     _formKey.currentState?.reset();
     _supplierPidCtrl.clear();
     _supplierNameCtrl.clear();
-    _noteCtrl.clear();
+    _noteCtrl.text = widget.initialNote?.trim() ?? '';
+    _method = 'credit';
+    const allowed = {'PARTS', 'RAW', 'PAINT', 'TOOLS', 'OTHER'};
+    final requested = widget.initialPurchaseType.trim().toUpperCase();
+    _purchaseType = allowed.contains(requested) ? requested : 'OTHER';
     _lines
       ..clear()
       ..add(_LineModel());
@@ -459,6 +491,56 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                             ),
                             child: Text(_df.format(_date)),
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  AdaptiveRow(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _purchaseType,
+                          decoration: const InputDecoration(
+                            labelText: 'نوع المشتريات',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'PARTS', child: Text('قطع غيار')),
+                            DropdownMenuItem(
+                                value: 'RAW', child: Text('مواد خام')),
+                            DropdownMenuItem(
+                                value: 'PAINT', child: Text('مواد دهان')),
+                            DropdownMenuItem(
+                                value: 'TOOLS', child: Text('عِدّة وأدوات')),
+                            DropdownMenuItem(
+                                value: 'OTHER', child: Text('أخرى')),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _purchaseType = v ?? 'OTHER'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _method,
+                          decoration: const InputDecoration(
+                            labelText: 'طريقة الدفع',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'credit', child: Text('على الحساب')),
+                            DropdownMenuItem(
+                                value: 'cash', child: Text('نقدًا')),
+                            DropdownMenuItem(
+                                value: 'bank', child: Text('بنك / تحويل')),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _method = v ?? 'credit'),
                         ),
                       ),
                     ],

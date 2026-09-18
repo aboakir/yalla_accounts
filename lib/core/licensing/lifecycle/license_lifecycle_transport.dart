@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:yalla_accounts/core/device_identity/device_identity.dart';
+import 'package:yalla_accounts/core/licensing/customer_bearer_token_provider.dart';
 
 class LicenseLifecycleTransportException implements Exception {
   const LicenseLifecycleTransportException(this.message, {this.statusCode});
@@ -16,6 +17,7 @@ class LicenseLifecycleTransportException implements Exception {
 
 class LicenseLifecycleChallenge {
   const LicenseLifecycleChallenge({
+    this.installationId,
     required this.challengeId,
     required this.proofBytesBase64Url,
     required this.expiresAt,
@@ -23,6 +25,7 @@ class LicenseLifecycleChallenge {
   });
 
   final String challengeId;
+  final String? installationId;
   final String proofBytesBase64Url;
   final DateTime expiresAt;
   final String action;
@@ -60,6 +63,7 @@ abstract class LicenseLifecycleTransport {
 
 class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
   HttpLicenseLifecycleTransport({
+    this.bearerTokenProvider,
     Uri? baseUri,
     HttpClient? httpClient,
     this.timeout = const Duration(seconds: 15),
@@ -68,6 +72,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
         _httpClient = httpClient ?? HttpClient();
 
   final Uri? _baseUri;
+  final CustomerBearerTokenProvider? bearerTokenProvider;
   final HttpClient _httpClient;
   final Duration timeout;
   final bool allowInsecureLoopbackForTesting;
@@ -79,7 +84,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
   }
 
   @override
-  bool get isConfigured => _baseUri != null;
+  bool get isConfigured => _baseUri != null && bearerTokenProvider != null;
 
   @override
   Future<LicenseLifecycleChallenge> begin({
@@ -96,17 +101,19 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
     }
 
     final response = await _post(
-      '/v1/license-lifecycle/challenge',
+      '/v1/accounts-integration/license-lifecycle/challenge',
       <String, Object?>{
-        'api_version': 1,
+        'contract_version': 2,
         'action': normalized,
         'license_id': licenseId,
         'subscription_id': subscriptionId,
         'device': identity.toRegistrationPayload(),
       },
+      identity.installationId,
     );
 
     return LicenseLifecycleChallenge(
+      installationId: identity.installationId,
       challengeId: _requiredString(response, 'challenge_id'),
       proofBytesBase64Url: _requiredString(response, 'proof_bytes'),
       expiresAt: _requiredDate(response, 'expires_at'),
@@ -126,9 +133,9 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
     }
 
     final response = await _post(
-      '/v1/license-lifecycle/complete',
+      '/v1/accounts-integration/license-lifecycle/complete',
       <String, Object?>{
-        'api_version': 1,
+        'contract_version': 2,
         'challenge_id': challenge.challengeId,
         'action': challenge.action,
         'device_id': proof.deviceId,
@@ -137,6 +144,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
           'signature': proof.signatureBase64Url,
         },
       },
+      challenge.installationId,
     );
 
     return LicenseLifecycleCompletion(
@@ -150,6 +158,7 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
   Future<Map<String, Object?>> _post(
     String path,
     Map<String, Object?> body,
+    String? installationId,
   ) async {
     final base = _baseUri;
     if (base == null) {
@@ -158,13 +167,27 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
       );
     }
     _assertSecureBaseUri(base);
+    final token = await bearerTokenProvider?.call().timeout(timeout);
+    if (token == null ||
+        !RegExp(r'^[A-Za-z0-9._~-]{32,4096}$').hasMatch(token)) {
+      throw const LicenseLifecycleTransportException(
+          'Authenticated customer session is required.');
+    }
 
     final uri = base.resolve(path);
+    if (installationId == null || installationId.isEmpty) {
+      throw const LicenseLifecycleTransportException(
+          'Installation identity is required.');
+    }
     try {
       final request = await _httpClient.postUrl(uri).timeout(timeout);
+      request.followRedirects = false;
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      request.headers.set('X-Yalla-Installation-Id', installationId);
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set('x-yalla-client', 'yalla-accounts-desktop');
+      request.headers.set('x-yalla-contract-version', '2');
       request.write(jsonEncode(body));
       final response = await request.close().timeout(timeout);
       final raw = await utf8.decoder.bind(response).join().timeout(timeout);
@@ -194,6 +217,11 @@ class HttpLicenseLifecycleTransport implements LicenseLifecycleTransport {
               : 'License lifecycle request rejected.',
           statusCode: response.statusCode,
         );
+      }
+      if (map['contract_version'] != 2 ||
+          response.headers.value('x-yalla-contract-version') != '2') {
+        throw const LicenseLifecycleTransportException(
+            'Unsupported licensing contract version.');
       }
       return map;
     } on LicenseLifecycleTransportException {

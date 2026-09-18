@@ -233,7 +233,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: YallaAppBar(
-        workshopName: settings?.workshopName ?? "Yalla Accounts",
+        workshopName: settings?.workshopName ?? "Yallah Accounts",
         logoPath: settings?.logoPath,
         showThemeToggle: false,
         showSearch: false,
@@ -256,7 +256,8 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
   // MAIN WRAPPER
   // =============================================================================
   Widget _main() {
-    final isPhone = MediaQuery.sizeOf(context).width < 1024;
+    final size = MediaQuery.sizeOf(context);
+    final isPhone = size.width < 600 || size.height < 520;
     return isPhone ? _phoneMain() : _desktopMain();
   }
 

@@ -61,6 +61,11 @@ abstract final class YallaMobileTheme {
           backgroundColor: Colors.white,
           indicatorColor: AppColors.lightGreen,
         ),
+        drawerTheme: const DrawerThemeData(
+          width: 300,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(),
+        ),
         dialogTheme: const DialogThemeData(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(

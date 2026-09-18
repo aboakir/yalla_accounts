@@ -316,7 +316,7 @@ ORDER BY pi.date DESC
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const YallaAppBar(
-        workshopName: "Yalla Accounts",
+        workshopName: "Yallah Accounts",
         showThemeToggle: false,
         showSearch: false,
       ),

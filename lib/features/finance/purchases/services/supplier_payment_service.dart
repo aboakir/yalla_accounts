@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
@@ -25,7 +26,7 @@ class SupplierPaymentService {
           partyType: 'SUPPLIER',
           partyId: '$supplierId',
           amount: amount,
-          currency: 'ILS',
+          currency: MoneyFormatter.currencyCode,
           date: date,
           method: method.toUpperCase(),
           notes: note),

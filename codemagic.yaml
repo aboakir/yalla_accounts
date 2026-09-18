@@ -56,8 +56,12 @@
           flutter build ios \
             --release \
             --no-codesign \
-            --dart-define=YALLA_LICENSING_BASE_URL=https://b563e2490e02a2.lhr.life \
-            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=256da347315a3b53df365fa431fd4b77fad4d0a1bae8f102b6815523173bb25a
+            --dart-define=YALLA_LICENSING_BASE_URL=https://catatonic-hazard-dingo.ngrok-free.dev \
+            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=4f0643aa24706753d1546836bf9cf17c35a53222ca63f8d0fb7451ea35643db5 \
+            --dart-define=YALLA_SUPABASE_URL=https://srkskbuoyedwovxvvtvs.supabase.co \
+            --dart-define=YALLA_SUPABASE_PUBLISHABLE_KEY=sb_publishable_6WbY9HxKgXTA2WGf4UPfRg_TPAMK043 \
+            --dart-define=YALLA_CLOUD_AUTH_RELEASE_READY=true \
+            --dart-define=YALLA_CLOUD_OAUTH_ENABLED=false
 
       - name: Package unsigned IPA
         script: |

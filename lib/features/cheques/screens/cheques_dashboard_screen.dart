@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
@@ -33,7 +34,7 @@ class ChequesDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: const YallaAppBar(
-        workshopName: "Yalla Accounts",
+        workshopName: "Yallah Accounts",
         showThemeToggle: false,
         showSearch: false,
       ),
@@ -69,8 +70,6 @@ class _DashboardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = Responsive.isDesktop(context);
-
     return FutureBuilder<List<Cheque>>(
       future: _loadCheques(),
       builder: (context, snap) {
@@ -161,7 +160,7 @@ class _DashboardBody extends StatelessWidget {
                     icon: const Icon(Icons.picture_as_pdf),
                     label: const Text("تقرير الشيكات"),
                     onPressed: () =>
-                        Navigator.pushNamed(context, '/cheques/report'),
+                        Navigator.pushNamed(context, AppRoutes.chequesReport),
                   ),
                 ],
               ),

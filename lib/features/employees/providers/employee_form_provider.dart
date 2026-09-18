@@ -10,8 +10,8 @@
 // - لا بيانات وهمية. الحقول الافتراضية آمنة فقط.
 // - التحقق validation حساس للنوع. يمنع الحفظ إذا نقص أساس الدفع حسب النوع.
 
+import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -389,11 +389,11 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormData> {
           await optimized.readAsBytes(),
           flush: true,
         );
-        debugPrint('📁 تم حفظ صورة الموظف المحسنة في $newPath');
+        ReleaseDiagnostics.debug('📁 تم حفظ صورة الموظف المحسنة في $newPath');
         return newPath;
       }
     } catch (e) {
-      debugPrint('❌ خطأ في حفظ الصورة: $e');
+      ReleaseDiagnostics.debug('❌ خطأ في حفظ الصورة: $e');
     }
     return null;
   }
@@ -401,7 +401,7 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormData> {
   // حفظ موظف جديد
   Future<bool> saveEmployee() async {
     try {
-      debugPrint('📝 حفظ الموظف بدأ...');
+      ReleaseDiagnostics.debug('📝 حفظ الموظف بدأ...');
       if (!_validateRequired()) return false;
 
       // حفظ الصورة إن وُجدت
@@ -411,12 +411,12 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormData> {
       final employee = state.toEmployee().copyWith(photoUrl: savedImagePath);
 
       await EmployeeDatabaseService.insert(employee);
-      debugPrint('✅ تم الحفظ في قاعدة البيانات');
+      ReleaseDiagnostics.debug('✅ تم الحفظ في قاعدة البيانات');
 
       resetForm();
       return true;
     } catch (e) {
-      debugPrint('❌ فشل حفظ الموظف: $e');
+      ReleaseDiagnostics.debug('❌ فشل حفظ الموظف: $e');
       return false;
     }
   }
@@ -424,7 +424,7 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormData> {
   // تحديث موظف قائم
   Future<bool> updateEmployee() async {
     try {
-      debugPrint('📝 تحديث الموظف بدأ...');
+      ReleaseDiagnostics.debug('📝 تحديث الموظف بدأ...');
       if (!_validateRequired()) return false;
 
       final savedImagePath = await _saveImage(state.imagePath);
@@ -435,10 +435,10 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormData> {
           );
 
       await EmployeeDatabaseService.update(updatedEmployee);
-      debugPrint('✅ تم التحديث');
+      ReleaseDiagnostics.debug('✅ تم التحديث');
       return true;
     } catch (e) {
-      debugPrint('❌ فشل تحديث الموظف: $e');
+      ReleaseDiagnostics.debug('❌ فشل تحديث الموظف: $e');
       return false;
     }
   }
@@ -446,36 +446,36 @@ class EmployeeFormNotifier extends StateNotifier<EmployeeFormData> {
   // تحقق أساسي عام + تحقق خاص بالنوع
   bool _validateRequired() {
     if (state.fullName.trim().isEmpty) {
-      debugPrint('❌ الاسم الكامل مطلوب');
+      ReleaseDiagnostics.debug('❌ الاسم الكامل مطلوب');
       return false;
     }
     if (state.employeeCode.trim().isEmpty) {
-      debugPrint('❌ كود الموظف مطلوب');
+      ReleaseDiagnostics.debug('❌ كود الموظف مطلوب');
       return false;
     }
 
     switch (state.contractType) {
       case EmployeeContractType.monthly:
         if (state.baseSalary < 0) {
-          debugPrint('❌ الراتب الشهري غير صالح');
+          ReleaseDiagnostics.debug('❌ الراتب الشهري غير صالح');
           return false;
         }
         break;
       case EmployeeContractType.weekly:
         if ((state.weeklyRate ?? -1) < 0) {
-          debugPrint('❌ الأجر الأسبوعي غير صالح');
+          ReleaseDiagnostics.debug('❌ الأجر الأسبوعي غير صالح');
           return false;
         }
         break;
       case EmployeeContractType.daily:
         if ((state.dailyRate ?? -1) < 0) {
-          debugPrint('❌ الأجر اليومي غير صالح');
+          ReleaseDiagnostics.debug('❌ الأجر اليومي غير صالح');
           return false;
         }
         break;
       case EmployeeContractType.contract:
         if ((state.contractAmount ?? -1) < 0) {
-          debugPrint('❌ قيمة المقاولة غير صالحة');
+          ReleaseDiagnostics.debug('❌ قيمة المقاولة غير صالحة');
           return false;
         }
         break;

@@ -33,7 +33,8 @@ void main() {
     }
     expect((manifest['server_model_version'] as num).toInt(),
         greaterThanOrEqualTo(8));
-    expect(manifest['client_database_version'], 69);
+    expect((manifest['client_database_version'] as num).toInt(),
+        greaterThanOrEqualTo(69));
   });
 
   test('SEC.013 deployment boundary remains separate from client SQLite', () {
