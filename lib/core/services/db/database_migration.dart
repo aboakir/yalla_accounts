@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_identity_tables.dart';
 // Database migration compatibility note.
@@ -107,6 +109,42 @@ class DatabaseMigration {
     return SyncFoundationService.transaction<T>(db, action);
   }
 
+  static Future<int> _readExistingVersion(
+    String path, {
+    required bool retryAfterRestore,
+  }) async {
+    final maxAttempts = retryAfterRestore ? 6 : 1;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      Database? existing;
+      try {
+        existing = await DatabaseEncryptionService.openReadOnlyCandidate(path);
+        return await existing.getVersion();
+      } catch (error) {
+        final message = error.toString().toLowerCase();
+        final retryable = message.contains('unable to open database file') ||
+            message.contains('sqlite_error: 14') ||
+            message.contains('code 14');
+        final fileStillExists = await File(path).exists();
+        final canRetry =
+            retryable && fileStillExists && attempt + 1 < maxAttempts;
+        if (!canRetry) rethrow;
+
+        final delayMs = 50 * (1 << attempt);
+        ReleaseDiagnostics.debug(
+          '[DB] transient reopen after restore; retry ${attempt + 1}/$maxAttempts in ${delayMs}ms',
+        );
+        await Future<void>.delayed(Duration(milliseconds: delayMs));
+      } finally {
+        if (existing != null && existing.isOpen) {
+          await existing.close();
+        }
+      }
+    }
+
+    throw StateError('Unable to read existing database version.');
+  }
+
   // ============================================================
   // INIT
   // ============================================================
@@ -116,16 +154,14 @@ class DatabaseMigration {
       '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );
 
+    final recoveredInterruptedRestore =
+        await Directory('$path.restore-journal').exists();
     await RestoreFileJournal.recover(path);
     if (await databaseExists(path)) {
-      final existing =
-          await DatabaseEncryptionService.openReadOnlyCandidate(path);
-      late int version;
-      try {
-        version = await existing.getVersion();
-      } finally {
-        await existing.close();
-      }
+      final version = await _readExistingVersion(
+        path,
+        retryAfterRestore: recoveredInterruptedRestore,
+      );
       if (version > DatabaseConstants.dbVersion) {
         throw StateError('Database version $version is newer than supported '
             '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.');
