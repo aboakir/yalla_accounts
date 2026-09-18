@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show OAuthProvider;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthException, OAuthProvider;
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'cloud_auth_service.dart';
@@ -75,12 +76,31 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
     } on CloudAccountNotLinked {
       _message =
           'الحساب غير مرتبط بهذه الورشة. ادخل محليًا ثم اربطه من الإعدادات. للورشة الجديدة استخدم إعداد الورشة أولًا.';
+    } on AuthException catch (error) {
+      _message = _authErrorMessage(error);
     } catch (_) {
       _message =
           'لم تكتمل العملية. تحقق من الاتصال وبيانات الدخول، ثم أعد المحاولة. الدخول المحلي متاح.';
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  String _authErrorMessage(AuthException error) {
+    if (error.code == 'over_email_send_rate_limit' ||
+        error.statusCode == '429') {
+      return 'تم بلوغ حد إرسال رسائل التحقق مؤقتًا. انتظر قليلًا ثم أعد المحاولة. إذا كان لديك حساب بالفعل استخدم تسجيل الدخول.';
+    }
+    if (error.code == 'weak_password') {
+      return 'كلمة المرور لا تحقق متطلبات الأمان. اختر كلمة مرور أقوى ثم أعد المحاولة.';
+    }
+    if (error.code == 'user_already_exists') {
+      return 'تعذر إنشاء حساب جديد بهذا البريد. استخدم تسجيل الدخول أو استعادة كلمة المرور.';
+    }
+    if (error.code == 'invalid_credentials') {
+      return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+    }
+    return 'لم تكتمل عملية الحساب السحابي. تحقق من البيانات ثم أعد المحاولة.';
   }
 
   Future<void> _finish() async {
@@ -132,7 +152,8 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
           await _identity.signUp(_email.text, _password.text);
           _password.clear();
           _awaitingSignupCode = true;
-          _message = 'أرسلنا رمز تحقق إلى بريدك. أدخله هنا لإكمال التسجيل.';
+          _message =
+              'إذا كان البريد جديدًا فسيصلك رمز تحقق. إذا كان لديك حساب بالفعل، ارجع لتسجيل الدخول.';
           return;
         }
         await _identity.signIn(_email.text, _password.text);
@@ -246,6 +267,32 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                                           : _create
                                                               ? 'إرسال رمز التسجيل'
                                                               : 'دخول')),
+                                      if (_awaitingSignupCode) ...[
+                                        TextButton(
+                                            onPressed: _busy
+                                                ? null
+                                                : () => _run(() async {
+                                                      await _identity
+                                                          .resendSignupCode(
+                                                              _email.text);
+                                                      _message =
+                                                          'إذا كان البريد مؤهلًا للإرسال فسيصلك رمز جديد. قد يطبق مزود البريد حدًا مؤقتًا على الإرسال.';
+                                                    }),
+                                            child: const Text(
+                                                'إعادة إرسال رمز التسجيل')),
+                                        TextButton(
+                                            onPressed: _busy
+                                                ? null
+                                                : () => setState(() {
+                                                      _awaitingSignupCode =
+                                                          false;
+                                                      _create = false;
+                                                      _code.clear();
+                                                      _message = null;
+                                                    }),
+                                            child: const Text(
+                                                'الرجوع لتسجيل الدخول')),
+                                      ],
                                       if (!_identity.recoveryPending &&
                                           !_awaitingSignupCode &&
                                           !_awaitingRecoveryCode) ...[
