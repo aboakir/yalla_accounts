@@ -360,7 +360,7 @@ class _EmployeesListScreenState extends ConsumerState<EmployeesListScreen> {
     final s = status.trim();
     Color bg;
     if (s == 'نشط') {
-      bg = Colors.green.shade100;
+      bg = AppColors.lightGreen;
     } else if (s == 'مجمّد') {
       bg = Colors.red.shade100;
     } else if (s == 'إجازة') {

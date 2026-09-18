@@ -63,8 +63,7 @@ class AdaptiveRow extends StatelessWidget {
   final List<Widget> children;
   final double stackBelow;
 
-  int get _directFlexCount =>
-      children.where((child) => child is Flexible).length;
+  int get _directFlexCount => children.whereType<Flexible>().length;
 
   Widget _unwrapForColumn(Widget child) {
     if (child is Expanded) return child.child;

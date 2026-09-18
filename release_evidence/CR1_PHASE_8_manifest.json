@@ -1,0 +1,67 @@
+{
+  "change_request": "CR1",
+  "phase": 8,
+  "status": "PASS",
+  "gate_8": "PASS",
+  "review_date": "2026-09-15",
+  "scope": "ACCOUNTING + OPERATIONAL REGRESSION",
+  "base_commits": {
+    "control": "1ec9dd7946900fc33f2049c308e787abf10ca4ef",
+    "accounts": "21e2165d6be4b167d2cc3bc93e461c5ec2debd40"
+  },
+  "tested_code_commits": {
+    "control": "1ec9dd7946900fc33f2049c308e787abf10ca4ef",
+    "accounts": "b12d4f4900bad11ecd30ecad512dd89c025e7c7c"
+  },
+  "database": {
+    "accounts_version": 76,
+    "raw_materials_versioned": true,
+    "trusted_read_only_backfill": true,
+    "write_guards_restored": true,
+    "destructive_migration": false
+  },
+  "accounting": {
+    "payroll_posting_engine": true,
+    "dynamic_currency_paths": true,
+    "posted_document_guards_preserved": true,
+    "duplicate_financial_posting_regression": "PASS"
+  },
+  "tests": {
+    "accounts_full": {
+      "command": "flutter test --no-pub --concurrency=1",
+      "passed": 679,
+      "failed": 0,
+      "skipped": 21
+    },
+    "control_server": {
+      "command": "npm test",
+      "passed": 139,
+      "failed": 0,
+      "skipped": 0
+    },
+    "control_flutter": {
+      "command": "flutter test --no-pub",
+      "passed": 327,
+      "failed": 0
+    }
+  },
+  "analyzers": {
+    "accounts_modified_production_files": "NO ISSUES",
+    "accounts_global_debt": {
+      "errors": 0,
+      "warnings": 98,
+      "infos": 282
+    },
+    "control": "NO ISSUES"
+  },
+  "production_supabase_changes": "NONE",
+  "production_control_db_changes": "NONE",
+  "codex_usage": "NONE",
+  "live_acceptance": "BLOCKED_EXTERNAL_LIVE_ACCEPTANCE",
+  "implementation_blockers": [],
+  "push_performed": false,
+  "backups_deleted": false,
+  "global_analyzer_debt_deferred": true,
+  "next_phase": 9,
+  "next_phase_authorized": false
+}

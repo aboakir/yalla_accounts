@@ -1,4 +1,5 @@
 import 'package:yalla_accounts/core/services/current_user_context.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -22,7 +23,9 @@ class _GateState extends ConsumerState<AuthenticatedRouteGate> {
   @override
   void initState() {
     super.initState();
-    _access = _validate();
+    _access = OwnerLocalAccess.enabled
+        ? Future.value((OwnerLocalAccess.user, null))
+        : _validate();
   }
 
   Future<(AppUser?, CommercialAccessDecision?)> _validate() async {
@@ -39,6 +42,7 @@ class _GateState extends ConsumerState<AuthenticatedRouteGate> {
     final container = ProviderScope.containerOf(context, listen: false);
     CurrentUserContext.bindActiveUserReader(
         () => container.read(currentUserProvider)?.id);
+    if (OwnerLocalAccess.enabled) return widget.child;
     if (selected == null) return _loginRequired();
     return FutureBuilder<(AppUser?, CommercialAccessDecision?)>(
         future: _access,
@@ -58,8 +62,9 @@ class _GateState extends ConsumerState<AuthenticatedRouteGate> {
           if (user == null ||
               user.id != selected.id ||
               user.role != selected.role ||
-              user.organizationId != selected.organizationId)
+              user.organizationId != selected.organizationId) {
             return _loginRequired();
+          }
           final commercial = snapshot.data?.$2;
           if (commercial == null || !commercial.allowed) {
             return _BlockedAccess(

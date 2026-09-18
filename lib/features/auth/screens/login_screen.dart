@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_screen.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_service.dart';
 import 'package:yalla_accounts/features/onboarding/screens/workshop_onboarding_completion_screen.dart';
 import 'package:yalla_accounts/features/onboarding/services/workshop_onboarding_service.dart';
-import 'owner_data_export_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/design/yalla_components.dart';
+import 'package:yalla_accounts/core/design/yalla_design_tokens.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/core/release/release_distribution_config.dart';
+import 'package:yalla_accounts/core/window/desktop_window_service.dart';
 import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
@@ -41,6 +43,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(configureLoginWindow());
       if (mounted) _load();
     });
   }
@@ -104,6 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _enter(AppUser user) {
     if (!mounted) return;
+    unawaited(configureMainAppWindow());
     AuthorizationGuard.enableInteractiveEnforcement();
     ref.read(currentUserProvider.notifier).state = user;
     if (user.mustChangePassword) {
@@ -264,137 +268,317 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               textDirection: TextDirection.rtl))))),
       ]);
     }
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= 760;
+    final cloudEnabled = ref.watch(cloudConfigProvider).enabled;
+
+    InputDecoration fieldDecoration({required String labelText}) =>
+        InputDecoration(
+          labelText: labelText,
+          isDense: isDesktop,
+          labelStyle: const TextStyle(color: YallaColors.textMuted),
+          floatingLabelStyle: const TextStyle(
+            color: YallaColors.brandDark,
+            fontWeight: FontWeight.w600,
+          ),
+          filled: true,
+          fillColor: YallaColors.surface,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: YallaSpacing.md,
+            vertical: isDesktop ? 14 : YallaSpacing.md,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(YallaRadii.compact),
+            borderSide: const BorderSide(color: YallaColors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(YallaRadii.compact),
+            borderSide: const BorderSide(color: YallaColors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(YallaRadii.compact),
+            borderSide: const BorderSide(
+              color: YallaColors.brand,
+              width: 1.6,
+            ),
+          ),
+        );
+
     return Directionality(
-        textDirection: TextDirection.rtl,
-        child: Scaffold(
-            backgroundColor: AppColors.scaffoldBg,
-            body: SafeArea(
-                child: Center(
-                    child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 440),
-                            child: Card(
-                                child: Padding(
-                                    padding: const EdgeInsets.all(24),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Image.asset(
-                                            'assets/branding/yallah_logo_horizontal.png',
-                                            height: 72,
-                                            fit: BoxFit.contain,
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: YallaColors.canvas,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isDesktop ? 32 : 20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isDesktop ? 470 : 440),
+                child: YallaSurfaceCard(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 34 : 24,
+                    vertical: isDesktop ? 28 : 24,
+                  ),
+                  child: AutofillGroup(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: YallaColors.successSurface,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Image.asset(
+                              'assets/branding/yallah_logo_horizontal.png',
+                              height: isDesktop ? 44 : 62,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: isDesktop ? 22 : 20),
+                        Text(
+                          'تسجيل الدخول',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: YallaColors.text,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        SizedBox(height: isDesktop ? 24 : 22),
+                        TextField(
+                          controller: _username,
+                          enabled: !_loading,
+                          autocorrect: false,
+                          autofillHints: const [AutofillHints.username],
+                          textInputAction: TextInputAction.next,
+                          decoration: fieldDecoration(
+                            labelText: 'اسم المستخدم',
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _password,
+                          enabled: !_loading,
+                          obscureText: true,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          autofillHints: const [AutofillHints.password],
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _login(),
+                          decoration: fieldDecoration(
+                            labelText: 'كلمة المرور',
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _keepSignedIn,
+                              activeColor: YallaColors.brand,
+                              checkColor: YallaColors.surface,
+                              side: const BorderSide(
+                                color: YallaColors.textMuted,
+                                width: 1.4,
+                              ),
+                              onChanged: _loading
+                                  ? null
+                                  : (value) => setState(
+                                        () => _keepSignedIn = value ?? false,
+                                      ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'حفظ الدخول على هذا الجهاز باستخدام PIN',
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.fade,
+                                style: TextStyle(
+                                  color: YallaColors.textMuted,
+                                  fontSize: isDesktop ? 13 : null,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _error!,
+                            style: const TextStyle(
+                              color: YallaColors.danger,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: isDesktop ? 46 : 48,
+                          child: YallaPrimaryButton(
+                            label: 'دخول',
+                            onPressed: _loading ? null : _login,
+                            isBusy: _loading,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: YallaColors.brandDark,
+                          ),
+                          onPressed: _loading
+                              ? null
+                              : () => Navigator.of(context)
+                                  .pushNamed(AppRoutes.forgotAccess),
+                          child: const Text(
+                            'نسيت بيانات الدخول',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (cloudEnabled || _firstOwner) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Divider(color: YallaColors.border),
+                              ),
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  'أو',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: YallaColors.textMuted,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                              const Expanded(
+                                child: Divider(color: YallaColors.border),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        if (cloudEnabled)
+                          SizedBox(
+                            height: 48,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: YallaColors.brandDark,
+                                backgroundColor: YallaColors.surface,
+                                side: const BorderSide(
+                                  color: YallaColors.brand,
+                                  width: 1.3,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    YallaRadii.compact,
+                                  ),
+                                ),
+                              ),
+                              onPressed: _loading ? null : _cloudLogin,
+                              icon: const Icon(Icons.cloud_outlined),
+                              label: const Text(
+                                'الدخول السحابي',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        if (cloudEnabled && _firstOwner)
+                          const SizedBox(height: 10),
+                        if (_firstOwner)
+                          SizedBox(
+                            height: 48,
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: YallaColors.successSurface,
+                                foregroundColor: YallaColors.brandDark,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    YallaRadii.compact,
+                                  ),
+                                ),
+                              ),
+                              onPressed: _loading
+                                  ? null
+                                  : () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => const CloudAuthScreen(
+                                            onboarding: true,
                                           ),
-                                          const SizedBox(height: 16),
-                                          Text('تسجيل الدخول',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .headlineSmall),
-                                          const SizedBox(height: 20),
-                                          TextField(
-                                              controller: _username,
-                                              enabled: !_loading,
-                                              autocorrect: false,
-                                              textInputAction:
-                                                  TextInputAction.next,
-                                              decoration: const InputDecoration(
-                                                  labelText: 'اسم المستخدم')),
-                                          const SizedBox(height: 12),
-                                          TextField(
-                                              controller: _password,
-                                              enabled: !_loading,
-                                              obscureText: true,
-                                              autocorrect: false,
-                                              enableSuggestions: false,
-                                              onSubmitted: (_) => _login(),
-                                              decoration: const InputDecoration(
-                                                  labelText: 'كلمة المرور')),
-                                          CheckboxListTile(
-                                              contentPadding: EdgeInsets.zero,
-                                              value: _keepSignedIn,
-                                              onChanged: _loading
-                                                  ? null
-                                                  : (v) => setState(() =>
-                                                      _keepSignedIn =
-                                                          v ?? false),
-                                              title: const Text(
-                                                  'حفظ الدخول على هذا الجهاز باستخدام PIN')),
-                                          if (_error != null)
-                                            Padding(
-                                                padding: const EdgeInsets.only(
-                                                    bottom: 12),
-                                                child: Text(_error!,
-                                                    style: const TextStyle(
-                                                        color: Colors.red),
-                                                    textAlign:
-                                                        TextAlign.center)),
-                                          FilledButton(
-                                              onPressed:
-                                                  _loading ? null : _login,
-                                              child: _loading
-                                                  ? const SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                              strokeWidth: 2))
-                                                  : const Text('دخول')),
-                                          TextButton(
-                                              onPressed: _loading
-                                                  ? null
-                                                  : () => Navigator.of(context)
-                                                      .pushNamed(AppRoutes
-                                                          .forgotAccess),
-                                              child: const Text(
-                                                  'نسيت بيانات الدخول')),
-                                          TextButton(
-                                              onPressed: _loading
-                                                  ? null
-                                                  : () => Navigator.of(context)
-                                                      .push(MaterialPageRoute<
-                                                              void>(
-                                                          builder: (_) =>
-                                                              const OwnerDataExportScreen())),
-                                              child: const Text(
-                                                  'تصدير نسخة بيانات الورشة')),
-                                          if (ref
-                                              .watch(cloudConfigProvider)
-                                              .enabled)
-                                            TextButton(
-                                                onPressed: _loading
-                                                    ? null
-                                                    : _cloudLogin,
-                                                child: const Text(
-                                                    'الدخول السحابي')),
-                                          if (_activationRequired)
-                                            TextButton(
-                                                onPressed: _loading
-                                                    ? null
-                                                    : () =>
-                                                        Navigator.of(context)
-                                                            .pushNamed(AppRoutes
-                                                                .activation),
-                                                child: const Text(
-                                                    'تفعيل هذا الجهاز')),
-                                          if (_firstOwner &&
-                                              !ReleaseDistributionConfig
-                                                  .isStoreDistribution)
-                                            TextButton(
-                                                onPressed: _loading
-                                                    ? null
-                                                    : () => Navigator.of(
-                                                            context)
-                                                        .push(MaterialPageRoute<
-                                                                void>(
-                                                            builder: (_) =>
-                                                                const CloudAuthScreen(
-                                                                    onboarding:
-                                                                        true))),
-                                                child: const Text(
-                                                    'إنشاء ورشة جديدة')),
-                                          const SizedBox(height: 8),
-                                          const ReleaseLegalLinks(
-                                              compact: true),
-                                        ])))))))));
+                                        ),
+                                      ),
+                              icon: const Icon(Icons.add_business_outlined),
+                              label: const Text(
+                                'إنشاء ورشة جديدة',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        if (_activationRequired) ...[
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            style: TextButton.styleFrom(
+                              foregroundColor: YallaColors.brandDark,
+                            ),
+                            onPressed: _loading
+                                ? null
+                                : () => Navigator.of(context)
+                                    .pushNamed(AppRoutes.activation),
+                            icon: const Icon(Icons.verified_user_outlined),
+                            label: const Text('تفعيل هذا الجهاز'),
+                          ),
+                        ],
+                        SizedBox(height: isDesktop ? 16 : 16),
+                        if (isDesktop)
+                          const Divider(
+                            height: 18,
+                            color: YallaColors.border,
+                          ),
+                        Theme(
+                          data: Theme.of(context).copyWith(
+                            textButtonTheme: TextButtonThemeData(
+                              style: TextButton.styleFrom(
+                                foregroundColor: YallaColors.brandDark,
+                                minimumSize: Size.zero,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 4,
+                                ),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                textStyle: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          child: const ReleaseLegalLinks(compact: true),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

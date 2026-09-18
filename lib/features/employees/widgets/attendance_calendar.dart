@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class AttendanceCalendar extends StatelessWidget {
   final List<Attendance> records;
@@ -67,7 +68,7 @@ class AttendanceCalendar extends StatelessWidget {
   Color _statusColor(String status) {
     switch (status) {
       case 'حاضر':
-        return Colors.green;
+        return AppColors.primary;
       case 'غائب':
         return Colors.red;
       case 'تأخير':

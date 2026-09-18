@@ -21,6 +21,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class AdvancesReportScreen extends StatefulWidget {
   const AdvancesReportScreen({super.key});
@@ -166,7 +167,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
                     runSpacing: 12,
                     children: [
                       _kpi('إجمالي السلف', _sumAdv, Colors.red),
-                      _kpi('إجمالي المكافآت', _sumBonus, Colors.green),
+                      _kpi('إجمالي المكافآت', _sumBonus, AppColors.primary),
                       _kpi('إجمالي التسديدات', _sumRepay, Colors.teal),
                       _kpi('صافي السلف = سلف − تسديد', net, Colors.blue,
                           bold: true),
@@ -371,7 +372,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
           DataCell(Text(a.id.length > 8 ? a.id.substring(0, 8) : a.id)),
           DataCell(Text(a.employeeId)),
           DataCell(Text(label, style: TextStyle(color: color))),
-          DataCell(Text('${MoneyFormatter.format(a.amount)}')),
+          DataCell(Text(MoneyFormatter.format(a.amount))),
           DataCell(Text(dff.format(a.date))),
           DataCell(Text(a.method ?? '—')),
           DataCell(Text(a.note ?? '—')),
@@ -399,7 +400,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
   (String, IconData, Color) _labelIconForType(String type) {
     switch (type.toLowerCase()) {
       case 'bonus':
-        return ('مكافأة', Icons.card_giftcard, Colors.green);
+        return ('مكافأة', Icons.card_giftcard, AppColors.primary);
       case 'repayment':
         return ('تسديد سلفة', Icons.reply, Colors.teal);
       default:

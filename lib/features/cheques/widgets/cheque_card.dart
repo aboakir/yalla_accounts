@@ -35,7 +35,7 @@ class ChequeCard extends StatelessWidget {
   Color _statusColor(ChequeStatus status) {
     switch (status) {
       case ChequeStatus.collected:
-        return Colors.green.shade600;
+        return AppColors.primary;
       case ChequeStatus.returned:
         return Colors.red.shade600;
       case ChequeStatus.cancelled:

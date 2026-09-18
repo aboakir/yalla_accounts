@@ -10,6 +10,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class ChequeStepEntry extends StatefulWidget {
   final double amount; // القيمة الإجمالية المحسوبة تلقائيًا
@@ -37,8 +38,6 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
 
   DateTime issueDate = DateTime.now();
   DateTime dueDate = DateTime.now().add(const Duration(days: 30));
-
-  final NumberFormat _fmt = NumberFormat("#,##0.00", "ar");
 
   Future<void> _pickDate({
     required bool isIssue,
@@ -84,7 +83,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 25),
@@ -167,7 +166,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
                 child: Text(
                   "القيمة: ${MoneyFormatter.format(widget.amount)}",
                   style: const TextStyle(
-                    color: Colors.green,
+                    color: AppColors.primary,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -191,7 +190,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.primary,
                   ),
                   onPressed: () {
                     if (!_formKey.currentState!.validate()) return;

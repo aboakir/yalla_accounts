@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/parties/screens/parties_screen.dart';
 // - يمرّر RouteSettings لكل MaterialPageRoute للحفاظ على اسم المسار.
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
@@ -551,6 +552,19 @@ class AppRoutes {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
+
+    if (OwnerLocalAccess.enabled &&
+        (name == login ||
+            name == register ||
+            name == logout ||
+            name == forgotAccess ||
+            name == activation ||
+            name == trialExpired)) {
+      return _page(
+        const RouteSettings(name: startup),
+        const StartupScreen(),
+      );
+    }
 
     if (isInsuranceAgentFrozenRoute(name)) {
       return _page(

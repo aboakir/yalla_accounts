@@ -32,7 +32,7 @@ class ReceivePaymentScreen extends StatefulWidget {
   const ReceivePaymentScreen({super.key, required this.repair});
 
   @override
-  _ReceivePaymentScreenState createState() => _ReceivePaymentScreenState();
+  State<ReceivePaymentScreen> createState() => _ReceivePaymentScreenState();
 }
 
 class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
@@ -211,7 +211,8 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
                       Text('المتبقي: ${MoneyFormatter.format(remaining)}',
                           textAlign: TextAlign.right,
                           style: TextStyle(
-                            color: remaining > 0 ? Colors.red : Colors.green,
+                            color:
+                                remaining > 0 ? Colors.red : AppColors.primary,
                           )),
                     ],
                   ),

@@ -460,6 +460,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
         ORDER BY ge.date ASC, ge.id ASC
       ''', [repairId, ...customerAccounts]);
 
+      if (!mounted) return;
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -510,7 +511,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                                       _currency.format(val),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.green,
+                                        color: AppColors.primary,
                                       ),
                                     ),
                                   );
@@ -523,7 +524,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                           'الإجمالي: ${_currency.format(_paidMap[repairId] ?? 0.0)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -666,7 +667,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                     _chipStat('إجمالي الفواتير', _currency.format(_aggInv),
                         color: Colors.blueGrey),
                     _chipStat('المدفوع', _currency.format(_aggPaid),
-                        color: Colors.green),
+                        color: AppColors.primary),
                     _chipStat('المتبقي', _currency.format(_aggRemain),
                         color: Colors.red),
                   ],
@@ -984,7 +985,8 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                               ? const Text('—')
                               : Text(
                                   _currency.format(paid),
-                                  style: const TextStyle(color: Colors.green),
+                                  style:
+                                      const TextStyle(color: AppColors.primary),
                                 ),
                         ),
                       if (_tRemain)
@@ -1062,7 +1064,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                         rid.isEmpty && e.purchaseTotal == null
                             ? '—'
                             : _currency.format(paid),
-                        valueColor: Colors.green,
+                        valueColor: AppColors.primary,
                         isBold: true),
                     _kv(
                         'المتبقي',
@@ -1151,7 +1153,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                       if (_rPaid)
                         DataCell(Text(
                           _currency.format(a.paid),
-                          style: const TextStyle(color: Colors.green),
+                          style: const TextStyle(color: AppColors.primary),
                         )),
                       if (_rRemain)
                         DataCell(Text(
@@ -1223,7 +1225,7 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
                   children: [
                     _kv('إجمالي الفاتورة', _currency.format(a.invoiceTotal)),
                     _kv('المدفوع', _currency.format(a.paid),
-                        valueColor: Colors.green, isBold: true),
+                        valueColor: AppColors.primary, isBold: true),
                     _kv('المتبقي', _currency.format(remain),
                         valueColor: Colors.red, isBold: true),
                     _kv('أول تاريخ',

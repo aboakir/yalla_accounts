@@ -16,6 +16,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart' as sq;
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:yalla_accounts/core/services/sync/outbox_sync_coordinator.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/device_identity/device_identity_service.dart';
@@ -26,6 +27,7 @@ import 'package:yalla_accounts/features/settings/services/commercial_settings_se
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/security/release_diagnostics.dart';
+import 'package:yalla_accounts/core/platform/windows_auth_callback_registration.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_theme.dart';
 import 'package:yalla_accounts/shared/widgets/yalla_mobile_adaptive.dart';
 
@@ -84,6 +86,10 @@ class YallaScrollBehavior extends MaterialScrollBehavior {
 /// ---------------------------------------------------------------------------
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final authCallbackRegistered = await ensureWindowsAuthCallbackRegistration();
+  ReleaseDiagnostics.debug(
+    'Windows auth callback registration: $authCallbackRegistered',
+  );
   AuthorizationGuard.enableInteractiveEnforcement();
 
   // ✅ هذا أهم سطر: يخلي intl (DateFormat/NumberFormat) يستخدم أرقام 0-9
@@ -138,7 +144,9 @@ Future<void> _bootstrap() async {
     // directly; it sends a device-signed challenge/complete exchange to the
     // configured Yalla server, which is the only component allowed to journal
     // the mutation through the server-authorized RPC.
-    await OutboxSyncCoordinator.instance.start();
+    if (!OwnerLocalAccess.enabled) {
+      await OutboxSyncCoordinator.instance.start();
+    }
 
     ReleaseDiagnostics.debug(
       'DB + commercial presentation settings + device identity + '
@@ -293,8 +301,10 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(commercialValidationSchedulerProvider);
-    ref.watch(commercialSyncSchedulerProvider);
+    if (!OwnerLocalAccess.enabled) {
+      ref.watch(commercialValidationSchedulerProvider);
+      ref.watch(commercialSyncSchedulerProvider);
+    }
     return Directionality(
       textDirection: TextDirection.rtl,
       child: MaterialApp(
@@ -338,10 +348,21 @@ class MyApp extends ConsumerWidget {
 
         theme: ThemeData(
           useMaterial3: true,
+          brightness: Brightness.light,
           fontFamily: 'Cairo',
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            brightness: Brightness.light,
+          colorScheme: const ColorScheme.light(
+            primary: AppColors.primary,
+            onPrimary: Colors.white,
+            primaryContainer: AppColors.lightGreen,
+            onPrimaryContainer: AppColors.textDark,
+            secondary: AppColors.secondary,
+            onSecondary: Colors.white,
+            secondaryContainer: Color(0xFFF0F1F2),
+            onSecondaryContainer: AppColors.textDark,
+            surface: Colors.white,
+            onSurface: AppColors.textDark,
+            error: AppColors.danger,
+            onError: Colors.white,
           ),
           appBarTheme: AppBarTheme(
             centerTitle: true,

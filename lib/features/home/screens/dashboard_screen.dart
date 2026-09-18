@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/design/yalla_breakpoints.dart';
 import 'package:yalla_accounts/core/design/yalla_design_tokens.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
@@ -55,11 +56,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final repair = await RepairDatabaseService.getRepairById(repairId);
         if (!mounted) return;
         if (repair == null) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('الملف غير متاح؛ تم تحديث الملخص.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('الملف غير متاح؛ تم تحديث الملخص.')),
+          );
         } else {
-          await Navigator.pushNamed(context, AppRoutes.repairDetail,
-              arguments: repair);
+          await Navigator.pushNamed(
+            context,
+            AppRoutes.repairDetail,
+            arguments: repair,
+          );
         }
       } else {
         await AppRoutes.pushNamedSafe(context, route);
@@ -68,119 +73,180 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تعذر فتح الصفحة. حاول مجددًا.')));
+          const SnackBar(content: Text('تعذر فتح الصفحة. حاول مجددًا.')),
+        );
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Theme(
-            data: Theme.of(context).copyWith(
-                brightness: Brightness.light,
-                textTheme: Theme.of(context).textTheme.apply(
-                    fontFamily: 'Cairo',
-                    fontFamilyFallback: const [
-                      'DashboardArabic',
-                      'DashboardSymbols'
-                    ]),
-                scaffoldBackgroundColor: YallaColors.canvas,
-                filledButtonTheme: FilledButtonThemeData(
-                    style: FilledButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(YallaRadii.control))))),
-            child: Scaffold(
-              drawer: const Drawer(
-                  child: SafeArea(
-                      child: YallaSidebar(currentRoute: AppRoutes.dashboard))),
-              appBar: AppBar(
-                leading: Builder(
-                    builder: (headerContext) => IconButton(
-                        key: const Key('yalla_mobile_menu_button'),
-                        tooltip: 'القائمة',
-                        icon: const Icon(Icons.menu_rounded),
-                        onPressed: () =>
-                            Scaffold.of(headerContext).openDrawer())),
-                backgroundColor: YallaColors.brand,
-                foregroundColor: YallaColors.surface,
-                surfaceTintColor: Colors.transparent,
-                title: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('أهلًا بك',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.white70)),
-                      Text(_data?.name ?? 'ورشتي',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w800)),
-                    ]),
-                actions: [
-                  if (_data?.logo?.isNotEmpty ?? false)
-                    Padding(
-                        padding: const EdgeInsetsDirectional.only(end: 16),
-                        child: YallaStoredImage(
-                            storedPath: _data!.logo,
-                            width: 40,
-                            height: 40,
-                            borderRadius: BorderRadius.circular(10),
-                            fallback: const Icon(Icons.store_outlined)))
-                ],
-              ),
-              body: SafeArea(
-                  child: RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                          children: [
-                            Center(
-                                child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 760),
-                              child: _loading
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(48),
-                                      child: Center(
-                                          child: CircularProgressIndicator()))
-                                  : _error
-                                      ? Column(children: [
-                                          const SizedBox(height: 32),
-                                          const Icon(Icons.cloud_off_outlined,
-                                              size: 36),
-                                          const SizedBox(height: 12),
-                                          const Text(
-                                              'تعذر تحميل ملخص الورشة. حاول مجددًا.'),
-                                          TextButton(
-                                              onPressed: _load,
-                                              child:
-                                                  const Text('إعادة المحاولة'))
-                                        ])
-                                      : DailyDashboardContent(
-                                          data: _data!,
-                                          period: _period,
-                                          onPeriod: (period) {
-                                            setState(() => _period = period);
-                                            _load();
-                                          },
-                                          onOpen: _open,
-                                          onEntry: () async {
-                                            final id = _data?.lastEntry?['id'];
-                                            if (id is int) {
-                                              await AppRoutes.openGlEntry(
-                                                  context, id);
-                                              if (mounted) await _load();
-                                            }
-                                          }),
-                            )),
-                          ]))),
-              bottomNavigationBar: Builder(
-                  builder: (navContext) => YallaMobileBottomNav(
-                      currentRoute: AppRoutes.dashboard,
-                      onMore: () => Scaffold.of(navContext).openDrawer())),
-            )),
+  Widget _mainContent(bool isDesktop) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(48),
+        child: Center(child: CircularProgressIndicator()),
       );
+    }
+    if (_error) {
+      return Column(
+        children: [
+          const SizedBox(height: 32),
+          const Icon(Icons.cloud_off_outlined, size: 36),
+          const SizedBox(height: 12),
+          const Text('تعذر تحميل ملخص الورشة. حاول مجددًا.'),
+          TextButton(onPressed: _load, child: const Text('إعادة المحاولة')),
+        ],
+      );
+    }
+    return DailyDashboardContent(
+      data: _data!,
+      period: _period,
+      onPeriod: (period) {
+        setState(() => _period = period);
+        _load();
+      },
+      onOpen: _open,
+      onEntry: () async {
+        final id = _data?.lastEntry?['id'];
+        if (id is int) {
+          await AppRoutes.openGlEntry(context, id);
+          if (mounted) await _load();
+        }
+      },
+    );
+  }
+
+  PreferredSizeWidget _appBar(bool isDesktop) {
+    return AppBar(
+      automaticallyImplyLeading: !isDesktop,
+      leading: isDesktop
+          ? null
+          : Builder(
+              builder: (headerContext) => IconButton(
+                key: const Key('yalla_mobile_menu_button'),
+                tooltip: 'القائمة',
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => Scaffold.of(headerContext).openDrawer(),
+              ),
+            ),
+      backgroundColor: YallaColors.brand,
+      foregroundColor: YallaColors.surface,
+      surfaceTintColor: Colors.transparent,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'أهلًا بك',
+            style: TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+          Text(
+            _data?.name ?? 'ورشتي',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+      actions: [
+        if (_data?.logo?.isNotEmpty ?? false)
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 16),
+            child: YallaStoredImage(
+              storedPath: _data!.logo,
+              width: 40,
+              height: 40,
+              borderRadius: BorderRadius.circular(10),
+              fallback: const Icon(Icons.store_outlined),
+            ),
+          ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop = YallaBreakpoints.isDesktop(context);
+
+    final page = Scaffold(
+      drawer: isDesktop
+          ? null
+          : const Drawer(
+              child: SafeArea(
+                child: YallaSidebar(currentRoute: AppRoutes.dashboard),
+              ),
+            ),
+      appBar: _appBar(isDesktop),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              isDesktop ? 28 : 16,
+              isDesktop ? 24 : 16,
+              isDesktop ? 28 : 16,
+              isDesktop ? 36 : 28,
+            ),
+            children: [
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isDesktop ? 1360 : 760,
+                  ),
+                  child: _mainContent(isDesktop),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: isDesktop
+          ? null
+          : Builder(
+              builder: (navContext) => YallaMobileBottomNav(
+                currentRoute: AppRoutes.dashboard,
+                onMore: () => Scaffold.of(navContext).openDrawer(),
+              ),
+            ),
+    );
+
+    final shell = isDesktop
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(
+                width: 300,
+                child: YallaSidebar(currentRoute: AppRoutes.dashboard),
+              ),
+              Expanded(child: page),
+            ],
+          )
+        : page;
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          brightness: Brightness.light,
+          textTheme: Theme.of(context).textTheme.apply(
+            fontFamily: 'Cairo',
+            fontFamilyFallback: const [
+              'DashboardArabic',
+              'DashboardSymbols',
+            ],
+          ),
+          scaffoldBackgroundColor: YallaColors.canvas,
+          filledButtonTheme: FilledButtonThemeData(
+            style: FilledButton.styleFrom(
+              minimumSize: Size(isDesktop ? 44 : 48, isDesktop ? 42 : 48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(YallaRadii.control),
+              ),
+            ),
+          ),
+        ),
+        child: shell,
+      ),
+    );
+  }
 }

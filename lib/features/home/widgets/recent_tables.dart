@@ -134,8 +134,6 @@ class _RepairsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nf = NumberFormat('#,##0.##');
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: AdaptiveDataTable(
@@ -169,7 +167,7 @@ class _RepairsTable extends StatelessWidget {
                       fontWeight: FontWeight.w600),
                 ),
               )),
-              DataCell(Text('${MoneyFormatter.format(r.amount)}')),
+              DataCell(Text(MoneyFormatter.format(r.amount))),
               DataCell(Text(dateStr)),
             ],
           );
@@ -183,7 +181,7 @@ class _RepairsTable extends StatelessWidget {
     if (t.contains('مغلق') ||
         t.contains('تم التسليم') ||
         t.toUpperCase() == 'CLOSED') {
-      return Colors.green;
+      return AppColors.primary;
     }
     if (t.contains('متوقف') ||
         t.contains('معلّق') ||

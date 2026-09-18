@@ -212,7 +212,8 @@ void main() {
     final transport = SecureServerOutboxSyncTransport(
       baseUri: Uri.parse('http://127.0.0.1:${server.port}/'),
       allowInsecureLoopbackForTesting: true,
-      bearerTokenProvider: () async => 'phase7-test-bearer-token-abcdefghijklmnopqrstuvwxyz',
+      bearerTokenProvider: () async =>
+          'phase7-test-bearer-token-abcdefghijklmnopqrstuvwxyz',
       licenseProvider: () async => license,
       identityProvider: () async => identity,
       signer: (challenge) async {

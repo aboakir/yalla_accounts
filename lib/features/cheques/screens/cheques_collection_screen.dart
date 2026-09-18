@@ -88,14 +88,17 @@ class _ChequesCollectionScreenState extends State<ChequesCollectionScreen> {
           child: FutureBuilder<List<Cheque>>(
             future: _future,
             builder: (context, snap) {
-              if (snap.connectionState == ConnectionState.waiting)
+              if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
-              if (snap.hasError)
+              }
+              if (snap.hasError) {
                 return Center(child: Text('تعذر تحميل الشيكات: ${snap.error}'));
+              }
               final rows = snap.data ?? const <Cheque>[];
-              if (rows.isEmpty)
+              if (rows.isEmpty) {
                 return const Center(
                     child: Text('لا توجد شيكات مودعة قيد التحصيل'));
+              }
               return ListView.separated(
                 padding: const EdgeInsets.all(12),
                 itemCount: rows.length,

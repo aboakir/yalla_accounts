@@ -74,7 +74,7 @@ class _TodayTimelineState extends State<TodayTimeline> {
         time: g['date']?.toString() ?? '',
         title: isInflow ? 'عملية قبض' : 'عملية صرف',
         subtitle: g['note']?.toString() ?? '',
-        color: isInflow ? Colors.green : Colors.redAccent,
+        color: isInflow ? AppColors.primary : Colors.redAccent,
         icon: isInflow ? Icons.arrow_downward : Icons.arrow_upward,
       ));
     }

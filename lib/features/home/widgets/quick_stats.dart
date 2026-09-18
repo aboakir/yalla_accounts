@@ -5,6 +5,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class QuickStats extends StatelessWidget {
   const QuickStats({super.key});
@@ -180,7 +181,9 @@ class QuickStats extends StatelessWidget {
                     'الرصيد النقدي - الاسبوعي',
                     Icons.local_fire_department,
                     MoneyFormatter.format(m['cash_today'] ?? 0),
-                    (m['cash_today'] ?? 0) >= 0 ? Colors.green : Colors.red,
+                    (m['cash_today'] ?? 0) >= 0
+                        ? AppColors.primary
+                        : Colors.red,
                     AppRoutes.cashAccount,
                   ),
                 ],

@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
     show AuthException, OAuthProvider;
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
+import 'package:yalla_accounts/core/legal/legal_acceptance_service.dart';
+import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 import 'cloud_auth_service.dart';
 import 'supabase_identity_provider.dart';
 import '../onboarding/customer_onboarding_screen.dart';
@@ -26,9 +29,15 @@ class CloudAccountLinkTile extends ConsumerWidget {
 }
 
 class CloudAuthScreen extends ConsumerStatefulWidget {
-  const CloudAuthScreen({super.key, this.linkUser, this.onboarding = false});
+  const CloudAuthScreen({
+    super.key,
+    this.linkUser,
+    this.onboarding = false,
+    this.resumeVerifiedCallback = false,
+  });
   final AppUser? linkUser;
   final bool onboarding;
+  final bool resumeVerifiedCallback;
   @override
   ConsumerState<CloudAuthScreen> createState() => _CloudAuthScreenState();
 }
@@ -42,11 +51,17 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
   bool _busy = true;
   bool _create = false;
   bool _awaitingSignupCode = false;
+  bool _awaitingSignupPassword = false;
   bool _awaitingRecoveryCode = false;
+  bool _termsAccepted = false;
+  bool _privacyAccepted = false;
+  bool _pendingSignupAcceptance = false;
+  bool _needsRenewedLegalAcceptance = false;
   String? _message;
   @override
   void initState() {
     super.initState();
+    _create = widget.onboarding && !widget.resumeVerifiedCallback;
     _identity = ref.read(supabaseIdentityProvider);
     _identity.addListener(_changed);
     _initialize();
@@ -58,7 +73,22 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
 
   Future<void> _initialize() async {
     try {
-      await _identity.beginVisit();
+      await _identity.beginVisit(
+        preserveFreshSession: widget.resumeVerifiedCallback,
+      );
+      if (widget.resumeVerifiedCallback && widget.onboarding) {
+        final email = await _identity.freshVerifiedEmail();
+        if (email != null && email.trim().isNotEmpty) {
+          _email.text = email.trim();
+          _create = false;
+          _awaitingSignupCode = false;
+          _awaitingSignupPassword = true;
+          _pendingSignupAcceptance = true;
+          _needsRenewedLegalAcceptance = true;
+          _message =
+              'تم تأكيد البريد من الرابط. أنشئ كلمة المرور لإكمال التسجيل.';
+        }
+      }
     } catch (_) {
       _message = 'تعذر الاتصال. يمكنك الرجوع والدخول محليًا بدون إنترنت.';
     }
@@ -76,6 +106,8 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
     } on CloudAccountNotLinked {
       _message =
           'الحساب غير مرتبط بهذه الورشة. ادخل محليًا ثم اربطه من الإعدادات. للورشة الجديدة استخدم إعداد الورشة أولًا.';
+    } on LegalAcceptanceException catch (error) {
+      _message = error.toString();
     } on AuthException catch (error) {
       _message = _authErrorMessage(error);
     } catch (_) {
@@ -103,7 +135,32 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
     return 'لم تكتمل عملية الحساب السحابي. تحقق من البيانات ثم أعد المحاولة.';
   }
 
+  Future<void> _recordRequiredLegalAcceptance() async {
+    if (!widget.onboarding && !_pendingSignupAcceptance) return;
+    if (!_termsAccepted || !_privacyAccepted) {
+      throw const LegalAcceptanceException(
+        'يجب الموافقة صراحة على شروط الاستخدام وسياسة الخصوصية للمتابعة.',
+      );
+    }
+    final session = await _identity.verifiedOnboardingSession();
+    final service = HttpLegalAcceptanceService(
+      bearerTokenProvider: () async => session.accessToken,
+      allowInsecureLoopbackForTesting: kDebugMode &&
+          const bool.fromEnvironment('YALLA_ALLOW_INSECURE_LOOPBACK'),
+    );
+    try {
+      await service.accept(
+        source: _pendingSignupAcceptance ? 'SIGNUP' : 'ONBOARDING',
+      );
+      _pendingSignupAcceptance = false;
+      _needsRenewedLegalAcceptance = false;
+    } finally {
+      service.dispose();
+    }
+  }
+
   Future<void> _finish() async {
+    await _recordRequiredLegalAcceptance();
     if (widget.onboarding) {
       await _identity.verifiedOnboardingSession();
       if (mounted) {
@@ -139,21 +196,40 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
           return;
         }
         if (_awaitingSignupCode) {
-          await _identity.verifySignupCode(_email.text, _code.text);
+          await _identity.verifyRegistrationCode(_email.text, _code.text);
           _code.clear();
           _awaitingSignupCode = false;
+          _awaitingSignupPassword = true;
+          _message = 'تم تأكيد البريد. أنشئ الآن كلمة المرور الخاصة بحسابك.';
+          return;
+        }
+        if (_awaitingSignupPassword) {
+          if (_needsRenewedLegalAcceptance &&
+              (!_termsAccepted || !_privacyAccepted)) {
+            throw const LegalAcceptanceException(
+              'أعد الموافقة على شروط الاستخدام وسياسة الخصوصية لإكمال التسجيل بعد فتح رابط البريد.',
+            );
+          }
+          await _identity.setInitialPasswordAndSignIn(
+              _email.text, _password.text);
+          _password.clear();
+          _awaitingSignupPassword = false;
           _create = false;
-          // OTP and recovery sessions share Supabase's OTP AMR. Only a fresh
-          // password sign-in may proceed into normal onboarding/commercial use.
-          _message = 'تم تأكيد البريد. أدخل كلمة المرور للمتابعة الآمنة.';
+          _pendingSignupAcceptance = true;
+          _message = null;
+          await _finish();
           return;
         }
         if (_create) {
-          await _identity.signUp(_email.text, _password.text);
-          _password.clear();
+          if (!_termsAccepted || !_privacyAccepted) {
+            throw const LegalAcceptanceException(
+              'يجب الموافقة صراحة على شروط الاستخدام وسياسة الخصوصية قبل إنشاء الحساب.',
+            );
+          }
+          await _identity.requestSignupCode(_email.text);
           _awaitingSignupCode = true;
           _message =
-              'إذا كان البريد جديدًا فسيصلك رمز تحقق. إذا كان لديك حساب بالفعل، ارجع لتسجيل الدخول.';
+              'تم إرسال رمز التحقق إلى بريدك الإلكتروني. أدخل الرمز للمتابعة.';
           return;
         }
         await _identity.signIn(_email.text, _password.text);
@@ -177,9 +253,17 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
         textDirection: TextDirection.rtl,
         child: Scaffold(
             appBar: AppBar(
-                title: Text(widget.linkUser == null
-                    ? 'الدخول السحابي'
-                    : 'ربط الحساب السحابي')),
+                title: Text(widget.onboarding
+                    ? _awaitingSignupCode
+                        ? 'تأكيد البريد الإلكتروني'
+                        : _awaitingSignupPassword
+                            ? 'إنشاء كلمة المرور'
+                            : _create
+                                ? 'إنشاء حساب وورشة جديدة'
+                                : 'الدخول السحابي'
+                    : widget.linkUser == null
+                        ? 'الدخول السحابي'
+                        : 'ربط الحساب السحابي')),
             body: !config.enabled
                 ? const Center(child: Text('الخدمة غير مفعّلة حاليًا.'))
                 : SafeArea(
@@ -196,7 +280,9 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                       const Text(
                                           'تظل بيانات الورشة على جهازك، والدخول المحلي متاح دون إنترنت.'),
                                       const SizedBox(height: 20),
-                                      if (!_identity.recoveryPending)
+                                      if (!_identity.recoveryPending &&
+                                          !_awaitingSignupCode &&
+                                          !_awaitingSignupPassword)
                                         TextField(
                                             controller: _email,
                                             enabled: !_busy,
@@ -207,6 +293,17 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                             decoration: const InputDecoration(
                                                 labelText:
                                                     'البريد الإلكتروني')),
+                                      if (_awaitingSignupCode ||
+                                          _awaitingSignupPassword)
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 8),
+                                          child: Text(
+                                            'البريد: ${_email.text.trim()}',
+                                            textDirection: TextDirection.ltr,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
                                       const SizedBox(height: 12),
                                       if (_awaitingSignupCode ||
                                           _awaitingRecoveryCode)
@@ -219,7 +316,9 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                             enableSuggestions: false,
                                             decoration: const InputDecoration(
                                                 labelText: 'رمز التحقق'))
-                                      else
+                                      else if (_awaitingSignupPassword ||
+                                          _identity.recoveryPending ||
+                                          !_create)
                                         TextField(
                                             controller: _password,
                                             enabled: !_busy,
@@ -227,13 +326,15 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                             autocorrect: false,
                                             enableSuggestions: false,
                                             decoration: InputDecoration(
-                                                labelText: _identity
-                                                        .recoveryPending
-                                                    ? 'كلمة المرور الجديدة'
-                                                    : 'كلمة المرور السحابية')),
+                                                labelText: _awaitingSignupPassword
+                                                    ? 'أنشئ كلمة المرور'
+                                                    : _identity.recoveryPending
+                                                        ? 'كلمة المرور الجديدة'
+                                                        : 'كلمة المرور السحابية')),
                                       if (widget.linkUser != null &&
                                           !_identity.recoveryPending &&
                                           !_awaitingSignupCode &&
+                                          !_awaitingSignupPassword &&
                                           !_awaitingRecoveryCode) ...[
                                         const SizedBox(height: 12),
                                         TextField(
@@ -247,6 +348,45 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                                     'كلمة المرور المحلية لتأكيد الربط'))
                                       ],
                                       const SizedBox(height: 16),
+                                      if (((_create &&
+                                                  !_awaitingSignupCode &&
+                                                  !_awaitingSignupPassword) ||
+                                              (_needsRenewedLegalAcceptance &&
+                                                  _awaitingSignupPassword)) &&
+                                          !_identity.recoveryPending) ...[
+                                        CheckboxListTile(
+                                          key: const Key(
+                                              'termsAcceptanceCheckbox'),
+                                          contentPadding: EdgeInsets.zero,
+                                          value: _termsAccepted,
+                                          onChanged: _busy
+                                              ? null
+                                              : (value) => setState(() =>
+                                                  _termsAccepted =
+                                                      value == true),
+                                          title: const Text(
+                                              'أوافق على شروط الاستخدام'),
+                                          controlAffinity:
+                                              ListTileControlAffinity.leading,
+                                        ),
+                                        CheckboxListTile(
+                                          key: const Key(
+                                              'privacyAcceptanceCheckbox'),
+                                          contentPadding: EdgeInsets.zero,
+                                          value: _privacyAccepted,
+                                          onChanged: _busy
+                                              ? null
+                                              : (value) => setState(() =>
+                                                  _privacyAccepted =
+                                                      value == true),
+                                          title: const Text(
+                                              'أوافق على سياسة الخصوصية'),
+                                          controlAffinity:
+                                              ListTileControlAffinity.leading,
+                                        ),
+                                        const ReleaseLegalLinks(compact: true),
+                                        const SizedBox(height: 8),
+                                      ],
                                       if (_message != null ||
                                           _identity.callbackError != null)
                                         Padding(
@@ -262,18 +402,20 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                                   ? 'حفظ كلمة المرور'
                                                   : _awaitingSignupCode
                                                       ? 'تأكيد رمز التسجيل'
-                                                      : _awaitingRecoveryCode
-                                                          ? 'تأكيد رمز الاستعادة'
-                                                          : _create
-                                                              ? 'إرسال رمز التسجيل'
-                                                              : 'دخول')),
+                                                      : _awaitingSignupPassword
+                                                          ? 'حفظ كلمة المرور والمتابعة'
+                                                          : _awaitingRecoveryCode
+                                                              ? 'تأكيد رمز الاستعادة'
+                                                              : _create
+                                                                  ? 'إرسال رمز التسجيل'
+                                                                  : 'دخول')),
                                       if (_awaitingSignupCode) ...[
                                         TextButton(
                                             onPressed: _busy
                                                 ? null
                                                 : () => _run(() async {
                                                       await _identity
-                                                          .resendSignupCode(
+                                                          .requestSignupCode(
                                                               _email.text);
                                                       _message =
                                                           'إذا كان البريد مؤهلًا للإرسال فسيصلك رمز جديد. قد يطبق مزود البريد حدًا مؤقتًا على الإرسال.';
@@ -295,22 +437,24 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                       ],
                                       if (!_identity.recoveryPending &&
                                           !_awaitingSignupCode &&
+                                          !_awaitingSignupPassword &&
                                           !_awaitingRecoveryCode) ...[
-                                        TextButton(
-                                            onPressed: _busy
-                                                ? null
-                                                : () => _run(() async {
-                                                      await _identity
-                                                          .resetPassword(
-                                                              _email.text);
-                                                      _awaitingRecoveryCode =
-                                                          true;
-                                                      _code.clear();
-                                                      _message =
-                                                          'إن كان البريد مسجلًا سيصلك رمز استعادة. أدخله هنا على نفس الجهاز.';
-                                                    }),
-                                            child: const Text(
-                                                'نسيت كلمة المرور السحابية')),
+                                        if (!_create)
+                                          TextButton(
+                                              onPressed: _busy
+                                                  ? null
+                                                  : () => _run(() async {
+                                                        await _identity
+                                                            .resetPassword(
+                                                                _email.text);
+                                                        _awaitingRecoveryCode =
+                                                            true;
+                                                        _code.clear();
+                                                        _message =
+                                                            'إن كان البريد مسجلًا سيصلك رمز استعادة. أدخله هنا على نفس الجهاز.';
+                                                      }),
+                                              child: const Text(
+                                                  'نسيت كلمة المرور السحابية')),
                                         TextButton(
                                             onPressed: _busy
                                                 ? null
@@ -337,8 +481,8 @@ class _CloudAuthScreenState extends ConsumerState<CloudAuthScreen> {
                                               child: const Text(
                                                   'الدخول باستخدام Apple'))
                                         ],
-                                        if (_identity.signedInThisVisit ||
-                                            widget.onboarding)
+                                        if (_identity.signedInThisVisit &&
+                                            !widget.onboarding)
                                           FilledButton.tonal(
                                               onPressed: _busy
                                                   ? null

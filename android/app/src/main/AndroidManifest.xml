@@ -7,14 +7,18 @@
 
     <!--
       No broad external-storage permission is required.
-      Yalla Accounts uses app-scoped documents, Storage Access Framework/FilePicker,
+      Yallah Accounts uses app-scoped documents, Storage Access Framework/FilePicker,
       and the platform share sheet for imports/exports/backups.
     -->
 
     <application
-        android:label="Yalla Accounts"
+        android:label="Yallah Accounts"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"

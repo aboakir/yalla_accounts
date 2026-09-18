@@ -120,7 +120,7 @@ class _KPIGridState extends State<KPIGrid> {
         title: 'الإيرادات',
         value: MoneyFormatter.format(totalRevenue),
         icon: Icons.attach_money,
-        color: Colors.green,
+        color: AppColors.primary,
       ),
     ];
   }

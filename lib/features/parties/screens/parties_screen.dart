@@ -246,12 +246,11 @@ class _PartyStatementScreenState extends State<PartyStatementScreen> {
       final bytes = await PartyDetailedPdf.generate(report,
           period: _range == null
               ? 'كل التواريخ'
-              : _date(_range!.start) + ' — ' + _date(_range!.end));
+              : '${_date(_range!.start)} — ${_date(_range!.end)}');
       await YallaPdfService.saveAndOpen(
           bytes: bytes,
-          fileName: 'Party_Detailed_' +
-              DateTime.now().millisecondsSinceEpoch.toString() +
-              '.pdf');
+          fileName:
+              'Party_Detailed_${DateTime.now().millisecondsSinceEpoch}.pdf');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

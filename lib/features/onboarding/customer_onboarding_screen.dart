@@ -27,7 +27,7 @@ class _CustomerOnboardingScreenState
       key: TextEditingController()
   };
   bool _busy = true, _newRequest = false;
-  String _country = 'PS';
+  final String _country = 'PS';
   String? _error;
   CustomerOnboardingStatus? _status;
   @override
@@ -201,18 +201,8 @@ class _CustomerOnboardingScreenState
                                           DropdownMenuItem(
                                               value: 'PS',
                                               child: Text('فلسطين')),
-                                          DropdownMenuItem(
-                                              value: 'JO',
-                                              child: Text('الأردن')),
-                                          DropdownMenuItem(
-                                              value: 'EG', child: Text('مصر')),
-                                          DropdownMenuItem(
-                                              value: 'SY', child: Text('سوريا'))
                                         ],
-                                        onChanged: _busy
-                                            ? null
-                                            : (v) =>
-                                                setState(() => _country = v!)),
+                                        onChanged: null),
                                     const SizedBox(height: 16),
                                     FilledButton(
                                         onPressed: _busy ? null : _submit,

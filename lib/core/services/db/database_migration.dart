@@ -365,6 +365,10 @@ class DatabaseMigration {
           "Upgrade v60 commercial configuration schema applied");
     }
 
+    // SEC.001 must exist before SEC.005+ and First Owner bootstrap. Legacy
+    // databases before v64 did not yet have organization_id on users.
+    await OrganizationIdentityTables.ensure(db);
+
     // SEC.005 - installation/device identity metadata foundation.
     if (oldV < 64) {
       await DeviceIdentityTables.ensure(db);
@@ -687,12 +691,15 @@ class DatabaseMigration {
           currency_decimals = COALESCE(currency_decimals, 2);
     ''');
 
-    await db.execute(r'''
-      UPDATE vouchers
-      SET currency = COALESCE(NULLIF(TRIM(currency), ''), 'ILS'),
-          currency_decimals = COALESCE(currency_decimals, 2)
-      WHERE NULLIF(TRIM(currency), '') IS NULL OR currency_decimals IS NULL;
-    ''');
+    await VoucherTables.runTrustedPostedVoucherBackfill(
+      db,
+      () => db.execute(r'''
+        UPDATE vouchers
+        SET currency = COALESCE(NULLIF(TRIM(currency), ''), 'ILS'),
+            currency_decimals = COALESCE(currency_decimals, 2)
+        WHERE NULLIF(TRIM(currency), '') IS NULL OR currency_decimals IS NULL;
+      '''),
+    );
 
     await db.execute(r'''
       CREATE TABLE IF NOT EXISTS document_sequences (

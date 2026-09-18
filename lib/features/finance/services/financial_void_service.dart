@@ -11,8 +11,9 @@ class FinancialVoidService {
       {required bool purchase,
       required String reason,
       Database? database}) async {
-    if (reason.trim().isEmpty)
+    if (reason.trim().isEmpty) {
       throw ArgumentError('Cancellation reason required');
+    }
     final db = database ?? await DBService.database;
     final table = purchase ? 'purchase_invoices' : 'invoices';
     return SyncFoundationService.transaction(db, (txn) async {
@@ -20,7 +21,9 @@ class FinancialVoidService {
       if (rows.isEmpty) return 0;
       final before = rows.single;
       if (['VOID', 'CANCELLED', 'REVERSED']
-          .contains('${before['status']}'.toUpperCase())) return 0;
+          .contains('${before['status']}'.toUpperCase())) {
+        return 0;
+      }
       if (purchase) {
         await RepairCostService.ensureSchema(txn);
         final allocations = await txn.rawQuery('''

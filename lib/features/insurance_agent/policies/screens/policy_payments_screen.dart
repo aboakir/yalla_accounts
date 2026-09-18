@@ -542,7 +542,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    '${amt.toStringAsFixed(2)}',
+                    amt.toStringAsFixed(2),
                     textAlign: TextAlign.right,
                     style: const TextStyle(
                       fontSize: 18,

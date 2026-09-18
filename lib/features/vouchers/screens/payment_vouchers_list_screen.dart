@@ -321,7 +321,7 @@ WHERE v.voucher_type = 'PAYMENT'
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("تم إلغاء السند وتسجيل العكس المحاسبي"),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.primary,
         ),
       );
     } catch (e) {

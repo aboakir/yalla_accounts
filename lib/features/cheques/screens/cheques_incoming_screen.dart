@@ -21,6 +21,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class ChequesIncomingScreen extends ConsumerStatefulWidget {
   const ChequesIncomingScreen({super.key});
@@ -60,6 +61,7 @@ class _ChequesIncomingScreenState extends ConsumerState<ChequesIncomingScreen> {
   // ---------------------------------------------------------------------------
   Future<void> _showEndorseDialog(Map<String, dynamic> r, Cheque cheque) async {
     final suppliers = await _loadSuppliers();
+    if (!mounted) return;
 
     if (suppliers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -141,8 +143,8 @@ class _ChequesIncomingScreenState extends ConsumerState<ChequesIncomingScreen> {
                   onPressed: () => Navigator.pop(ctx),
                 ),
                 ElevatedButton(
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary),
                   child: const Text("تظهير"),
                   onPressed: () async {
                     Navigator.pop(ctx);
@@ -189,16 +191,18 @@ ORDER BY name ASC
         supplierPid: supplierPid,
         endorsementDate: endorsementDate,
       );
+      if (!mounted) return;
 
       setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("تم تظهير الشيك بنجاح"),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.primary,
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("خطأ أثناء التظهير: $e"),
@@ -278,7 +282,7 @@ ORDER BY name ASC
                               ElevatedButton(
                                 onPressed: () => _showEndorseDialog(rows[i], c),
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green),
+                                    backgroundColor: AppColors.primary),
                                 child: const Text("تظهير"),
                               )
                             ],
@@ -318,7 +322,7 @@ ORDER BY name ASC
                           DataCell(
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green),
+                                  backgroundColor: AppColors.primary),
                               onPressed: () => _showEndorseDialog(rows[i], c),
                               child: const Text("تظهير"),
                             ),

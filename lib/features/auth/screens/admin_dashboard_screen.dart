@@ -152,7 +152,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen>
       DataCell(AdaptiveRow(children: [
         if (_currentView == 'pending')
           IconButton(
-            icon: const Icon(Icons.check, color: Colors.green),
+            icon: const Icon(Icons.check, color: AppColors.primary),
             tooltip: 'قبول المستخدم',
             onPressed: () => _approveUser(user),
           )

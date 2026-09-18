@@ -124,7 +124,7 @@ class EmployeeDetailsScreen extends ConsumerWidget {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       textStyle: const TextStyle(fontWeight: FontWeight.bold),
                     ),
@@ -231,10 +231,10 @@ class EmployeeDetailsScreen extends ConsumerWidget {
               children: [
                 const Text('صافي الراتب', style: TextStyle(color: Colors.grey)),
                 Text(
-                  '${MoneyFormatter.format(netSalary)}',
+                  MoneyFormatter.format(netSalary),
                   style: const TextStyle(
                     fontSize: 18,
-                    color: Colors.green,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -291,17 +291,15 @@ class EmployeeDetailsScreen extends ConsumerWidget {
                 DateFormat('yyyy-MM-dd').format(employee.hireDate)),
             _infoRow('ساعات العمل يومياً', '${employee.hoursPerDay}'),
             _infoRow('أيام العمل بالأسبوع', '${employee.workDaysPerWeek}'),
-            _infoRow('السلفة الحالية',
-                '${MoneyFormatter.format(employee.advances)}'),
+            _infoRow(
+                'السلفة الحالية', MoneyFormatter.format(employee.advances)),
             const SizedBox(height: 16),
             _sectionTitle('تفاصيل الراتب'),
-            _infoRow('الراتب الأساسي',
-                '${MoneyFormatter.format(employee.baseSalary)}'),
             _infoRow(
-                'البدلات', '${MoneyFormatter.format(employee.allowances)}'),
-            _infoRow(
-                'الخصومات', '${MoneyFormatter.format(employee.deductions)}'),
-            _infoRow('صافي الراتب', '${MoneyFormatter.format(netSalary)}'),
+                'الراتب الأساسي', MoneyFormatter.format(employee.baseSalary)),
+            _infoRow('البدلات', MoneyFormatter.format(employee.allowances)),
+            _infoRow('الخصومات', MoneyFormatter.format(employee.deductions)),
+            _infoRow('صافي الراتب', MoneyFormatter.format(netSalary)),
           ],
         ),
       ),

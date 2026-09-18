@@ -463,7 +463,9 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                   child: pw.Text('الإيرادات: ${_money.format(_sumRev)}',
                       textDirection: pw.TextDirection.rtl,
                       style: pw.TextStyle(
-                          font: font, fontSize: 11, color: PdfColors.green800)),
+                          font: font,
+                          fontSize: 11,
+                          color: const PdfColor.fromInt(0xFF67BC1F))),
                 ),
                 pw.SizedBox(width: 8),
                 pw.Container(
@@ -494,7 +496,9 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                     style: pw.TextStyle(
                       font: font,
                       fontSize: 11,
-                      color: net >= 0 ? PdfColors.green800 : PdfColors.red800,
+                      color: net >= 0
+                          ? const PdfColor.fromInt(0xFF67BC1F)
+                          : PdfColors.red800,
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
@@ -505,7 +509,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
             pw.SizedBox(height: 14),
 
             // Sections
-            sectionTable('الإيرادات', 0xFF2E7D32, _revenues),
+            sectionTable('الإيرادات', 0xFF67BC1F, _revenues),
             pw.SizedBox(height: 16),
             sectionTable('المصاريف', 0xFFC62828, _expenses),
           ],
@@ -686,12 +690,12 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
         runSpacing: 8,
         alignment: WrapAlignment.end,
         children: [
-          _stat('إجمالي الإيرادات', _sumRev, Colors.green),
+          _stat('إجمالي الإيرادات', _sumRev, AppColors.primary),
           _stat('إجمالي المصاريف', _sumExp, Colors.red),
           _stat(
             net >= 0 ? 'صافي الربح' : 'صافي الخسارة',
             net.abs(),
-            net >= 0 ? Colors.green : Colors.red,
+            net >= 0 ? AppColors.primary : Colors.red,
             bold: true,
           ),
         ],
@@ -746,7 +750,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
           Expanded(
             child: _section(
               title: 'الإيرادات',
-              color: Colors.green,
+              color: AppColors.primary,
               rows: _revenues,
             ),
           ),
@@ -834,7 +838,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _cardSection('الإيرادات', Colors.green, _revenues),
+        _cardSection('الإيرادات', AppColors.primary, _revenues),
         const SizedBox(height: 12),
         _cardSection('المصاريف', Colors.red, _expenses),
       ],

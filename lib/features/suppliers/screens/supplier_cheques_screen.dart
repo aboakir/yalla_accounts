@@ -193,7 +193,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
         if (todayCount > 0)
           _chip("اليوم: $todayCount — ${f(todaySum)}", Colors.orange),
         if (soonCount > 0)
-          _chip("خلال 3 أيام: $soonCount — ${f(soonSum)}", Colors.green),
+          _chip("خلال 3 أيام: $soonCount — ${f(soonSum)}", AppColors.primary),
       ],
     );
   }

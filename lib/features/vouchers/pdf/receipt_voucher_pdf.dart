@@ -114,7 +114,7 @@ class ReceiptVoucherPDF {
                 _info("التاريخ:", formattedDate, fontReg, fontBold),
                 _info("العميل:", clientName, fontReg, fontBold),
                 _info("طريقة الدفع:", _arabicMethod(method), fontReg, fontBold),
-                _info("المبلغ:", "${MoneyFormatter.format(amount)}", fontReg,
+                _info("المبلغ:", MoneyFormatter.format(amount), fontReg,
                     fontBold),
 
                 pw.SizedBox(height: 16),
@@ -201,8 +201,9 @@ class ReceiptVoucherPDF {
   static String _arabicMethod(String m) {
     final x = m.toLowerCase();
     if (x == "cash") return "نقدًا";
-    if (x == "bank" || x == "bank_transfer" || x == "transfer")
+    if (x == "bank" || x == "bank_transfer" || x == "transfer") {
       return "تحويل بنكي";
+    }
     if (x == "card" || x == "credit") return "بطاقة";
     if (x == "cheque") return "شيك";
     return m;

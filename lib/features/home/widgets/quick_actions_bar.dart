@@ -104,12 +104,13 @@ class _ActionButton extends StatefulWidget {
 class _ActionButtonState extends State<_ActionButton> {
   bool _busy = false;
 
-  Future<void> _safeTap(BuildContext context) async {
+  Future<void> _safeTap() async {
     if (_busy || widget.onTap == null) return;
     setState(() => _busy = true);
     try {
       await widget.onTap!.call();
     } catch (e) {
+      if (!mounted) return;
       // حارس هادئ بدون Scaffold.of
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('حدث خطأ: $e')),
@@ -129,7 +130,7 @@ class _ActionButtonState extends State<_ActionButton> {
         // ضروري لرِبل InkWell
         type: MaterialType.transparency,
         child: InkWell(
-          onTap: _busy ? null : () => _safeTap(context),
+          onTap: _busy ? null : _safeTap,
           borderRadius: BorderRadius.circular(widget.size),
           child: Column(
             mainAxisSize: MainAxisSize.min,

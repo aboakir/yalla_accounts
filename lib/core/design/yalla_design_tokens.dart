@@ -7,7 +7,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 /// theme. Screens adopt them only in their approved implementation phase.
 abstract final class YallaColors {
   static const Color brand = AppColors.primary;
-  static const Color brandDark = Color(0xFF2F6F38);
+  static const Color brandDark = brand;
   static const Color canvas = Color(0xFFF7F9F8);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color text = Color(0xFF172019);

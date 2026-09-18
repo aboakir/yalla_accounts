@@ -108,17 +108,18 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
     } catch (e) {
       errorMsg = e.toString();
     } finally {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      if (errorMsg != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ $errorMsg')),
-        );
-      } else {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم إضافة الموظف بنجاح')),
-        );
+      if (mounted) {
+        setState(() => _isSaving = false);
+        if (errorMsg != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ $errorMsg')),
+          );
+        } else {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ تم إضافة الموظف بنجاح')),
+          );
+        }
       }
     }
   }

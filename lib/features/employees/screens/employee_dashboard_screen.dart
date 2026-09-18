@@ -108,7 +108,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                               _infoCard('إجمالي الموظفين', total, Icons.groups,
                                   Colors.indigo),
                               _infoCard('النشطون', active, Icons.check_circle,
-                                  Colors.green),
+                                  AppColors.primary),
                               _infoCard('المجمّدون', frozen, Icons.ac_unit,
                                   Colors.orange),
                               _infoCard('الموقوفون', suspended, Icons.block,

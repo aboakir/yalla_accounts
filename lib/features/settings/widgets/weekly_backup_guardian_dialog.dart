@@ -51,6 +51,7 @@ class WeeklyBackupGuardianDialog {
           FilledButton.icon(
             onPressed: () async {
               Navigator.pop(dialogContext);
+              if (!context.mounted) return;
               await _createNow(context, status.backupEmail);
             },
             icon: const Icon(Icons.shield_outlined),
@@ -63,6 +64,7 @@ class WeeklyBackupGuardianDialog {
 
   static Future<void> _createNow(BuildContext context, String? email) async {
     var password = await BackupKeyStore.readPassword();
+    if (!context.mounted) return;
     if (password == null) {
       password = await _requestPassword(context);
       if (password == null) return;

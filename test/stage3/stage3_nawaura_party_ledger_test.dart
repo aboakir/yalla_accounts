@@ -328,10 +328,8 @@ void main() {
       'total': 2000
     });
     for (final day in [1, 2]) {
-      final id = await db.insert('gl_entries', {
-        'date': '2026-09-0' + day.toString() + 'T10:15:00',
-        'source': 'PURCHASE'
-      });
+      final id = await db.insert('gl_entries',
+          {'date': '2026-09-0${day}T10:15:00', 'source': 'PURCHASE'});
       await _line(db, id,
           debit: day == 2 ? 560 : 0,
           credit: day == 1 ? 2000 : 0,

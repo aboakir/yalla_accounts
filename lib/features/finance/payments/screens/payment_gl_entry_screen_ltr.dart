@@ -8,6 +8,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/l10n/strings_ar.dart'; // S.t(...)
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PaymentGLEntryScreenLtr extends StatefulWidget {
   final int glEntryId;
@@ -253,11 +254,11 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
                                   ? S.t('balanced')
                                   : S.t('not_balanced')),
                               backgroundColor: balanced
-                                  ? Colors.green.shade100
+                                  ? AppColors.lightGreen
                                   : Colors.red.shade100,
                               side: BorderSide(
                                   color: balanced
-                                      ? Colors.green.shade300
+                                      ? AppColors.lightGreen
                                       : Colors.red.shade300),
                             ),
                             const SizedBox(width: 12),

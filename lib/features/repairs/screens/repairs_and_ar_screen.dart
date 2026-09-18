@@ -154,7 +154,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
       PieChartSectionData(
           value: s['مسدد']!.toDouble(),
           title: 'مسدد ${(s['مسدد']! / total * 100).toStringAsFixed(0)}%',
-          color: Colors.green),
+          color: AppColors.primary),
       PieChartSectionData(
           value: s['جزئي']!.toDouble(),
           title: 'جزئي ${(s['جزئي']! / total * 100).toStringAsFixed(0)}%',
@@ -404,7 +404,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
               children: [
                 SlidableAction(
                     onPressed: (_) => _showPaymentDialog(context, ref, r),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.primary,
                     icon: Icons.attach_money,
                     label: 'دفعة')
               ],
@@ -422,11 +422,12 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
 
     Color bg;
     if (r.paymentStatus == 'مسدد') {
-      bg = Colors.green.shade100;
-    } else if (r.paymentStatus == 'مسدد جزئي')
+      bg = AppColors.lightGreen;
+    } else if (r.paymentStatus == 'مسدد جزئي') {
       bg = Colors.orange.shade100;
-    else
+    } else {
       bg = Colors.red.shade100;
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),

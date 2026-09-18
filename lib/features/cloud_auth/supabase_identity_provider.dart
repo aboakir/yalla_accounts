@@ -107,8 +107,31 @@ class SupabaseIdentityProvider extends ChangeNotifier
     notifyListeners();
   }
 
-  Future<void> beginVisit() async {
-    signedInThisVisit = false;
+  Future<bool> handleStartupCallback() async {
+    callbackError = null;
+    await initialize();
+    if (_initialLinkRead) {
+      return signedInThisVisit || recoveryPending || callbackError != null;
+    }
+    _initialLinkRead = true;
+    final uri = await AppLinks().getInitialLink();
+    if (uri == null || !CloudAuthConfig.acceptsCallback(uri)) return false;
+    await _handleCallback(uri);
+    return signedInThisVisit || recoveryPending || callbackError != null;
+  }
+
+  Future<String?> freshVerifiedEmail() async {
+    if (!signedInThisVisit || recoveryPending) return null;
+    try {
+      final session = await _verifiedSession(requireNormalSignIn: false);
+      return session.user.email;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> beginVisit({bool preserveFreshSession = false}) async {
+    if (!preserveFreshSession) signedInThisVisit = false;
     callbackError = null;
     await initialize();
     _links ??= AppLinks().uriLinkStream.listen((uri) {
@@ -134,6 +157,53 @@ class SupabaseIdentityProvider extends ChangeNotifier
     await _storage.setRecoveryPending(false);
     signedInThisVisit = true;
     await verifyIdentity();
+  }
+
+  Future<void> requestSignupCode(String email) async {
+    await initialize();
+    await _client.auth.signInWithOtp(
+      email: email.trim(),
+      shouldCreateUser: true,
+    );
+    signedInThisVisit = false;
+  }
+
+  Future<void> verifyRegistrationCode(String email, String code) async {
+    await initialize();
+    final response = await _client.auth.verifyOTP(
+      email: email.trim(),
+      token: code.trim(),
+      type: OtpType.email,
+    );
+    if (response.session == null) {
+      throw StateError('Registration verification did not create a session.');
+    }
+    _signedOutLocally = false;
+    await _storage.setSignedOut(false);
+    recoveryPending = false;
+    await _storage.setRecoveryPending(false);
+    signedInThisVisit = true;
+    final session = await _verifiedSession(requireNormalSignIn: false);
+    await _storage.persistSession(jsonEncode(session.toJson()));
+    notifyListeners();
+  }
+
+  Future<void> setInitialPasswordAndSignIn(
+      String email, String password) async {
+    await initialize();
+    final normalizedEmail = email.trim();
+    final verified = await _verifiedSession(requireNormalSignIn: false);
+    if ((verified.user.email ?? '').toLowerCase() !=
+        normalizedEmail.toLowerCase()) {
+      throw StateError('Verified email changed during registration.');
+    }
+    await _client.auth.updateUser(UserAttributes(password: password));
+    await _client.auth.signOut(scope: SignOutScope.local);
+    await _storage.removePersistedSession();
+    _signedOutLocally = false;
+    await _storage.setSignedOut(false);
+    signedInThisVisit = false;
+    await signIn(normalizedEmail, password);
   }
 
   Future<void> signUp(String email, String password) async {

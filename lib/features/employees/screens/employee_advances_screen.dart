@@ -17,6 +17,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class EmployeeAdvancesScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -305,7 +306,7 @@ class _EmployeeAdvancesScreenState
                       _kpiChip(
                           label: 'إجمالي المكافآت',
                           value: totalRewards,
-                          color: Colors.green),
+                          color: AppColors.primary),
                       _kpiChip(
                           label: 'إجمالي التسديدات',
                           value: totalRepayments,
@@ -596,7 +597,7 @@ class _EmployeeAdvancesScreenState
       return DataRow(cells: [
         DataCell(Text(a.id.length > 8 ? a.id.substring(0, 8) : a.id)),
         DataCell(Text(label, style: TextStyle(color: color))),
-        DataCell(Text('${MoneyFormatter.format(a.amount)}')),
+        DataCell(Text(MoneyFormatter.format(a.amount))),
         DataCell(Text(dfFull.format(a.date))),
         DataCell(Text(a.method ?? '—')),
         DataCell(Text(a.note ?? '—')),
@@ -639,7 +640,7 @@ class _EmployeeAdvancesScreenState
   (String, IconData, Color) _labelIconForType(String type) {
     switch (type.toLowerCase()) {
       case 'bonus':
-        return ('مكافأة', Icons.card_giftcard, Colors.green);
+        return ('مكافأة', Icons.card_giftcard, AppColors.primary);
       case 'repayment':
         return ('تسديد سلفة', Icons.reply, Colors.teal);
       default:

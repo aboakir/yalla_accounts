@@ -56,21 +56,6 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   List<Map<String, dynamic>> _cheques = [];
   bool _loadingCheques = false;
 
-  static const List<String> _collectionOptions = [
-    'غير مدفوع',
-    'مدفوع جزئي',
-    'مدفوع',
-    'أقساط',
-  ];
-
-  static const List<String> _officeFollowupOptions = [
-    'جديد',
-    'تم إصدار البوليصة',
-    'تم تسليم البوليصة',
-    'تم التحصيل من العميل',
-    'معلّق/قيد المتابعة',
-  ];
-
   final _df = DateFormat('yyyy-MM-dd', 'en_US');
   final _currency = NumberFormat('#,##0.00', 'en_US');
 
@@ -315,7 +300,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   Color _statusColor(Map<String, dynamic> r) {
     if (_isExpired(r)) return Colors.red;
     if (_isExpiringSoon(r)) return Colors.orange;
-    return Colors.green;
+    return AppColors.primary;
   }
 
   bool _isVip(Map<String, dynamic> r) => (r['is_vip'] ?? 0) == 1;
@@ -414,64 +399,6 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       if (cols.contains(c)) return c;
     }
     return null;
-  }
-
-  Future<void> _updatePolicyColumnSmart({
-    required List<String> idCandidates,
-    required dynamic idValue,
-    required List<String> candidates,
-    required dynamic value,
-    required String successMsg,
-  }) async {
-    try {
-      final db = await DatabaseMigration.database;
-
-      final col = await _findExistingColumn(
-        table: 'insurance_policies',
-        candidates: candidates,
-      );
-      if (col == null) {
-        throw 'لم يُعثر على عمود مناسب: ${candidates.join(", ")}';
-      }
-
-      String? idCol;
-      for (final c in idCandidates) {
-        final ok = await _findExistingColumn(
-          table: 'insurance_policies',
-          candidates: [c],
-        );
-        if (ok != null) {
-          idCol = ok;
-          break;
-        }
-      }
-      if (idCol == null) {
-        throw 'لم يُعثر على عمود تعريف للبوليصة (id/policy_id/uuid)';
-      }
-
-      await db.update(
-        'insurance_policies',
-        {col: value},
-        where: '$idCol = ?',
-        whereArgs: [idValue],
-      );
-
-      if (widget.policyId != null) {
-        await _loadFromDb(widget.policyId);
-      } else {
-        setState(() {
-          _row = {...?_row, col: value};
-        });
-      }
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(successMsg)));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ فشل التحديث: $e')));
-    }
   }
 
   dynamic _effectivePolicyId() {
@@ -582,6 +509,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                     );
                     if (ok == true) {
                       await _deletePolicyImage(images[current]);
+                      if (!dlgCtx.mounted) return null;
                       Navigator.pop(dlgCtx);
                     }
                     return null;
@@ -771,7 +699,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     } else if (remainingDays <= 12) {
       accent = Colors.orange;
     } else {
-      accent = Colors.green;
+      accent = AppColors.primary;
     }
 
     String headline;
@@ -1128,7 +1056,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     final contentW = wAmount + wDue + wBank + wDrawer + wNo;
     final tableW = contentW + (rowHPad * 2) + 6; // ✅ breathing room ضد rounding
 
-    Text _cellText(String s, {FontWeight? weight}) {
+    Text cellText(String s, {FontWeight? weight}) {
       return Text(
         s,
         maxLines: 1,
@@ -1150,19 +1078,19 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           children: [
             SizedBox(
                 width: wAmount,
-                child: _cellText('المبلغ', weight: FontWeight.w800)),
+                child: cellText('المبلغ', weight: FontWeight.w800)),
             SizedBox(
                 width: wDue,
-                child: _cellText('الاستحقاق', weight: FontWeight.w800)),
+                child: cellText('الاستحقاق', weight: FontWeight.w800)),
             SizedBox(
                 width: wBank,
-                child: _cellText('البنك', weight: FontWeight.w800)),
+                child: cellText('البنك', weight: FontWeight.w800)),
             SizedBox(
                 width: wDrawer,
-                child: _cellText('الساحب', weight: FontWeight.w800)),
+                child: cellText('الساحب', weight: FontWeight.w800)),
             SizedBox(
                 width: wNo,
-                child: _cellText('رقم الشيك', weight: FontWeight.w800)),
+                child: cellText('رقم الشيك', weight: FontWeight.w800)),
           ],
         ),
       );
@@ -1186,14 +1114,14 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           children: [
             SizedBox(
                 width: wAmount,
-                child: _cellText(_currency.format(amount),
+                child: cellText(_currency.format(amount),
                     weight: FontWeight.w800)),
             SizedBox(
                 width: wDue,
-                child: _cellText(due == null ? '—' : _df.format(due))),
-            SizedBox(width: wBank, child: _cellText(bank)),
-            SizedBox(width: wDrawer, child: _cellText(drawer)),
-            SizedBox(width: wNo, child: _cellText(number)),
+                child: cellText(due == null ? '—' : _df.format(due))),
+            SizedBox(width: wBank, child: cellText(bank)),
+            SizedBox(width: wDrawer, child: cellText(drawer)),
+            SizedBox(width: wNo, child: cellText(number)),
           ],
         ),
       );
@@ -1506,7 +1434,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 
     // حدّث الـ UI
     setState(() {
-      _row = {...?r, col: jsonEncode(images)};
+      _row = {...r, col: jsonEncode(images)};
     });
   }
 

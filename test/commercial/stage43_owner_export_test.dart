@@ -36,7 +36,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     dir = await Directory.systemTemp.createTemp('owner_export_');
     db = await DatabaseMigration.initDatabase(
-        pathOverride: dir.path + "/test.db");
+        pathOverride: "${dir.path}/test.db");
     session = AuthSessionService(databaseProvider: () async => db);
     owner = AppUser(
         id: 'export-owner',
@@ -70,7 +70,7 @@ void main() {
     await db.setVersion(70);
     await db.close();
     db = await DatabaseMigration.initDatabase(
-        pathOverride: dir.path + '/test.db');
+        pathOverride: '${dir.path}/test.db');
     expect(await db.getVersion(), DatabaseConstants.dbVersion);
     expect((await db.query('clients')).single['name'], 'preserved');
     expect(
@@ -108,8 +108,9 @@ void main() {
           role: role,
           status: 'active',
           createdAt: DateTime(2026));
-      if (role != RoleKeys.owner)
+      if (role != RoleKeys.owner) {
         await db.insert('users', {...user.toMap(), 'password': 'fixture-only'});
+      }
       var copied = false;
       final service = OwnerDataExportService(
           users: Credentials(user),

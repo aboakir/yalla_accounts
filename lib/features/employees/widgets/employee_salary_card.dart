@@ -110,7 +110,7 @@ class _EmployeeSalaryCardState extends ConsumerState<EmployeeSalaryCard> {
                 const Text('الراتب الصافي'),
                 const SizedBox(height: 6),
                 Text(
-                  '${MoneyFormatter.format(netSalary)}',
+                  MoneyFormatter.format(netSalary),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

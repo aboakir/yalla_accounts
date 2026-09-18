@@ -9,7 +9,6 @@ import 'package:uuid/uuid.dart';
 // - متوافق مع الشيكات الجديدة
 // ---------------------------------------------------------------------------
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:intl/intl.dart';
@@ -23,7 +22,6 @@ import '../../../shared/widgets/responsive.dart';
 import '../../../features/settings/services/workshop_settings_service.dart';
 import '../../../features/settings/models/workshop_settings.dart';
 
-import '../../finance/payments/models/payment.dart';
 import '../../finance/payments/services/payment_service.dart';
 
 import 'package:yalla_accounts/features/cheques/widgets/steps/cheque_step_entry.dart';
@@ -265,6 +263,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
     final controller = TextEditingController(
       text: maxAmount.toStringAsFixed(2),
     );
+    if (!mounted) return;
     final requested = await showDialog<double>(
       context: context,
       builder: (ctx) => AdaptiveAlertDialog(
@@ -326,6 +325,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
 
   Future<void> _openRepairsPicker() async {
     await _loadRepairsPool();
+    if (!mounted) return;
 
     if (repairsPool.isEmpty) {
       _snack("لا يوجد ملفات مفتوحة لهذا العميل.");
@@ -710,7 +710,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
                               selectedRepairs.clear();
                               totalPayment = 0;
                               await _refreshCustomerCredit();
-                              if (!mounted) return;
+                              if (!ctx.mounted) return;
                               Navigator.pop(ctx);
                               setState(() {});
                             },
@@ -796,7 +796,7 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
             Text(
               "المبلغ الإجمالي: ${_currency.format(totalPayment)}",
               style: const TextStyle(
-                  color: Colors.green,
+                  color: AppColors.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold),
             ),

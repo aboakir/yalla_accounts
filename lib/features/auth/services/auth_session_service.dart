@@ -11,6 +11,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 
 typedef AuthDatabaseProvider = Future<Database> Function();
@@ -73,6 +74,16 @@ class AuthSessionService {
   }
 
   static bool _previewUsesLocalUser = false;
+
+  Future<AppUser> startOwnerLocalSession() async {
+    if (!OwnerLocalAccess.enabled) {
+      throw StateError('Owner local access build mode is disabled.');
+    }
+    _recoveryOnly = false;
+    _previewUser = OwnerLocalAccess.user;
+    _previewUsesLocalUser = false;
+    return _previewUser!;
+  }
 
   /// Explicit temporary-login session, never persisted as a production token.
   /// Existing local users are re-read on authorization; synthetic preview users
@@ -269,6 +280,12 @@ class AuthSessionService {
   }
 
   Future<void> logout() async {
+    if (OwnerLocalAccess.enabled) {
+      _recoveryOnly = false;
+      _previewUser = OwnerLocalAccess.user;
+      _previewUsesLocalUser = false;
+      return;
+    }
     try {
       final rawToken = _ephemeralToken ?? await _secureRead(_secureTokenKey);
       final userId = _ephemeralUserId ?? await _secureRead(_secureUserIdKey);

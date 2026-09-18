@@ -67,6 +67,77 @@ void main() {
     }
   });
 
+  test('Stage2 trusted migration backfill preserves posted-voucher guard',
+      () async {
+    sqfliteFfiInit();
+    final temp =
+        await Directory.systemTemp.createTemp('yalla_stage2_voucher_backfill_');
+    final db = await databaseFactoryFfi.openDatabase(temp.path + '/db.sqlite');
+    try {
+      await VoucherTables.createAllTables(db);
+      await db.execute(
+        'ALTER TABLE vouchers ADD COLUMN currency_decimals INTEGER;',
+      );
+
+      await db.insert('vouchers', {
+        'id': 'V-LEGACY-POSTED',
+        'voucher_type': 'PAYMENT',
+        'voucher_number': 'P-0098',
+        'party_type': 'SUPPLIER',
+        'party_id': '7',
+        'amount': 250.0,
+        'currency': null,
+        'currency_decimals': null,
+        'date': '2026-09-01',
+        'method': 'CASH',
+        'gl_entry_id': 22,
+        'is_posted': 1,
+        'status': 'POSTED',
+      });
+
+      await expectLater(
+        db.update(
+          'vouchers',
+          {'currency': 'ILS'},
+          where: 'id=?',
+          whereArgs: ['V-LEGACY-POSTED'],
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+
+      await VoucherTables.runTrustedPostedVoucherBackfill(
+        db,
+        () => db.execute(r'''UPDATE vouchers
+          SET currency = COALESCE(NULLIF(TRIM(currency), ''), 'ILS'),
+              currency_decimals = COALESCE(currency_decimals, 2)
+          WHERE id = 'V-LEGACY-POSTED';'''),
+      );
+
+      final row = (await db.query(
+        'vouchers',
+        where: 'id=?',
+        whereArgs: ['V-LEGACY-POSTED'],
+        limit: 1,
+      ))
+          .single;
+      expect(row['currency'], 'ILS');
+      expect(row['currency_decimals'], 2);
+
+      await expectLater(
+        db.update(
+          'vouchers',
+          {'currency': 'USD'},
+          where: 'id=?',
+          whereArgs: ['V-LEGACY-POSTED'],
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+    } finally {
+      await db.close();
+      await temp.delete(recursive: true);
+    }
+  });
+
   test('Stage2 legacy voucher rebuild preserves source linkage', () async {
     sqfliteFfiInit();
     final temp = await Directory.systemTemp.createTemp('yalla_stage2_legacy_');

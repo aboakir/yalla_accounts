@@ -129,7 +129,7 @@ class DeviceUtils {
   Future<bool> _isIOS() async {
     try {
       final info = await DeviceInfoPlugin().iosInfo;
-      return info.model != null;
+      return info.model.isNotEmpty;
     } catch (_) {
       return false;
     }

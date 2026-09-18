@@ -44,5 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Production release inputs (real values stay outside source control)
+# Production/realtime build inputs (real values stay outside source control)
 /deploy/production_defines.json
+/deploy/*.local.json

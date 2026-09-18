@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class MonthlyPieChart extends StatelessWidget {
   final double income;
@@ -66,7 +67,7 @@ class MonthlyPieChart extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -113,7 +114,7 @@ class MonthlyPieChart extends StatelessWidget {
                   PieChartSectionData(
                     value: income.abs(),
                     title: "${incomePercent.toStringAsFixed(1)}%",
-                    color: Colors.green,
+                    color: AppColors.primary,
                     radius: 60,
                     titleStyle: const TextStyle(
                       color: Colors.white,

@@ -23,6 +23,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PayrollScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -220,8 +221,9 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
             employeeName: widget.employee.fullName,
             payrollRun: run,
             presetAmount: remain)));
-    if (mounted)
+    if (mounted) {
       await ref.read(payrollProvider.notifier).load(widget.employee.id);
+    }
   }
 
   void _toast(String msg) {
@@ -262,16 +264,16 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                       ? 'الشهر مقفول (${_monthKey()})'
                       : 'الشهر مفتوح (${_monthKey()})',
                   style: TextStyle(
-                    color: _isLocked ? Colors.red : Colors.green,
+                    color: _isLocked ? Colors.red : AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 side: BorderSide(
-                  color:
-                      (_isLocked ? Colors.red : Colors.green).withOpacity(0.4),
+                  color: (_isLocked ? Colors.red : AppColors.primary)
+                      .withOpacity(0.4),
                 ),
-                backgroundColor:
-                    (_isLocked ? Colors.red : Colors.green).withOpacity(0.06),
+                backgroundColor: (_isLocked ? Colors.red : AppColors.primary)
+                    .withOpacity(0.06),
               ),
             ),
             IconButton(
@@ -647,9 +649,9 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
           DataCell(
               Text('${df.format(r.periodStart)} → ${df.format(r.periodEnd)}')),
           DataCell(Text(df.format(r.accrualDate))),
-          DataCell(Text('${MoneyFormatter.format(r.net)}')),
-          DataCell(Text('${MoneyFormatter.format(r.amountPaid)}')),
-          DataCell(Text('${MoneyFormatter.format(remain)}')),
+          DataCell(Text(MoneyFormatter.format(r.net))),
+          DataCell(Text(MoneyFormatter.format(r.amountPaid))),
+          DataCell(Text(MoneyFormatter.format(remain))),
           DataCell(Text(r.status)),
           DataCell(
             remain > 0
@@ -657,7 +659,7 @@ class _PayrollScreenState extends ConsumerState<PayrollScreen> {
                     onPressed: _isLocked ? null : () => _openPayDialog(r),
                     child: const Text('إنشاء سند صرف'),
                   )
-                : const Icon(Icons.check, color: Colors.green),
+                : const Icon(Icons.check, color: AppColors.primary),
           ),
         ],
       );

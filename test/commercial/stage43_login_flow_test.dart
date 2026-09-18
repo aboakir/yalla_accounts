@@ -66,11 +66,12 @@ class Access extends CommercialAccessGateService {
   final bool allowed;
   @override
   Future<CommercialAccessDecision> evaluate(AppUser user) async {
-    if (!allowed)
+    if (!allowed) {
       return const CommercialAccessDecision.deny(
           code: 'ACTIVATION_REQUIRED',
           message: 'التفعيل مطلوب',
           requiresActivation: true);
+    }
     final now = DateTime.now();
     return CommercialAccessDecision.allow(
         readOnly: false,

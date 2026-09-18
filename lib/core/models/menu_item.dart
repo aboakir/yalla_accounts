@@ -38,34 +38,6 @@ class MenuItem {
     );
   }
 
-  /// تحويل إلى Map — مفيد للتخزين أو التتبّع.
-  Map<String, dynamic> toMap() => {
-        'title': title,
-        'route': route,
-        'icon': icon.codePoint,
-        'iconFontFamily': icon.fontFamily,
-        'iconFontPackage': icon.fontPackage,
-        'children': children?.map((e) => e.toMap()).toList(),
-      };
-
-  /// إنشاء من Map.
-  factory MenuItem.fromMap(Map<String, dynamic> map) {
-    final iconData = IconData(
-      (map['icon'] as int?) ?? Icons.help_outline.codePoint,
-      fontFamily: map['iconFontFamily'] as String?,
-      fontPackage: map['iconFontPackage'] as String?,
-      matchTextDirection: false,
-    );
-    return MenuItem(
-      title: (map['title'] ?? '').toString(),
-      route: map['route'] as String?,
-      icon: iconData,
-      children: (map['children'] as List?)
-          ?.map((e) => MenuItem.fromMap(e as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-
   @override
   String toString() =>
       'MenuItem(title: $title, route: $route, children: ${children?.length ?? 0})';

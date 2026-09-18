@@ -58,6 +58,11 @@ class PaymentVoucherPdf {
                         pw.Container(
                           width: 120,
                           height: 120,
+                          padding: const pw.EdgeInsets.all(10),
+                          decoration: pw.BoxDecoration(
+                            color: const PdfColor.fromInt(0xFFDFF5D2),
+                            borderRadius: pw.BorderRadius.circular(12),
+                          ),
                           child: pw.Image(pw.MemoryImage(logoData)),
                         ),
                       ],
@@ -93,8 +98,8 @@ class PaymentVoucherPdf {
                       infoRow("طريقة الدفع:", method == "CASH" ? "نقدي" : "بنك",
                           ttf, ttfBold),
                       infoRow("الطرف:", partyName, ttf, ttfBold),
-                      infoRow("قيمة السند:", "${MoneyFormatter.format(amount)}",
-                          ttf, ttfBold),
+                      infoRow("قيمة السند:", MoneyFormatter.format(amount), ttf,
+                          ttfBold),
                       infoRow("رقم القيد المحاسبي (GL):",
                           glEntryId?.toString() ?? "—", ttf, ttfBold),
                     ],

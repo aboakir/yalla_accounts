@@ -855,8 +855,9 @@ class VoucherPaymentService {
             where: 'month=? AND is_locked=1',
             whereArgs: [month],
             limit: 1);
-        if (locked.isNotEmpty)
+        if (locked.isNotEmpty) {
           throw StateError('فترة الرواتب مقفلة؛ افتحها قبل الصرف.');
+        }
         if ((run['employee_id'] ?? '').toString() != partyId) {
           throw StateError(
             'Payroll entitlement belongs to a different employee.',

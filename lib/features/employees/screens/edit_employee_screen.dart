@@ -419,8 +419,9 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
                                             child: Text('مقاولة'))
                                       ],
                                       onChanged: (v) {
-                                        if (v != null)
+                                        if (v != null) {
                                           setState(() => contractType = v);
+                                        }
                                       }),
                                   _buildNumberField(
                                     salaryController,

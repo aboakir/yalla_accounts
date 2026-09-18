@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:yalla_accounts/core/providers/parts_usage_provider.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 /// Widget لعرض استهلاك قطع الغيار على شكل مخطط شريطي
 class PartsConsumptionChartWidget extends ConsumerWidget {
@@ -76,7 +77,7 @@ class PartsConsumptionChartWidget extends ConsumerWidget {
                       toY: part.usedQuantity.toDouble(),
                       width: 16,
                       borderRadius: BorderRadius.circular(4),
-                      color: Colors.green,
+                      color: AppColors.primary,
                     ),
                   ],
                 );

@@ -402,18 +402,18 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
         alignment: WrapAlignment.end,
         children: [
           _stat('إجمالي مدين', _showNetSide ? _sumNetDebit() : _sumDebit,
-              Colors.green),
+              AppColors.primary),
           _stat('إجمالي دائن', _showNetSide ? _sumNetCredit() : _sumCredit,
               Colors.red),
           Chip(
             backgroundColor:
-                (balanced ? Colors.green : Colors.orange).withOpacity(.08),
+                (balanced ? AppColors.primary : Colors.orange).withOpacity(.08),
             label: Text(
               balanced
                   ? '✅ الميزان متوازن'
                   : '⚠️ فرق: ${_money.format((_sumDebit - _sumCredit).abs())} (قبل وضع الصافي)',
               style: TextStyle(
-                color: balanced ? Colors.green : Colors.orange,
+                color: balanced ? AppColors.primary : Colors.orange,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -517,14 +517,14 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
                 onDoubleTap: () => _openGLForAccount(r),
               ),
               DataCell(Text(_money.format(debit),
-                  style: const TextStyle(color: Colors.green))),
+                  style: const TextStyle(color: AppColors.primary))),
               DataCell(Text(_money.format(credit),
                   style: const TextStyle(color: Colors.red))),
               if (!_showNetSide)
                 DataCell(Text(
                   _money.format(net),
                   style: TextStyle(
-                    color: net >= 0 ? Colors.green : Colors.red,
+                    color: net >= 0 ? AppColors.primary : Colors.red,
                     fontWeight: FontWeight.bold,
                   ),
                 )),
@@ -572,7 +572,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
                 ? Text(
                     _money.format(net),
                     style: TextStyle(
-                      color: net >= 0 ? Colors.green : Colors.red,
+                      color: net >= 0 ? AppColors.primary : Colors.red,
                       fontWeight: FontWeight.bold,
                     ),
                   )

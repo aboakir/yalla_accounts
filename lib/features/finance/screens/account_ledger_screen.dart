@@ -597,7 +597,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
               ),
               DataCell(Text(
                 e.isOpening ? '0.00' : _money.format(e.debit),
-                style: const TextStyle(color: Colors.green),
+                style: const TextStyle(color: AppColors.primary),
               )),
               DataCell(Text(
                 e.isOpening ? '0.00' : _money.format(e.credit),
@@ -606,7 +606,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
               DataCell(Text(
                 _money.format(e.runningBalance),
                 style: TextStyle(
-                  color: e.runningBalance >= 0 ? Colors.green : Colors.red,
+                  color: e.runningBalance >= 0 ? AppColors.primary : Colors.red,
                   fontWeight: FontWeight.bold,
                 ),
               )),

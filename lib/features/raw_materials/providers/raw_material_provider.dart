@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/raw_materials/models/raw_material.dart';
 import 'package:yalla_accounts/features/raw_materials/services/raw_material_service.dart';
@@ -19,8 +20,7 @@ class RawMaterialListNotifier extends StateNotifier<List<RawMaterial>> {
       state = materials;
     } catch (e, st) {
       // هنا يمكن إضافة سجل الأخطاء أو إظهار رسالة للمستخدم
-      print('خطأ أثناء تحميل المواد الخام: $e');
-      print(st);
+      debugPrint('خطأ أثناء تحميل المواد الخام: $e\n$st');
     }
   }
 
@@ -30,8 +30,7 @@ class RawMaterialListNotifier extends StateNotifier<List<RawMaterial>> {
       // يمكن تحسين: إضافة المادة الجديدة مباشرة إلى الحالة بدل إعادة التحميل الكامل
       await loadMaterials();
     } catch (e, st) {
-      print('خطأ أثناء إضافة المادة: $e');
-      print(st);
+      debugPrint('خطأ أثناء إضافة المادة: $e\n$st');
     }
   }
 
@@ -45,8 +44,7 @@ class RawMaterialListNotifier extends StateNotifier<List<RawMaterial>> {
           if (item.id == material.id) material else item,
       ];
     } catch (e, st) {
-      print('خطأ أثناء تحديث المادة: $e');
-      print(st);
+      debugPrint('خطأ أثناء تحديث المادة: $e\n$st');
     }
   }
 
@@ -57,8 +55,7 @@ class RawMaterialListNotifier extends StateNotifier<List<RawMaterial>> {
       // إزالة المادة من الحالة محليًا دون إعادة تحميل كامل القائمة
       state = state.where((material) => material.id != id).toList();
     } catch (e, st) {
-      print('خطأ أثناء حذف المادة: $e');
-      print(st);
+      debugPrint('خطأ أثناء حذف المادة: $e\n$st');
     }
   }
 }

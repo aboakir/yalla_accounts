@@ -9,6 +9,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PurchaseOtherScreen extends StatefulWidget {
   const PurchaseOtherScreen({super.key});
@@ -122,16 +123,24 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
   Widget build(BuildContext context) {
     final df = DateFormat("yyyy-MM-dd");
 
-    return Scaffold(
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1024;
+
+    final page = Scaffold(
       appBar: YallaAppBar(
         workshopName: _workshopName,
         showSearch: false,
         showNotifications: false,
         showThemeToggle: false,
       ),
-      drawer: const YallaSidebar(),
+      drawer: isDesktop
+          ? null
+          : const Drawer(
+              child: SafeArea(
+                child: YallaSidebar(currentRoute: '/purchases/other'),
+              ),
+            ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isDesktop ? 24 : 16),
         child: Column(
           children: [
             AdaptiveRow(children: [
@@ -168,7 +177,7 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add_circle, color: Colors.green),
+                  icon: const Icon(Icons.add_circle, color: AppColors.primary),
                   onPressed: _addLine,
                 )
               ],
@@ -184,7 +193,7 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
                       title: Text(ln.item),
                       subtitle: Text("الكمية: ${ln.qty} × ${ln.price}"),
                       trailing:
-                          Text("${MoneyFormatter.format((ln.qty * ln.price))}"),
+                          Text(MoneyFormatter.format((ln.qty * ln.price))),
                     ),
                   );
                 },
@@ -211,6 +220,19 @@ class _PurchaseOtherScreenState extends State<PurchaseOtherScreen> {
           ],
         ),
       ),
+    );
+
+    if (!isDesktop) return page;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(
+          width: 280,
+          child: YallaSidebar(currentRoute: '/purchases/other'),
+        ),
+        Expanded(child: page),
+      ],
     );
   }
 }

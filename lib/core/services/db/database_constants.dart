@@ -5,7 +5,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 class DatabaseConstants {
-  static const String dbName = 'yalla_accounts.db';
+  static const String dbName = 'yallah_accounts.db';
+  static const List<String> _knownDbNames = <String>[
+    dbName,
+    'yalla_accounts.db',
+  ];
   static const int dbVersion = 76;
   static const String supplierPidPrefix = 'S';
 
@@ -18,20 +22,30 @@ class DatabaseConstants {
   /// D:/YallaAccounts/yalla_accounts.db keep using it, so an upgrade never
   /// "loses" a customer's live database.
   ///
-  /// Fresh Windows installations use LOCALAPPDATA and do not require a D:
-  /// drive. Other desktop platforms use the current user's app-data area.
+  /// Fresh Windows installations prefer D:/Yallah Accounts. If D: is missing
+  /// or not writable, the database is created under LOCALAPPDATA on C:.
+  /// Nothing is copied or migrated between drives by this resolver.
   ///
+  /// Mobile platforms keep their own sandboxed database policy.
   /// YALLA_ACCOUNTS_DB_DIR is an explicit support/testing override.
   static Future<String> dbFilePath() async {
     final override = Platform.environment['YALLA_ACCOUNTS_DB_DIR']?.trim();
     if (override != null && override.isNotEmpty) {
-      return _ensureDatabaseDirectory(override);
+      return _existingOrCreate(override);
     }
 
     if (Platform.isWindows) {
-      final legacy = File('D:/YallaAccounts/$dbName');
-      if (legacy.existsSync()) {
-        return legacy.path.replaceAll(r'\', '/');
+      const preferred = 'D:/Yallah Accounts';
+      const legacy = 'D:/YallaAccounts';
+
+      final existing = _firstExistingDatabase(<String>[
+        preferred,
+        legacy,
+      ]);
+      if (existing != null) return existing;
+
+      if (_canUseWindowsDirectory(preferred)) {
+        return _existingOrCreate(preferred);
       }
 
       final base = _firstNonEmpty([
@@ -46,14 +60,15 @@ class DatabaseConstants {
         );
       }
 
-      return _ensureDatabaseDirectory('$base/Yalla Accounts/data');
+      final localDir = '$base/Yallah Accounts';
+      return _existingOrCreate(localDir);
     }
 
     // Mobile platforms run inside an application sandbox. Environment HOME is
     // not a reliable application-data location on iOS/Android.
     if (Platform.isIOS || Platform.isAndroid) {
       final appSupport = await getApplicationSupportDirectory();
-      return _ensureDatabaseDirectory('${appSupport.path}/data');
+      return _existingOrCreate('${appSupport.path}/data');
     }
 
     final home = Platform.environment['HOME']?.trim();
@@ -62,21 +77,57 @@ class DatabaseConstants {
     }
 
     if (Platform.isMacOS) {
-      return _ensureDatabaseDirectory(
-        '$home/Library/Application Support/Yalla Accounts/data',
+      return _existingOrCreate(
+        '$home/Library/Application Support/Yallah Accounts/data',
       );
     }
 
-    return _ensureDatabaseDirectory('$home/.local/share/yalla_accounts');
+    return _existingOrCreate('$home/.local/share/yallah_accounts');
   }
 
-  static String _ensureDatabaseDirectory(String directoryPath) {
+  static String? _firstExistingDatabase(List<String> directories) {
+    for (final directoryPath in directories) {
+      for (final name in _knownDbNames) {
+        final file = File('$directoryPath/$name');
+        if (file.existsSync()) {
+          return file.path.replaceAll(r'\', '/');
+        }
+      }
+    }
+    return null;
+  }
+
+  static String _existingOrCreate(String directoryPath) {
+    final existing = _firstExistingDatabase(<String>[directoryPath]);
+    if (existing != null) return existing;
+
     final dir = Directory(directoryPath);
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
 
     return '${dir.path}/$dbName'.replaceAll(r'\', '/');
+  }
+
+  static bool _canUseWindowsDirectory(String directoryPath) {
+    try {
+      final root = Directory('D:/');
+      if (!root.existsSync()) return false;
+
+      final dir = Directory(directoryPath);
+      if (!dir.existsSync()) {
+        dir.createSync(recursive: true);
+      }
+
+      final probe = File(
+        '${dir.path}/.yallah_accounts_write_probe_${pid}_${DateTime.now().microsecondsSinceEpoch}',
+      );
+      probe.writeAsStringSync('ok', flush: true);
+      probe.deleteSync();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   static String? _firstNonEmpty(List<String?> values) {

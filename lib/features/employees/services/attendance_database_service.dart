@@ -219,9 +219,10 @@ class AttendanceDatabaseService {
     final duplicates = await db.rawQuery(
         'SELECT id FROM attendance WHERE employeeId=? AND substr(date,1,10)=? AND id<>? LIMIT 1',
         [record.employeeId, day, record.id]);
-    if (duplicates.isNotEmpty)
+    if (duplicates.isNotEmpty) {
       throw StateError(
           'يوجد سجل حضور لهذا الموظف في اليوم نفسه؛ عدّل السجل الموجود.');
+    }
     final employee = await db.query('employees',
         where: 'id=?', whereArgs: [record.employeeId], limit: 1);
     if (employee.isEmpty) throw StateError('الموظف غير موجود.');
@@ -232,8 +233,9 @@ class AttendanceDatabaseService {
       throw ArgumentError('ساعات الحضور يجب أن تكون بين صفر و24.');
     }
     for (final time in [record.checkIn, record.checkOut]) {
-      if (time != null && time.isNotEmpty && _parseHmmToMin(time) == null)
+      if (time != null && time.isNotEmpty && _parseHmmToMin(time) == null) {
         throw ArgumentError('وقت الحضور أو الانصراف غير صالح.');
+      }
     }
   }
 
@@ -393,8 +395,9 @@ class AttendanceDatabaseService {
   static int? _parseHmmToMin(String? hhmm) {
     if (hhmm == null || hhmm.trim().isEmpty) return null;
     final legacy = DateTime.tryParse(hhmm);
-    if (legacy != null)
+    if (legacy != null) {
       return legacy.toLocal().hour * 60 + legacy.toLocal().minute;
+    }
     final parts = hhmm.trim().split(':');
     if (parts.length < 2) return null;
     final h = int.tryParse(parts[0]);
@@ -549,13 +552,18 @@ class AttendanceDatabaseService {
         var outMinute = _parseHmmToMin(r.checkOut);
         if (endMinute > 1440 &&
             inMinute != null &&
-            inMinute < startMinute - 720) inMinute += 1440;
-        if (outMinute != null && inMinute != null && outMinute < inMinute)
+            inMinute < startMinute - 720) {
+          inMinute += 1440;
+        }
+        if (outMinute != null && inMinute != null && outMinute < inMinute) {
           outMinute += 1440;
-        if (inMinute != null)
+        }
+        if (inMinute != null) {
           lateMinutes += math.max(0, inMinute - startMinute);
-        if (outMinute != null)
+        }
+        if (outMinute != null) {
           earlyExitMinutes += math.max(0, endMinute - outMinute);
+        }
 
         // احتساب الساعات المنتظمة مقابل الإضافي
         final base = policy.hoursPerDay;

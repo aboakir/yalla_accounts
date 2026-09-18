@@ -237,7 +237,7 @@ class ChequesOutgoingScreen extends ConsumerWidget {
       return Text(
         "مظهّر — $date",
         style: const TextStyle(
-          color: Colors.green,
+          color: AppColors.primary,
           fontWeight: FontWeight.bold,
         ),
       );

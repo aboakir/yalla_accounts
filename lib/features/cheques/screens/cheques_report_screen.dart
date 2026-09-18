@@ -770,21 +770,6 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
     );
   }
 
-  Widget _header() {
-    return const Align(
-      alignment: Alignment.centerRight,
-      child: Text(
-        "تقرير الشيكات",
-        textAlign: TextAlign.right,
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textDark,
-        ),
-      ),
-    );
-  }
-
   // ==================================================================
   // KPIs ROW — تصميم جديد صغير وأنيق
   // ==================================================================
@@ -797,7 +782,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
         _statCard(
           title: "عدد الشيكات",
           value: totalCount.toString(),
-          color: Colors.green.shade700,
+          color: AppColors.primary,
         ),
         _statCard(
           title: "إجمالي القيمة",
@@ -807,7 +792,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
         _statCard(
           title: "إجمالي الواردة",
           value: _fmtAmount(incomingSum),
-          color: Colors.green.shade600,
+          color: AppColors.primary,
         ),
         _statCard(
           title: "إجمالي الصادرة",
@@ -1131,7 +1116,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
           _load();
         }),
         const SizedBox(width: 8),
-        _quickBtn("اليوم", Colors.green, () {
+        _quickBtn("اليوم", AppColors.primary, () {
           final now = DateTime.now();
           final t = DateTime(now.year, now.month, now.day);
           dueFrom = t;
@@ -1202,7 +1187,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
         _barChartCard(
           title: "توزيع حسب نوع الشيك",
           rows: [
-            _BarRow("وارد", incomingSum, totalForType, Colors.green),
+            _BarRow("وارد", incomingSum, totalForType, AppColors.primary),
             _BarRow("صادر", outgoingSum, totalForType, Colors.red),
             _BarRow("قيد التحصيل", collectionSum, totalForType, Colors.blue),
           ],
@@ -1211,7 +1196,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
           title: "توزيع حسب حالة الشيك",
           rows: [
             _BarRow("معلّق", pendingSum, totalForStatus, Colors.orange),
-            _BarRow("مُحصّل", collectedSum, totalForStatus, Colors.green),
+            _BarRow("مُحصّل", collectedSum, totalForStatus, AppColors.primary),
             _BarRow("راجع", returnedSum, totalForStatus, Colors.red),
             _BarRow("ملغى", cancelledSum, totalForStatus, Colors.grey),
             _BarRow("مُسلّم", deliveredSum, totalForStatus, Colors.blueGrey),

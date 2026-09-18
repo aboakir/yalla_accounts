@@ -1,0 +1,33 @@
+{
+  "change_request": "CR1",
+  "current_phase": 7,
+  "current_phase_manifest": "CR1_PHASE_7_manifest.json",
+  "status": "PASS",
+  "gate_7_implementation": "PASS",
+  "gate_6_implementation": "PASS",
+  "gate_5_implementation": "PASS",
+  "contract_version": 2,
+  "authority": "Control Server",
+  "tested_code_commits": {
+    "control": "3386196325839fd992a2943ba2871d3e808caa09",
+    "accounts": "e3900eb71640c32121a96057bd25642bddc2cb4d"
+  },
+  "final_commit_record": "git notes --ref=cr1-phase7-review show HEAD",
+  "migration": { "version": 7, "destructive_data_operations": false },
+  "sync": {
+    "contract": "v2",
+    "verified_customer_bearer": true,
+    "ed25519_device_proof": true,
+    "durable_outbox": true,
+    "remote_journal": true,
+    "conflict_quarantine": true,
+    "remote_financial_auto_apply": false
+  },
+  "production_supabase_changes": "NONE",
+  "live_acceptance": "BLOCKED_EXTERNAL_LIVE_ACCEPTANCE",
+  "blockers": [],
+  "next_phase": 8,
+  "next_phase_authorized": false,
+  "push_performed": false,
+  "evidence": "CR1_PHASE_7.md"
+}

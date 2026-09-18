@@ -24,6 +24,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import '../models/cheque.dart';
 import 'cheque_details_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class ChequesDashboardScreen extends ConsumerWidget {
   const ChequesDashboardScreen({super.key});
@@ -245,7 +246,7 @@ class _DashboardBody extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: AdaptiveRow(
           children: [
-            Icon(icon, size: 30, color: Colors.green.shade600),
+            Icon(icon, size: 30, color: AppColors.primary),
             const SizedBox(width: 16),
             Expanded(
               child: Column(

@@ -60,8 +60,9 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                     child: const Text('رجوع')),
                 TextButton(
                     onPressed: () {
-                      if (reason.trim().isNotEmpty)
+                      if (reason.trim().isNotEmpty) {
                         Navigator.pop(dialogContext, true);
+                      }
                     },
                     child: const Text('تأكيد الإلغاء'))
               ],
@@ -73,9 +74,10 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           purchase: true, reason: reason);
       if (mounted) await _load();
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('تعذر الإلغاء: $error')));
+      }
     } finally {
       if (mounted) setState(() => _voiding = false);
     }

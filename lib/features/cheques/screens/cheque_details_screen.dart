@@ -492,7 +492,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("تم تظهير الشيك بنجاح"),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.primary,
         ),
       );
     } catch (e) {

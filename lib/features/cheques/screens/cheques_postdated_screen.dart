@@ -58,13 +58,16 @@ class _ChequesPostdatedScreenState extends State<ChequesPostdatedScreen> {
           child: FutureBuilder<List<Cheque>>(
             future: _future,
             builder: (context, snap) {
-              if (snap.connectionState == ConnectionState.waiting)
+              if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
-              if (snap.hasError)
+              }
+              if (snap.hasError) {
                 return Center(child: Text('تعذر تحميل الشيكات: ${snap.error}'));
+              }
               final rows = snap.data ?? const <Cheque>[];
-              if (rows.isEmpty)
+              if (rows.isEmpty) {
                 return const Center(child: Text('لا توجد شيكات آجلة حاليًا'));
+              }
               if (MediaQuery.sizeOf(context).width < 700) {
                 return ListView.builder(
                   padding: const EdgeInsets.all(12),

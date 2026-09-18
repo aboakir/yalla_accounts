@@ -331,7 +331,7 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
 
                                 Color statusColor() {
                                   if (vehicleStatus == 'تم التسليم') {
-                                    return Colors.green;
+                                    return AppColors.primary;
                                   }
                                   if (vehicleStatus == 'قيد الإصلاح') {
                                     return Colors.orange;

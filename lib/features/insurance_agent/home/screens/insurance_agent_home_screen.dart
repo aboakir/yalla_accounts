@@ -50,7 +50,7 @@ class InsuranceAgentHomeScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.green.shade200),
+                    border: Border.all(color: AppColors.lightGreen),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const AdaptiveRow(

@@ -9,6 +9,7 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/finance/models/invoice.dart';
 import 'package:yalla_accounts/features/finance/services/invoice_database_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class InvoiceViewScreen extends StatefulWidget {
   final String invoiceId;
@@ -269,16 +270,17 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                                 balanced ? 'متوازن' : 'غير متوازن',
                                 style: TextStyle(
                                   color: balanced
-                                      ? Colors.green[900]
+                                      ? AppColors.primary
                                       : Colors.red[900],
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              backgroundColor:
-                                  balanced ? Colors.green[50] : Colors.red[50],
+                              backgroundColor: balanced
+                                  ? AppColors.lightGreen
+                                  : Colors.red[50],
                               side: BorderSide(
                                 color: balanced
-                                    ? Colors.green[200]!
+                                    ? AppColors.lightGreen
                                     : Colors.red[200]!,
                               ),
                             ),

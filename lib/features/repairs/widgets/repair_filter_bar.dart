@@ -39,7 +39,6 @@ class RepairFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? Colors.grey[850] : Colors.grey[100];
-    final textColor = isDark ? Colors.white : Colors.black87;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),

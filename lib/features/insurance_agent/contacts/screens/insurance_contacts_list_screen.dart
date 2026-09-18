@@ -757,12 +757,12 @@ class _ExpiringBanner extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.green.shade200),
-          color: Colors.green.withOpacity(0.08),
+          border: Border.all(color: AppColors.lightGreen),
+          color: AppColors.primary.withOpacity(0.08),
         ),
         child: AdaptiveRow(
           children: [
-            Icon(Icons.verified, color: Colors.green.shade700),
+            Icon(Icons.verified, color: AppColors.primary),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
@@ -887,7 +887,7 @@ class _WideTable extends StatelessWidget {
     final left = daysLeft(d);
     if (left < 0) return Colors.redAccent;
     if (left <= 30) return Colors.orange.shade800;
-    return Colors.green.shade700;
+    return AppColors.primary;
   }
 
   String _statusText(_LeadContact e) {
@@ -1018,7 +1018,7 @@ class _CardsList extends StatelessWidget {
     final left = daysLeft(d);
     if (left < 0) return Colors.redAccent;
     if (left <= 30) return Colors.orange.shade800;
-    return Colors.green.shade700;
+    return AppColors.primary;
   }
 
   String _statusText(_LeadContact e) {
@@ -1328,7 +1328,7 @@ class _LeadContact {
       };
 
   static _LeadContact fromJson(Map<String, dynamic> j) {
-    DateTime? _dt(String? s) =>
+    DateTime? dt(String? s) =>
         (s == null || s.isEmpty) ? null : DateTime.tryParse(s);
 
     return _LeadContact(
@@ -1336,9 +1336,9 @@ class _LeadContact {
       name: (j['name'] ?? '').toString(),
       phone: (j['phone'] ?? '').toString(),
       vehicleMake: (j['vehicleMake'] ?? '').toString(),
-      endDate: _dt(j['endDate']?.toString()),
-      createdAt: _dt(j['createdAt']?.toString()),
-      updatedAt: _dt(j['updatedAt']?.toString()),
+      endDate: dt(j['endDate']?.toString()),
+      createdAt: dt(j['createdAt']?.toString()),
+      updatedAt: dt(j['updatedAt']?.toString()),
     );
   }
 }

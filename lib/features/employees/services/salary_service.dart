@@ -1,7 +1,7 @@
 // 📁 lib/features/employees/services/salary_service.dart
 //
 // SalaryService — legacy salary table compatibility (mutations disabled)
-// ✅ تصحيح الأكواد: 5100، 2140.E<emp>، 1120.E<emp>، 1000/1010
+// ✅ تصحيح الأكواد: 5100، 2140.E[emp]، 1120.E[emp]، 1000/1010
 // ✅ party_type='EMPLOYEE' + party_id=employee_id (TEXT)
 // ✅ يمنع التكرار عبر uq_gl_source(source,source_id) في GL (موجود لديك)
 // ✅ لا إنشاء ملفات جديدة ولا تعديل معمارية، فقط هذا الملف
@@ -9,16 +9,16 @@
 // القيود المحاسبية (بعد التصحيح):
 // 1) اعتماد الراتب (approval)
 //    Dr 5100 مصروف رواتب = gross
-//    Cr 1120.E<emp> سلف موظف = advances_applied (إن > 0)
-//    Cr 2140.E<emp> مستحقات رواتب = net
+//    Cr 1120.E[emp] سلف موظف = advances_applied (إن > 0)
+//    Cr 2140.E[emp] مستحقات رواتب = net
 //
 // 2) صرف الراتب (payment)
-//    Dr 2140.E<emp> = المبلغ المصروف
+//    Dr 2140.E[emp] = المبلغ المصروف
 //    Cr 1000 الصندوق أو 1010 البنك حسب method
 //
 // ملاحظات:
 // - نعتمد على DBService فقط: getAccountIdByCode / ensureAccount / postEntryGL / reverseEntryGL
-// - naming للحسابات الفرعية: "2140.E<employeeId>" و "1120.E<employeeId>"
+// - naming للحسابات الفرعية: "2140.E[employeeId]" و "1120.E[employeeId]"
 
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -60,8 +60,8 @@ class SalaryService {
   /// اعتماد راتب: ينشئ سجل + قيد GL بالتصميم المصحّح
   /// القيد:
   ///   Dr 5100 مصروف رواتب (gross)
-  ///   Cr 1120.E<emp> (advances_applied) إن > 0
-  ///   Cr 2140.E<emp> (net)
+  ///   Cr 1120.E[emp] (advances_applied) إن > 0
+  ///   Cr 2140.E[emp] (net)
   @Deprecated('Use PayrollEntitlementService.accrueFromAttendance')
   static Future<Map<String, Object?>> approveSalary({
     String? id,
@@ -79,7 +79,7 @@ class SalaryService {
   }
 
   /// دفع راتب: قيد سداد ويحدّث السجل إلى paid
-  /// Dr 2140.E<emp> / Cr 1000|1010
+  /// Dr 2140.E[emp] / Cr 1000|1010
   @Deprecated('Use PayrollDatabaseService.pay -> payment voucher')
   static Future<void> paySalary({
     required String id, // salary id المعتمد سابقًا

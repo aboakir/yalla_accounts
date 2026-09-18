@@ -132,8 +132,8 @@ class _HealthBarState extends State<HealthBar> {
           children: [
             _item(
               label: '💰 التدفق النقدي',
-              value: '${MoneyFormatter.format(cashFlow)}',
-              color: cashFlow >= 0 ? Colors.green : Colors.redAccent,
+              value: MoneyFormatter.format(cashFlow),
+              color: cashFlow >= 0 ? AppColors.primary : Colors.redAccent,
             ),
             _divider(),
             _item(
@@ -145,7 +145,7 @@ class _HealthBarState extends State<HealthBar> {
             _item(
               label: '⚖️ توازن GL',
               value: glBalanced ? 'متوازن' : 'خلل',
-              color: glBalanced ? Colors.green : Colors.redAccent,
+              color: glBalanced ? AppColors.primary : Colors.redAccent,
             ),
             _divider(),
             _item(

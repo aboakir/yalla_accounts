@@ -173,7 +173,7 @@ class _AnalyticsChartsState extends State<AnalyticsCharts> {
             height: 220,
             child: _LineChart(
               series: [
-                _LineSeries('الإيرادات', revenue30, Colors.green),
+                _LineSeries('الإيرادات', revenue30, AppColors.primary),
                 _LineSeries('المصروفات', expense30, Colors.redAccent),
               ],
             ),
@@ -398,7 +398,7 @@ class _DonutChart extends StatelessWidget {
 }
 
 const List<Color> _palette = [
-  Colors.green,
+  AppColors.primary,
   Colors.blueGrey,
   Colors.orange,
   Colors.teal,
@@ -494,7 +494,7 @@ class _StackedBarsPainter extends CustomPainter {
     final gap = barWidth * 0.6;
 
     final inflowPaint = Paint()
-      ..color = Colors.green
+      ..color = AppColors.primary
       ..style = PaintingStyle.fill;
     final outflowPaint = Paint()
       ..color = Colors.redAccent

@@ -381,7 +381,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
           _Stat(
               label: 'إجمالي مدين',
               value: _money.format(_sumDebit),
-              color: Colors.green),
+              color: AppColors.primary),
           _Stat(
               label: 'إجمالي دائن',
               value: _money.format(_sumCredit),
@@ -390,7 +390,7 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
             label: 'الرصيد',
             value: _money.format(_opening + _sumDebit - _sumCredit),
             color: (_opening + _sumDebit - _sumCredit) >= 0
-                ? Colors.green
+                ? AppColors.primary
                 : Colors.red,
             bold: true,
           ),
@@ -536,7 +536,7 @@ class _GLTable extends StatelessWidget {
                   DataCell(
                     Text(
                       money.format(e.debit),
-                      style: const TextStyle(color: Colors.green),
+                      style: const TextStyle(color: AppColors.primary),
                     ),
                   ),
                   DataCell(
@@ -549,8 +549,9 @@ class _GLTable extends StatelessWidget {
                     Text(
                       money.format(e.runningBalance),
                       style: TextStyle(
-                        color:
-                            e.runningBalance >= 0 ? Colors.green : Colors.red,
+                        color: e.runningBalance >= 0
+                            ? AppColors.primary
+                            : Colors.red,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

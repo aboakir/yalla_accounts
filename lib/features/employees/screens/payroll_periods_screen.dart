@@ -297,13 +297,14 @@ class _PayrollPeriodsScreenState extends State<PayrollPeriodsScreen> {
           DataCell(Chip(
             label: Text(isLocked ? 'LOCKED' : 'OPEN',
                 style: TextStyle(
-                  color: isLocked ? Colors.red : Colors.green,
+                  color: isLocked ? Colors.red : AppColors.primary,
                   fontWeight: FontWeight.w600,
                 )),
             backgroundColor:
-                (isLocked ? Colors.red : Colors.green).withOpacity(0.08),
+                (isLocked ? Colors.red : AppColors.primary).withOpacity(0.08),
             side: BorderSide(
-                color: (isLocked ? Colors.red : Colors.green).withOpacity(0.3)),
+                color: (isLocked ? Colors.red : AppColors.primary)
+                    .withOpacity(0.3)),
           )),
           DataCell(Text(
             lockedAtPretty,

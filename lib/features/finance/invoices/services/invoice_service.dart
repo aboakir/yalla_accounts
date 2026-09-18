@@ -548,7 +548,7 @@ class InvoiceService {
         where: 'id=?',
         whereArgs: [id],
       );
-      if (count > 0)
+      if (count > 0) {
         await AuditTrailService.log(
             executor: txn,
             action: 'INVOICE_UPDATED',
@@ -558,6 +558,7 @@ class InvoiceService {
             after: (await txn.query(_table, where: 'id=?', whereArgs: [id]))
                 .single,
             reason: note ?? notes);
+      }
       return count;
     });
   }
@@ -600,7 +601,9 @@ class InvoiceService {
       }
 
       if (['VOID', 'CANCELLED']
-          .contains('${inv.first['status']}'.toUpperCase())) return;
+          .contains('${inv.first['status']}'.toUpperCase())) {
+        return;
+      }
       final total = _asD(inv.first['total']) ?? 0.0;
 
       final repairId = inv.first['repair_id']?.toString() ?? '';
@@ -652,31 +655,6 @@ class InvoiceService {
   // ============================================================
   // 11) Private GL Posting (Idempotent)
   // ============================================================
-  Future<String?> _postInvoiceGLAndLink({
-    required String invoiceId,
-    required String repairId,
-    required DateTime date,
-    required double total,
-    required double vatAmount,
-    required int clientId,
-    String? note,
-  }) async {
-    if (clientId == 0) return null;
-
-    final glId = await DBService.postInvoiceGL(
-      invoiceId: invoiceId,
-      date: date,
-      clientId: clientId,
-      total: total,
-      vatAmount: vatAmount,
-      repairId: repairId,
-      ref: invoiceId,
-      note: note,
-    );
-
-    return glId.toString();
-  }
-
   Future<String?> _postInvoiceGLAndLinkOnTransaction({
     required DatabaseExecutor txn,
     required String invoiceId,

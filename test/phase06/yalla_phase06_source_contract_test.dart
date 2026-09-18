@@ -19,7 +19,12 @@ void main() {
         "      return _page(settings, const RepairsScreen(showAll: true));",
       ),
     );
-    expect(shell, contains('routeName == AppRoutes.repairsList'));
+    expect(
+      shell,
+      contains('AppRoutes.repairsList,'),
+      reason:
+          'The canonical repairs list must remain a feature-owned phone shell route.',
+    );
     expect(sidebar, contains("route: AppRoutes.repairsList"));
     expect(sidebar, contains("title: 'ملفات الإصلاح'"));
   });

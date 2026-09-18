@@ -5,13 +5,12 @@
 // 🔥 DB v38 — دعم محاسبي كامل + تحديثات ذكية للحقول
 // ============================================================================
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
 
 import 'package:printing/printing.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/core/services/image_storage_service.dart';
 import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 
@@ -53,7 +52,6 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
 
   late DateTime _receivedDate;
 
-  String _beneficiaryType = 'شركة تأمين';
   String _repairType = 'بودي ودهان';
   String _vehicleStatus = 'بانتظار الإصلاح';
   String _paymentStatus = 'غير مسدد';
@@ -71,11 +69,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
   //                             SMART COLUMN ENGINE
   // ============================================================================
 
-  Future<Database> _getDatabase() async {
-    final dbPath = await getDatabasesPath();
-    final full = p.join(dbPath, 'yalla_accounts.db');
-    return openDatabase(full);
-  }
+  Future<Database> _getDatabase() => DBService.database;
 
   Future<String?> _findExistingColumn(List<String> candidates) async {
     try {
@@ -181,7 +175,6 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
     _fileValueCtrl = TextEditingController();
 
     _receivedDate = r.receivedDate;
-    _beneficiaryType = 'شركة تأمين';
     _repairType = r.repairType;
     _vehicleStatus = r.vehicleStatus;
     _originalFileValue = r.fileValue;

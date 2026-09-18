@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
@@ -33,8 +32,6 @@ class RepairFinancialSummary extends StatelessWidget {
     // ================================
     // تنسيق الأرقام
     // ================================
-    final formatter = NumberFormat.decimalPattern('en_US');
-
     // نسبة السداد للشريط الرمادي
     final paidRatio = totalValue > 0 ? (totalPaid / totalValue) : 0.0;
 
@@ -87,7 +84,7 @@ class RepairFinancialSummary extends StatelessWidget {
                           child: _buildSummaryItem(
                             label: 'المدفوع',
                             amount: MoneyFormatter.format(totalPaid),
-                            color: Colors.green,
+                            color: AppColors.primary,
                             tooltip: 'إجمالي المبالغ المدفوعة',
                           ),
                         ),
@@ -116,7 +113,7 @@ class RepairFinancialSummary extends StatelessWidget {
                           child: _buildSummaryItem(
                             label: 'المدفوع',
                             amount: MoneyFormatter.format(totalPaid),
-                            color: Colors.green,
+                            color: AppColors.primary,
                             tooltip: 'إجمالي المبالغ المدفوعة',
                           ),
                         ),

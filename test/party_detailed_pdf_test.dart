@@ -27,7 +27,7 @@ void main() {
               List.generate(
                   160,
                   (i) => {
-                        'item_name': 'قطعة اختبار رقم ' + i.toString(),
+                        'item_name': 'قطعة اختبار رقم $i',
                         'qty': 1,
                         'unit_price': 1,
                         'total': 1,

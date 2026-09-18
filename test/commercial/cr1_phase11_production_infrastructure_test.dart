@@ -21,9 +21,6 @@ void main() {
       'YALLA_SUPABASE_PUBLISHABLE_KEY',
       'YALLA_CLOUD_AUTH_RELEASE_READY',
       'YALLA_STORE_DISTRIBUTION',
-      'YALLA_PRIVACY_URL',
-      'YALLA_TERMS_URL',
-      'YALLA_ACCOUNT_DELETION_URL',
     ]) {
       expect(values.containsKey(key), isTrue, reason: 'Missing $key');
     }
@@ -86,10 +83,6 @@ void main() {
       'YALLA_CLOUD_AUTH_RELEASE_READY': true,
       'YALLA_CLOUD_OAUTH_ENABLED': false,
       'YALLA_STORE_DISTRIBUTION': false,
-      'YALLA_PRIVACY_URL': 'https://legal.yalla.invalid/privacy',
-      'YALLA_TERMS_URL': 'https://legal.yalla.invalid/terms',
-      'YALLA_ACCOUNT_DELETION_URL':
-          'https://legal.yalla.invalid/account-deletion',
     };
     expect(
       () => production_defines.validateProductionDefines(valid),

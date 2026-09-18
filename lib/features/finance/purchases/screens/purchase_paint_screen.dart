@@ -298,7 +298,7 @@ class _PurchasePaintScreenState extends ConsumerState<PurchasePaintScreen> {
                 title: Text(
                   "${df.format(p.date)} • ${MoneyFormatter.format(p.total)}",
                 ),
-                subtitle: Text("Supplier: ${p.supplierId ?? '-'}"),
+                subtitle: Text("Supplier: ${p.supplierId}"),
               );
             },
           ),

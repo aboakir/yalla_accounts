@@ -110,37 +110,61 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
       );
     }
 
-    return Scaffold(
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= 1024;
+
+    final page = Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const YallaAppBar(
         workshopName: 'Yallah Accounts',
         showThemeToggle: false,
         showSearch: false,
       ),
-      drawer: const YallaSidebar(),
+      drawer: isDesktop
+          ? null
+          : const Drawer(
+              child: SafeArea(
+                child: YallaSidebar(currentRoute: '/cheques/add'),
+              ),
+            ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.fromLTRB(
-            MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
-            12,
-            MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+            width < 600 ? 12 : 28,
+            isDesktop ? 24 : 12,
+            width < 600 ? 12 : 28,
             24 + MediaQuery.viewInsetsOf(context).bottom,
           ),
           child: _card(context, _buildForm(context)),
         ),
       ),
     );
+
+    if (!isDesktop) return page;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(
+          width: 280,
+          child: YallaSidebar(currentRoute: '/cheques/add'),
+        ),
+        Expanded(child: page),
+      ],
+    );
   }
 
   Widget _card(BuildContext context, Widget child) {
-    final phone = MediaQuery.sizeOf(context).width < 600;
+    final width = MediaQuery.sizeOf(context).width;
+    final phone = width < 600;
+    final desktop = width >= 1024;
     return Center(
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.all(phone ? 14 : 24),
-        constraints: const BoxConstraints(maxWidth: 760),
+        constraints: BoxConstraints(maxWidth: desktop ? 1040 : 760),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
@@ -237,7 +261,7 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.save),
                     label: const Text('حفظ'),
-                    onPressed: () => _save(context),
+                    onPressed: _save,
                   ),
                 ),
         ],
@@ -248,7 +272,7 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
   // ---------------------------------------------------------------------------
   // SAVE
   // ---------------------------------------------------------------------------
-  Future<void> _save(BuildContext context) async {
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (chequeType == null || chequeStatus == null || currency == null) {

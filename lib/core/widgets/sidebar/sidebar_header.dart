@@ -138,8 +138,8 @@ class _SidebarHeaderState extends ConsumerState<SidebarHeader> {
       width: boxSize,
       height: boxSize,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        color: AppColors.lightGreen,
       ),
       clipBehavior: Clip.hardEdge,
       child: _loadLogoImage(logoPath),

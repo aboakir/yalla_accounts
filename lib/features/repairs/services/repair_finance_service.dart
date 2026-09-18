@@ -173,8 +173,7 @@ class RepairFinanceService {
 
     // fallback — في حال ما في أعمال/قطع
     if (sum <= 0) {
-      final fv = r.fileValue;
-      sum = (fv is num) ? fv.toDouble() : double.tryParse('$fv') ?? 0.0;
+      sum = r.fileValue.toDouble();
     }
 
     return _round2(sum);

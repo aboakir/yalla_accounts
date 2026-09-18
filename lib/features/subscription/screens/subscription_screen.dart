@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
+import 'package:yalla_accounts/core/privacy/account_deletion_request_button.dart';
+import 'package:yalla_accounts/core/legal/support_complaint_button.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -17,8 +16,6 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  final String whatsappNumber = '+970598888888';
-
   VerifiedLicense? _license;
   bool _isLoading = true;
 
@@ -36,20 +33,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _license = license;
       _isLoading = false;
     });
-  }
-
-  Future<void> _openWhatsApp() async {
-    final url =
-        'https://wa.me/$whatsappNumber?text=أحتاج مساعدة في Yallah Accounts';
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تعذر فتح واتساب')),
-    );
   }
 
   void _exitApp() {
@@ -147,12 +130,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: _openWhatsApp,
-                        icon: const FaIcon(FontAwesomeIcons.whatsapp),
-                        label: const Text('الدعم الفني عبر واتساب'),
+                      const Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            'لا يوجد شراء أو تجديد مدفوع ذاتي من هذه الشاشة. '
+                            'قبل أي دفع يجب عرض اسم الخطة والسعر والعملة والمدة '
+                            'وعدد الأجهزة والقيود الأساسية وسياسة الإلغاء والاسترداد. '
+                            'ولا يُفترض تجديد تلقائي ما لم يُعرض بوضوح وتصدر موافقة صريحة.',
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
+                      const AccountDeletionRequestButton(),
+                      const SizedBox(height: 8),
+                      const SupportComplaintButton(),
+                      const SizedBox(height: 8),
                       const ReleaseLegalLinks(),
                     ],
                   ),

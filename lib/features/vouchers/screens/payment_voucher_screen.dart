@@ -583,8 +583,9 @@ ORDER BY pi.date DESC
                       onPressed: () => Navigator.pop(ctx),
                       child: const Text('إلغاء'))
                 ]));
-    if (selected != null && mounted)
+    if (selected != null && mounted) {
       setState(() => _employeePayroll = selected);
+    }
   }
 
   Widget _employeeSelector() {
@@ -886,7 +887,7 @@ ORDER BY pi.date DESC
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("تم حفظ سند الصرف بنجاح"),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.primary,
           duration: Duration(seconds: 2),
         ),
       );

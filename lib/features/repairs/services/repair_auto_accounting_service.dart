@@ -433,8 +433,9 @@ class RepairAutoAccountingService {
     if (repairRows.isEmpty) throw StateError('ملف الإصلاح غير موجود.');
 
     final repair = repairRows.first;
-    if (repair['status'] == cancelledStatus)
+    if (repair['status'] == cancelledStatus) {
       throw StateError('Cancelled repair cannot be posted.');
+    }
     final clientRaw = repair['client_id'];
     final clientId = clientRaw is int
         ? clientRaw
@@ -525,8 +526,9 @@ class RepairAutoAccountingService {
 
     final state = await tx.query('repairs',
         columns: ['status'], where: 'id=?', whereArgs: [repairId]);
-    if (state.isNotEmpty && state.first['status'] == cancelledStatus)
+    if (state.isNotEmpty && state.first['status'] == cancelledStatus) {
       throw StateError('Cancelled repair cannot be edited.');
+    }
     final invoiceBefore = await _invoiceOn(tx, repairId);
     final invoiceIdBefore = invoiceBefore?['id']?.toString();
     final postedBefore = invoiceIdBefore != null &&
@@ -594,8 +596,9 @@ class RepairAutoAccountingService {
 
   static Future<void> deleteRepair(String repairId,
       {String reason = 'Repair cancelled', Database? database}) async {
-    if (reason.trim().isEmpty)
+    if (reason.trim().isEmpty) {
       throw ArgumentError('Cancellation reason required');
+    }
     final db = database ?? await DBService.database;
     await SyncFoundationService.transaction(db, (tx) async {
       await _ensureAdjustmentSchema(tx);

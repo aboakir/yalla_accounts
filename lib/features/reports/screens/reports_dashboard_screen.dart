@@ -90,7 +90,7 @@ class ReportsDashboardScreen extends StatelessWidget {
         Icons.account_balance_wallet_outlined,
         'قائمة الدخل',
         'الإيرادات والمصروفات من GL',
-        Colors.green,
+        AppColors.primary,
         AppRoutes.incomeStatement
       ),
       (

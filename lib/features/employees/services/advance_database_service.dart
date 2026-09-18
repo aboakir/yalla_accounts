@@ -4,9 +4,9 @@ import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // AdvanceDatabaseService — Employee Advances / Bonuses / Repayments → GL (DB v30)
 //
 // القيود المحاسبية:
-// - Advance:   Dr 1120.E<emp> / Cr 1000|1010
+// - Advance:   Dr 1120.E[emp] / Cr 1000|1010
 // - Bonus:     Dr 5100        / Cr 1000|1010
-// - Repayment: Dr 1000|1010   / Cr 1120.E<emp>
+// - Repayment: Dr 1000|1010   / Cr 1120.E[emp]
 //
 // GL:
 //   source = 'EMP_ADV', source_id = advance.id  (محمي بفهرس uq_gl_source على gl_entries)
@@ -24,7 +24,7 @@ import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // - repayAdvanceCashBank(...): تسديد السلفة نقد/بنك + GL + إنشاء سجل type='repayment'.
 //
 // Notes:
-// - subaccount 1120.E<empId> للسلف لتوافق الرواتب 2140.E<emp>.
+// - subaccount 1120.E<empId> للسلف لتوافق الرواتب 2140.E[emp].
 // - source_id = advance.id لتمكين منع التكرار عبر uq_gl_source.
 // - لا بيانات وهمية. كل الأرقام من التطبيق.
 // - النوع 'repayment' مدعوم.
@@ -157,7 +157,7 @@ class AdvanceDatabaseService {
 
   /// إدخال سلفة/مكافأة + نشر GL + تحديث gl_entry_id.
   ///
-  /// advance: Dr 1120.E<emp> / Cr 1000|1010
+  /// advance: Dr 1120.E[emp] / Cr 1000|1010
   /// bonus:   Dr 5100       / Cr 1000|1010
   static Future<String> insertAdvance({
     required Advance advance,
@@ -290,7 +290,7 @@ class AdvanceDatabaseService {
     final isBonus = t == 'bonus';
     final drId = isBonus
         ? await _salariesExpenseAccountId() // 5100
-        : await _empAdvanceSubAccountId(advance.employeeId); // 1120.E<emp>
+        : await _empAdvanceSubAccountId(advance.employeeId); // 1120.E[emp]
     final crId = await _cashOrBankAccountId(normalizedMethod); // 1000|1010
 
     int entryId;
@@ -426,7 +426,7 @@ class AdvanceDatabaseService {
 
   /// تسديد سلفة نقد/بنك + GL + إنشاء سجل type='repayment'
   ///
-  /// GL: Dr 1000|1010 / Cr 1120.E<emp>
+  /// GL: Dr 1000|1010 / Cr 1120.E[emp]
   static Future<String> repayAdvanceCashBank({
     required String employeeId,
     required double amount,
@@ -466,7 +466,7 @@ class AdvanceDatabaseService {
     // 2) GL
     final drCashBank =
         await _cashOrBankAccountId(normalizedMethod); // 1000/1010
-    final crAdvance = await _empAdvanceSubAccountId(employeeId); // 1120.E<emp>
+    final crAdvance = await _empAdvanceSubAccountId(employeeId); // 1120.E[emp]
 
     int glId;
     try {

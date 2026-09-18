@@ -9,6 +9,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PurchasesByMonthScreen extends StatefulWidget {
   const PurchasesByMonthScreen({super.key});
@@ -166,7 +167,8 @@ class _PurchasesByMonthScreenState extends State<PurchasesByMonthScreen> {
                     final r = _rows[i - 1];
                     final yoyStr =
                         '${r.yoy >= 0 ? '▲' : '▼'} ${_nf.format(r.yoy.abs())}%';
-                    final yoyColor = r.yoy >= 0 ? Colors.green : Colors.red;
+                    final yoyColor =
+                        r.yoy >= 0 ? AppColors.primary : Colors.red;
                     final prevLabel = r.prev == 0 ? '—' : _prevYearYm(r.ym);
                     return ListTile(
                       leading: Text(r.ym),

@@ -27,6 +27,7 @@ import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class SalarySummaryScreen extends StatefulWidget {
   const SalarySummaryScreen({super.key});
@@ -200,7 +201,8 @@ class _SalarySummaryScreenState extends State<SalarySummaryScreen> {
                           children: [
                             _kpi('إجمالي صافي مثبت', _kNet,
                                 color: Colors.blue, bold: true),
-                            _kpi('إجمالي مدفوع', _kPaid, color: Colors.green),
+                            _kpi('إجمالي مدفوع', _kPaid,
+                                color: AppColors.primary),
                             _kpi('إجمالي متبقي', _kRemain,
                                 color: Colors.orange),
                             _kpiCount('عدد الاستحقاقات', _kRuns),
@@ -237,11 +239,9 @@ class _SalarySummaryScreenState extends State<SalarySummaryScreen> {
 
                               return DataRow(cells: [
                                 DataCell(Text(empId)),
-                                DataCell(Text('${MoneyFormatter.format(net)}')),
-                                DataCell(
-                                    Text('${MoneyFormatter.format(paid)}')),
-                                DataCell(
-                                    Text('${MoneyFormatter.format(remain)}')),
+                                DataCell(Text(MoneyFormatter.format(net))),
+                                DataCell(Text(MoneyFormatter.format(paid))),
+                                DataCell(Text(MoneyFormatter.format(remain))),
                                 DataCell(Text('$runs')),
                                 DataCell(Text('$paidRuns')),
                               ]);

@@ -365,7 +365,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                                       'مسدد جزئي', _countPartial.toString(),
                                       color: Colors.orange),
                                   _chipStat('مسدد', _countPaid.toString(),
-                                      color: Colors.green),
+                                      color: AppColors.primary),
                                 ],
                               ),
                             ),
@@ -428,7 +428,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                 headingTextStyle: const TextStyle(fontWeight: FontWeight.bold),
                 rows: _rows.map((r) {
                   final statusColor = r.status == 'مسدد'
-                      ? Colors.green
+                      ? AppColors.primary
                       : (r.status == 'مسدد جزئي' ? Colors.orange : Colors.red);
                   return DataRow(cells: [
                     DataCell(Text(r.status,
@@ -468,7 +468,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
       itemBuilder: (_, i) {
         final r = _rows[i];
         final statusColor = r.status == 'مسدد'
-            ? Colors.green
+            ? AppColors.primary
             : (r.status == 'مسدد جزئي' ? Colors.orange : Colors.red);
 
         return Card(

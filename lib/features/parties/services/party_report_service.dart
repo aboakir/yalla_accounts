@@ -60,8 +60,9 @@ class PartyReportService {
 
       for (final id in statement.lines.map((l) => l.entryId).toSet()) {
         final entries = await find('gl_entries', 'id', id);
-        if (entries.isNotEmpty)
+        if (entries.isNotEmpty) {
           dates[id] = entries.first['date']?.toString() ?? '';
+        }
         final vouchers = await find('vouchers', 'gl_entry_id', id);
         if (vouchers.isNotEmpty) {
           payments.addAll(vouchers);
@@ -84,7 +85,9 @@ class PartyReportService {
           final owner = kind == 'بيع' ? legacy('CUSTOMER') : legacy('SUPPLIER');
           if (owner == null ||
               h[kind == 'بيع' ? 'client_id' : 'supplier_id']?.toString() !=
-                  owner) continue;
+                  owner) {
+            continue;
+          }
           seen.add(key);
           var items = <Map<String, Object?>>[];
           var vehicle = <String, Object?>{};

@@ -139,7 +139,7 @@ class _ForgotCredentialsDialogState
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('تم تحديث بيانات الدخول بنجاح'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.primary,
       ),
     );
   }

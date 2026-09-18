@@ -193,6 +193,26 @@ class VoucherTables {
     }
   }
 
+  /// Runs a narrowly-scoped schema backfill that may need to populate
+  /// compatibility metadata on already-posted vouchers.
+  ///
+  /// Runtime/business writes never use this path. The immutable-posted-voucher
+  /// guard is removed only for the duration of the trusted migration action and
+  /// is restored in finally even if the migration throws.
+  static Future<T> runTrustedPostedVoucherBackfill<T>(
+    DatabaseExecutor db,
+    Future<T> Function() action,
+  ) async {
+    await db.execute(
+      'DROP TRIGGER IF EXISTS trg_vouchers_posted_material_update;',
+    );
+    try {
+      return await action();
+    } finally {
+      await _ensurePostedGuards(db);
+    }
+  }
+
   static Future<void> _ensurePostedGuards(DatabaseExecutor db) async {
     await db.execute(
       'DROP TRIGGER IF EXISTS trg_vouchers_posted_material_update;',

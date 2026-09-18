@@ -54,8 +54,8 @@ class CanonicalReceiptResult {
 class PaymentService {
   static const String table = 'payments';
 
-  static const _K_STATUS_CONFIRMED = 'confirmed';
-  static const _K_PARTY_CLIENT = 'CLIENT';
+  static const _kStatusConfirmed = 'confirmed';
+  static const _kPartyClient = 'CLIENT';
 
   // ─────────── Utils ───────────
   static String _resolveAccountFromMethod(String methodRaw) {
@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS payments (
       final map = payment.toMap();
       map['id'] ??= const Uuid().v4();
       final statusStr = '${map['status'] ?? ''}'.trim();
-      map['status'] = statusStr.isEmpty ? _K_STATUS_CONFIRMED : statusStr;
+      map['status'] = statusStr.isEmpty ? _kStatusConfirmed : statusStr;
       await txn.insert(table, map, conflictAlgorithm: ConflictAlgorithm.abort);
       await AuditTrailService.log(
           executor: txn,
@@ -289,7 +289,7 @@ CREATE TABLE IF NOT EXISTS payments (
         final map = payment.toMap();
         map['id'] ??= const Uuid().v4();
         final statusStr = '${map['status'] ?? ''}'.trim();
-        map['status'] = statusStr.isEmpty ? _K_STATUS_CONFIRMED : statusStr;
+        map['status'] = statusStr.isEmpty ? _kStatusConfirmed : statusStr;
         await txn.insert(table, map,
             conflictAlgorithm: ConflictAlgorithm.abort);
 
@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
       final map = payment.toMap();
       final statusStr = '${map['status'] ?? ''}'.trim();
-      map['status'] = statusStr.isEmpty ? _K_STATUS_CONFIRMED : statusStr;
+      map['status'] = statusStr.isEmpty ? _kStatusConfirmed : statusStr;
       final count = await txn.update(
         table,
         map,
@@ -382,14 +382,17 @@ CREATE TABLE IF NOT EXISTS payments (
 
   static Future<int> delete(String id,
       {String reason = 'Payment cancelled'}) async {
-    if (reason.trim().isEmpty)
+    if (reason.trim().isEmpty) {
       throw ArgumentError('Cancellation reason required');
+    }
     final db = await DBService.database;
     final rows = await db.query(table, where: 'id=?', whereArgs: [id]);
     if (rows.isEmpty) return 0;
     final payment = Payment.fromMap(rows.single);
-    if (['void', 'reversed', 'reversal'].contains(payment.status.toLowerCase()))
+    if (['void', 'reversed', 'reversal']
+        .contains(payment.status.toLowerCase())) {
       return 0;
+    }
     if (payment.isIncome && await _glExists(db, id)) {
       await reverseReceiptByPaymentId(id, reason: reason);
       return 1;
@@ -596,7 +599,7 @@ CREATE TABLE IF NOT EXISTS payments (
         ? payment.accountName!.trim()
         : _resolveAccountFromMethod(canonicalMethod);
     final status = payment.status.trim().isEmpty
-        ? _K_STATUS_CONFIRMED
+        ? _kStatusConfirmed
         : payment.status.trim();
     final paymentId = payment.id.isEmpty ? const Uuid().v4() : payment.id;
 
@@ -609,8 +612,9 @@ CREATE TABLE IF NOT EXISTS payments (
     if (existing.isNotEmpty) {
       final persisted = Payment.fromMap(existing.first);
       if (['void', 'reversed', 'reversal']
-          .contains(persisted.status.toLowerCase()))
+          .contains(persisted.status.toLowerCase())) {
         throw StateError('Cancelled receipt cannot be posted.');
+      }
       final sameMaterialDocument =
           (persisted.amount * 100).round() == (payment.amount * 100).round() &&
               _canonicalReceiptMethod(persisted.method) == canonicalMethod &&
@@ -733,8 +737,9 @@ CREATE TABLE IF NOT EXISTS payments (
       );
     }
 
-    if (operationId.trim().isEmpty)
+    if (operationId.trim().isEmpty) {
       throw ArgumentError('Receipt operation id required');
+    }
     if (!requestedTotal.isFinite ||
         !unallocatedAmount.isFinite ||
         allocations.any((a) => !a.amount.isFinite)) {
@@ -761,14 +766,16 @@ CREATE TABLE IF NOT EXISTS payments (
       final prior = await txn.query('receipt_requests',
           where: 'operation_id=?', whereArgs: [operationId]);
       if (prior.isNotEmpty) {
-        if (prior.single['request_json'] != request)
+        if (prior.single['request_json'] != request) {
           throw StateError('Receipt retry differs from original request');
+        }
         final number = (prior.single['receipt_number'] as num).toInt();
         final header = (await txn.query('receipt_headers',
                 where: 'receipt_number=?', whereArgs: [number]))
             .single;
-        if (header['status'] != 'posted')
+        if (header['status'] != 'posted') {
           throw StateError('Receipt is no longer active');
+        }
         final stored = await txn.query('receipt_allocations',
             where: 'receipt_number=?', whereArgs: [number]);
         return CanonicalReceiptResult(
@@ -834,7 +841,7 @@ CREATE TABLE IF NOT EXISTS payments (
             date: date,
             method: canonicalMethod,
             accountName: null,
-            status: _K_STATUS_CONFIRMED,
+            status: _kStatusConfirmed,
             notes: notes,
             attachments: null,
             glEntryId: null,
@@ -882,7 +889,7 @@ CREATE TABLE IF NOT EXISTS payments (
           date: date,
           method: canonicalMethod,
           accountName: null,
-          status: _K_STATUS_CONFIRMED,
+          status: _kStatusConfirmed,
           notes: [
             if (notes?.trim().isNotEmpty == true) notes!.trim(),
             'رصيد دائن غير مخصص للعميل',
@@ -1095,8 +1102,9 @@ CREATE TABLE IF NOT EXISTS payments (
         executor: txn,
       );
       final remaining = (fileValue - paid).clamp(0.0, double.infinity);
-      if (remaining <= 0.005)
+      if (remaining <= 0.005) {
         throw StateError('Repair is already fully settled.');
+      }
       applied = amount;
       if (available < applied) applied = available;
       if (remaining < applied) applied = remaining.toDouble();
@@ -1117,7 +1125,7 @@ CREATE TABLE IF NOT EXISTS payments (
             'account_id': arAccountId,
             'debit': applied,
             'credit': 0.0,
-            'party_type': _K_PARTY_CLIENT,
+            'party_type': _kPartyClient,
             'party_id': clientId,
             'invoice_id': null,
             'repair_id': null,
@@ -1126,7 +1134,7 @@ CREATE TABLE IF NOT EXISTS payments (
             'account_id': arAccountId,
             'debit': 0.0,
             'credit': applied,
-            'party_type': _K_PARTY_CLIENT,
+            'party_type': _kPartyClient,
             'party_id': clientId,
             'invoice_id': await _findInvoiceIdOnTxn(
               txn: txn,
@@ -1147,7 +1155,7 @@ CREATE TABLE IF NOT EXISTS payments (
         date: DateTime.now(),
         method: 'customer_credit',
         accountName: 'رصيد العميل',
-        status: _K_STATUS_CONFIRMED,
+        status: _kStatusConfirmed,
         notes: notes ?? 'تخصيص من رصيد العميل الدائن',
         attachments: null,
         glEntryId: glId,
@@ -1780,7 +1788,7 @@ CREATE TABLE IF NOT EXISTS payments (
           'account_id': arSubId,
           'debit': 0.0,
           'credit': payment.amount,
-          'party_type': _K_PARTY_CLIENT,
+          'party_type': _kPartyClient,
           'party_id': clientId,
           'invoice_id': invoiceId,
           'repair_id': repairId,
@@ -1960,7 +1968,7 @@ CREATE TABLE IF NOT EXISTS payments (
           'account_id': arSubId,
           'debit': 0.0,
           'credit': payment.amount,
-          'party_type': _K_PARTY_CLIENT,
+          'party_type': _kPartyClient,
           'party_id': clientId,
           'invoice_id': invoiceId,
           'repair_id': normalizedRepairId,
@@ -2029,7 +2037,7 @@ CREATE TABLE IF NOT EXISTS payments (
         : _resolveAccountFromMethod(method);
 
     final statusStr = payment.status.trim().isEmpty
-        ? _K_STATUS_CONFIRMED
+        ? _kStatusConfirmed
         : payment.status.trim();
 
     await SyncFoundationService.transaction(db, (txn) async {

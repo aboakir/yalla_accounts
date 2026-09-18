@@ -16,6 +16,7 @@ import 'package:yalla_accounts/features/employees/providers/employee_provider.da
     show employeeProvider;
 import 'package:yalla_accounts/features/employees/services/attendance_database_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class AttendanceOverviewScreen extends ConsumerStatefulWidget {
   const AttendanceOverviewScreen({super.key});
@@ -190,7 +191,7 @@ class _AttendanceOverviewScreenState
           AdaptiveRow(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _kpi('أيام الحضور', '$presentCount', Colors.green),
+              _kpi('أيام الحضور', '$presentCount', AppColors.primary),
               _kpi('أيام الغياب', '$absentCount', Colors.red),
               _kpi('% حضور', '$percent%', Colors.blue),
             ],
@@ -277,7 +278,7 @@ class _AttendanceOverviewScreenState
   Color _colorForStatus(String status) {
     switch (status) {
       case 'حاضر':
-        return Colors.green;
+        return AppColors.primary;
       case 'غائب':
         return Colors.red;
       case 'تأخير':

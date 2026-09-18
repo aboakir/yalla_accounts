@@ -402,35 +402,7 @@ class RepairsService {
     return bestPath;
   }
 
-  Future<String> _makeThumbnail(String srcPath,
-      {required String repairId}) async {
-    final bytes = File(srcPath).readAsBytesSync();
-    final decoded = im.decodeImage(bytes);
-
-    if (decoded == null) throw StateError('decode failed');
-
-    final square = im.copyResizeCropSquare(decoded, size: 160);
-
-    final dir =
-        Directory(p.join(File(srcPath).parent.parent.path, 'repairs_thumbs'));
-
-    if (!dir.existsSync()) dir.createSync(recursive: true);
-
-    final out = p.join(dir.path, 'thumb_rep_$repairId.jpg');
-
-    File(out).writeAsBytesSync(im.encodeJpg(square, quality: 85));
-
-    return out;
-  }
-
   // ============================== Helpers ====================================
-  void _deletePhysicalFile(String path) {
-    try {
-      final f = File(path);
-      if (f.existsSync()) f.deleteSync();
-    } catch (_) {}
-  }
-
   Future<void> _enableLedgerFlags(DatabaseExecutor txn, String repairId) async {
     try {
       final info = await txn.rawQuery("PRAGMA table_info(repairs)");

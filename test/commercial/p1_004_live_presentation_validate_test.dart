@@ -4,8 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart' as sq;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:yalla_accounts/core/services/db/database_constants.dart';
-
 double n(Object? value) {
   if (value is num) return value.toDouble();
   return double.tryParse(value?.toString() ?? '') ?? 0;

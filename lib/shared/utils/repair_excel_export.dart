@@ -8,7 +8,7 @@ class RepairExcelExport {
   static Future<void> exportToExcel(List<Repair> repairs,
       [String? fileName]) async {
     final excel = Excel.createExcel();
-    final Sheet sheet = excel['الإصلاحات'];
+    excel['الإصلاحات'];
 
     // اسم الملف
     final now = DateTime.now();

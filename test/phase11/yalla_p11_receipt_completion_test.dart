@@ -43,7 +43,10 @@ void main() {
         'lib/features/finance/payments/services/payment_service.dart',
       );
       expect(source, contains('insertCanonicalReceipt'));
-      expect(source, contains('SyncFoundationService.transaction<CanonicalReceiptResult>'));
+      expect(
+          source,
+          contains(
+              'SyncFoundationService.transaction<CanonicalReceiptResult>'));
       expect(source, contains('_nextReceiptNumberOnTxn'));
       expect(source, contains('line.amount > remaining'));
       expect(source, contains('? remaining : line.amount'));

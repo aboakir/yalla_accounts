@@ -1,92 +1,150 @@
-﻿workflows:
-  ios_unsigned:
-    name: Yalla Accounts Unsigned iPhone
+workflows:
+  ios_verification:
+    name: Yalla Accounts iOS Verification
     instance_type: mac_mini_m2
-    max_build_duration: 30
+    max_build_duration: 60
 
     environment:
-      flutter: stable
+      groups:
+        - yalla_release
+      flutter: 3.44.8
       xcode: latest
       cocoapods: default
 
     scripts:
-      - name: Verify Yalla Accounts source
+      - name: Verify source and toolchain
         script: |
           set -euo pipefail
           test -f pubspec.yaml
           grep -Eq '^name:[[:space:]]*yalla_accounts[[:space:]]*$' pubspec.yaml
-          test -d ios
-          echo "Yalla Accounts source verified."
+          flutter --version
+          xcodebuild -version
+          pod --version
 
-      - name: Disable Flutter Swift Package Manager
+      - name: Resolve locked dependencies
         script: |
           set -euo pipefail
-          flutter config --no-enable-swift-package-manager
-          flutter config --list | grep -i swift || true
+          flutter pub get --enforce-lockfile
 
-      - name: Get Flutter packages cleanly
+      - name: Materialize protected production defines
         script: |
           set -euo pipefail
-          flutter clean
-          rm -rf ios/Pods ios/Podfile.lock ios/.symlinks
-          flutter pub get
+          python3 - <<'PY'
+          import json, os
+          required = [
+            'YALLA_LICENSING_BASE_URL','YALLA_LICENSE_TRUSTED_KEY_SHA256',
+            'YALLA_SUPABASE_URL','YALLA_SUPABASE_PUBLISHABLE_KEY'
+          ]
+          missing = [k for k in required if not os.environ.get(k, '').strip()]
+          if missing: raise SystemExit('Missing protected release inputs: ' + ','.join(missing))
+          data = {
+            'YALLA_LICENSING_BASE_URL': os.environ['YALLA_LICENSING_BASE_URL'],
+            'YALLA_LICENSE_TRUSTED_KEY_SHA256': os.environ['YALLA_LICENSE_TRUSTED_KEY_SHA256'],
+            'YALLA_SUPABASE_URL': os.environ['YALLA_SUPABASE_URL'],
+            'YALLA_SUPABASE_PUBLISHABLE_KEY': os.environ['YALLA_SUPABASE_PUBLISHABLE_KEY'],
+            'YALLA_CLOUD_AUTH_RELEASE_READY': True,
+            'YALLA_CLOUD_OAUTH_ENABLED': False,
+            'YALLA_STORE_DISTRIBUTION': True,
+          }
+          open('deploy/production_defines.json','w',encoding='utf-8').write(json.dumps(data))
+          PY
+          dart run tools/validate_production_defines.dart deploy/production_defines.json
+          node tools/release/validate_release_matrix.mjs
+      - name: Analyze and verify iOS contract
+        script: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --no-pub test/commercial/ios_database_architecture_contract_test.dart
 
-      - name: Install iOS pods
+      - name: Install canonical CocoaPods input
         script: |
           set -euo pipefail
           test -f ci/Podfile
-          rm -f ios/Podfile
           cp ci/Podfile ios/Podfile
-
-          cd ios
-          pod deintegrate || true
-          rm -rf Pods Podfile.lock .symlinks
-          cd ..
-
-          flutter pub get
-
           cd ios
           pod install --repo-update
 
-
-
-      - name: Build unsigned iPhone release
+      - name: Build unsigned iOS verification artifact
         script: |
           set -euo pipefail
-          flutter build ios \
-            --release \
-            --no-codesign \
-            --dart-define=YALLA_LICENSING_BASE_URL=https://catatonic-hazard-dingo.ngrok-free.dev \
-            --dart-define=YALLA_LICENSE_TRUSTED_KEY_SHA256=4f0643aa24706753d1546836bf9cf17c35a53222ca63f8d0fb7451ea35643db5 \
-            --dart-define=YALLA_SUPABASE_URL=https://srkskbuoyedwovxvvtvs.supabase.co \
-            --dart-define=YALLA_SUPABASE_PUBLISHABLE_KEY=sb_publishable_6WbY9HxKgXTA2WGf4UPfRg_TPAMK043 \
-            --dart-define=YALLA_CLOUD_AUTH_RELEASE_READY=true \
-            --dart-define=YALLA_CLOUD_OAUTH_ENABLED=false
+          flutter build ios --release --no-codesign \
+            --dart-define-from-file=deploy/production_defines.json
 
-      - name: Package unsigned IPA
+      - name: Package and hash IPA
         script: |
           set -euo pipefail
           APP="build/ios/iphoneos/Runner.app"
           OUT="build/ios/ipa"
-
           test -d "$APP"
-
           rm -rf "$OUT"
           mkdir -p "$OUT/Payload"
           cp -R "$APP" "$OUT/Payload/Runner.app"
-
-          (
-            cd "$OUT"
-            zip -qry "Yalla_Accounts_Unsigned_iPhone.ipa" Payload
-          )
-
-          test -f "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
-          ls -lh "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa"
-
+          (cd "$OUT" && zip -qry "Yalla_Accounts_Unsigned_iPhone.ipa" Payload)
+          shasum -a 256 "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa" > "$OUT/SHA256.txt"
+          rm -f deploy/production_defines.json
     artifacts:
       - build/ios/ipa/Yalla_Accounts_Unsigned_iPhone.ipa
-      - build/ios/iphoneos/Runner.app
+      - build/ios/ipa/SHA256.txt
       - /tmp/xcodebuild_logs/*.log
 
+  api_phase1_copy:
+    name: Yallah Accounts - API Copy / Phase 1
+    instance_type: mac_mini_m2
+    max_build_duration: 60
 
+    environment:
+      flutter: 3.44.8
 
+    scripts:
+      - name: Verify API snapshot
+        script: |
+          set -euo pipefail
+          test -f pubspec.yaml
+          grep -Eq '^name:[[:space:]]*yalla_accounts[[:space:]]*$' pubspec.yaml
+          grep -q "yallah_accounts.db" lib/core/services/db/database_constants.dart
+          test -f lib/core/config/owner_local_access.dart
+          echo "Branch: ${CM_BRANCH:-unknown}"
+          echo "Commit: ${CM_COMMIT:-unknown}"
+          flutter --version
+
+      - name: Resolve locked dependencies
+        script: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile
+
+      - name: Validate local-first baseline
+        script: |
+          set -euo pipefail
+          mkdir -p build/api_phase1
+          flutter analyze --no-fatal-infos --no-fatal-warnings             2>&1 | tee build/api_phase1/analyze.log
+          flutter test --no-pub             test/regression/windows_database_location_policy_test.dart             test/stage2/live_v55_to_v76_probe_test.dart             test/stage2/stage2_voucher_db_integrity_test.dart             test/repairs/add_repair_post_save_navigation_test.dart             test/visual_identity/yallah_visual_identity_contract_test.dart             2>&1 | tee build/api_phase1/gate_tests.log
+
+      - name: Run full regression suite
+        script: |
+          set -euo pipefail
+          flutter test --no-pub             2>&1 | tee build/api_phase1/full_test.log
+
+      - name: Package API development copy
+        script: |
+          set -euo pipefail
+          OUT="build/api_phase1"
+          mkdir -p "$OUT"
+          {
+            echo "YALLAH ACCOUNTS API PHASE 1"
+            echo "Branch=${CM_BRANCH:-unknown}"
+            echo "Commit=${CM_COMMIT:-unknown}"
+            echo "DatabaseSchema=76"
+            echo "Mode=Offline-first API development copy"
+            echo "OwnerLocalBaseline=Frozen"
+            echo "APIImplementationStarted=NO"
+          } > "$OUT/API_PHASE1_MANIFEST.txt"
+          git archive --format=zip             --output="$OUT/Yallah_Accounts_API_Phase1_Source.zip" HEAD
+          shasum -a 256 "$OUT/Yallah_Accounts_API_Phase1_Source.zip"             > "$OUT/SHA256.txt"
+
+    artifacts:
+      - build/api_phase1/Yallah_Accounts_API_Phase1_Source.zip
+      - build/api_phase1/API_PHASE1_MANIFEST.txt
+      - build/api_phase1/SHA256.txt
+      - build/api_phase1/analyze.log
+      - build/api_phase1/gate_tests.log
+      - build/api_phase1/full_test.log

@@ -68,8 +68,9 @@ class EmployeeNotifier extends StateNotifier<EmployeeState> {
       final data = await EmployeeDatabaseService.getAllEmployees();
       if (mounted) state = state.copyWith(employees: data, isLoading: false);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         state = state.copyWith(error: e.toString(), isLoading: false);
+      }
     }
   }
 

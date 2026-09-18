@@ -375,11 +375,11 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
         children: [
           const Text(
               'صافي التدفقات يستبعد الرصيد الافتتاحي ويخصم العكس. التحويل بين الصندوق والبنك لا يحتسب عند اختيار الكل.'),
-          _stat('التدفقات الداخلة', _sumIn, Colors.green),
+          _stat('التدفقات الداخلة', _sumIn, AppColors.primary),
           _stat('التدفقات الخارجة', _sumOut, Colors.red),
           Chip(
             backgroundColor:
-                (net >= 0 ? Colors.green : Colors.red).withOpacity(.08),
+                (net >= 0 ? AppColors.primary : Colors.red).withOpacity(.08),
             label: AdaptiveRow(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -388,7 +388,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                 Text(
                   _money.format(net.abs()),
                   style: TextStyle(
-                      color: net >= 0 ? Colors.green : Colors.red,
+                      color: net >= 0 ? AppColors.primary : Colors.red,
                       fontWeight: FontWeight.bold),
                 ),
               ],
@@ -435,7 +435,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             const SizedBox(width: 8),
             Text('داخل: ${_money.format(_sumIn)}',
                 style: const TextStyle(
-                    color: Colors.green, fontWeight: FontWeight.w600)),
+                    color: AppColors.primary, fontWeight: FontWeight.w600)),
             const SizedBox(width: 12),
             Text('خارج: ${_money.format(_sumOut)}',
                 style: const TextStyle(
@@ -444,7 +444,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
             Text(
               'صافي: ${_money.format(net)}',
               style: TextStyle(
-                  color: net >= 0 ? Colors.green : Colors.red,
+                  color: net >= 0 ? AppColors.primary : Colors.red,
                   fontWeight: FontWeight.bold),
             ),
           ],
@@ -506,13 +506,13 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                 DataCell(Text('#${r.entryId}')),
                 DataCell(Text(r.accountLabel, textAlign: TextAlign.right)),
                 DataCell(Text(_money.format(r.debitIn),
-                    style: const TextStyle(color: Colors.green))),
+                    style: const TextStyle(color: AppColors.primary))),
                 DataCell(Text(_money.format(r.creditOut),
                     style: const TextStyle(color: Colors.red))),
                 DataCell(Text(
                   _money.format(r.running),
                   style: TextStyle(
-                      color: r.running >= 0 ? Colors.green : Colors.red,
+                      color: r.running >= 0 ? AppColors.primary : Colors.red,
                       fontWeight: FontWeight.bold),
                 )),
                 DataCell(
@@ -580,7 +580,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                 Text(
                   _money.format(r.running),
                   style: TextStyle(
-                      color: r.running >= 0 ? Colors.green : Colors.red,
+                      color: r.running >= 0 ? AppColors.primary : Colors.red,
                       fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
@@ -588,7 +588,7 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(_money.format(r.debitIn),
-                        style: const TextStyle(color: Colors.green)),
+                        style: const TextStyle(color: AppColors.primary)),
                     const SizedBox(width: 8),
                     Text(_money.format(r.creditOut),
                         style: const TextStyle(color: Colors.red)),

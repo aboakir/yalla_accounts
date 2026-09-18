@@ -20,6 +20,7 @@ import 'package:yalla_accounts/features/employees/models/attendance.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class AttendanceReportScreen extends ConsumerStatefulWidget {
   const AttendanceReportScreen({super.key});
@@ -261,7 +262,7 @@ class _AttendanceReportScreenState
       runSpacing: 12,
       children: [
         _kpi('إجمالي الأيام', _total.toDouble(), Colors.black87),
-        _kpi('أيام الحضور', _presentCount.toDouble(), Colors.green),
+        _kpi('أيام الحضور', _presentCount.toDouble(), AppColors.primary),
         _kpi('أيام الغياب', _absentCount.toDouble(), Colors.red),
         _kpi('نسبة الالتزام %', _rate, Colors.blue, bold: true, suffix: '%'),
       ],
@@ -294,7 +295,7 @@ class _AttendanceReportScreenState
         final a = rows[i];
         final norm = _normalizeStatus(a.status);
         final isPresent = norm == 'present';
-        final color = isPresent ? Colors.green : Colors.red;
+        final color = isPresent ? AppColors.primary : Colors.red;
         final icon = isPresent ? Icons.check : Icons.close;
         return ListTile(
           leading: CircleAvatar(
@@ -318,7 +319,7 @@ class _AttendanceReportScreenState
     final dataRows = rows.map((a) {
       final norm = _normalizeStatus(a.status);
       final isPresent = norm == 'present';
-      final color = isPresent ? Colors.green : Colors.red;
+      final color = isPresent ? AppColors.primary : Colors.red;
       return DataRow(cells: [
         DataCell(Text(a.employeeId)),
         DataCell(Text(df.format(a.date))),

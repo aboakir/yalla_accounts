@@ -225,7 +225,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.06),
+          color: AppColors.primary.withOpacity(0.06),
           borderRadius: BorderRadius.circular(10),
         ),
         child: const Text(
@@ -233,7 +233,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           textAlign: TextAlign.right,
           style: TextStyle(
             fontSize: 13,
-            color: Colors.green,
+            color: AppColors.primary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -400,7 +400,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           );
         }),
         const SizedBox(width: 8),
-        _quickBtn("اليوم", Colors.green, () {
+        _quickBtn("اليوم", AppColors.primary, () {
           final now = DateTime.now();
           final d = DateTime(now.year, now.month, now.day);
           _updateFilter(
@@ -917,7 +917,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     Color color;
     switch (t) {
       case ChequeType.incoming:
-        color = Colors.green;
+        color = AppColors.primary;
         break;
       case ChequeType.outgoing:
         color = Colors.red;
@@ -939,7 +939,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
         color = Colors.orange;
         break;
       case ChequeStatus.collected:
-        color = Colors.green;
+        color = AppColors.primary;
         break;
       case ChequeStatus.returned:
         color = Colors.red;

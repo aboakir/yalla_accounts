@@ -147,6 +147,16 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'إعداد عرض السعر',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('حفظ العرض'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -187,16 +197,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ العرض'),
-            ),
-          ],
         ),
       ),
     );
@@ -277,6 +277,16 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'تسجيل موافقة العميل',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('اعتماد الموافقة'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -310,16 +320,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('اعتماد الموافقة'),
-            ),
-          ],
         ),
       ),
     );
@@ -348,15 +348,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       context: context,
       builder: (dialogContext) => _WorkflowDialog(
         title: 'تسجيل رفض العرض',
-        child: TextField(
-          controller: reason,
-          minLines: 2,
-          maxLines: 5,
-          decoration: const InputDecoration(
-            labelText: 'سبب الرفض (اختياري)',
-            border: OutlineInputBorder(),
-          ),
-        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -367,6 +358,15 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
             child: const Text('تسجيل الرفض'),
           ),
         ],
+        child: TextField(
+          controller: reason,
+          minLines: 2,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            labelText: 'سبب الرفض (اختياري)',
+            border: OutlineInputBorder(),
+          ),
+        ),
       ),
     );
     if (submit != true) {
@@ -411,21 +411,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'المسؤول / الفني',
-          child: DropdownButtonFormField<String>(
-            value: employees.any((e) => e.id == selected) ? selected : null,
-            items: employees
-                .map((employee) => DropdownMenuItem(
-                      value: employee.id,
-                      child:
-                          Text('${employee.fullName} — ${employee.jobTitle}'),
-                    ))
-                .toList(),
-            onChanged: (value) => setDialogState(() => selected = value),
-            decoration: const InputDecoration(
-              labelText: 'اختر المسؤول عن الملف',
-              border: OutlineInputBorder(),
-            ),
-          ),
           actions: [
             if (allowUnassigned)
               TextButton(
@@ -443,6 +428,21 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               child: const Text('اختيار'),
             ),
           ],
+          child: DropdownButtonFormField<String>(
+            value: employees.any((e) => e.id == selected) ? selected : null,
+            items: employees
+                .map((employee) => DropdownMenuItem(
+                      value: employee.id,
+                      child:
+                          Text('${employee.fullName} — ${employee.jobTitle}'),
+                    ))
+                .toList(),
+            onChanged: (value) => setDialogState(() => selected = value),
+            decoration: const InputDecoration(
+              labelText: 'اختر المسؤول عن الملف',
+              border: OutlineInputBorder(),
+            ),
+          ),
         ),
       ),
     );
@@ -509,6 +509,18 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'الفحص الأولي للجودة',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: work && finish && cleanliness && docs
+                  ? () => Navigator.pop(dialogContext, true)
+                  : null,
+              child: const Text('اعتماد الفحص'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -554,18 +566,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: work && finish && cleanliness && docs
-                  ? () => Navigator.pop(dialogContext, true)
-                  : null,
-              child: const Text('اعتماد الفحص'),
-            ),
-          ],
         ),
       ),
     );
@@ -602,6 +602,22 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'فحص الجودة النهائي',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(dialogContext, 'rework'),
+              child: const Text('إرجاع للتنفيذ'),
+            ),
+            FilledButton(
+              onPressed: work && finish && cleanliness && docs
+                  ? () => Navigator.pop(dialogContext, 'pass')
+                  : null,
+              child: const Text('اعتماد الجودة النهائية'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -647,22 +663,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء'),
-            ),
-            OutlinedButton(
-              onPressed: () => Navigator.pop(dialogContext, 'rework'),
-              child: const Text('إرجاع للتنفيذ'),
-            ),
-            FilledButton(
-              onPressed: work && finish && cleanliness && docs
-                  ? () => Navigator.pop(dialogContext, 'pass')
-                  : null,
-              child: const Text('اعتماد الجودة النهائية'),
-            ),
-          ],
         ),
       ),
     );
@@ -726,6 +726,16 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'تسليم المركبة',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('تأكيد التسليم'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -776,16 +786,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('تأكيد التسليم'),
-            ),
-          ],
         ),
       ),
     );
@@ -819,6 +819,18 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       context: context,
       builder: (dialogContext) => _WorkflowDialog(
         title: 'إغلاق ملف الإصلاح',
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: remaining > 0.005
+                ? null
+                : () => Navigator.pop(dialogContext, true),
+            child: const Text('إغلاق رسمي'),
+          ),
+        ],
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -855,18 +867,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
             ],
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: remaining > 0.005
-                ? null
-                : () => Navigator.pop(dialogContext, true),
-            child: const Text('إغلاق رسمي'),
-          ),
-        ],
       ),
     );
     if (submit != true) {

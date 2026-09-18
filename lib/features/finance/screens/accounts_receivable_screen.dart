@@ -283,6 +283,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
       ));
     }
 
+    if (!mounted) return;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -311,7 +312,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                           Colors.blueGrey),
                       const SizedBox(width: 6),
                       _statChip('مدفوع', _money.format(row.paymentsTotal),
-                          Colors.green),
+                          AppColors.primary),
                       const SizedBox(width: 6),
                       _statChip(
                           'متبقي', _money.format(row.balance), Colors.red),
@@ -402,7 +403,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                                           Text(_money.format(a.invoiceTotal))),
                                       DataCell(Text(_money.format(a.paid),
                                           style: const TextStyle(
-                                              color: Colors.green))),
+                                              color: AppColors.primary))),
                                       DataCell(Text(_money.format(remain),
                                           style: const TextStyle(
                                               color: Colors.red))),
@@ -416,7 +417,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                                           icon: const Icon(Icons.add),
                                           label: const Text('سداد'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
+                                            backgroundColor: AppColors.primary,
                                             foregroundColor: Colors.white,
                                           ),
                                         ),
@@ -440,8 +441,6 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
   // ===== واجهة =====
   @override
   Widget build(BuildContext context) {
-    final isDesktop = Responsive.isDesktop(context);
-
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       drawer: Responsive.isDesktop(context)
@@ -942,7 +941,7 @@ class _ClientCard extends StatelessWidget {
         ? 'مسدد'
         : (row.paymentsTotal > 0.0001 ? 'مسدد جزئي' : 'غير مسدد');
     final statusColor = row.balance <= 0.0001
-        ? Colors.green.shade100
+        ? AppColors.lightGreen
         : (row.paymentsTotal > 0.0001
             ? Colors.orange.shade100
             : Colors.red.shade100);
@@ -1038,7 +1037,7 @@ class _AmountSummary extends StatelessWidget {
           color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         amount('الإجمالي', total, Colors.black87),
-        amount('المدفوع', paid, Colors.green.shade700),
+        amount('المدفوع', paid, AppColors.primary),
         amount('المتبقي', remaining, Colors.red.shade700),
       ]),
     );
@@ -1079,7 +1078,7 @@ class _DesktopTable extends StatelessWidget {
                 ? 'مسدد'
                 : (r.paymentsTotal > 0.0001 ? 'مسدد جزئي' : 'غير مسدد');
             final statusColor = r.balance <= 0.0001
-                ? Colors.green
+                ? AppColors.primary
                 : (r.paymentsTotal > 0.0001 ? Colors.orange : Colors.red);
 
             return DataRow(cells: [
@@ -1087,7 +1086,7 @@ class _DesktopTable extends StatelessWidget {
               DataCell(Text(r.type)),
               DataCell(Text(money.format(r.invoicesTotal))),
               DataCell(Text(money.format(r.paymentsTotal),
-                  style: const TextStyle(color: Colors.green))),
+                  style: const TextStyle(color: AppColors.primary))),
               DataCell(Text(money.format(r.balance),
                   style: const TextStyle(color: Colors.red))),
               DataCell(AdaptiveRow(
@@ -1106,50 +1105,6 @@ class _DesktopTable extends StatelessWidget {
               ),
             ]);
           }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 76, color: AppColors.primary),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.right,
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                subtitle!,
-                style: const TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
         ),
       ),
     );

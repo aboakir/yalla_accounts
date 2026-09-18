@@ -7,6 +7,7 @@
 // ——————————————————————————————————————————————
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -14,6 +15,7 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'sidebar_header.dart';
 import 'sidebar_search.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class YallaSidebar extends ConsumerStatefulWidget {
   final String? currentRoute;
@@ -300,7 +302,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       width: 3,
       height: 26,
       decoration: BoxDecoration(
-        color: active ? Colors.green : Colors.transparent,
+        color: active ? AppColors.primary : Colors.transparent,
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -310,7 +312,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         line,
         const SizedBox(width: 8),
         Icon(icon,
-            color: enabled ? (active ? Colors.green : null) : Colors.grey),
+            color: enabled ? (active ? AppColors.primary : null) : Colors.grey),
         const SizedBox(width: 8),
         if (!_isCollapsed)
           Expanded(
@@ -318,8 +320,9 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
               title,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  color:
-                      enabled ? (active ? Colors.green : null) : Colors.grey),
+                  color: enabled
+                      ? (active ? AppColors.primary : null)
+                      : Colors.grey),
             ),
           ),
       ],
@@ -776,36 +779,40 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               icon: Icons.shield_outlined,
                               title: 'حماية البيانات',
                               route: rSettingsSecurityData),
-                          _tile(
-                              icon: Icons.verified_outlined,
-                              title: 'حالة الاشتراك',
-                              route: '/current-subscription'),
-                          _tile(
-                              icon: Icons.workspace_premium_outlined,
-                              title: 'الاشتراك والخطط',
-                              route: rSubscription),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                                icon: Icons.verified_outlined,
+                                title: 'حالة الاشتراك',
+                                route: '/current-subscription'),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                                icon: Icons.workspace_premium_outlined,
+                                title: 'الاشتراك والخطط',
+                                route: rSubscription),
                           _tile(
                               icon: Icons.support_agent,
                               title: 'الدعم الفني',
                               route: rTechnicalSupport),
-                          ListTile(
-                            leading: const Icon(Icons.logout,
-                                color: Colors.redAccent),
-                            title: _isCollapsed
-                                ? const SizedBox.shrink()
-                                : const Text('تسجيل خروج',
-                                    style: TextStyle(color: Colors.redAccent)),
-                            dense: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            onTap: () {
-                              final scaffoldState = Scaffold.maybeOf(context);
-                              if (scaffoldState?.isDrawerOpen == true) {
-                                Navigator.of(context).pop();
-                              }
-                              _navigate(rLogout);
-                            },
-                          ),
+                          if (!OwnerLocalAccess.enabled)
+                            ListTile(
+                              leading: const Icon(Icons.logout,
+                                  color: Colors.redAccent),
+                              title: _isCollapsed
+                                  ? const SizedBox.shrink()
+                                  : const Text('تسجيل خروج',
+                                      style:
+                                          TextStyle(color: Colors.redAccent)),
+                              dense: true,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              onTap: () {
+                                final scaffoldState = Scaffold.maybeOf(context);
+                                if (scaffoldState?.isDrawerOpen == true) {
+                                  Navigator.of(context).pop();
+                                }
+                                _navigate(rLogout);
+                              },
+                            ),
                         ],
                       ),
                     ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/settings/services/data_health_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class DataHealthScreen extends StatefulWidget {
   const DataHealthScreen({super.key});
@@ -159,7 +160,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
   ) {
     switch (status) {
       case DataHealthStatus.pass:
-        return Colors.green;
+        return AppColors.primary;
       case DataHealthStatus.warning:
         return Colors.orange;
       case DataHealthStatus.error:
@@ -249,7 +250,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
             ? Colors.blue
             : report.warningCount > 0
                 ? Colors.orange
-                : Colors.green;
+                : AppColors.primary;
 
     final overallLabel = report.errorCount > 0
         ? 'توجد أخطاء تتطلب المعالجة'
@@ -289,7 +290,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
                 _counterChip(
                   'PASS',
                   report.passCount,
-                  Colors.green,
+                  AppColors.primary,
                 ),
                 _counterChip(
                   'WARNING',

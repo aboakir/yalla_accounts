@@ -1,0 +1,9 @@
+{
+  "YALLA_LICENSING_BASE_URL": "https://control.example.com",
+  "YALLA_LICENSE_TRUSTED_KEY_SHA256": "REPLACE_WITH_64_HEX_SHA256",
+  "YALLA_SUPABASE_URL": "https://project-ref.supabase.co",
+  "YALLA_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_REPLACE_ME",
+  "YALLA_CLOUD_AUTH_RELEASE_READY": true,
+  "YALLA_CLOUD_OAUTH_ENABLED": false,
+  "YALLA_STORE_DISTRIBUTION": true
+}

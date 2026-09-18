@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:yalla_accounts/features/repairs/providers/repair_stats_provider.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PaymentStatusPieChart extends ConsumerWidget {
   const PaymentStatusPieChart({super.key});
@@ -18,7 +19,7 @@ class PaymentStatusPieChart extends ConsumerWidget {
           return const Center(child: Text('لا توجد بيانات للعرض'));
         }
 
-        final colors = [Colors.green, Colors.orange, Colors.red];
+        final colors = [AppColors.primary, Colors.orange, Colors.red];
         final labels = ['مسدد', 'مسدد جزئي', 'غير مسدد'];
         final values = [
           data['مسدد'] ?? 0,

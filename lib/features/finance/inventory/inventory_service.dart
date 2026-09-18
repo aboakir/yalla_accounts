@@ -2,35 +2,30 @@
 
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'inventory_item_model.dart';
 
 class InventoryService {
   static Database? _db;
 
   static Future<Database> _getDatabase() async {
-    if (_db != null) return _db!;
-    final path = join(await getDatabasesPath(), 'yalla_accounts.db');
-    _db = await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS inventory_items(
-            id TEXT PRIMARY KEY,
-            name TEXT,
-            partNumber TEXT,
-            purchasePrice REAL,
-            sellingPrice REAL,
-            quantityInStock INTEGER,
-            unit TEXT,
-            category TEXT,
-            lastUpdated TEXT
-          )
-        ''');
-      },
-    );
-    return _db!;
+    if (_db != null && _db!.isOpen) return _db!;
+    final db = await DBService.database;
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS inventory_items(
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        partNumber TEXT,
+        purchasePrice REAL,
+        sellingPrice REAL,
+        quantityInStock INTEGER,
+        unit TEXT,
+        category TEXT,
+        lastUpdated TEXT
+      )
+    ''');
+    _db = db;
+    return db;
   }
 
   static Future<void> addItem(InventoryItem item) async {
