@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "phase": 18,
+  "android_status": "PASS",
+  "date": "2026-09-18",
+  "keystore_location_policy": "private_user_directory_outside_git",
+  "aab": {
+    "path": "build/app/outputs/bundle/release/app-release.aab",
+    "size_bytes": 93080407,
+    "signature_check": "jarsigner -verify -strict",
+    "signature_pass": true,
+    "sha256": "85B1825A5811895C593AEA133E32EF518A7BFDB2E7F5FDBD450BEDA32002B969"
+  },
+  "apk": {
+    "path": "build/app/outputs/flutter-apk/app-release.apk",
+    "size_bytes": 108258945,
+    "signature_check": "apksigner verify --verbose",
+    "signature_pass": true,
+    "sha256": "6E3F2CC65913BC1C950C0E2EC33487D367D0B3C3334F72739EABE37717C6878D"
+  },
+  "remaining_external": [
+    "windows_trusted_publisher_certificate",
+    "apple_distribution_and_provisioning"
+  ]
+}

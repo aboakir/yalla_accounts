@@ -308,6 +308,17 @@ class UnifiedSyncTables {
   }
 
   static Future<void> _backfillLocalChanges(DatabaseExecutor db) async {
+    final pendingBackfill = Sqflite.firstIntValue(await db.rawQuery(
+          '''SELECT COUNT(*) FROM ${SyncFoundationTables.changes} c
+          WHERE c.origin='local'
+            AND c.operation IN ('created','updated','voided','restored')
+            AND c.entity_type NOT IN ('client','supplier','account')
+            AND NOT EXISTS (
+              SELECT 1 FROM $outbox o WHERE o.change_id=c.change_id
+            )''',
+        )) ??
+        0;
+    if (pendingBackfill == 0) return;
     final wirePayload = _wirePayload('c');
     await db.execute(
       '''INSERT OR IGNORE INTO $outbox(
