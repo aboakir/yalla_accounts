@@ -9,6 +9,26 @@ class HRTables {
     await _createEmployeeAdvancesTable(db);
     await _createPayrollRunsTable(db);
     await _createPayrollPaymentsTable(db);
+    await ensureSyncColumns(db);
+  }
+
+  static Future<void> ensureSyncColumns(DatabaseExecutor db) async {
+    await _ensureColumn(db, 'payroll_runs', 'created_at', 'TEXT');
+    await _ensureColumn(db, 'payroll_runs', 'attendance_snapshot', 'TEXT');
+    await _ensureColumn(db, 'payroll_runs', 'entitlement_basis', 'TEXT');
+    await _ensureColumn(db, 'payroll_payments', 'voucher_id', 'TEXT');
+  }
+
+  static Future<void> _ensureColumn(
+    DatabaseExecutor db,
+    String table,
+    String column,
+    String type,
+  ) async {
+    final info = await db.rawQuery('PRAGMA table_info($table)');
+    if (!info.any((row) => row['name']?.toString() == column)) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
   }
 
   // 👤 جدول الموظفين

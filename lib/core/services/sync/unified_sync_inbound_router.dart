@@ -5,6 +5,8 @@ import 'package:yalla_accounts/features/inventory/services/inventory_sync_servic
 import 'package:yalla_accounts/features/repairs/services/repair_sync_service.dart';
 import 'package:yalla_accounts/features/vehicles/services/vehicle_sync_service.dart';
 
+import 'financial_hr_sync_service.dart';
+import 'insurance_sync_service.dart';
 import 'unified_sync_queue_service.dart';
 
 class UnifiedSyncInboundRouter {
@@ -14,6 +16,18 @@ class UnifiedSyncInboundRouter {
     DatabaseExecutor transaction,
     InboundSyncChange change,
   ) async {
+    if (FinancialHrSyncService.handledTypes.contains(change.entityType)) {
+      await FinancialHrSyncService.applyInbound(transaction, change);
+      return;
+    }
+    if (InsuranceSyncService.handledTypes.contains(change.entityType)) {
+      await InsuranceSyncService.applyInbound(transaction, change);
+      return;
+    }
+    // Chart-of-accounts rows are intentionally not a standalone wire entity.
+    // GL lines carry the canonical account code/metadata required to resolve it.
+    if (change.entityType == 'account') return;
+
     switch (change.entityType) {
       case 'party':
         await PartySyncService.applyInbound(transaction, change);

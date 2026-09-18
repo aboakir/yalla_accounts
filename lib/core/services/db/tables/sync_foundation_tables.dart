@@ -22,7 +22,8 @@ class SyncFoundationTables {
 
   /// The registry UUID is independent of legacy integer/business identifiers.
   /// Line/allocation records are tracked too: changing a line cannot disappear
-  /// behind an unchanged document header. GL is observed, never applied.
+  /// behind an unchanged document header. Remote financial facts are applied
+  /// only through the reviewed append-only financial sync path.
   static const documents = <String, String>{
     'clients': 'client',
     'suppliers': 'supplier',
@@ -59,6 +60,7 @@ class SyncFoundationTables {
     'monthly_expenses': 'monthly_expense',
     'gl_entries': 'gl_entry',
     'gl_lines': 'gl_line',
+    'accounting_audit_events': 'accounting_audit_event',
   };
 
   static const _moneyColumns = {
@@ -412,7 +414,6 @@ class SyncFoundationTables {
         'insurance_policy_cheques': ('insurance_policy', 'policy_id'),
         'insurance_policy_installments': ('insurance_policy', 'policy_id'),
         'insurance_policy_promissories': ('insurance_policy', 'policy_id'),
-        'gl_lines': ('gl_entry', 'entry_id'),
       };
       final parent = parents[table];
       if (parent == null || !columns.contains(parent.$2)) return '';

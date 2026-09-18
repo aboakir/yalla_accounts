@@ -12,13 +12,13 @@ void main() {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  test('Phase 10 v81 to v82 migrates legacy stock once without outbound noise',
+  test('Phase 20 v81 to v83 preserves v82 inventory migration without outbound noise',
       () async {
     final root = await Directory.systemTemp.createTemp('phase10_v82_');
     final path = '${root.path}/fixture.sqlite';
     var db = await DatabaseMigration.initDatabase(pathOverride: path);
     try {
-      expect(DatabaseConstants.dbVersion, 82);
+      expect(DatabaseConstants.dbVersion, 83);
       await db.insert('raw_materials', {
         'name': 'Primer',
         'supplier': 'Supplier A',
@@ -35,12 +35,12 @@ void main() {
       await db.execute('DROP TABLE IF EXISTS ${InventoryTables.movements}');
       await db.execute('DROP TABLE IF EXISTS ${InventoryTables.warehouses}');
       await db.execute('DROP TABLE IF EXISTS ${InventoryTables.items}');
-      await db.delete('schema_migrations', where: 'version=?', whereArgs: [82]);
+      await db.delete('schema_migrations', where: 'version IN (?,?)', whereArgs: [82, 83]);
       await db.setVersion(81);
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 82);
+      expect(await db.getVersion(), 83);
       expect(
           await db
               .query('schema_migrations', where: 'version=?', whereArgs: [82]),

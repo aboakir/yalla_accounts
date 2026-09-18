@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
+import '../db/tables/sync_foundation_tables.dart';
 import '../db/tables/unified_sync_tables.dart';
 import 'sync_contract_v3.dart';
 
@@ -38,19 +39,16 @@ class UnifiedSyncQueueService {
   }) async {
     SyncContractV3.requirePushBatchSize(limit);
     final now = DateTime.now().toUtc().toIso8601String();
-    return (await db.query(
-      UnifiedSyncTables.outbox,
-      where: "state='PENDING' AND entity_type NOT IN ('client','supplier') "
-          "AND (next_attempt_at IS NULL OR next_attempt_at<=?)",
-      whereArgs: [now],
-      orderBy: "CASE entity_type "
-          "WHEN 'inventory_item' THEN 0 "
-          "WHEN 'inventory_warehouse' THEN 0 "
-          "WHEN 'inventory_item_alternative' THEN 1 "
-          "WHEN 'inventory_item_compatibility' THEN 1 "
-          "WHEN 'inventory_movement' THEN 2 ELSE 1 END ASC,"
-          "created_at ASC,outbox_id ASC",
-      limit: limit,
+    return (await db.rawQuery(
+      '''SELECT o.*
+      FROM ${UnifiedSyncTables.outbox} o
+      JOIN ${SyncFoundationTables.changes} c ON c.change_id=o.change_id
+      WHERE o.state='PENDING'
+        AND o.entity_type NOT IN ('client','supplier','account')
+        AND (o.next_attempt_at IS NULL OR o.next_attempt_at<=?)
+      ORDER BY c.sequence ASC
+      LIMIT ?''',
+      [now, limit],
     ))
         .map(Map<String, Object?>.from)
         .toList(growable: false);
@@ -272,7 +270,9 @@ class UnifiedSyncQueueService {
       SUM(CASE WHEN state='PENDING' THEN 1 ELSE 0 END) AS pending,
       SUM(CASE WHEN state='SENDING' THEN 1 ELSE 0 END) AS sending,
       SUM(CASE WHEN state='CONFLICT' OR (state='REJECTED' AND
-        COALESCE(last_error,'')<>'SYNC_SUPERSEDED_BY_MASTER_PARTY') THEN 1 ELSE 0 END) AS failed
+        COALESCE(last_error,'') NOT IN
+          ('SYNC_SUPERSEDED_BY_MASTER_PARTY','SYNC_ACCOUNT_EMBEDDED_METADATA'))
+        THEN 1 ELSE 0 END) AS failed
       FROM ${UnifiedSyncTables.outbox}''');
     final row = rows.isEmpty ? const <String, Object?>{} : rows.single;
     return UnifiedSyncQueueStats(

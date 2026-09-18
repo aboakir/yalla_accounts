@@ -239,6 +239,7 @@ class DatabaseMigration {
     await _upgradeV80(db);
     await _upgradeV81(db);
     await _upgradeV82(db);
+    await _upgradeV83(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -262,6 +263,7 @@ class DatabaseMigration {
       if (oldV < 80) await _upgradeV80(db);
       if (oldV < 81) await _upgradeV81(db);
       if (oldV < 82) await _upgradeV82(db);
+      if (oldV < 83) await _upgradeV83(db);
       return;
     }
 
@@ -439,6 +441,22 @@ class DatabaseMigration {
     if (oldV < 80) await _upgradeV80(db);
     if (oldV < 81) await _upgradeV81(db);
     if (oldV < 82) await _upgradeV82(db);
+    if (oldV < 83) await _upgradeV83(db);
+  }
+
+  static Future<void> _upgradeV83(Database db) async {
+    await HRTables.ensureSyncColumns(db);
+    await AccountingIntegrityTables.ensure(db);
+    await SyncFoundationTables.ensure(db);
+    await UnifiedSyncTables.ensure(db);
+    await UnifiedSyncTables.refreshFinancialPayloadsForMigration(db);
+    await UnifiedSyncQueueService.resetInterruptedSending(db);
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert(
+      'schema_migrations',
+      {'version': 83, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   static Future<void> _upgradeV82(Database db) async {

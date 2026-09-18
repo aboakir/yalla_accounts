@@ -101,8 +101,9 @@ class PilotReadinessService {
             db, "SELECT COUNT(*) FROM sync_outbox WHERE state='CONFLICT'")
         : 0;
     final rejectedSync = hasOutbox
-        ? await _count(
-            db, "SELECT COUNT(*) FROM sync_outbox WHERE state='REJECTED'")
+        ? await _count(db, '''SELECT COUNT(*) FROM sync_outbox
+            WHERE state='REJECTED' AND COALESCE(last_error,'') NOT IN
+              ('SYNC_SUPERSEDED_BY_MASTER_PARTY','SYNC_ACCOUNT_EMBEDDED_METADATA')''')
         : 0;
     final openLocalConflicts = await _tableExists(db, 'sync_conflicts')
         ? await _count(
