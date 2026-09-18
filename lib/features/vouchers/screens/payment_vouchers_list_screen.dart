@@ -239,7 +239,7 @@ WHERE v.voucher_type = 'PAYMENT'
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const YallaAppBar(
-        workshopName: "Yalla Accounts",
+        workshopName: "Yallah Accounts",
         showThemeToggle: false,
         showSearch: false,
       ),

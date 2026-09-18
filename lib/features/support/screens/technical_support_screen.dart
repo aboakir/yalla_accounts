@@ -6,7 +6,7 @@ class TechnicalSupportScreen extends StatelessWidget {
   const TechnicalSupportScreen({super.key});
 
   // ===== بيانات التواصل =====
-  static const String companyName = 'Yalla Accounts';
+  static const String companyName = 'Yallah Accounts';
   static const String phone = '0594 680 857';
   static const String whatsapp = '+970 566 061 666';
 

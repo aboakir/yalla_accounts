@@ -103,8 +103,12 @@ class OutboxSyncCoordinator with WidgetsBindingObserver {
       _status.setTransportConfigured(configured);
 
       if (transport == null) {
-        await _status.refresh(database: db);
         final stats = await OfflineOutboxService.queueStats(db);
+        _status.setLocalOnly(
+          pendingCount: stats.pending,
+          failedCount: stats.failed,
+          sendingCount: stats.sending,
+        );
         return OutboxDrainResult(
           sent: 0,
           failed: 0,

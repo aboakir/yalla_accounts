@@ -15,7 +15,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  static const String logoPath = 'assets/logo/logo.png';
+  static const String logoPath = 'assets/branding/yallah_logo_horizontal.png';
 
   @override
   void initState() {
@@ -36,7 +36,10 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             Image.asset(
               logoPath,
-              width: MediaQuery.sizeOf(context).width * 0.4,
+              width: MediaQuery.sizeOf(context)
+                  .width
+                  .clamp(220.0, 460.0)
+                  .toDouble(),
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 24),

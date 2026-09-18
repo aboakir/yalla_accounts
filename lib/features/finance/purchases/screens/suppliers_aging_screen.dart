@@ -16,6 +16,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/pdf/supplier_ledger_pdf.dart';
+import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -178,6 +179,9 @@ class _SuppliersAgingScreenState extends State<SuppliersAgingScreen> {
     final t = Theme.of(context).textTheme;
 
     return Scaffold(
+      drawer: MediaQuery.sizeOf(context).width < 600
+          ? const Drawer(child: YallaSidebar())
+          : null,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: const Text('أعمار ذمم الموردين',

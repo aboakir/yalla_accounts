@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 
-/// Stable visual constants for Yalla Accounts Mobile V2.
+/// Stable visual constants for Yallah Accounts Mobile V2.
 ///
 /// P01 deliberately does not connect these tokens to the existing application
 /// theme. Screens adopt them only in their approved implementation phase.

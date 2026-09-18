@@ -280,8 +280,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Image.asset('assets/logo/logo.png',
-                                              height: 80),
+                                          Image.asset(
+                                            'assets/branding/yallah_logo_horizontal.png',
+                                            height: 72,
+                                            fit: BoxFit.contain,
+                                          ),
                                           const SizedBox(height: 16),
                                           Text('تسجيل الدخول',
                                               style: Theme.of(context)

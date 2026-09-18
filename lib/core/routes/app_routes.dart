@@ -12,7 +12,6 @@ import 'package:yalla_accounts/features/auth/screens/forgot_access_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/logout_screen.dart';
 import 'package:yalla_accounts/features/onboarding/screens/workshop_onboarding_screen.dart';
 import 'package:yalla_accounts/features/auth/widgets/authenticated_route_gate.dart';
-import 'package:yalla_accounts/features/finance/purchases/screens/purchase_other_screen.dart';
 
 // ===== Core / Home =====
 import 'package:yalla_accounts/core/widgets/under_construction_screen.dart';
@@ -44,6 +43,7 @@ import 'package:yalla_accounts/features/employees/screens/payroll_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/finance_dashboard_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/journal_entries_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/income_statement_screen.dart';
+import 'package:yalla_accounts/features/finance/screens/expenses_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/cash_account_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/bank_account_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/accounts_receivable_screen.dart';
@@ -57,8 +57,7 @@ import 'package:yalla_accounts/features/finance/payments/screens/payment_list_sc
 
 // ===== Purchases =====
 import 'package:yalla_accounts/features/finance/purchases/screens/purchases_dashboard_screen.dart';
-import 'package:yalla_accounts/features/finance/purchases/screens/purchase_tools_screen.dart';
-import 'package:yalla_accounts/features/finance/purchases/screens/purchase_insurance_screen.dart';
+import 'package:yalla_accounts/features/finance/purchases/screens/purchases_by_month_screen.dart';
 import 'package:yalla_accounts/features/finance/purchases/screens/purchases_list_screen.dart';
 import 'package:yalla_accounts/features/finance/purchases/screens/purchase_create_screen.dart';
 import 'package:yalla_accounts/features/finance/purchases/screens/suppliers_aging_screen.dart'
@@ -75,7 +74,9 @@ import 'package:yalla_accounts/features/finance/purchases/screens/unposted_purch
 import 'package:yalla_accounts/features/finance/purchases/screens/supplier_payments_screen.dart';
 
 // ===== Cheques =====
+import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_dashboard_screen.dart';
+import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheque_add_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_list_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_incoming_screen.dart';
@@ -98,11 +99,13 @@ import 'package:yalla_accounts/features/repairs/screens/repair_analytics_screen.
 import 'package:yalla_accounts/features/repairs/screens/vehicles_arrears_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/repairs_and_ar_screen.dart';
 import 'package:yalla_accounts/features/repairs/screens/vehicles_list_screen.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
 // ===== Clients =====
 import 'package:yalla_accounts/features/clients/models/client.dart';
 import 'package:yalla_accounts/features/clients/screens/clients_screen.dart';
 import 'package:yalla_accounts/features/clients/screens/client_edit_screen.dart';
+import 'package:yalla_accounts/features/account_statements/customers/screens/customer_account_statement_screen.dart';
 
 // ===== Insurance =====
 import 'package:yalla_accounts/features/insurance/screens/insurance_invoice_list_screen.dart';
@@ -129,11 +132,13 @@ import 'package:yalla_accounts/features/subscription/screens/pending_subscriptio
 // ===== Settings =====
 import 'package:yalla_accounts/features/settings/screens/workshop_settings_screen.dart';
 import 'package:yalla_accounts/features/settings/screens/security_data_screen.dart';
+import 'package:yalla_accounts/features/settings/screens/sync_conflicts_screen.dart';
 import 'package:yalla_accounts/features/support/screens/technical_support_screen.dart';
 
 // ===== Models =====
 import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
 // ===== Suppliers =====
 import 'package:yalla_accounts/features/suppliers/screens/suppliers_list_screen.dart';
@@ -220,6 +225,7 @@ class AppRoutes {
   static const receiptVouchersList = '/finance/receipt-vouchers';
   static const journalEntries = '/finance/journal/entries';
   static const incomeStatement = '/finance/income-statement';
+  static const expenses = '/finance/expenses';
   static const cashAccount = '/finance/cash';
   static const bankAccount = '/finance/bank';
   static const financeGL = '/finance/gl';
@@ -237,10 +243,12 @@ class AppRoutes {
   static const purchasePayments = '/purchases/payments';
   static const purchasesList = '/purchases/list';
   static const purchaseCreate = '/purchases/create';
+  static const purchasesByMonth = '/purchases/by-month';
 
   // ===== Cheques =====
   static const chequesDashboard = '/cheques/dashboard';
   static const chequesAdd = '/cheques/add';
+  static const chequesEdit = '/cheques/edit';
   static const chequesList = '/cheques/list';
   static const chequesIncoming = '/cheques/incoming';
   static const chequesOutgoing = '/cheques/outgoing';
@@ -262,7 +270,10 @@ class AppRoutes {
   static const clientsList = '/clients/list';
   static const clientAdd = '/clients/add';
   static const clientEdit = '/clients/edit';
+  static const clientStatement = '/clients/statement';
   static const clientArrears = '/clients/accounts-receivable';
+  static const parties = '/parties';
+  static const partyAdd = '/parties/add';
 
 // ===== Suppliers =====
   static const suppliers = '/suppliers'; // SupplierListScreen
@@ -317,6 +328,7 @@ class AppRoutes {
   static const settingsUI = '/settings/ui';
   static const settingsSupport = '/settings/support';
   static const settingsSecurityData = '/settings/security-data';
+  static const settingsSyncConflicts = '/settings/sync-conflicts';
   static const subscription = '/subscription';
   static const subscriptionScreen = subscription;
   static const currentSubscription = '/current-subscription';
@@ -326,8 +338,155 @@ class AppRoutes {
   // ===== Dev / Debug =====
   static const devSmoke = '/dev/smoke';
 
+  /// Single source of truth for named navigation.
+  /// Any new pushNamed target must be added here and handled by onGenerateRoute.
+  static const Set<String> registeredRoutes = {
+    splash,
+    login,
+    logout,
+    register,
+    dashboard,
+    homeDashboard,
+    forgotAccess,
+    startup,
+    activation,
+    trialExpired,
+    admin,
+    managerDashboard,
+    repairs,
+    repairsList,
+    repairsAdd,
+    repairsDashboard,
+    repairDetail,
+    repairReports,
+    repairAnalytics,
+    vehiclesList,
+    vehiclesArrears,
+    debts,
+    employeeDashboard,
+    employeeList,
+    employeeAdd,
+    employeeEdit,
+    employeeSalaries,
+    employeeAttendance,
+    employeeAdvances,
+    employeePayroll,
+    financeDashboard,
+    collectionDashboard,
+    payments,
+    receiptVoucher,
+    paymentVoucher,
+    paymentVouchersList,
+    receiptVouchersList,
+    journalEntries,
+    incomeStatement,
+    expenses,
+    cashAccount,
+    bankAccount,
+    financeGL,
+    financeGLEntry,
+    financeAccountLedger,
+    invoiceView,
+    financeGeneralJournal,
+    purchasesDashboard,
+    purchaseTools,
+    purchasePaint,
+    purchaseInsurance,
+    purchaseOther,
+    purchasePayments,
+    purchasesList,
+    purchaseCreate,
+    purchasesByMonth,
+    chequesDashboard,
+    chequesAdd,
+    chequesEdit,
+    chequesList,
+    chequesIncoming,
+    chequesOutgoing,
+    chequesCollection,
+    chequesCollected,
+    chequesReturned,
+    chequesCancelled,
+    chequesPostdated,
+    chequesReport,
+    purchasesSuppliersAging,
+    purchasesSupplierLedger,
+    purchasesGLAudit,
+    purchasesUnposted,
+    clients,
+    clientsList,
+    clientAdd,
+    clientEdit,
+    clientStatement,
+    clientArrears,
+    parties,
+    partyAdd,
+    suppliers,
+    suppliersPayablesList,
+    supplierAdd,
+    supplierPayables,
+    suppliersDebts,
+    supplierCheques,
+    rawMaterials,
+    rawMaterialAdd,
+    rawMaterialEdit,
+    inventory,
+    insuranceInvoices,
+    insuranceAgentRoot,
+    insuranceAgentHome,
+    insurancePoliciesList,
+    insuranceAgentAddNew,
+    insuranceAgentProducers,
+    insuranceAgentCalculator,
+    insuranceAgentFinance,
+    insuranceAgentAlerts,
+    insuranceAgentReports,
+    insuranceAgentContacts,
+    reportsDashboard,
+    reportsTrialBalance,
+    reportsARAging,
+    reportsGeneralLedger,
+    reportsBalanceSheet,
+    reportsAttendance,
+    reportsAdvances,
+    reportsPayroll,
+    globalSearch,
+    settings,
+    settingsWorkshop,
+    settingsUser,
+    settingsUI,
+    settingsSupport,
+    settingsSecurityData,
+    settingsSyncConflicts,
+    subscription,
+    currentSubscription,
+    adminSubscriptions,
+    technicalSupport,
+    devSmoke,
+  };
+
+  static bool isRegisteredRoute(String route) =>
+      registeredRoutes.contains(route);
+
+  static Future<T?> pushNamedSafe<T extends Object?>(
+    BuildContext context,
+    String route, {
+    Object? arguments,
+    bool rootNavigator = false,
+  }) {
+    if (!isRegisteredRoute(route)) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('هذا الرابط غير متاح حاليًا.')),
+      );
+      return Future<T?>.value();
+    }
+    return Navigator.of(context, rootNavigator: rootNavigator)
+        .pushNamed<T>(route, arguments: arguments);
+  }
+
   // ===== P1.002 Auth guards =====
   static const Set<String> _publicRoutes = {
+    splash,
     startup,
     login,
     logout,
@@ -344,6 +503,7 @@ class AppRoutes {
     settingsUser,
     settingsUI,
     settingsSecurityData,
+    settingsSyncConflicts,
     subscription,
     currentSubscription,
     adminSubscriptions,
@@ -375,6 +535,18 @@ class AppRoutes {
 
   static MaterialPageRoute _under(RouteSettings settings, String title) =>
       _page(settings, UnderConstructionScreen(title: title));
+
+  static MaterialPageRoute _fallback(
+    RouteSettings requested,
+    String fallbackRoute,
+    Widget child,
+    String message,
+  ) {
+    return _page(
+      RouteSettings(name: fallbackRoute),
+      _RouteFallbackNotice(message: message, child: child),
+    );
+  }
 
   // ===== Router =====
   // Keep the calculator available while the other agent sections are paused.
@@ -416,7 +588,7 @@ class AppRoutes {
     if (name == dashboard || name == homeDashboard) {
       return _page(settings, const DashboardScreen());
     }
-    if (name == startup) {
+    if (name == splash || name == startup) {
       return _page(settings, const StartupScreen());
     }
     if (name == activation) {
@@ -454,7 +626,12 @@ class AppRoutes {
     if (name == repairDetail) {
       final args = settings.arguments;
       if (args is! Repair) {
-        return _under(settings, 'بيانات الإصلاح مفقودة لصفحة التفاصيل');
+        return _fallback(
+          settings,
+          repairsList,
+          const RepairsScreen(showAll: true),
+          'تعذر فتح ملف الإصلاح لأن بياناته غير مكتملة. أعدناك إلى قائمة الإصلاحات.',
+        );
       }
       return _page(settings, RepairDetailsScreen(repair: args));
     }
@@ -485,7 +662,12 @@ class AppRoutes {
     if (name == employeeEdit) {
       final args = settings.arguments;
       if (args is! Employee) {
-        return _under(settings, 'بيانات الموظف مطلوبة لصفحة التعديل');
+        return _fallback(
+          settings,
+          employeeList,
+          const EmployeesListScreen(),
+          'تعذر فتح تعديل الموظف لأن بيانات الموظف غير متاحة.',
+        );
       }
       return _page(settings, EditEmployeeScreen(employee: args));
     }
@@ -498,14 +680,24 @@ class AppRoutes {
     if (name == employeeAdvances) {
       final args = settings.arguments;
       if (args is! Employee) {
-        return _under(settings, 'بيانات الموظف مطلوبة لصفحة السلف');
+        return _fallback(
+          settings,
+          employeeList,
+          const EmployeesListScreen(),
+          'تعذر فتح سلف الموظف لأن بيانات الموظف غير متاحة.',
+        );
       }
       return _page(settings, EmployeeAdvancesScreen(employee: args));
     }
     if (name == employeePayroll) {
       final args = settings.arguments;
       if (args is! Employee) {
-        return _under(settings, 'بيانات الموظف مطلوبة لصفحة الرواتب');
+        return _fallback(
+          settings,
+          employeeList,
+          const EmployeesListScreen(),
+          'تعذر فتح رواتب الموظف لأن بيانات الموظف غير متاحة.',
+        );
       }
       return _page(settings, PayrollScreen(employee: args));
     }
@@ -517,15 +709,18 @@ class AppRoutes {
     if (name == payments) {
       final args = settings.arguments;
       String? repairId;
+      String? paymentId;
       var allowReverse = false;
       if (args is Map) {
         repairId = (args['repairId'] ?? args['relatedRepairId'])?.toString();
+        paymentId = args['paymentId']?.toString();
         allowReverse = args['allowReverse'] == true;
       }
       return _page(
         settings,
         PaymentListScreen(
           initialRepairId: repairId,
+          initialPaymentId: paymentId,
           allowReverse: allowReverse,
         ),
       );
@@ -544,6 +739,9 @@ class AppRoutes {
     }
     if (name == incomeStatement) {
       return _page(settings, const IncomeStatementScreen());
+    }
+    if (name == expenses) {
+      return _page(settings, const ExpensesScreen());
     }
     if (name == cashAccount) {
       return _page(settings, const CashAccountScreen());
@@ -564,7 +762,12 @@ class AppRoutes {
         entryId = v is int ? v : int.tryParse('$v');
       }
       if (entryId == null) {
-        return _under(settings, 'المعرّف entryId مفقود لقيد GL');
+        return _fallback(
+          settings,
+          financeGL,
+          const GLBrowserScreen(),
+          'تعذر فتح القيد لأن رقم القيد غير متاح. أعدناك إلى الأستاذ العام.',
+        );
       }
       return _page(settings, GLEntryScreen(entryId: entryId));
     }
@@ -582,7 +785,12 @@ class AppRoutes {
       if (args is Map && args['invoiceId'] is String) {
         return _page(settings, InvoiceViewScreen(invoiceId: args['invoiceId']));
       }
-      return _under(settings, 'invoiceId مفقود لعرض الفاتورة');
+      return _fallback(
+        settings,
+        financeDashboard,
+        const FinanceDashboardScreen(),
+        'تعذر فتح الفاتورة لأن رقمها غير متاح. أعدناك إلى اللوحة المالية.',
+      );
     }
 // Finance - Vouchers
     if (name == receiptVoucher) {
@@ -623,16 +831,31 @@ class AppRoutes {
       return _page(settings, const PurchasesDashboardScreen());
     }
     if (name == purchaseTools) {
-      return _page(settings, const PurchaseToolsScreen());
+      return _page(
+        settings,
+        const PurchaseCreateScreen(initialPurchaseType: 'TOOLS'),
+      );
     }
     if (name == purchasePaint) {
-      return _under(settings, 'دهانات السيارات');
+      return _page(
+        settings,
+        const PurchaseCreateScreen(initialPurchaseType: 'PAINT'),
+      );
     }
     if (name == purchaseInsurance) {
-      return _page(settings, const PurchaseInsuranceScreen());
+      return _page(
+        settings,
+        const PurchaseCreateScreen(
+          initialPurchaseType: 'OTHER',
+          initialNote: 'تأمين',
+        ),
+      );
     }
     if (name == purchaseOther) {
-      return _page(settings, const PurchaseOtherScreen());
+      return _page(
+        settings,
+        const PurchaseCreateScreen(initialPurchaseType: 'OTHER'),
+      );
     }
     if (name == purchasePayments) {
       return _page(settings, const SupplierPaymentsScreen());
@@ -643,6 +866,9 @@ class AppRoutes {
     if (name == purchaseCreate) {
       return _page(settings, const PurchaseCreateScreen());
     }
+    if (name == purchasesByMonth) {
+      return _page(settings, const PurchasesByMonthScreen());
+    }
 
     // Cheques
     if (name == chequesDashboard) {
@@ -650,6 +876,18 @@ class AppRoutes {
     }
     if (name == chequesAdd) {
       return _page(settings, const ChequeAddScreen());
+    }
+    if (name == chequesEdit) {
+      final args = settings.arguments;
+      if (args is! Cheque) {
+        return _fallback(
+          settings,
+          chequesList,
+          const ChequesListScreen(),
+          'تعذر فتح تعديل الشيك لأن بيانات الشيك غير متاحة.',
+        );
+      }
+      return _page(settings, ChequeAddScreen(editCheque: args));
     }
     if (name == chequesList) {
       return _page(settings, const ChequesListScreen());
@@ -696,7 +934,12 @@ class AppRoutes {
           ),
         );
       }
-      return _under(settings, 'supplierId/supplierName مفقود لدفتر المورد');
+      return _fallback(
+        settings,
+        suppliers,
+        const SupplierListScreen(),
+        'تعذر فتح دفتر المورد لأن بيانات المورد غير مكتملة.',
+      );
     }
 
     // Purchases → GL audits
@@ -708,10 +951,10 @@ class AppRoutes {
     }
 
     // Clients
-    if (name == '/parties') {
+    if (name == parties) {
       return _page(settings, const PartiesScreen());
     }
-    if (name == '/parties/add') {
+    if (name == partyAdd) {
       return _page(settings, const PartyFormScreen());
     }
     if (name == clients || name == clientsList) {
@@ -723,9 +966,38 @@ class AppRoutes {
     if (name == clientEdit) {
       final args = settings.arguments;
       if (args is! Client) {
-        return _under(settings, 'بيانات العميل مطلوبة لصفحة التعديل');
+        return _fallback(
+          settings,
+          clients,
+          const ClientsScreen(),
+          'تعذر فتح تعديل العميل لأن بيانات العميل غير متاحة.',
+        );
       }
       return _page(settings, ClientEditScreen(client: args));
+    }
+    if (name == clientStatement) {
+      final args = settings.arguments;
+      final rawId = args is Map ? args['clientId'] : null;
+      final clientId =
+          rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+      final clientName =
+          args is Map ? args['clientName']?.toString().trim() : null;
+      if (clientId == null) {
+        return _fallback(
+          settings,
+          clients,
+          const ClientsScreen(),
+          'تعذر فتح كشف حساب العميل لأن رقم العميل غير متاح.',
+        );
+      }
+      return _page(
+        settings,
+        CustomerAccountStatementScreen(
+          clientId: clientId,
+          clientName:
+              (clientName?.isNotEmpty ?? false) ? clientName! : 'العميل',
+        ),
+      );
     }
     if (name == clientArrears) {
       return _page(settings, const AccountsReceivableScreen());
@@ -782,7 +1054,12 @@ class AppRoutes {
         return _page(
             settings, RawMaterialEditScreen(material: args, rawMaterial: null));
       }
-      return _under(settings, 'بيانات المادة مطلوبة لصفحة التعديل');
+      return _fallback(
+        settings,
+        rawMaterials,
+        const RawMaterialListScreen(),
+        'تعذر فتح تعديل المادة لأن بياناتها غير متاحة.',
+      );
     }
     if (name == inventory) {
       return _under(settings, 'شاشة الجرد والمخزون');
@@ -805,20 +1082,23 @@ class AppRoutes {
     if (name == supplierPayables) {
       final args = settings.arguments;
 
-      if (args is! Map ||
-          args['supplierId'] == null ||
-          args['supplierName'] == null) {
-        return _under(
+      if (args is! Map || args['supplierId'] == null) {
+        return _fallback(
           settings,
-          'supplierId / supplierName مفقودان — لا يمكن فتح شاشة ذمم المورد',
+          suppliers,
+          const SupplierListScreen(),
+          'تعذر فتح حساب المورد لأن بيانات المورد غير مكتملة.',
         );
       }
 
+      final supplierId = args['supplierId'].toString();
+      final supplierName = args['supplierName']?.toString().trim();
       return _page(
         settings,
         SupplierPayablesScreen(
-          supplierId: args['supplierId'],
-          supplierName: args['supplierName'],
+          supplierId: supplierId,
+          supplierName:
+              (supplierName?.isNotEmpty ?? false) ? supplierName! : 'المورد',
         ),
       );
     }
@@ -848,20 +1128,23 @@ class AppRoutes {
     if (name == supplierCheques) {
       final args = settings.arguments;
 
-      if (args is! Map ||
-          args['supplierPid'] == null ||
-          args['supplierName'] == null) {
-        return _under(
+      if (args is! Map || args['supplierPid'] == null) {
+        return _fallback(
           settings,
-          'supplierPid / supplierName مطلوبان لعرض شيكات المورد',
+          suppliers,
+          const SupplierListScreen(),
+          'تعذر فتح شيكات المورد لأن بيانات المورد غير مكتملة.',
         );
       }
 
+      final supplierPid = args['supplierPid'].toString();
+      final supplierName = args['supplierName']?.toString().trim();
       return _page(
         settings,
         SupplierChequesScreen(
-          supplierPid: args['supplierPid'],
-          supplierName: args['supplierName'],
+          supplierPid: supplierPid,
+          supplierName:
+              (supplierName?.isNotEmpty ?? false) ? supplierName! : 'المورد',
         ),
       );
     }
@@ -895,7 +1178,10 @@ class AppRoutes {
     if (name == settingsSecurityData) {
       return _page(settings, const SecurityDataScreen());
     }
-    if (name == AppRoutes.technicalSupport) {
+    if (name == settingsSyncConflicts) {
+      return _page(settings, const SyncConflictsScreen());
+    }
+    if (name == settingsSupport || name == technicalSupport) {
       return _page(settings, const TechnicalSupportScreen());
     }
 
@@ -915,8 +1201,13 @@ class AppRoutes {
       return _page(settings, const DevSmokeTestScreen());
     }
 
-    // Default
-    return _under(settings, 'شاشة غير موجودة ($name)');
+    // Unknown routes must never leak a placeholder to commercial users.
+    return _fallback(
+      settings,
+      dashboard,
+      const DashboardScreen(),
+      'الرابط المطلوب غير متاح. أعدناك إلى لوحة التحكم.',
+    );
   }
 
   // ===== Open helpers =====
@@ -927,6 +1218,31 @@ class AppRoutes {
   static Future<void> openInvoice(
       BuildContext context, String invoiceId) async {
     await Navigator.of(context).pushNamed(invoiceView, arguments: invoiceId);
+  }
+
+  static Future<void> openRepairById(
+    BuildContext context,
+    String repairId,
+  ) async {
+    try {
+      final repair = await RepairDatabaseService.getRepairById(repairId);
+      if (!context.mounted) return;
+      if (repair == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ملف الإصلاح غير متاح. أعدناك إلى قائمة الإصلاحات.'),
+          ),
+        );
+        await Navigator.of(context).pushNamed(repairsList);
+        return;
+      }
+      await Navigator.of(context).pushNamed(repairDetail, arguments: repair);
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر فتح ملف الإصلاح. حاول مجددًا.')),
+      );
+    }
   }
 
   static Future<void> openEmployeePayroll(
@@ -973,4 +1289,33 @@ class AppRoutes {
   static Future<void> openDevSmoke(BuildContext context) async {
     await Navigator.of(context).pushNamed(devSmoke);
   }
+}
+
+class _RouteFallbackNotice extends StatefulWidget {
+  const _RouteFallbackNotice({
+    required this.message,
+    required this.child,
+  });
+
+  final String message;
+  final Widget child;
+
+  @override
+  State<_RouteFallbackNotice> createState() => _RouteFallbackNoticeState();
+}
+
+class _RouteFallbackNoticeState extends State<_RouteFallbackNotice> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(widget.message)),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

@@ -34,10 +34,10 @@ class _SignedRuntime extends LicenseRuntimeService {
 }
 
 class _Fixture {
-  _Fixture(this.process, this.info, this.lines, this.stderrSubscription);
+  _Fixture(this.process, this.info, this.stdoutDrain, this.stderrSubscription);
   final Process process;
   final Map<String, dynamic> info;
-  final StreamIterator<String> lines;
+  final Future<void> stdoutDrain;
   final StreamSubscription<String> stderrSubscription;
 
   Future<void> close() async {
@@ -47,7 +47,9 @@ class _Fixture {
     } catch (_) {
       process.kill();
     }
-    await lines.cancel();
+    try {
+      await stdoutDrain.timeout(const Duration(seconds: 2));
+    } catch (_) {}
     await stderrSubscription.cancel();
   }
 }
@@ -66,10 +68,14 @@ Future<_Fixture> _startFixture(String controlRoot) async {
   if (!await lines.moveNext().timeout(const Duration(seconds: 30))) {
     throw StateError('Phase 6 fixture failed: $errors');
   }
+  final info = jsonDecode(lines.current) as Map<String, dynamic>;
+  final stdoutDrain = () async {
+    while (await lines.moveNext()) {}
+  }();
   return _Fixture(
     process,
-    jsonDecode(lines.current) as Map<String, dynamic>,
-    lines,
+    info,
+    stdoutDrain,
     stderr,
   );
 }

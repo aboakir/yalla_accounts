@@ -506,7 +506,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
             onSelected: (v) {
               if (v == 'date') _selectDateRange();
               if (v == 'analytics') {
-                Navigator.pushNamed(context, '/repair-analytics');
+                Navigator.pushNamed(context, AppRoutes.repairAnalytics);
               }
               if (v == 'pdf') exportToPdf(filtered);
               if (v == 'excel') exportToExcel(filtered);
@@ -1033,7 +1033,8 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
           IconButton(
             icon: const Icon(Icons.bar_chart),
             tooltip: 'تحليل البيانات',
-            onPressed: () => Navigator.pushNamed(context, '/repair-analytics'),
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.repairAnalytics),
           ),
         ],
       ),

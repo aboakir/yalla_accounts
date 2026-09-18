@@ -41,16 +41,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Future<void> _openWhatsApp() async {
     final url =
-        'https://wa.me/$whatsappNumber?text=أحتاج مساعدة في Yalla Accounts';
+        'https://wa.me/$whatsappNumber?text=أحتاج مساعدة في Yallah Accounts';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
       return;
     }
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('تعذر فتح واتساب')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تعذر فتح واتساب')),
+    );
   }
 
   void _exitApp() {
@@ -107,9 +107,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     FilledButton.icon(
                                       onPressed: () =>
                                           Navigator.pushReplacementNamed(
-                                            context,
-                                            AppRoutes.activation,
-                                          ),
+                                        context,
+                                        AppRoutes.activation,
+                                      ),
                                       icon: const Icon(Icons.verified_outlined),
                                       label: const Text('فتح التفعيل'),
                                     ),
@@ -128,6 +128,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     const SizedBox(height: 12),
                                     Text(
                                       'الحالة: ${license.operationalStatus}',
+                                    ),
+                                    Text(
+                                      'الاشتراك: ${license.subscriptionId}',
                                     ),
                                     Text('الاشتراك: ${license.subscriptionId}'),
                                     Text(

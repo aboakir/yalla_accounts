@@ -26,13 +26,13 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
 import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
-import 'cheque_add_screen.dart';
 import 'cheque_details_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -74,7 +74,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const YallaAppBar(
-        workshopName: "Yalla Accounts",
+        workshopName: "Yallah Accounts",
         showThemeToggle: false,
         showSearch: false,
       ),
@@ -805,11 +805,13 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           TextButton.icon(
             icon: const Icon(Icons.store, size: 18),
             label: const Text("فتح حساب المورد"),
-            onPressed: () {
-              Navigator.pushNamed(
+            onPressed: () async {
+              await AppRoutes.openSupplierLedger(
                 context,
-                "/suppliers/details",
-                arguments: {"pid": c.supplierPid},
+                supplierId: c.supplierPid!,
+                supplierName: (c.recipientName?.trim().isNotEmpty ?? false)
+                    ? c.recipientName!.trim()
+                    : 'المورد',
               );
             },
           ),
@@ -820,8 +822,13 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
             onPressed: () {
               Navigator.pushNamed(
                 context,
-                "/clients/details",
-                arguments: {"id": c.clientId},
+                AppRoutes.clientStatement,
+                arguments: {
+                  'clientId': c.clientId,
+                  'clientName': (c.recipientName?.trim().isNotEmpty ?? false)
+                      ? c.recipientName!.trim()
+                      : 'العميل',
+                },
               );
             },
           ),
@@ -834,12 +841,8 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                 TextButton.icon(
                   icon: const Icon(Icons.attach_money, size: 18),
                   label: Text("دفعة مرتبطة – ملف $rid"),
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      "/repairs/details",
-                      arguments: {"repairId": rid},
-                    );
+                  onPressed: () async {
+                    await AppRoutes.openRepairById(context, rid);
                   },
                 ),
             ],
@@ -849,12 +852,8 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           TextButton.icon(
             icon: const Icon(Icons.receipt_long, size: 18),
             label: const Text("فتح قيد GL"),
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                "/finance/journal/entry",
-                arguments: {"entryId": c.glEntryId},
-              );
+            onPressed: () async {
+              await AppRoutes.openGlEntry(context, c.glEntryId!);
             },
           ),
       ],
@@ -975,12 +974,11 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     );
   }
 
-  void _openEdit(Cheque c) {
-    Navigator.push(
+  Future<void> _openEdit(Cheque c) async {
+    await AppRoutes.pushNamedSafe(
       context,
-      MaterialPageRoute(
-        builder: (_) => ChequeAddScreen(editCheque: c),
-      ),
+      AppRoutes.chequesEdit,
+      arguments: c,
     );
   }
 
@@ -1071,7 +1069,6 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
 
       // 3) تجهيز البيانات (صفوف PDF)
       final rows = data.map((c) {
-        final days = _daysToDue(c.dueDate);
         return [
           c.chequeNo,
           "${NumberFormat('#,##0.00', 'en').format(c.amount)} ${c.currency}",

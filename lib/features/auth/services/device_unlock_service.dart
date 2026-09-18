@@ -107,7 +107,7 @@ class DeviceUnlockService {
     if (!await biometricEnabledFor(userId)) return false;
     try {
       return await _localAuthentication.authenticate(
-        localizedReason: 'تحقق لفتح Yalla Accounts',
+        localizedReason: 'تحقق لفتح Yallah Accounts',
         biometricOnly: defaultTargetPlatform != TargetPlatform.windows,
         persistAcrossBackgrounding: true,
       );

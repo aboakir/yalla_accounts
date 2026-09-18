@@ -67,6 +67,35 @@ class SyncV3PullResponse {
   final List<SyncV3PullChange> changes;
 }
 
+class SyncV3ConflictResolutionResponse {
+  const SyncV3ConflictResolutionResponse({
+    required this.conflictId,
+    required this.status,
+    required this.decision,
+    this.resolutionChangeId,
+    this.serverSequence,
+    this.correctionChangeId,
+    this.requiredAction,
+  });
+
+  final String conflictId;
+  final String status;
+  final String decision;
+  final String? resolutionChangeId;
+  final int? serverSequence;
+  final String? correctionChangeId;
+  final String? requiredAction;
+}
+
+abstract interface class SyncV3ConflictResolutionTransport {
+  Future<SyncV3ConflictResolutionResponse> resolveConflict({
+    required String conflictId,
+    required String decision,
+    required String note,
+    String? correctionChangeId,
+  });
+}
+
 abstract interface class SyncV3Transport {
   bool get isConfigured;
   Future<SyncV3PushResponse> push(List<Map<String, Object?>> rows);
@@ -86,7 +115,8 @@ class SyncV3TransportException implements Exception {
       'SyncV3TransportException: $message${supportRequestId == null ? '' : ' [request: $supportRequestId]'}';
 }
 
-class HttpSyncV3Transport implements SyncV3Transport {
+class HttpSyncV3Transport
+    implements SyncV3Transport, SyncV3ConflictResolutionTransport {
   HttpSyncV3Transport(
       {Uri? baseUri,
       HttpClient? httpClient,
@@ -201,6 +231,46 @@ class HttpSyncV3Transport implements SyncV3Transport {
       nextSequence: (response['next_server_sequence'] as num).toInt(),
       hasMore: response['has_more'] == true,
       changes: changes,
+    );
+  }
+
+  @override
+  Future<SyncV3ConflictResolutionResponse> resolveConflict({
+    required String conflictId,
+    required String decision,
+    required String note,
+    String? correctionChangeId,
+  }) async {
+    final cleanConflictId = conflictId.trim();
+    final cleanDecision = decision.trim().toUpperCase();
+    final cleanNote = note.trim();
+    if (cleanConflictId.isEmpty || cleanNote.length < 8) {
+      throw const SyncV3TransportException(
+          'Conflict resolution request is incomplete.');
+    }
+    final identity = await _deviceIdentity.ensureCurrent();
+    final unsigned = <String, Object?>{
+      'sync_contract_version': SyncContractV3.version,
+      'request_id': _uuid.v4(),
+      'organization_id': identity.organizationId,
+      'installation_id': identity.installationId,
+      'device_id': identity.deviceId,
+      'conflict_id': cleanConflictId,
+      'decision': cleanDecision,
+      'note': cleanNote,
+      if (correctionChangeId?.trim().isNotEmpty == true)
+        'correction_change_id': correctionChangeId!.trim(),
+    };
+    final body = await _signedBody(identity, unsigned);
+    final response = await _post('/v1/sync/resolve', body, identity);
+    return SyncV3ConflictResolutionResponse(
+      conflictId: _requiredString(response, 'conflict_id'),
+      status: _requiredString(response, 'status'),
+      decision: _requiredString(response, 'decision'),
+      resolutionChangeId: response['resolution_change_id']?.toString(),
+      serverSequence: (response['server_sequence'] as num?)?.toInt(),
+      correctionChangeId: response['correction_change_id']?.toString(),
+      requiredAction: response['required_action']?.toString(),
     );
   }
 

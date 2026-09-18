@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
@@ -39,7 +40,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const YallaAppBar(
-        workshopName: 'Yalla Accounts',
+        workshopName: 'Yallah Accounts',
         showThemeToggle: false,
         showSearch: false,
       ),
@@ -286,12 +287,15 @@ class ChequeDetailsScreen extends ConsumerWidget {
                     : "تعديل",
               ),
               onPressed: canEdit
-                  ? () {
-                      Navigator.pushNamed(
+                  ? () async {
+                      final updated = await Navigator.pushNamed(
                         context,
-                        "/cheques/edit",
+                        AppRoutes.chequesEdit,
                         arguments: cheque,
                       );
+                      if (updated == true && context.mounted) {
+                        Navigator.pop(context, true);
+                      }
                     }
                   : null,
             ),
@@ -386,6 +390,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
 
     final db = await DBService.database;
     final suppliers = await db.query("suppliers");
+    if (!context.mounted) return;
 
     await showDialog(
       context: context,
@@ -482,6 +487,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
           );
 
       ref.invalidate(chequeProvider);
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -490,6 +496,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
         ),
       );
     } catch (e) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("خطأ أثناء التظهير: $e"),

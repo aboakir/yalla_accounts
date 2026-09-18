@@ -78,6 +78,40 @@ class UnifiedSyncCoordinatorV3 with WidgetsBindingObserver {
 
   void clearInboundApplier() => _inboundApplier = null;
 
+  Future<SyncV3ConflictResolutionResponse> resolveConflict({
+    required String conflictId,
+    required String decision,
+    required String note,
+    String? correctionChangeId,
+    Database? database,
+  }) {
+    return _cycleLock.synchronized(() async {
+      final transport = _transport;
+      if (transport is! SyncV3ConflictResolutionTransport) {
+        throw const SyncV3TransportException(
+            'Conflict resolution is not available on this sync transport.');
+      }
+      final db = database ?? await DBService.database;
+      final resolutionTransport =
+          transport as SyncV3ConflictResolutionTransport;
+      final response = await resolutionTransport.resolveConflict(
+        conflictId: conflictId,
+        decision: decision,
+        note: note,
+        correctionChangeId: correctionChangeId,
+      );
+      await UnifiedSyncQueueService.recordConflictResolution(
+        db,
+        conflictId: conflictId,
+        decision: response.decision,
+        status: response.status,
+        reference: response.resolutionChangeId ?? response.correctionChangeId,
+      );
+      await _status.refresh(database: db);
+      return response;
+    });
+  }
+
   Future<void> stop() async {
     _timer?.cancel();
     _timer = null;

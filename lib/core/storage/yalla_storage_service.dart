@@ -71,7 +71,7 @@ Map<String, Object?> _optimizeImagePayload(Map<String, Object?> input) {
   }
 }
 
-/// Canonical cross-platform Yalla Accounts file storage.
+/// Canonical cross-platform Yallah Accounts file storage.
 ///
 /// Stored DB values should be relative paths such as:
 /// repairs/2026/09/images/tucson_9007654_client_...jpg

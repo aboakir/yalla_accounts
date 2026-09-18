@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/auth/screens/user_details_screen.dart';
@@ -51,7 +52,7 @@ class _ManagerDashboardScreenState
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   String _translateRole(String role) {

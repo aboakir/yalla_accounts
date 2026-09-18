@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/design/yalla_breakpoints.dart' as design;
 
-/// Unified adaptive layout primitives for Yalla Accounts.
+/// Unified adaptive layout primitives for Yallah Accounts.
 ///
 /// Breakpoints are deliberately shared across phone, tablet and desktop so
 /// feature screens do not invent their own device thresholds.

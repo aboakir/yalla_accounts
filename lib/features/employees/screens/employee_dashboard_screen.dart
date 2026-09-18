@@ -35,8 +35,8 @@ class EmployeeDashboardScreen extends ConsumerWidget {
     return Directionality(
       textDirection: TextDirection.rtl, // نص عربي
       child: Scaffold(
-        // الموبايل: Drawer من اليمين
-        endDrawer: isDesktop
+        // الموبايل: Drawer موحد مثل باقي الشاشات.
+        drawer: isDesktop
             ? null
             : const Drawer(child: YallaSidebar(currentRoute: '/employees')),
         appBar: AppBar(
@@ -48,7 +48,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
               : Builder(
                   builder: (ctx) => IconButton(
                     icon: const Icon(Icons.menu),
-                    onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                    onPressed: () => Scaffold.of(ctx).openDrawer(),
                   ),
                 ),
         ),

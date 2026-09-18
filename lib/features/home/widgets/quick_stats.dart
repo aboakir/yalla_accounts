@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
@@ -98,7 +99,6 @@ class QuickStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nf0 = NumberFormat('#,##0');
-    final nf2 = NumberFormat('#,##0.##');
 
     return YGlassCard(
       child: FutureBuilder<Map<String, num>>(
@@ -116,7 +116,7 @@ class QuickStats extends StatelessWidget {
               String title, IconData ic, String v, Color c, String route) {
             return Expanded(
               child: InkWell(
-                onTap: () => Navigator.pushNamed(ctx, route),
+                onTap: () => AppRoutes.pushNamedSafe(ctx, route),
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -167,21 +167,21 @@ class QuickStats extends StatelessWidget {
                       Icons.people,
                       nf0.format(m['clients_total'] ?? 0),
                       Colors.indigo,
-                      '/clients'),
+                      AppRoutes.clients),
                   const SizedBox(width: 10),
                   tile(
                       'الموردون',
                       Icons.warehouse,
                       nf0.format(m['suppliers_total'] ?? 0),
                       Colors.brown,
-                      '/suppliers'),
+                      AppRoutes.suppliers),
                   const SizedBox(width: 10),
                   tile(
                     'الرصيد النقدي - الاسبوعي',
                     Icons.local_fire_department,
-                    '${MoneyFormatter.format(m['cash_today'] ?? 0)}',
+                    MoneyFormatter.format(m['cash_today'] ?? 0),
                     (m['cash_today'] ?? 0) >= 0 ? Colors.green : Colors.red,
-                    '/finance/cash-flow?d=today',
+                    AppRoutes.cashAccount,
                   ),
                 ],
               ),

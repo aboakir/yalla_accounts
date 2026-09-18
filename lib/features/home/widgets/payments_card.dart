@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 
 class PaymentsCard extends StatelessWidget {
@@ -108,8 +109,11 @@ class _LatestPaysList extends StatelessWidget {
               leading: const Icon(Icons.payments),
               title: Text(nf.format((r['amount'] as num?) ?? 0)),
               subtitle: Text('${r['date']} • ${r['method'] ?? ''}'),
-              onTap: () =>
-                  Navigator.pushNamed(context, '/finance/payments/${r['id']}'),
+              onTap: () => Navigator.pushNamed(
+                context,
+                AppRoutes.payments,
+                arguments: {'paymentId': '${r['id']}'},
+              ),
             );
           },
           separatorBuilder: (_, __) => const Divider(height: 8),

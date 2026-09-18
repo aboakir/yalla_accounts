@@ -18,11 +18,22 @@ void main() {
   setUp(() async {
     temp = await Directory.systemTemp.createTemp('phase05_sync_');
     db = await databaseFactoryFfi.openDatabase('${temp.path}/test.sqlite');
-    await db.execute('CREATE TABLE organization_identity(singleton_id INTEGER PRIMARY KEY,organization_id TEXT)');
-    await db.insert('organization_identity', {'singleton_id': 1, 'organization_id': org});
-    await db.execute('CREATE TABLE installation_identity(singleton_id INTEGER PRIMARY KEY,organization_id TEXT,device_id TEXT)');
-    await db.insert('installation_identity', {'singleton_id': 1, 'organization_id': org, 'device_id': device});
-    await db.execute('CREATE TABLE repairs(id TEXT PRIMARY KEY,notes TEXT,status TEXT,fileValue REAL)');
+    await db.execute(
+        'CREATE TABLE organization_identity(singleton_id INTEGER PRIMARY KEY,organization_id TEXT)');
+    await db.insert(
+        'organization_identity', {'singleton_id': 1, 'organization_id': org});
+    await db.execute(
+        'CREATE TABLE installation_identity(singleton_id INTEGER PRIMARY KEY,organization_id TEXT,device_id TEXT)');
+    await db.insert('installation_identity',
+        {'singleton_id': 1, 'organization_id': org, 'device_id': device});
+    await db.execute(
+        'CREATE TABLE repairs(id TEXT PRIMARY KEY,notes TEXT,status TEXT,fileValue REAL)');
+    await db.execute('''CREATE TABLE accounts(
+      id INTEGER PRIMARY KEY,code TEXT,name TEXT,type TEXT,
+      normal_balance TEXT,report_class TEXT,is_postable INTEGER,
+      is_system INTEGER,is_active INTEGER,parent_id INTEGER)''');
+    await db.execute('''CREATE TABLE party_roles(
+      party_id INTEGER NOT NULL,role TEXT NOT NULL,legacy_id INTEGER)''');
     await TechnicalTables.createAllTables(db);
     await SyncFoundationTables.ensure(db);
     await UnifiedSyncTables.ensure(db);
@@ -41,7 +52,8 @@ void main() {
     final before = await db.query(UnifiedSyncTables.outbox);
 
     await expectLater(db.transaction((txn) async {
-      await txn.insert('repairs', {'id': 'r2', 'notes': 'rollback', 'fileValue': 20});
+      await txn.insert(
+          'repairs', {'id': 'r2', 'notes': 'rollback', 'fileValue': 20});
       throw StateError('force rollback');
     }), throwsStateError);
 
@@ -53,7 +65,8 @@ void main() {
     expect(changeCount, 0);
   });
 
-  test('outbox state machine is retry safe and terminal after acknowledgement', () async {
+  test('outbox state machine is retry safe and terminal after acknowledgement',
+      () async {
     await db.insert('repairs', {'id': 'r1', 'fileValue': 10});
     final row = (await db.query(UnifiedSyncTables.outbox)).single;
     final id = row['outbox_id'] as String;
@@ -95,8 +108,10 @@ void main() {
     );
   }
 
-  test('inbound apply and checkpoint advance atomically; retry is idempotent', () async {
-    await db.execute('CREATE TABLE remote_shadow(id TEXT PRIMARY KEY,name TEXT)');
+  test('inbound apply and checkpoint advance atomically; retry is idempotent',
+      () async {
+    await db
+        .execute('CREATE TABLE remote_shadow(id TEXT PRIMARY KEY,name TEXT)');
     var calls = 0;
     Future<void> apply(DatabaseExecutor txn, InboundSyncChange change) async {
       calls += 1;
@@ -131,8 +146,10 @@ void main() {
     expect(await db.query('remote_shadow'), hasLength(2));
   });
 
-  test('failed inbound batch rolls back business rows, inbox and checkpoint', () async {
-    await db.execute('CREATE TABLE remote_shadow(id TEXT PRIMARY KEY,name TEXT)');
+  test('failed inbound batch rolls back business rows, inbox and checkpoint',
+      () async {
+    await db
+        .execute('CREATE TABLE remote_shadow(id TEXT PRIMARY KEY,name TEXT)');
     await UnifiedSyncQueueService.applyInboundBatch(
       db,
       organizationId: org,
@@ -166,7 +183,8 @@ void main() {
   });
 
   test('same server sequence with changed payload is rejected', () async {
-    await db.execute('CREATE TABLE remote_shadow(id TEXT PRIMARY KEY,name TEXT)');
+    await db
+        .execute('CREATE TABLE remote_shadow(id TEXT PRIMARY KEY,name TEXT)');
     final original = inbound(7, '1', name: 'A');
     await UnifiedSyncQueueService.applyInboundBatch(
       db,
@@ -190,7 +208,8 @@ void main() {
     expect((await db.query('remote_shadow')).single['name'], 'A');
   });
 
-  test('checkpoint cannot regress and inbox payload cannot be rewritten', () async {
+  test('checkpoint cannot regress and inbox payload cannot be rewritten',
+      () async {
     await db.insert(UnifiedSyncTables.checkpoint, {
       'organization_id': org,
       'last_server_sequence': 10,
@@ -201,5 +220,51 @@ void main() {
           where: 'organization_id=?', whereArgs: [org]),
       throwsA(isA<DatabaseException>()),
     );
+  });
+
+  test(
+      'resolved conflict is retained as history but leaves the open failure queue',
+      () async {
+    await db.insert('repairs', {'id': 'r-conflict', 'fileValue': 10});
+    final outbox = (await db.query(UnifiedSyncTables.outbox)).single;
+    final id = outbox['outbox_id']!.toString();
+    const conflictId = '33333333-3333-4333-8333-333333333333';
+
+    await UnifiedSyncQueueService.markSending(db, id);
+    await UnifiedSyncQueueService.markConflict(
+      db,
+      id,
+      conflictId: conflictId,
+    );
+    expect(await UnifiedSyncQueueService.openConflicts(db), hasLength(1));
+    expect((await UnifiedSyncQueueService.queueStats(db)).failed, 1);
+
+    await UnifiedSyncQueueService.recordConflictResolution(
+      db,
+      conflictId: conflictId,
+      decision: 'FINANCIAL_CORRECTION_REQUIRED',
+      status: 'ACTION_REQUIRED',
+    );
+    expect(await UnifiedSyncQueueService.openConflicts(db), hasLength(1));
+    expect((await UnifiedSyncQueueService.queueStats(db)).failed, 1);
+
+    await UnifiedSyncQueueService.recordConflictResolution(
+      db,
+      conflictId: conflictId,
+      decision: 'FINANCIAL_CORRECTION_COMPLETED',
+      status: 'RESOLVED',
+      reference: '44444444-4444-4444-8444-444444444444',
+    );
+    expect(await UnifiedSyncQueueService.openConflicts(db), isEmpty);
+    expect((await UnifiedSyncQueueService.queueStats(db)).failed, 0);
+    final retained = (await db.query(
+      UnifiedSyncTables.outbox,
+      where: 'outbox_id=?',
+      whereArgs: [id],
+    ))
+        .single;
+    expect(retained['state'], 'CONFLICT');
+    expect(retained['resolution_status'], 'RESOLVED');
+    expect(retained['resolved_at'], isNotNull);
   });
 }

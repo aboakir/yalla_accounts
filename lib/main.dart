@@ -104,9 +104,8 @@ Future<void> _bootstrap() async {
     final path = await DBService.dbFilePath();
     ReleaseDiagnostics.debug('DB path resolved: $path');
 
-    final dbOpenTimeout = isDesktop
-        ? const Duration(seconds: 15)
-        : const Duration(seconds: 120);
+    final dbOpenTimeout =
+        isDesktop ? const Duration(seconds: 15) : const Duration(seconds: 120);
     final db = await DBService.database.timeout(
       dbOpenTimeout,
       onTimeout: () {
@@ -245,7 +244,7 @@ class _BootstrapFailureAppState extends State<_BootstrapFailureApp> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'تعذر فتح قاعدة بيانات Yalla Accounts بأمان',
+                      'تعذر فتح قاعدة بيانات Yallah Accounts بأمان',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 22,
@@ -301,7 +300,7 @@ class MyApp extends ConsumerWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: MaterialApp(
-        title: 'Yalla Accounts',
+        title: 'Yallah Accounts',
         debugShowCheckedModeBanner: false,
         navigatorKey: AppRoutes.navigatorKey,
 

@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
@@ -69,6 +70,18 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
     return null;
   }
 
+  Widget _brandMark() {
+    return Padding(
+      padding: const EdgeInsets.all(5),
+      child: Image.asset(
+        'assets/branding/yallah_mark.png',
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.store, color: AppColors.primary),
+      ),
+    );
+  }
+
   Future<void> _touch() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('lastActivity', DateTime.now().millisecondsSinceEpoch);
@@ -80,6 +93,16 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
   }
 
   Widget _defaultLeading(BuildContext context) {
+    final mobileRouteScope = YallaMobileRouteScope.maybeOf(context);
+    if (MediaQuery.sizeOf(context).width < 600 && mobileRouteScope != null) {
+      return IconButton(
+        key: const Key('yalla_appbar_mobile_menu_button'),
+        icon: const Icon(Icons.menu, color: Colors.white),
+        tooltip: 'القائمة الجانبية',
+        onPressed: () => _handle(mobileRouteScope.openDrawer),
+      );
+    }
+
     final scaffold = Scaffold.maybeOf(context);
     if (scaffold == null) return const SizedBox.shrink();
 
@@ -135,12 +158,11 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
               radius: 20,
               backgroundColor: Colors.white,
               child: resolvedImage == null
-                  ? const Icon(Icons.store, color: AppColors.primary)
+                  ? _brandMark()
                   : ClipOval(
                       child: Image(
                         image: resolvedImage,
-                        errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.store, color: AppColors.primary),
+                        errorBuilder: (_, __, ___) => _brandMark(),
                         fit: BoxFit.cover,
                         width: 40,
                         height: 40,

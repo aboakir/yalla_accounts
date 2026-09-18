@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/features/auth/screens/recover_access_dialog.dart';
 
@@ -66,7 +67,8 @@ class _ForgotAccessScreenState extends State<ForgotAccessScreen> {
                     const SizedBox(height: 12),
                     TextButton(
                       onPressed: () => Navigator.of(context)
-                          .pushNamedAndRemoveUntil('/login', (_) => false),
+                          .pushNamedAndRemoveUntil(
+                              AppRoutes.login, (_) => false),
                       child: const Text('العودة إلى تسجيل الدخول'),
                     ),
                   ],

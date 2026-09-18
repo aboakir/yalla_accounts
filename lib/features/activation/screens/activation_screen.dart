@@ -93,7 +93,7 @@ class _ActivationScreenState extends ConsumerState<ActivationScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        title: const Text('تفعيل Yalla Accounts'),
+        title: const Text('تفعيل Yallah Accounts'),
       ),
       body: Center(
         child: SingleChildScrollView(

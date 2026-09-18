@@ -24,7 +24,7 @@ class ChequesCancelledScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: const YallaAppBar(
-        workshopName: 'Yalla Accounts',
+        workshopName: 'Yallah Accounts',
         showThemeToggle: false,
         showSearch: false,
       ),

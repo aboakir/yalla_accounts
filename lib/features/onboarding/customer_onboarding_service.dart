@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../core/services/db_service.dart';
@@ -7,8 +8,11 @@ import 'customer_onboarding_client.dart';
 
 final customerOnboardingClientProvider = Provider((ref) {
   final client = CustomerOnboardingClient(
-      sessionProvider:
-          ref.watch(supabaseIdentityProvider).verifiedOnboardingSession);
+    sessionProvider:
+        ref.watch(supabaseIdentityProvider).verifiedOnboardingSession,
+    allowInsecureLoopbackForTesting: kDebugMode &&
+        const bool.fromEnvironment('YALLA_ALLOW_INSECURE_LOOPBACK'),
+  );
   ref.onDispose(client.close);
   return client;
 });

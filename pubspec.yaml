@@ -101,6 +101,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/logo/
+    - assets/branding/
     - assets/fonts/
     - assets/fonts/Cairo-Regular.ttf
     - assets/fonts/Cairo-Bold.ttf

@@ -54,7 +54,7 @@ class DatabaseEncryptionService {
       if (!plaintext) {
         throw StateError(
           'The local database cannot be opened with the installation key '
-          'or as legacy plaintext. Yalla Accounts will not reset it.',
+          'or as legacy plaintext. Yallah Accounts will not reset it.',
         );
       }
 

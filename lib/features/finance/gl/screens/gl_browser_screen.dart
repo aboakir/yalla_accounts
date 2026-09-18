@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -253,6 +254,9 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
     final isWide = MediaQuery.of(context).size.width >= 900;
 
     return Scaffold(
+      drawer: MediaQuery.sizeOf(context).width < 600
+          ? const Drawer(child: YallaSidebar())
+          : null,
       appBar: AppBar(
         title: const Text('GL Browser'),
         actions: [

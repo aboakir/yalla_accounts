@@ -21,10 +21,29 @@ $keystore = Join-Path $secureRoot 'yalla-accounts-release.jks'
 $secretFile = Join-Path $secureRoot 'YALLA_ANDROID_SIGNING_SECRETS.txt'
 $keyProps = Join-Path $ProjectRoot 'android\key.properties'
 
-if ((Test-Path $keystore) -and (Test-Path $secretFile) -and (Test-Path $keyProps)) {
+if ((Test-Path $keystore) -and (Test-Path $secretFile)) {
+  if (-not (Test-Path $keyProps)) {
+    $secretLines = Get-Content -LiteralPath $secretFile
+    function Read-SecretValue([string]$label) {
+      $line = $secretLines | Where-Object { $_.StartsWith($label) } | Select-Object -First 1
+      if ([string]::IsNullOrWhiteSpace($line)) { throw "Signing secret is missing: $label" }
+      return $line.Substring($label.Length).Trim()
+    }
+    $alias = Read-SecretValue 'Alias:'
+    $password = Read-SecretValue 'Store password:'
+    $keyPassword = Read-SecretValue 'Key password:'
+    $escapedStore = $keystore -replace '\\','/'
+    @"
+storePassword=$password
+keyPassword=$keyPassword
+keyAlias=$alias
+storeFile=$escapedStore
+"@ | Set-Content -Path $keyProps -Encoding ASCII
+    Write-Host 'Recovered android/key.properties from the existing private signing secret.' -ForegroundColor Yellow
+  }
   Write-Host 'Android production signing already prepared. Existing key was not replaced.' -ForegroundColor Green
   Write-Host "Keystore: $keystore"
-  Write-Host "Secrets:  $secretFile"
+  Write-Host "Secrets remain private under: $secureRoot"
   exit 0
 }
 

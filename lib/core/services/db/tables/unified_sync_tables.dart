@@ -226,8 +226,35 @@ class UnifiedSyncTables {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )''');
+    final outboxColumns = (await db.rawQuery('PRAGMA table_info($outbox)'))
+        .map((row) => row['name']?.toString())
+        .whereType<String>()
+        .toSet();
+    if (!outboxColumns.contains('resolution_status')) {
+      await db.execute(
+        "ALTER TABLE $outbox ADD COLUMN resolution_status TEXT "
+        "CHECK(resolution_status IS NULL OR resolution_status IN ('ACTION_REQUIRED','RESOLVED'))",
+      );
+    }
+    if (!outboxColumns.contains('resolution_decision')) {
+      await db.execute(
+        'ALTER TABLE $outbox ADD COLUMN resolution_decision TEXT',
+      );
+    }
+    if (!outboxColumns.contains('resolution_reference')) {
+      await db.execute(
+        'ALTER TABLE $outbox ADD COLUMN resolution_reference TEXT',
+      );
+    }
+    if (!outboxColumns.contains('resolved_at')) {
+      await db.execute(
+        'ALTER TABLE $outbox ADD COLUMN resolved_at TEXT',
+      );
+    }
     await db.execute('''CREATE INDEX IF NOT EXISTS idx_sync_outbox_ready
       ON $outbox(state,next_attempt_at,created_at)''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_sync_outbox_conflicts
+      ON $outbox(state,resolution_status,updated_at)''');
     await db.execute('''CREATE TABLE IF NOT EXISTS $inbox (
       inbox_id TEXT PRIMARY KEY NOT NULL,
       organization_id TEXT NOT NULL,

@@ -10,7 +10,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Yalla Accounts</string>
+	<string>Yallah Accounts</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,7 +18,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>yalla_accounts</string>
+	<string>Yallah Accounts</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -51,10 +51,10 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to securely unlock Yalla Accounts.</string>
+	<string>Use Face ID to securely unlock Yallah Accounts.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>يستخدم Yalla Accounts الكاميرا لإضافة صور المركبات والإصلاحات والموظفين التي يختار المستخدم إرفاقها بالسجلات.</string>
+	<string>يستخدم Yallah Accounts الكاميرا لإضافة صور المركبات والإصلاحات والموظفين التي يختار المستخدم إرفاقها بالسجلات.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>يستخدم Yalla Accounts مكتبة الصور لاختيار الصور التي يقرر المستخدم إرفاقها بسجلات المركبات والإصلاحات والموظفين.</string>
+	<string>يستخدم Yallah Accounts مكتبة الصور لاختيار الصور التي يقرر المستخدم إرفاقها بسجلات المركبات والإصلاحات والموظفين.</string>
 </dict>
 </plist>

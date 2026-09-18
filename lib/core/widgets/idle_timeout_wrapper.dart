@@ -40,7 +40,7 @@ class _IdleTimeoutWrapperState extends State<IdleTimeoutWrapper> {
 
     // أرجع شاشة تسجيل الدخول (نفترض أن لديك طريقة للوصول إلى Navigator عبر context)
     AppRoutes.navigatorKey.currentState
-        ?.pushNamedAndRemoveUntil('/login', (route) => false);
+        ?.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
   }
 
   @override

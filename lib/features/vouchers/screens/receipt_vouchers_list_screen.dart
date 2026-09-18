@@ -233,7 +233,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: YallaAppBar(
-        workshopName: settings?.workshopName ?? "Yalla Accounts",
+        workshopName: settings?.workshopName ?? "Yallah Accounts",
         logoPath: settings?.logoPath,
         showThemeToggle: false,
         showSearch: false,

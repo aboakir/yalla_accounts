@@ -1,4 +1,4 @@
-// Central cross-platform SQLite runtime policy for Yalla Accounts.
+// Central cross-platform SQLite runtime policy for Yallah Accounts.
 //
 // This is the ONLY owner of runtime tuning PRAGMAs.
 // iOS/SqfliteDarwin receives correctness-critical foreign_keys only.

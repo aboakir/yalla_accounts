@@ -64,7 +64,7 @@ class _OnboardingState extends ConsumerState<WorkshopOnboardingScreen> {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('أهلًا بك في Yalla Accounts',
+                    Text('أهلًا بك في Yallah Accounts',
                         style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 12),
                     const Text(

@@ -152,6 +152,22 @@ class SyncStateService {
     );
   }
 
+  void setLocalOnly({
+    required int pendingCount,
+    required int failedCount,
+    required int sendingCount,
+  }) {
+    _transportConfigured = false;
+    _notifier.value = _notifier.value.copyWith(
+      phase: YallaSyncPhase.localOnly,
+      pendingCount: pendingCount,
+      failedCount: failedCount,
+      sendingCount: sendingCount,
+      transportConfigured: false,
+      clearError: true,
+    );
+  }
+
   void setOffline(String error) {
     _notifier.value = _notifier.value.copyWith(
       phase: YallaSyncPhase.offline,

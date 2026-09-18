@@ -22,13 +22,13 @@ class AppConfig {
       case AppEnvironment.development:
         apiBaseUrl = 'http://localhost:3000/api';
         enableLogs = true;
-        appName = 'Yalla Accounts [Dev]';
+        appName = 'Yallah Accounts [Dev]';
         break;
 
       case AppEnvironment.production:
         apiBaseUrl = 'https://api.yalla.ps';
         enableLogs = false;
-        appName = 'Yalla Accounts';
+        appName = 'Yallah Accounts';
         break;
     }
   }

@@ -33,6 +33,95 @@ class InboundSyncChange {
 class UnifiedSyncQueueService {
   UnifiedSyncQueueService._();
 
+  static const financialConflictTypes = <String>{
+    'invoice',
+    'payment',
+    'receipt',
+    'receipt_allocation',
+    'customer_credit_allocation',
+    'voucher',
+    'cheque',
+    'employee_advance',
+    'payroll_run',
+    'payroll_payment',
+    'purchase_invoice',
+    'purchase_invoice_line',
+    'purchase_payment',
+    'invoice_settlement',
+    'monthly_expense',
+    'inventory_movement',
+    'gl_entry',
+    'gl_line',
+    'accounting_audit_event',
+  };
+
+  static Future<List<Map<String, Object?>>> openConflicts(
+    DatabaseExecutor db,
+  ) async {
+    return (await db.rawQuery(
+      '''SELECT * FROM ${UnifiedSyncTables.outbox}
+      WHERE state='CONFLICT'
+        AND COALESCE(resolution_status,'')<>'RESOLVED'
+      ORDER BY updated_at DESC''',
+    ))
+        .map(Map<String, Object?>.from)
+        .toList(growable: false);
+  }
+
+  static Future<List<Map<String, Object?>>> financialCorrectionCandidates(
+    DatabaseExecutor db, {
+    required String conflictOutboxId,
+  }) async {
+    final conflict = await db.query(
+      UnifiedSyncTables.outbox,
+      columns: ['updated_at'],
+      where: "outbox_id=? AND state='CONFLICT'",
+      whereArgs: [conflictOutboxId],
+      limit: 1,
+    );
+    if (conflict.isEmpty) throw StateError('SYNC_CONFLICT_NOT_FOUND');
+    final after = conflict.single['updated_at']?.toString() ?? '';
+    final placeholders =
+        List.filled(financialConflictTypes.length, '?').join(',');
+    return (await db.rawQuery(
+      '''SELECT outbox_id,change_id,entity_type,entity_id,occurred_at,server_sequence
+      FROM ${UnifiedSyncTables.outbox}
+      WHERE state='ACKNOWLEDGED'
+        AND server_sequence IS NOT NULL
+        AND occurred_at>=?
+        AND entity_type IN ($placeholders)
+      ORDER BY occurred_at DESC LIMIT 30''',
+      [after, ...financialConflictTypes],
+    ))
+        .map(Map<String, Object?>.from)
+        .toList(growable: false);
+  }
+
+  static Future<void> recordConflictResolution(
+    DatabaseExecutor db, {
+    required String conflictId,
+    required String decision,
+    required String status,
+    String? reference,
+  }) async {
+    if (status != 'ACTION_REQUIRED' && status != 'RESOLVED') {
+      throw ArgumentError.value(status, 'status');
+    }
+    final changed = await db.update(
+      UnifiedSyncTables.outbox,
+      {
+        'resolution_status': status,
+        'resolution_decision': decision,
+        'resolution_reference': reference,
+        'resolved_at': status == 'RESOLVED' ? _now() : null,
+        'updated_at': _now(),
+      },
+      where: "state='CONFLICT' AND remote_conflict_id=?",
+      whereArgs: [conflictId],
+    );
+    if (changed != 1) throw StateError('SYNC_CONFLICT_NOT_FOUND');
+  }
+
   static Future<List<Map<String, Object?>>> pendingOutbox(
     DatabaseExecutor db, {
     int limit = SyncContractV3.pushMaxChanges,
@@ -269,7 +358,8 @@ class UnifiedSyncQueueService {
     final rows = await db.rawQuery('''SELECT
       SUM(CASE WHEN state='PENDING' THEN 1 ELSE 0 END) AS pending,
       SUM(CASE WHEN state='SENDING' THEN 1 ELSE 0 END) AS sending,
-      SUM(CASE WHEN state='CONFLICT' OR (state='REJECTED' AND
+      SUM(CASE WHEN (state='CONFLICT' AND COALESCE(resolution_status,'')<>'RESOLVED')
+        OR (state='REJECTED' AND
         COALESCE(last_error,'') NOT IN
           ('SYNC_SUPERSEDED_BY_MASTER_PARTY','SYNC_ACCOUNT_EMBEDDED_METADATA'))
         THEN 1 ELSE 0 END) AS failed

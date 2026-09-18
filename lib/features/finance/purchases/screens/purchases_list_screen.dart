@@ -10,10 +10,10 @@ import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/screens/purchase_details_screen.dart';
-import 'package:yalla_accounts/features/finance/purchases/screens/purchase_create_screen.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
@@ -25,11 +25,11 @@ class DesktopBehavior extends ScrollBehavior {
 
   @override
   Widget buildScrollbar(
-      BuildContext context, Widget child, ScrollableDetails d) {
+      BuildContext context, Widget child, ScrollableDetails details) {
     return Scrollbar(
       thumbVisibility: true,
       interactive: true,
-      controller: d.controller,
+      controller: details.controller,
       child: child,
     );
   }
@@ -56,10 +56,8 @@ class _PurchasesListScreenState extends State<PurchasesListScreen> {
   List<Map<String, dynamic>> _rows = [];
   bool _loading = false;
   String _search = '';
-
-  double totalAmount = 0;
-  double totalPaid = 0;
-  double totalRemain = 0;
+  DateTime? _from;
+  DateTime? _to;
 
   @override
   void initState() {
@@ -95,24 +93,11 @@ FROM purchase_invoices pi
 ORDER BY pi.date DESC;
 """);
 
-      totalAmount = invoices.fold(0.0,
-          (sum, r) => sum + ((r['amount_total'] as num?)?.toDouble() ?? 0));
-
-      totalPaid = invoices.fold(
-          0.0, (sum, r) => sum + ((r['paid_total'] as num?)?.toDouble() ?? 0));
-
-      totalRemain = totalAmount - totalPaid;
-
       setState(() {
         _rows = invoices;
         _loading = false;
       });
     });
-  }
-
-  void _openAdd() async {
-    await PurchaseCreateScreen.open(context);
-    _load();
   }
 
   @override
@@ -166,12 +151,24 @@ ORDER BY pi.date DESC;
 
   List<Map<String, dynamic>> get _filteredRows {
     final query = _search.toLowerCase();
-    return _rows
-        .where((r) =>
-            '${r['supplier_name'] ?? ''} ${r['invoice_number'] ?? ''} ${r['id']}'
-                .toLowerCase()
-                .contains(query))
-        .toList();
+    final from =
+        _from == null ? null : DateTime(_from!.year, _from!.month, _from!.day);
+    final toExclusive = _to == null
+        ? null
+        : DateTime(_to!.year, _to!.month, _to!.day)
+            .add(const Duration(days: 1));
+    return _rows.where((r) {
+      final matchesSearch =
+          '${r['supplier_name'] ?? ''} ${r['invoice_number'] ?? ''} ${r['id']}'
+              .toLowerCase()
+              .contains(query);
+      if (!matchesSearch) return false;
+      final date = DateTime.tryParse((r['date'] ?? '').toString());
+      if (date == null) return from == null && toExclusive == null;
+      if (from != null && date.isBefore(from)) return false;
+      if (toExclusive != null && !date.isBefore(toExclusive)) return false;
+      return true;
+    }).toList();
   }
 
   double _amount(Map<String, dynamic> row, String key) =>
@@ -343,30 +340,61 @@ ORDER BY pi.date DESC;
     );
   }
 
-  // SEARCH
+  // SEARCH + PERIOD FILTER
   Widget _buildSearch() {
-    return TextField(
-      inputFormatters: const [YallaDigitNormalizer()],
-      decoration: InputDecoration(
-        hintText: 'بحث باسم المورد أو رقم الفاتورة',
-        filled: true,
-        fillColor: Colors.white,
-        prefixIcon: const Icon(Icons.search),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      onChanged: (v) => setState(() => _search = v.trim()),
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: context.isDesktopWidth ? 360 : double.infinity,
+          child: TextField(
+            inputFormatters: const [YallaDigitNormalizer()],
+            decoration: InputDecoration(
+              hintText: 'بحث باسم المورد أو رقم الفاتورة',
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: const Icon(Icons.search),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onChanged: (v) => setState(() => _search = v.trim()),
+          ),
+        ),
+        FinancialPeriodFilter(
+          from: _from,
+          to: _to,
+          onChanged: (range) => setState(() {
+            _from = range.start;
+            _to = range.end;
+          }),
+        ),
+        if (_from != null || _to != null)
+          TextButton.icon(
+            onPressed: () => setState(() {
+              _from = null;
+              _to = null;
+            }),
+            icon: const Icon(Icons.clear),
+            label: const Text('كل الفترات'),
+          ),
+      ],
     );
   }
 
   // SUMMARY
   Widget _buildSummary() {
+    final rows = _filteredRows;
+    final total = rows.fold(0.0, (s, r) => s + _amount(r, 'amount_total'));
+    final paid = rows.fold(0.0, (s, r) => s + _amount(r, 'paid_total'));
     return AdaptiveRow(
       children: [
-        _sum('إجمالي المشتريات', totalAmount),
+        _sum('إجمالي المشتريات', total),
         const SizedBox(width: 12),
-        _sum('إجمالي المدفوع', totalPaid),
+        _sum('إجمالي المدفوع', paid),
         const SizedBox(width: 12),
-        _sum('المتبقي', totalRemain),
+        _sum('المتبقي', total - paid),
       ],
     );
   }

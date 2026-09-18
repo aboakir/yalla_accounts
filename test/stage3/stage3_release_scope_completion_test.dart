@@ -6,24 +6,30 @@ String source(String path) => File(path).readAsStringSync();
 
 void main() {
   group('Stage 3 release scope', () {
-    test('release scope flags defer only the agreed first-beta features', () {
+    test('release scope exposes the approved operational modules', () {
       final text = source('lib/core/release/release_scope_config.dart');
       expect(text, contains('repairReportExportsEnabled = false'));
-      expect(text, contains('employeeAdvancesEnabled = false'));
-      expect(text, contains('extendedFinanceEnabled = false'));
-      expect(text, contains('chequesEnabled = false'));
+      expect(text, contains('employeeAdvancesEnabled = true'));
+      expect(text, contains('extendedFinanceEnabled = true'));
+      expect(text, contains('chequesEnabled = true'));
       expect(text, contains('dashboardFrozen = true'));
     });
 
-    test('sidebar keeps stable finance core and gates deferred modules', () {
+    test('sidebar exposes operational modules without a deferred placeholder',
+        () {
       final text = source('lib/core/widgets/sidebar/yalla_sidebar.dart');
       expect(
           text, contains("(Icons.list_alt, 'قيود اليومية', rJournalEntries)"));
       expect(text,
           contains("(Icons.menu_book, 'دفتر الأستاذ', rFinanceAccountLedger)"));
-      expect(text, contains('ReleaseScopeConfig.extendedFinanceEnabled'));
-      expect(text, contains('ReleaseScopeConfig.employeeAdvancesEnabled'));
-      expect(text, contains('ReleaseScopeConfig.chequesEnabled'));
+      expect(text, contains("'اللوحة المالية'"));
+      expect(text, contains("'المصروفات'"));
+      expect(text, contains("'تقرير السلف والمكافآت'"));
+      expect(text, contains("'شيكات آجلة'"));
+      expect(text, contains("'مشتريات مواد الدهان'"));
+      expect(text, contains("'مشتريات العِدّة والأدوات'"));
+      expect(text, contains("'المخزون والمواد'"));
+      expect(text, isNot(contains("title: 'إصدار لاحق'")));
     });
 
     test('repair reports remain available while export actions are gated', () {

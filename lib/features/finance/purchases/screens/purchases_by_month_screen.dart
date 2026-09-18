@@ -6,6 +6,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PurchasesByMonthScreen extends StatefulWidget {
@@ -130,13 +132,68 @@ class _PurchasesByMonthScreenState extends State<PurchasesByMonthScreen> {
   Widget build(BuildContext context) {
     final periodLabel = switch (_months) {
       6 => 'آخر 6 أشهر',
-      24 => 'آخر 24 شهر',
-      _ => 'آخر 12 شهر',
+      24 => 'آخر 24 شهرًا',
+      _ => 'آخر 12 شهرًا',
     };
+    final desktop = Responsive.isDesktop(context);
+
+    Widget content;
+    if (_loading) {
+      content = const Center(child: CircularProgressIndicator());
+    } else if (_rows.isEmpty) {
+      content = const Center(child: Text('لا توجد مشتريات ضمن الفترة المحددة'));
+    } else {
+      content = Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            AdaptiveRow(
+              children: [
+                _kpi('الفترة', periodLabel),
+                const SizedBox(width: 16),
+                _kpi('إجمالي المشتريات', _nf.format(_sumPeriod)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: Card(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _rows.length + 1,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    if (i == 0) return _headerRow();
+                    final r = _rows[i - 1];
+                    final yoyStr =
+                        '${r.yoy >= 0 ? '▲' : '▼'} ${_nf.format(r.yoy.abs())}%';
+                    final yoyColor = r.yoy >= 0 ? Colors.green : Colors.red;
+                    final prevLabel = r.prev == 0 ? '—' : _prevYearYm(r.ym);
+                    return ListTile(
+                      leading: Text(r.ym),
+                      title: Text(_nf.format(r.total)),
+                      subtitle: Text(
+                        'مقارنة مع $prevLabel • السابق: ${_nf.format(r.prev)}',
+                      ),
+                      trailing: Text(
+                        yoyStr,
+                        style: TextStyle(
+                          color: yoyColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Purchases by Month (GL)'),
+        title: const Text('المشتريات حسب الشهر'),
         actions: [
           DropdownButton<int>(
             value: _months,
@@ -147,72 +204,29 @@ class _PurchasesByMonthScreenState extends State<PurchasesByMonthScreen> {
               _load();
             },
             items: const [
-              DropdownMenuItem(value: 6, child: Text('6m')),
-              DropdownMenuItem(value: 12, child: Text('12m')),
-              DropdownMenuItem(value: 24, child: Text('24m')),
+              DropdownMenuItem(value: 6, child: Text('6 أشهر')),
+              DropdownMenuItem(value: 12, child: Text('12 شهرًا')),
+              DropdownMenuItem(value: 24, child: Text('24 شهرًا')),
             ],
           ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
+          IconButton(
+            tooltip: 'تحديث',
+            icon: const Icon(Icons.refresh),
+            onPressed: _load,
+          ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _rows.isEmpty
-              ? const Center(child: Text('لا توجد بيانات مشتريات في GL'))
-              : Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // KPIs
-                      AdaptiveRow(
-                        children: [
-                          _kpi('الفترة', periodLabel),
-                          const SizedBox(width: 16),
-                          _kpi('إجمالي الفترة', _nf.format(_sumPeriod)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // جدول شهري
-                      Expanded(
-                        child: Card(
-                          child: ListView.separated(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: _rows.length + 1,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (_, i) {
-                              if (i == 0) {
-                                return _headerRow();
-                              }
-                              final r = _rows[i - 1];
-                              final yoyStr =
-                                  '${r.yoy >= 0 ? '▲' : '▼'} ${_nf.format(r.yoy.abs())}%';
-                              final yoyColor =
-                                  r.yoy >= 0 ? Colors.green : Colors.red;
-                              final prevLabel =
-                                  r.prev == 0 ? '—' : _prevYearYm(r.ym);
-                              return ListTile(
-                                leading: Text(r.ym),
-                                title: Text(_nf.format(r.total)),
-                                subtitle: Text(
-                                  'YoY vs $prevLabel • Prev: ${_nf.format(r.prev)}',
-                                ),
-                                trailing: Text(
-                                  yoyStr,
-                                  style: TextStyle(
-                                    color: yoyColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      drawer: desktop
+          ? null
+          : const Drawer(
+              child: YallaSidebar(currentRoute: '/purchases/by-month'),
+            ),
+      body: AdaptiveRow(
+        children: [
+          if (desktop) const YallaSidebar(currentRoute: '/purchases/by-month'),
+          Expanded(child: content),
+        ],
+      ),
     );
   }
 
@@ -234,11 +248,11 @@ class _PurchasesByMonthScreenState extends State<PurchasesByMonthScreen> {
 
   Widget _headerRow() {
     return const ListTile(
-      leading: Text('Month', style: TextStyle(fontWeight: FontWeight.bold)),
-      title: Text('Total', style: TextStyle(fontWeight: FontWeight.bold)),
+      leading: Text('الشهر', style: TextStyle(fontWeight: FontWeight.bold)),
+      title: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold)),
       subtitle:
-          Text('YoY مقارنة', style: TextStyle(fontWeight: FontWeight.bold)),
-      trailing: Text('YoY %', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('مقارنة سنوية', style: TextStyle(fontWeight: FontWeight.bold)),
+      trailing: Text('التغير %', style: TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 }

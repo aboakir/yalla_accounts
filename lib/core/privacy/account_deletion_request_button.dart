@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'account_deletion_request_service.dart';
 
 class AccountDeletionRequestButton extends ConsumerStatefulWidget {
@@ -20,7 +21,7 @@ class _AccountDeletionRequestButtonState
     if (_busy) return;
     final approved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: const Text('طلب حذف الحساب والبيانات'),
         content: const Text(
           'سيتم إنشاء طلب رسمي للمراجعة. لا يمسح هذا الإجراء قاعدة الورشة أو '

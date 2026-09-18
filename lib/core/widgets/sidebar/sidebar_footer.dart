@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Yalla Accounts uses one canonical light visual identity.
+/// Yallah Accounts uses one canonical light visual identity.
 /// The former dark-mode toggle was removed because the production root app
 /// does not expose a dark theme and the brand system is intentionally light.
 class SidebarFooter extends StatelessWidget {

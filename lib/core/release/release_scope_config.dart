@@ -8,15 +8,14 @@ class ReleaseScopeConfig {
   /// P3-01: Repair Reports screen stays enabled, export actions are deferred.
   static const bool repairReportExportsEnabled = false;
 
-  /// P3-02/P3-03: direct employee advances/rewards UI is deferred.
-  /// Employee advances continue through the canonical payment-voucher path.
-  static const bool employeeAdvancesEnabled = false;
+  /// Employee advances/rewards UI is enabled; accounting remains on the canonical voucher/GL path.
+  static const bool employeeAdvancesEnabled = true;
 
-  /// P3-04: only the stable finance core is exposed in the first beta.
-  static const bool extendedFinanceEnabled = false;
+  /// Extended finance screens are exposed in navigation.
+  static const bool extendedFinanceEnabled = true;
 
-  /// P3-05: cheque management screens are deferred from release navigation.
-  static const bool chequesEnabled = false;
+  /// Cheque management screens are exposed in navigation.
+  static const bool chequesEnabled = true;
 
   /// P3-06: dashboard is approved/frozen and must not be modified in Stage 3.
   static const bool dashboardFrozen = true;
