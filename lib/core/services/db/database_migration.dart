@@ -109,11 +109,72 @@ class DatabaseMigration {
     return SyncFoundationService.transaction<T>(db, action);
   }
 
+  static Future<int> _readRecoveredPlaintextVersion(String path) async {
+    const sqliteHeader = <int>[
+      0x53,
+      0x51,
+      0x4c,
+      0x69,
+      0x74,
+      0x65,
+      0x20,
+      0x66,
+      0x6f,
+      0x72,
+      0x6d,
+      0x61,
+      0x74,
+      0x20,
+      0x33,
+      0x00,
+    ];
+    const maxAttempts = 10;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      RandomAccessFile? handle;
+      try {
+        handle = await File(path).open(mode: FileMode.read);
+        final header = await handle.read(64);
+        if (header.length < 64) {
+          throw StateError('Recovered SQLite database header is truncated.');
+        }
+        for (var index = 0; index < sqliteHeader.length; index++) {
+          if (header[index] != sqliteHeader[index]) {
+            throw StateError(
+                'Recovered file is not a plaintext SQLite database.');
+          }
+        }
+        return (header[60] << 24) |
+            (header[61] << 16) |
+            (header[62] << 8) |
+            header[63];
+      } on FileSystemException {
+        final fileStillExists = await File(path).exists();
+        if (!fileStillExists || attempt + 1 >= maxAttempts) rethrow;
+        final linearDelayMs = 50 * (attempt + 1);
+        final delayMs = linearDelayMs > 500 ? 500 : linearDelayMs;
+        ReleaseDiagnostics.debug(
+          '[DB] recovered file not readable yet; retry ${attempt + 1}/$maxAttempts in ${delayMs}ms',
+        );
+        await Future<void>.delayed(Duration(milliseconds: delayMs));
+      } finally {
+        if (handle != null) await handle.close();
+      }
+    }
+
+    throw StateError('Unable to read recovered SQLite database header.');
+  }
+
   static Future<int> _readExistingVersion(
     String path, {
     required bool retryAfterRestore,
   }) async {
-    final maxAttempts = retryAfterRestore ? 6 : 1;
+    if (retryAfterRestore &&
+        !DatabaseEncryptionService.mobileEncryptionEnabled) {
+      return _readRecoveredPlaintextVersion(path);
+    }
+
+    final maxAttempts = retryAfterRestore ? 10 : 1;
 
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       Database? existing;
