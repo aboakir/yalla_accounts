@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_pdf_generator.dart';
@@ -51,6 +52,9 @@ void main() {
     databaseFactory = databaseFactoryFfi;
     SharedPreferences.setMockInitialValues({});
     final temp = await Directory.systemTemp.createTemp('pdf_repair_');
+    YallaStorageService.useRootDirectoryForTesting(
+      Directory('${temp.path}/storage'),
+    );
     final db = await DatabaseMigration.initDatabase(
         pathOverride: '${temp.path}/test.db');
     DatabaseMigration.useDatabaseForTesting(db);
@@ -147,6 +151,7 @@ void main() {
     } finally {
       await session.endEphemeralPreviewSession();
       DatabaseMigration.useDatabaseForTesting(null);
+      YallaStorageService.useRootDirectoryForTesting(null);
       await db.close();
       await temp.delete(recursive: true);
     }

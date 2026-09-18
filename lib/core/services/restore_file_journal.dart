@@ -52,6 +52,21 @@ class RestoreFileJournal {
     }
   }
 
+  static Future<void> _restoreAtomically(File backup, File target) async {
+    if (!await backup.exists()) {
+      throw StateError('Restore journal backup is missing: ${backup.path}');
+    }
+
+    await target.parent.create(recursive: true);
+    final staged = File('${target.path}.restore-recover');
+    if (await staged.exists()) await staged.delete();
+
+    await _copyFlushed(backup, staged);
+
+    if (await target.exists()) await target.delete();
+    await staged.rename(target.path);
+  }
+
   Future<void> commit() async {
     await File(p.join(directory.path, 'committed'))
         .writeAsString('ok', flush: true);
@@ -83,12 +98,17 @@ class RestoreFileJournal {
         for (final row in records.reversed) {
           final target = File(row['target'] as String);
           if (row['existed'] == true) {
-            await _copyFlushed(File(row['backup'] as String), target);
+            await _restoreAtomically(
+              File(row['backup'] as String),
+              target,
+            );
           } else if (await target.exists()) {
             await target.delete();
           }
           final staged = File('${target.path}.restore-next');
           if (await staged.exists()) await staged.delete();
+          final recoveryStage = File('${target.path}.restore-recover');
+          if (await recoveryStage.exists()) await recoveryStage.delete();
         }
         // WAL of the interrupted replacement must never be replayed on the old DB.
         for (final suffix in ['-wal', '-shm', '-journal']) {
