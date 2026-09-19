@@ -341,7 +341,10 @@ class MyApp extends ConsumerWidget {
           final page = child ?? const SizedBox.shrink();
           if (MediaQuery.sizeOf(context).width >= 600) return page;
           return Theme(
-            data: YallaMobileTheme.from(Theme.of(context)),
+            data: YallaMobileTheme.from(
+              Theme.of(context),
+              viewportWidth: MediaQuery.sizeOf(context).width,
+            ),
             child: YallaMobilePage(child: page),
           );
         },

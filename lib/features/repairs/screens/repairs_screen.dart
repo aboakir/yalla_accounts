@@ -810,13 +810,13 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                   children: [
                     YallaStoredImage(
                       storedPath: profilePath,
-                      width: 48,
-                      height: 48,
-                      cacheWidth: 180,
-                      borderRadius: BorderRadius.circular(14),
+                      width: 72,
+                      height: 72,
+                      cacheWidth: 240,
+                      borderRadius: BorderRadius.circular(16),
                       fallback: Container(
-                        width: 48,
-                        height: 48,
+                        width: 72,
+                        height: 72,
                         color: AppColors.lightGreen,
                         child: const Icon(
                           Icons.directions_car_filled_rounded,

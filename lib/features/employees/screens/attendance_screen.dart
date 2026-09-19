@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
@@ -273,6 +274,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         _buildHeader(empState.employees),
                         const SizedBox(height: 12),
                         _buildWorkshopTimes(),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pushNamed(
+                              context,
+                              AppRoutes.reportsAttendance,
+                            ),
+                            icon: const Icon(Icons.fact_check_outlined),
+                            label: const Text('سجل / كشف الحضور'),
+                          ),
+                        ),
                         const SizedBox(height: 12),
                         if (empState.isLoading)
                           const Expanded(
@@ -565,6 +578,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           label: Text(
                             DateFormat('yyyy-MM').format(selectedMonth),
                           ),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.pushNamed(
+                            context,
+                            AppRoutes.reportsAttendance,
+                          ),
+                          icon: const Icon(Icons.fact_check_outlined),
+                          label: const Text('سجل / كشف الحضور'),
                         ),
                         if (selectedEmployee != null) ...[
                           const SizedBox(height: 12),
