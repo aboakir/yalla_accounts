@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/cheques/screens/cheque_details_screen.dart
 //
@@ -376,7 +377,9 @@ class ChequeDetailsScreen extends ConsumerWidget {
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("تعذر تحديث حالة الشيك: $e")),
+        SnackBar(
+            content:
+                Text("تعذر تحديث حالة الشيك: ${UserFacingError.message(e)}")),
       );
     }
   }
@@ -499,7 +502,7 @@ class ChequeDetailsScreen extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("خطأ أثناء التظهير: $e"),
+          content: Text("خطأ أثناء التظهير: ${UserFacingError.message(e)}"),
           backgroundColor: Colors.red,
         ),
       );

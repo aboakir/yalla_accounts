@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import '../services/commercial_settings_service.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -95,7 +96,7 @@ class _CommercialSettingsScreenState extends State<CommercialSettingsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      final message = e.toString().replaceFirst('Bad state: ', '');
+      final message = UserFacingError.message(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );

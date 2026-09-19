@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -77,7 +78,9 @@ class PaymentStatusPieChart extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text('خطأ في تحميل البيانات: $err')),
+      error: (err, _) => Center(
+          child:
+              Text('خطأ في تحميل البيانات: ${UserFacingError.message(err)}')),
     );
   }
 }

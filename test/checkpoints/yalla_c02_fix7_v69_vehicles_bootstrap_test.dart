@@ -84,6 +84,6 @@ void main() {
       'lib/core/services/db/database_constants.dart',
     ).readAsStringSync();
 
-    expect(constants, contains('static const int dbVersion = 76;'));
+    expect(constants, contains('static const int dbVersion = 77;'));
   });
 }

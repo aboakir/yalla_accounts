@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/cheques/widgets/steps/cheque_step_entry.dart';
 import 'package:uuid/uuid.dart';
 // -----------------------------------------------------------------------------
@@ -116,7 +117,7 @@ class _PurchasePaymentDialogState extends State<PurchasePaymentDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("فشل السداد: $e")),
+          SnackBar(content: Text("فشل السداد: ${UserFacingError.message(e)}")),
         );
       }
     } finally {

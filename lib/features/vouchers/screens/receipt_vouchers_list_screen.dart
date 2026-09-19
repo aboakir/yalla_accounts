@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/vouchers/widgets/voucher_list_phone.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/vouchers/receipt_voucher_list_screen.dart
@@ -169,7 +170,7 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("خطأ PDF: $e")),
+        SnackBar(content: Text("خطأ PDF: ${UserFacingError.message(e)}")),
       );
     }
   }
@@ -218,7 +219,9 @@ class _ReceiptVoucherListScreenState extends State<ReceiptVoucherListScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إنشاء PDF للسند: $e')),
+        SnackBar(
+            content:
+                Text('تعذر إنشاء PDF للسند: ${UserFacingError.message(e)}')),
       );
     }
   }

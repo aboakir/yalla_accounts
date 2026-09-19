@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/widgets/repair_export_buttons.dart
 
 import 'dart:async';
@@ -103,7 +104,8 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ حدث خطأ أثناء تصدير PDF: $e'),
+            content: Text(
+                '❌ حدث خطأ أثناء تصدير PDF: ${UserFacingError.message(e)}'),
             backgroundColor: AppColors.danger,
             duration: const Duration(seconds: 4),
           ),
@@ -148,7 +150,8 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ حدث خطأ أثناء تصدير Excel: $e'),
+            content: Text(
+                '❌ حدث خطأ أثناء تصدير Excel: ${UserFacingError.message(e)}'),
             backgroundColor: AppColors.danger,
             duration: const Duration(seconds: 4),
           ),

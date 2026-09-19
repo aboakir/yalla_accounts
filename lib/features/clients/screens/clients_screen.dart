@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -83,7 +84,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("خطأ أثناء تحميل العملاء: $e")),
+        SnackBar(
+            content:
+                Text("خطأ أثناء تحميل العملاء: ${UserFacingError.message(e)}")),
       );
     }
   }

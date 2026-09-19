@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/insurance_agent/policies/screens/edit_policy_screen.dart
 //
 // EditPolicyScreen — تعديل بوليصة (DB REAL + Document Type + Vehicle Price)
@@ -147,7 +148,9 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل تحميل البوليصة: $e')),
+        SnackBar(
+            content:
+                Text('❌ فشل تحميل البوليصة: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -410,7 +413,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل الحفظ: $e')),
+        SnackBar(content: Text('❌ فشل الحفظ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

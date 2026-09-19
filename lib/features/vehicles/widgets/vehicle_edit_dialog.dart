@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -92,7 +93,7 @@ class _VehicleEditDialogState extends State<VehicleEditDialog> {
     } on DuplicateVehicleException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
+        SnackBar(content: Text(UserFacingError.message(error))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

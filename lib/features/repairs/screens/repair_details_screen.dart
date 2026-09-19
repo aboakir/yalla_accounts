@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // 📁 lib/features/repairs/screens/repair_details_screen.dart
 // - حالة التأمين + حالة المركبة جنب بعض داخل البطاقة اليسرى.
@@ -198,8 +199,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           .showSnackBar(SnackBar(content: Text(successMsg)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل تحديث الحالة: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل تحديث الحالة: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -336,8 +337,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           .showSnackBar(const SnackBar(content: Text('✅ تم حفظ الصور')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ فشل إضافة الصور: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('❌ فشل إضافة الصور: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -359,8 +360,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
           .showSnackBar(const SnackBar(content: Text('🗑️ تم حذف الصورة')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ فشل حذف الصورة: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('❌ فشل حذف الصورة: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -571,8 +572,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ فشل المشاركة: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('❌ فشل المشاركة: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -582,8 +583,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       await Printing.layoutPdf(onLayout: (_) async => bytes);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ فشل الطباعة: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('❌ فشل الطباعة: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -1093,16 +1094,17 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                 await _printPdf();
               } else if (value == 'save') {
                 try {
-                  final file =
-                      await RepairPdfGenerator.saveToFileAndOpen(_repair);
+                  await RepairPdfGenerator.saveToFileAndOpen(_repair);
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('تم إنشاء PDF: ${file.path}')),
+                    SnackBar(content: Text('تم إنشاء ملف PDF بنجاح.')),
                   );
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('فشل إنشاء PDF: $e')),
+                    SnackBar(
+                        content: Text(
+                            'فشل إنشاء PDF: ${UserFacingError.message(e)}')),
                   );
                 }
               }
@@ -1323,15 +1325,15 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                     icon: const Icon(Icons.picture_as_pdf),
                     onPressed: () async {
                       try {
-                        final file =
-                            await RepairPdfGenerator.saveToFileAndOpen(_repair);
+                        await RepairPdfGenerator.saveToFileAndOpen(_repair);
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('✅ تم الحفظ والفتح:\n${file.path}')));
+                            content: Text('✅ تم حفظ وفتح ملف PDF بنجاح.')));
                       } catch (e) {
                         if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('❌ فشل إنشاء PDF: $e')));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                '❌ فشل إنشاء PDF: ${UserFacingError.message(e)}')));
                       }
                     },
                   ),

@@ -3,7 +3,7 @@ import 'package:excel/excel.dart' as ex;
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart';
 

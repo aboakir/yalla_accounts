@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 // 📁 lib/features/insurance_agent/policies/screens/policies_list_screen.dart
 //
@@ -106,7 +107,7 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل التهيئة: $e')),
+        SnackBar(content: Text('❌ فشل التهيئة: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -153,7 +154,9 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ فشل تحميل الشهر: $e')),
+          SnackBar(
+              content:
+                  Text('❌ فشل تحميل الشهر: ${UserFacingError.message(e)}')),
         );
       }
     } finally {
@@ -338,7 +341,7 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل الحذف: $e')),
+        SnackBar(content: Text('❌ فشل الحذف: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -629,7 +632,8 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل تصدير PDF: $e')),
+        SnackBar(
+            content: Text('❌ فشل تصدير PDF: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _pdfBusy = false);

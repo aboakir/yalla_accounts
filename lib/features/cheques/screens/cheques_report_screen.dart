@@ -22,7 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -56,6 +56,7 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
   String? currencyFilter;
   double? amountMin;
   double? amountMax;
+  bool _showAdvancedFilters = false;
 
   DateTime? issueFrom;
   DateTime? issueTo;
@@ -949,120 +950,145 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
                 ],
               ),
 
-              const SizedBox(height: 18),
-
-              // -------------------------
-              // ROW 2 — البنك + الفرع + العملة + مبلغ من/إلى
-              // -------------------------
-              Wrap(
-                runSpacing: 12,
-                spacing: 12,
-                alignment: WrapAlignment.end,
-                children: [
-                  // Bank
-                  SizedBox(
-                    width: 200,
-                    child: TextField(
-                      inputFormatters: const [YallaDigitNormalizer()],
-                      decoration: const InputDecoration(labelText: "البنك"),
-                      textAlign: TextAlign.right,
-                      onChanged: (v) {
-                        bankFilter = v.trim().isEmpty ? null : v;
-                        _load();
-                      },
+              if (context.isPhoneWidth) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: OutlinedButton.icon(
+                    icon: Icon(
+                      _showAdvancedFilters ? Icons.expand_less : Icons.tune,
+                    ),
+                    label: Text(
+                      _showAdvancedFilters
+                          ? 'إخفاء الفلاتر المتقدمة'
+                          : 'فلاتر متقدمة',
+                    ),
+                    onPressed: () => setState(
+                      () => _showAdvancedFilters = !_showAdvancedFilters,
                     ),
                   ),
+                ),
+              ],
 
-                  // Branch
-                  SizedBox(
-                    width: 200,
-                    child: TextField(
-                      inputFormatters: const [YallaDigitNormalizer()],
-                      decoration: const InputDecoration(labelText: "الفرع"),
-                      textAlign: TextAlign.right,
-                      onChanged: (v) {
-                        branchFilter = v.trim().isEmpty ? null : v;
-                        _load();
-                      },
+              if (!context.isPhoneWidth || _showAdvancedFilters) ...[
+                const SizedBox(height: 18),
+
+                // -------------------------
+                // ROW 2 — البنك + الفرع + العملة + مبلغ من/إلى
+                // -------------------------
+                Wrap(
+                  runSpacing: 12,
+                  spacing: 12,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    // Bank
+                    SizedBox(
+                      width: 200,
+                      child: TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        decoration: const InputDecoration(labelText: "البنك"),
+                        textAlign: TextAlign.right,
+                        onChanged: (v) {
+                          bankFilter = v.trim().isEmpty ? null : v;
+                          _load();
+                        },
+                      ),
                     ),
-                  ),
 
-                  // Currency
-                  SizedBox(
-                    width: 150,
-                    child: TextField(
-                      inputFormatters: const [YallaDigitNormalizer()],
-                      decoration: const InputDecoration(labelText: "العملة"),
-                      textAlign: TextAlign.right,
-                      onChanged: (v) {
-                        currencyFilter = v.trim().isEmpty ? null : v;
-                        _load();
-                      },
+                    // Branch
+                    SizedBox(
+                      width: 200,
+                      child: TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        decoration: const InputDecoration(labelText: "الفرع"),
+                        textAlign: TextAlign.right,
+                        onChanged: (v) {
+                          branchFilter = v.trim().isEmpty ? null : v;
+                          _load();
+                        },
+                      ),
                     ),
-                  ),
 
-                  // Amount min
-                  SizedBox(
-                    width: 150,
-                    child: TextField(
-                      inputFormatters: const [YallaDigitNormalizer()],
-                      decoration: const InputDecoration(labelText: "مبلغ من"),
-                      textAlign: TextAlign.right,
-                      keyboardType: TextInputType.number,
-                      onChanged: (v) {
-                        amountMin =
-                            v.trim().isEmpty ? null : double.tryParse(v.trim());
-                        _load();
-                      },
+                    // Currency
+                    SizedBox(
+                      width: 150,
+                      child: TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        decoration: const InputDecoration(labelText: "العملة"),
+                        textAlign: TextAlign.right,
+                        onChanged: (v) {
+                          currencyFilter = v.trim().isEmpty ? null : v;
+                          _load();
+                        },
+                      ),
                     ),
-                  ),
 
-                  // Amount max
-                  SizedBox(
-                    width: 150,
-                    child: TextField(
-                      inputFormatters: const [YallaDigitNormalizer()],
-                      decoration: const InputDecoration(labelText: "مبلغ إلى"),
-                      textAlign: TextAlign.right,
-                      keyboardType: TextInputType.number,
-                      onChanged: (v) {
-                        amountMax =
-                            v.trim().isEmpty ? null : double.tryParse(v.trim());
-                        _load();
-                      },
+                    // Amount min
+                    SizedBox(
+                      width: 150,
+                      child: TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        decoration: const InputDecoration(labelText: "مبلغ من"),
+                        textAlign: TextAlign.right,
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) {
+                          amountMin = v.trim().isEmpty
+                              ? null
+                              : double.tryParse(v.trim());
+                          _load();
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: 18),
+                    // Amount max
+                    SizedBox(
+                      width: 150,
+                      child: TextField(
+                        inputFormatters: const [YallaDigitNormalizer()],
+                        decoration:
+                            const InputDecoration(labelText: "مبلغ إلى"),
+                        textAlign: TextAlign.right,
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) {
+                          amountMax = v.trim().isEmpty
+                              ? null
+                              : double.tryParse(v.trim());
+                          _load();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
 
-              // -------------------------
-              // ROW 3 — تواريخ الإصدار والاستحقاق (من / إلى)
-              // -------------------------
-              Wrap(
-                runSpacing: 12,
-                spacing: 12,
-                alignment: WrapAlignment.end,
-                children: [
-                  _date("إصدار من", issueFrom, (v) {
-                    issueFrom = v;
-                    _load();
-                  }),
-                  _date("إصدار إلى", issueTo, (v) {
-                    issueTo = v;
-                    _load();
-                  }),
-                  _date("استحقاق من", dueFrom, (v) {
-                    dueFrom = v;
-                    _load();
-                  }),
-                  _date("استحقاق إلى", dueTo, (v) {
-                    dueTo = v;
-                    _load();
-                  }),
-                ],
-              ),
+                const SizedBox(height: 18),
+
+                // -------------------------
+                // ROW 3 — تواريخ الإصدار والاستحقاق (من / إلى)
+                // -------------------------
+                Wrap(
+                  runSpacing: 12,
+                  spacing: 12,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    _date("إصدار من", issueFrom, (v) {
+                      issueFrom = v;
+                      _load();
+                    }),
+                    _date("إصدار إلى", issueTo, (v) {
+                      issueTo = v;
+                      _load();
+                    }),
+                    _date("استحقاق من", dueFrom, (v) {
+                      dueFrom = v;
+                      _load();
+                    }),
+                    _date("استحقاق إلى", dueTo, (v) {
+                      dueTo = v;
+                      _load();
+                    }),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -1322,47 +1348,50 @@ class _ChequesReportScreenState extends ConsumerState<ChequesReportScreen> {
       return const Center(child: Text("لا توجد نتائج مطابقة"));
     }
 
+    final table = AdaptiveDataTable(
+      headingRowColor: MaterialStateColor.resolveWith((_) => AppColors.primary),
+      headingTextStyle: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+      ),
+      columns: const [
+        DataColumn(label: Text("رقم الشيك")),
+        DataColumn(label: Text("القيمة")),
+        DataColumn(label: Text("النوع")),
+        DataColumn(label: Text("الحالة")),
+        DataColumn(label: Text("البنك")),
+        DataColumn(label: Text("الإصدار")),
+        DataColumn(label: Text("الاستحقاق")),
+      ],
+      rows: rows.map((r) {
+        final type = (r['cheque_type'] ?? '').toString();
+        final status = (r['status'] ?? '').toString();
+        final bankName = (r['bank_name'] ?? '').toString();
+        final bankBranch = (r['bank_branch'] ?? '').toString();
+
+        return DataRow(
+          cells: [
+            DataCell(Text(r['cheque_no']?.toString() ?? "")),
+            DataCell(Text("${r['amount']} ${r['currency'] ?? ''}")),
+            DataCell(Text(_typeLabel(type))),
+            DataCell(Text(_statusLabel(status))),
+            DataCell(
+              Text(
+                bankBranch.isEmpty ? bankName : "$bankName - $bankBranch",
+              ),
+            ),
+            DataCell(Text(r['issue_date']?.toString() ?? "")),
+            DataCell(Text(r['due_date']?.toString() ?? "")),
+          ],
+        );
+      }).toList(),
+    );
+
+    if (context.isPhoneWidth) return table;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: AdaptiveDataTable(
-        headingRowColor:
-            MaterialStateColor.resolveWith((_) => AppColors.primary),
-        headingTextStyle: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
-        columns: const [
-          DataColumn(label: Text("رقم الشيك")),
-          DataColumn(label: Text("القيمة")),
-          DataColumn(label: Text("النوع")),
-          DataColumn(label: Text("الحالة")),
-          DataColumn(label: Text("البنك")),
-          DataColumn(label: Text("الإصدار")),
-          DataColumn(label: Text("الاستحقاق")),
-        ],
-        rows: rows.map((r) {
-          final type = (r['cheque_type'] ?? '').toString();
-          final status = (r['status'] ?? '').toString();
-          final bankName = (r['bank_name'] ?? '').toString();
-          final bankBranch = (r['bank_branch'] ?? '').toString();
-
-          return DataRow(
-            cells: [
-              DataCell(Text(r['cheque_no']?.toString() ?? "")),
-              DataCell(Text("${r['amount']} ${r['currency'] ?? ''}")),
-              DataCell(Text(_typeLabel(type))),
-              DataCell(Text(_statusLabel(status))),
-              DataCell(
-                Text(
-                  bankBranch.isEmpty ? bankName : "$bankName - $bankBranch",
-                ),
-              ),
-              DataCell(Text(r['issue_date']?.toString() ?? "")),
-              DataCell(Text(r['due_date']?.toString() ?? "")),
-            ],
-          );
-        }).toList(),
-      ),
+      child: table,
     );
   }
 

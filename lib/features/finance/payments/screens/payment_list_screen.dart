@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // ---------------------------------------------------------------------------
 // 📁 lib/features/finance/payments/screens/payment_list_screen.dart
 // شاشة عرض الدفعات — نسخة نهائية متوافقة مع Payment model الحالي
@@ -282,7 +283,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر عكس الدفعة: $e')),
+        SnackBar(
+            content: Text('تعذر عكس الدفعة: ${UserFacingError.message(e)}')),
       );
     }
   }

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/gl/screens/gl_entry_screen.dart
 //
 // GLEntryScreen — عرض قيد GL مفرد (LTR)
@@ -136,8 +137,8 @@ class _GLEntryScreenState extends State<GLEntryScreen> {
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: ${UserFacingError.message(e)}')));
     }
   }
 

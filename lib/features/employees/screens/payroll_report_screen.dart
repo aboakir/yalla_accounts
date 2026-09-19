@@ -127,7 +127,7 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
     await file.writeAsString(b.toString());
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء الملف: ${file.path}')),
+        SnackBar(content: Text('تم إنشاء ملف الرواتب بنجاح.')),
       );
     }
   }

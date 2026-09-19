@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/finance/services/financial_overview_service.dart';
 import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/finance/reports/screens/cash_flow_screen.dart
@@ -19,7 +20,7 @@ import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -646,11 +647,11 @@ class _CashFlowScreenState extends State<CashFlowScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تم حفظ CSV: ${file.path}')));
+          .showSnackBar(SnackBar(content: Text('تم حفظ ملف CSV بنجاح.')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل التصدير: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل التصدير: ${UserFacingError.message(e)}')));
     }
   }
 

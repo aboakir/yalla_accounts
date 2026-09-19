@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/insurance_agent/policies/screens/add_policy_screen.dart
 //
 // AddPolicyScreen — Wizard (Stepper) لإضافة بوليصة
@@ -128,7 +129,7 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ فشل الحفظ: $e')),
+          SnackBar(content: Text('❌ فشل الحفظ: ${UserFacingError.message(e)}')),
         );
       }
       rethrow;

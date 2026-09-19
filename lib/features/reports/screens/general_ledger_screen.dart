@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 import 'gl_entry_details_dialog.dart';
 // 📁 lib/features/reports/screens/general_ledger_screen.dart
@@ -64,8 +65,9 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
       await Printing.sharePdf(bytes: bytes, filename: 'general_ledger.pdf');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تعذر إنشاء كشف PDF صالح: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('تعذر إنشاء كشف PDF صالح: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -255,8 +257,9 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
         _sumCredit = sC;
       });
     } catch (e) {
+      debugPrint('General ledger load failed: $e');
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _error = 'تعذر تحميل الأستاذ العام. أعد المحاولة.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -287,9 +290,11 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
       child: AdaptiveRow(
         children: [
           if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+            Builder(
+              builder: (menuContext) => IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () => Scaffold.of(menuContext).openDrawer(),
+              ),
             ),
           const Text('الأستاذ العام',
               style: TextStyle(
@@ -417,11 +422,16 @@ class _GeneralLedgerScreenState extends State<GeneralLedgerScreen> {
                         title: 'لا توجد حركات للحساب ضمن الفلاتر الحالية')
                     : PrimaryScrollController(
                         controller: _verticalCtrl,
-                        child: _GLTable(
-                          rows: _rows,
-                          money: _money,
-                          horizontalCtrl: _horizontalCtrl,
-                        ),
+                        child: isMobile
+                            ? _GLCards(
+                                rows: _rows,
+                                money: _money,
+                              )
+                            : _GLTable(
+                                rows: _rows,
+                                money: _money,
+                                horizontalCtrl: _horizontalCtrl,
+                              ),
                       );
 
     return Scaffold(
@@ -474,6 +484,141 @@ class _GLEntry {
     required this.runningBalance,
     required this.tooltip,
   });
+}
+
+class _GLCards extends StatelessWidget {
+  final List<_GLEntry> rows;
+  final NumberFormat money;
+
+  const _GLCards({
+    required this.rows,
+    required this.money,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: rows.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final entry = rows[index];
+        final balanceColor =
+            entry.runningBalance >= 0 ? AppColors.primary : Colors.red;
+        return Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '#${entry.id}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      DateFormat('yyyy-MM-dd HH:mm').format(entry.date),
+                      style: const TextStyle(color: Colors.black54),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  entry.description.trim().isEmpty
+                      ? 'قيد بدون وصف'
+                      : entry.description,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (entry.tooltip.trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    entry.tooltip,
+                    textAlign: TextAlign.right,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    _GLAmountChip(
+                      label: 'مدين',
+                      value: money.format(entry.debit),
+                      color: AppColors.primary,
+                    ),
+                    _GLAmountChip(
+                      label: 'دائن',
+                      value: money.format(entry.credit),
+                      color: Colors.red,
+                    ),
+                    _GLAmountChip(
+                      label: 'الرصيد',
+                      value: money.format(entry.runningBalance),
+                      color: balanceColor,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton.icon(
+                    onPressed: () => showGlEntryDetails(context, entry.id),
+                    icon: const Icon(Icons.receipt_long),
+                    label: const Text('القيد والمستند'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _GLAmountChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _GLAmountChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$label: $value',
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
 }
 
 class _GLTable extends StatelessWidget {

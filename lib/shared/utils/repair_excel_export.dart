@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 
 class RepairExcelExport {

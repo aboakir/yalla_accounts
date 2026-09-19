@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/repairs/screens/receive_payment_screen.dart
 //
@@ -163,8 +164,8 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('خطأ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: ${UserFacingError.message(e)}')));
     }
   }
 

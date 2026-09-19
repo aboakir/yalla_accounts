@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/purchases/screens/purchase_insurance_screen.dart
 //
@@ -139,8 +140,8 @@ class _PurchaseInsuranceScreenState
       await _reload();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل: ${UserFacingError.message(e)}')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'package:yalla_accounts/core/constants/colors.dart';

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
@@ -71,7 +72,9 @@ class _CustomerAccountStatementScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إنشاء كشف الحساب: $e')),
+        SnackBar(
+            content:
+                Text('تعذر إنشاء كشف الحساب: ${UserFacingError.message(e)}')),
       );
     }
   }

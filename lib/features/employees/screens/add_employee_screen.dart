@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/employees/screens/add_employee_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,7 +107,7 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
         await ref.read(employeeProvider.notifier).loadEmployees();
       }
     } catch (e) {
-      errorMsg = e.toString();
+      errorMsg = UserFacingError.message(e);
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);

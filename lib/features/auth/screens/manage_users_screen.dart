@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -292,7 +293,9 @@ class _ResetUserPasswordDialogState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إعادة تعيين كلمة المرور: $e')),
+        SnackBar(
+            content: Text(
+                'تعذر إعادة تعيين كلمة المرور: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

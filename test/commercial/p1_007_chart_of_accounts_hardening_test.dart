@@ -273,7 +273,13 @@ void main() {
       'lib/features/finance/purchases/screens/purchase_create_screen.dart',
     ).readAsStringSync();
     expect(purchaseCreate.contains(r'final code = "2200.S$pid"'), isFalse);
-    expect(purchaseCreate.contains(r'final code = "2200.$pid"'), isTrue);
+    expect(purchaseCreate.contains(r'final code = "2200.$pid"'), isFalse);
+    expect(
+      purchaseCreate.contains('SupplierService.insertOrGetSupplierId'),
+      isTrue,
+      reason:
+          'Purchase quick-add must delegate supplier/account creation to the canonical SupplierService.',
+    );
 
     final invoiceGl = File(
       'lib/features/finance/invoices/services/invoice_gl_service.dart',

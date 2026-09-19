@@ -8,7 +8,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:open_file/open_file.dart';
 import 'package:pdf/pdf.dart';
@@ -607,11 +606,11 @@ class YallaPdfService {
       ),
     );
 
-    // حفظ
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/accounts_receivable.pdf");
-    await file.writeAsBytes(await doc.save());
-    await OpenFile.open(file.path);
+    await saveAndOpen(
+      bytes: await doc.save(),
+      fileName: 'accounts_receivable.pdf',
+      module: 'exports',
+    );
   }
 
 // -----------------------------------------------------------------------------
@@ -753,10 +752,11 @@ class YallaPdfService {
       ),
     );
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/supplier_payables.pdf");
-    await file.writeAsBytes(await doc.save());
-    await OpenFile.open(file.path);
+    await saveAndOpen(
+      bytes: await doc.save(),
+      fileName: 'supplier_payables.pdf',
+      module: 'exports',
+    );
   }
 
 // -----------------------------------------------------------------------------

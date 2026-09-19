@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/purchases/widgets/purchase_gl_button.dart
 //
 // PurchaseGlButton — فتح أو توليد قيد GL لعملية شراء موجودة
@@ -55,7 +56,7 @@ class _PurchaseGlButtonState extends State<PurchaseGlButton> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e')),
+        SnackBar(content: Text('خطأ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);

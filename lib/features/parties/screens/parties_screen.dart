@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 import '../services/party_report_service.dart';
@@ -102,8 +103,8 @@ class _PartiesScreenState extends State<PartiesScreen> {
       await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('تعذر الربط: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تعذر الربط: ${UserFacingError.message(e)}')));
       }
     }
   }
@@ -253,8 +254,8 @@ class _PartyStatementScreenState extends State<PartyStatementScreen> {
               'Party_Detailed_${DateTime.now().millisecondsSinceEpoch}.pdf');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('تعذر تصدير الكشف: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تعذر تصدير الكشف: ${UserFacingError.message(e)}')));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -396,7 +397,7 @@ class _PartyFormScreenState extends State<PartyFormScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(SnackBar(content: Text(UserFacingError.message(e))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);

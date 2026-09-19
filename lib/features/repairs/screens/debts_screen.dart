@@ -67,7 +67,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             IFNULL(SUM(je.credit),0) AS paid,
             MAX(je.date) AS lastPaidDate,
             -- معلومات من repairs
-            COALESCE(r.totalFileValue, 0) AS fileTotal,
+            COALESCE(r.fileValue, 0) AS fileTotal,
             COALESCE(r.beneficiaryName, '') AS beneficiaryName,
             COALESCE(r.vehicleNumber, '') AS vehicleNumber,
             COALESCE(r.receivedDate, '') AS receivedDate

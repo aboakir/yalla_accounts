@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/payments/screens/unposted_payments_screen.dart
 //
 // UnpostedPaymentsScreen — دفعات بلا قيد محاسبي (GL)
@@ -90,13 +91,14 @@ class _UnpostedPaymentsScreenState extends State<UnpostedPaymentsScreen> {
     } on DatabaseException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ قاعدة البيانات: $e')),
+        SnackBar(
+            content: Text('تعذر تحميل الدفعات: ${UserFacingError.message(e)}')),
       );
       setState(() => _loading = false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('خطأ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: ${UserFacingError.message(e)}')));
       setState(() => _loading = false);
     }
   }

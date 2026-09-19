@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/constants/insurance_companies.dart';
@@ -114,8 +115,8 @@ class _EditClientDialogState extends State<EditClientDialog> {
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تعذر حفظ العميل: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذر حفظ العميل: ${UserFacingError.message(error)}')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

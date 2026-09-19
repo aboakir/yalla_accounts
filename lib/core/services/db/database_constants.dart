@@ -10,7 +10,7 @@ class DatabaseConstants {
     dbName,
     'yalla_accounts.db',
   ];
-  static const int dbVersion = 76;
+  static const int dbVersion = 77;
   static const String supplierPidPrefix = 'S';
 
   static final Uuid _uuid = const Uuid();
@@ -173,6 +173,7 @@ class DatabaseConstants {
         'purchase_invoices',
         'purchase_invoice_lines',
         'purchase_payments',
+        'insurance_invoices',
         'cheques',
         'raw_materials',
         'auth_sessions',

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/finance/screens/account_ledger_screen.dart
 //
@@ -8,7 +9,7 @@ import '../../reports/screens/gl_entry_details_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/pdf/account_ledger_pdf.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 // PDF/Printing
@@ -355,7 +356,7 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تصدير CSV: $e')),
+        SnackBar(content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -371,8 +372,9 @@ class _AccountLedgerScreenState extends State<AccountLedgerScreen> {
               'ledger_${_accountCode.isEmpty ? 'account' : _accountCode}.pdf');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تعذر إنشاء كشف PDF صالح: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('تعذر إنشاء كشف PDF صالح: ${UserFacingError.message(e)}')));
     }
   }
 

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/screens/accounts_receivable_screen.dart
 //
 // Accounts Receivable (Individuals / Insurance) — v19 Unified (Pro UI)
@@ -20,13 +21,15 @@ import 'package:yalla_accounts/features/settings/services/workshop_settings_serv
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/parties/services/party_financial_service.dart';
+import 'package:yalla_accounts/features/finance/services/accounts_receivable_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -209,9 +212,164 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
       await Share.shareXFiles([XFile(file.path)], text: 'AR Export');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل تصدير CSV: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')));
     }
+  }
+
+  Future<bool> _recordRepairPayment(
+    _ClientRow customer,
+    _RepairAgg detail,
+  ) async {
+    final remaining =
+        (detail.invoiceTotal - detail.paid).clamp(0.0, double.infinity);
+    if (remaining <= 0.005) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('هذا الملف مسدد بالكامل.')),
+        );
+      }
+      return false;
+    }
+
+    final amountController =
+        TextEditingController(text: remaining.toStringAsFixed(2));
+    var method = 'cash';
+    var submitting = false;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AdaptiveAlertDialog(
+          title: Text('سداد ذمة — ${detail.label}'),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: amountController,
+                  inputFormatters: const [YallaDigitNormalizer()],
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'مبلغ السداد',
+                    helperText: 'المتبقي: ${_money.format(remaining)}',
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: method,
+                  decoration: const InputDecoration(
+                    labelText: 'طريقة الدفع',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('نقداً')),
+                    DropdownMenuItem(
+                        value: 'bank_transfer', child: Text('تحويل بنكي')),
+                    DropdownMenuItem(value: 'card', child: Text('بطاقة')),
+                  ],
+                  onChanged: submitting
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setDialogState(() => method = value);
+                          }
+                        },
+                ),
+                const SizedBox(height: 8),
+                const Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    'الشيكات تُسجّل من دورة الشيكات حتى تُربط بالمستند وحالة التحصيل.',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton.icon(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final amount =
+                          double.tryParse(amountController.text.trim()) ?? 0;
+                      if (amount <= 0 || amount - remaining > 0.005) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'أدخل مبلغاً صالحاً ضمن الرصيد المتبقي.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => submitting = true);
+                      try {
+                        final repair =
+                            await RepairDatabaseService.getRepairById(
+                                detail.id);
+                        if (repair == null) {
+                          throw StateError('repair_not_found');
+                        }
+
+                        await AccountsReceivableService.instance.recordPayment(
+                          repair: repair,
+                          amount: amount,
+                          method: method,
+                          descriptionOverride: 'سداد ذمة من شاشة ذمم العملاء',
+                        );
+
+                        if (!dialogContext.mounted) return;
+                        Navigator.of(dialogContext).pop(true);
+                      } catch (e) {
+                        debugPrint('AR receipt posting failed: $e');
+                        if (!dialogContext.mounted) return;
+                        setDialogState(() => submitting = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'تعذر تسجيل السداد. لم يتم تعديل الذمة.',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+              icon: submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.receipt_long),
+              label: Text(submitting ? 'جارٍ التسجيل…' : 'إنشاء سند قبض'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    amountController.dispose();
+    if (saved == true) {
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل سند القبض وتحديث الذمة.')),
+        );
+      }
+      return true;
+    }
+    return false;
   }
 
   Future<void> _openClientDetails(_ClientRow row) async {
@@ -409,12 +567,19 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                                               color: Colors.red))),
                                       DataCell(
                                         ElevatedButton.icon(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            Navigator.of(context)
-                                                .pushNamed(AppRoutes.payments);
-                                          },
-                                          icon: const Icon(Icons.add),
+                                          onPressed: remain <= 0.005
+                                              ? null
+                                              : () async {
+                                                  final saved =
+                                                      await _recordRepairPayment(
+                                                    row,
+                                                    a,
+                                                  );
+                                                  if (saved && ctx.mounted) {
+                                                    Navigator.of(ctx).pop();
+                                                  }
+                                                },
+                                          icon: const Icon(Icons.receipt_long),
                                           label: const Text('سداد'),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: AppColors.primary,

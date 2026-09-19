@@ -79,11 +79,12 @@ class _DashboardBody extends StatelessWidget {
         }
 
         if (snap.hasError) {
-          return Center(
+          debugPrint('Cheques dashboard load failed: ${snap.error}');
+          return const Center(
             child: Text(
-              "خطأ في تحميل الشيكات:\n${snap.error}",
+              "تعذر تحميل الشيكات. أعد المحاولة.",
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.red),
+              style: TextStyle(color: Colors.red),
             ),
           );
         }
@@ -132,11 +133,7 @@ class _DashboardBody extends StatelessWidget {
         final top5soon = dueSoon.take(5).toList();
 
         final viewportWidth = MediaQuery.sizeOf(context).width;
-        final grid = viewportWidth >= 1024
-            ? 4
-            : viewportWidth >= 600
-                ? 2
-                : 1;
+        final grid = viewportWidth >= 1024 ? 4 : 2;
 
         return Padding(
           padding: const EdgeInsets.all(20),
@@ -182,7 +179,7 @@ class _DashboardBody extends StatelessWidget {
                   crossAxisCount: grid,
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  childAspectRatio: viewportWidth >= 1024 ? 2.6 : 1.8,
+                  childAspectRatio: viewportWidth >= 1024 ? 2.6 : 1.35,
                   children: [
                     _kpi("إجمالي الشيكات", "$total", Icons.list_alt),
                     _kpi("إجمالي القيمة", _fmt(sum), Icons.payments),

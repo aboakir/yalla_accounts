@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/widgets/view_image_screen.dart
 
 import 'dart:io';
@@ -76,7 +77,8 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ حدث خطأ أثناء إضافة الصورة: $e'),
+            content: Text(
+                '❌ حدث خطأ أثناء إضافة الصورة: ${UserFacingError.message(e)}'),
             backgroundColor: AppColors.danger,
           ),
         );

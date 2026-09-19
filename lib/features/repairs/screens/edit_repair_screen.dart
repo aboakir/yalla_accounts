@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // ============================================================================
 // 📁 lib/features/repairs/screens/edit_repair_screen.dart
 // 🔥 النسخة النهائية — متوافقة مع نظام شركات التأمين
@@ -355,7 +356,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e')),
+        SnackBar(content: Text('خطأ: ${UserFacingError.message(e)}')),
       );
     } finally {
       setState(() => _isLoading = false);

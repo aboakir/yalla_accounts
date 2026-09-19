@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
 // 📁 lib/features/employees/screens/employee_advances_screen.dart
 import 'package:flutter/material.dart';
@@ -142,8 +143,8 @@ class _EmployeeAdvancesScreenState
               : 'تم الحفظ وربط GL')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل العملية: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل العملية: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -174,8 +175,8 @@ class _EmployeeAdvancesScreenState
             .showSnackBar(const SnackBar(content: Text('تم الحذف وعكس GL')));
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('فشل الحذف: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('فشل الحذف: ${UserFacingError.message(e)}')));
       }
     }
   }
@@ -206,8 +207,8 @@ class _EmployeeAdvancesScreenState
             const SnackBar(content: Text('تم عكس القيد وتحديث الرصيد')));
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('فشل عكس القيد: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('فشل عكس القيد: ${UserFacingError.message(e)}')));
       }
     }
   }

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // lib/features/insurance_agent/policies/screens/policy_details_screen.dart
 //
 // PolicyDetailsScreen — FIXED SCROLL + NO OVERFLOW
@@ -138,7 +139,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل تحميل التفاصيل: $e')),
+        SnackBar(
+            content:
+                Text('❌ فشل تحميل التفاصيل: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -165,7 +168,9 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
       if (!mounted) return;
       setState(() => _loadingCheques = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل تحميل الشيكات: $e')),
+        SnackBar(
+            content:
+                Text('❌ فشل تحميل الشيكات: ${UserFacingError.message(e)}')),
       );
     }
   }

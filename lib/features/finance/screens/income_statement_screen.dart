@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/finance/screens/income_statement_screen.dart
 //
@@ -26,7 +27,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 // PDF/Printing
@@ -276,7 +277,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تصدير CSV: $e')),
+        SnackBar(content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -530,7 +531,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تصدير PDF: $e')),
+        SnackBar(content: Text('فشل تصدير PDF: ${UserFacingError.message(e)}')),
       );
     }
   }

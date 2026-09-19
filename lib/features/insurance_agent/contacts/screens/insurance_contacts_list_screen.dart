@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // lib/features/insurance_agent/contacts/screens/insurance_contacts_list_screen.dart
 //
 // InsuranceContactsListScreen — UPDATED (Hamburger + Back + Right Overlay Sidebar)
@@ -398,7 +399,8 @@ class _InsuranceContactsListScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل إنشاء PDF: $e')),
+        SnackBar(
+            content: Text('❌ فشل إنشاء PDF: ${UserFacingError.message(e)}')),
       );
     }
   }

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/cheques/screens/cheques_incoming_screen.dart
 //
@@ -205,7 +206,7 @@ ORDER BY name ASC
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("خطأ أثناء التظهير: $e"),
+          content: Text("خطأ أثناء التظهير: ${UserFacingError.message(e)}"),
           backgroundColor: Colors.red,
         ),
       );

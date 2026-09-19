@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/widgets/steps/step_work_data.dart
 
 import 'dart:io';
@@ -80,7 +81,9 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ أثناء إضافة الصورة: $e')),
+        SnackBar(
+            content:
+                Text('خطأ أثناء إضافة الصورة: ${UserFacingError.message(e)}')),
       );
     }
   }

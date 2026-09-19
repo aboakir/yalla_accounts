@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/vouchers/widgets/voucher_list_phone.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/vouchers/screens/payment_voucher_list_screen.dart
@@ -203,7 +204,7 @@ WHERE v.voucher_type = 'PAYMENT'
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("PDF ERROR: $e")),
+        SnackBar(content: Text("PDF ERROR: ${UserFacingError.message(e)}")),
       );
     }
   }
@@ -224,7 +225,7 @@ WHERE v.voucher_type = 'PAYMENT'
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("خطأ PDF: $e")),
+        SnackBar(content: Text("خطأ PDF: ${UserFacingError.message(e)}")),
       );
     }
   }
@@ -328,7 +329,7 @@ WHERE v.voucher_type = 'PAYMENT'
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("تعذر إلغاء السند: $e"),
+          content: Text("تعذر إلغاء السند: ${UserFacingError.message(e)}"),
           backgroundColor: Colors.red,
         ),
       );

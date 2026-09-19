@@ -19,7 +19,7 @@ import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 
 import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_pdf_generator.dart';

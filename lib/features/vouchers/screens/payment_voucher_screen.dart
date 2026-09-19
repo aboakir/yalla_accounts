@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_database_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // -----------------------------------------------------------------------------
@@ -898,7 +899,7 @@ ORDER BY pi.date DESC
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("خطأ: $e"),
+          content: Text("خطأ: ${UserFacingError.message(e)}"),
           backgroundColor: Colors.red,
         ),
       );

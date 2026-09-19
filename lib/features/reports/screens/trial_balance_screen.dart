@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/reports/screens/trial_balance_screen.dart
 //
@@ -17,7 +18,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -145,8 +146,8 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       await Share.shareXFiles([XFile(file.path)], text: 'Trial Balance Export');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل تصدير CSV: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -236,8 +237,9 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
         _loading = false;
       });
     } catch (e) {
+      debugPrint('Trial balance load failed: $e');
       setState(() {
-        _error = e.toString();
+        _error = 'تعذر تحميل ميزان المراجعة. أعد المحاولة.';
         _loading = false;
       });
     }
@@ -277,9 +279,11 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+            Builder(
+              builder: (menuContext) => IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () => Scaffold.of(menuContext).openDrawer(),
+              ),
             ),
           const Text(
             'ميزان المراجعة',

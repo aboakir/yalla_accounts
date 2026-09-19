@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -247,7 +248,8 @@ class _ErrorView extends StatelessWidget {
             children: [
               const Icon(Icons.error_outline, size: 40),
               const SizedBox(height: 12),
-              Text('تعذر تحميل المصروفات: $error', textAlign: TextAlign.center),
+              Text('تعذر تحميل المصروفات: ${UserFacingError.message(error)}',
+                  textAlign: TextAlign.center),
               const SizedBox(height: 12),
               FilledButton(
                   onPressed: retry, child: const Text('إعادة المحاولة')),

@@ -10,6 +10,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
@@ -259,8 +260,18 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.save),
-                    label: const Text('حفظ'),
+                    icon: Icon(
+                      widget.editCheque == null &&
+                              chequeType == ChequeType.incoming
+                          ? Icons.receipt_long
+                          : Icons.save,
+                    ),
+                    label: Text(
+                      widget.editCheque == null &&
+                              chequeType == ChequeType.incoming
+                          ? 'استلام الشيك وربطه بسند قبض'
+                          : 'حفظ',
+                    ),
                     onPressed: _save,
                   ),
                 ),
@@ -273,6 +284,12 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
   // SAVE
   // ---------------------------------------------------------------------------
   Future<void> _save() async {
+    if (widget.editCheque == null && chequeType == ChequeType.incoming) {
+      await Navigator.of(context)
+          .pushReplacementNamed(AppRoutes.receiptVoucher);
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     if (chequeType == null || chequeStatus == null || currency == null) {

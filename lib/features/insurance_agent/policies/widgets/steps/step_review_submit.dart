@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/insurance_agent/policies/widgets/steps/step_review_submit.dart
 //
 // Step 5 — مراجعة وحفظ (FINAL — No Conflicts)
@@ -225,7 +226,8 @@ class StepReviewSubmit extends StatelessWidget {
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('❌ فشل حفظ البوليصة: $e'),
+                          content: Text(
+                              '❌ فشل حفظ البوليصة: ${UserFacingError.message(e)}'),
                         ),
                       );
                     }
@@ -399,7 +401,8 @@ class StepReviewSubmit extends StatelessWidget {
           ...issues.map(
             (e) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: Text('• $e', textAlign: TextAlign.right),
+              child: Text('• ${UserFacingError.message(e)}',
+                  textAlign: TextAlign.right),
             ),
           ),
         ],

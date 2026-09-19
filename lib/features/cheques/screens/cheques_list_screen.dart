@@ -23,7 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -54,6 +54,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   String? _currencyFilter;
   double? _amountMin;
   double? _amountMax;
+  bool _showAdvancedFilters = false;
 
   @override
   Widget build(BuildContext context) {
@@ -322,45 +323,61 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   // FILTER CARD — يستخدم فقط حقول ChequeFilter القديمة + فلاتر محلية جديدة
   // ---------------------------------------------------------------------------
   Widget _buildFilterCard(ChequeFilter filter) {
+    final compact = context.isPhoneWidth;
+    final showAdvanced = !compact || _showAdvancedFilters;
+
     return Card(
       elevation: 2,
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(compact ? 12 : 18),
         child: Wrap(
-          spacing: 16,
-          runSpacing: 16,
+          spacing: 12,
+          runSpacing: 12,
           alignment: WrapAlignment.end,
           children: [
             _searchField(filter),
             _typeDropdown(filter),
             _statusDropdown(filter),
-            _bankField(),
-            _currencyField(),
-            _branchField(),
-            _currencyField(),
-            _amountMinField(),
-            _amountMaxField(),
-            _datePicker(
-              "إصدار من",
-              filter.issueFrom,
-              (v) => _updateFilter(filter.copyWith(issueFrom: v)),
-            ),
-            _datePicker(
-              "إصدار إلى",
-              filter.issueTo,
-              (v) => _updateFilter(filter.copyWith(issueTo: v)),
-            ),
-            _datePicker(
-              "استحقاق من",
-              filter.dueFrom,
-              (v) => _updateFilter(filter.copyWith(dueFrom: v)),
-            ),
-            _datePicker(
-              "استحقاق إلى",
-              filter.dueTo,
-              (v) => _updateFilter(filter.copyWith(dueTo: v)),
-            ),
+            if (compact)
+              OutlinedButton.icon(
+                icon: Icon(
+                  showAdvanced ? Icons.expand_less : Icons.tune,
+                ),
+                label: Text(
+                  showAdvanced ? 'إخفاء الفلاتر المتقدمة' : 'فلاتر متقدمة',
+                ),
+                onPressed: () => setState(
+                  () => _showAdvancedFilters = !_showAdvancedFilters,
+                ),
+              ),
+            if (showAdvanced) ...[
+              _bankField(),
+              _branchField(),
+              _currencyField(),
+              _amountMinField(),
+              _amountMaxField(),
+              _datePicker(
+                "إصدار من",
+                filter.issueFrom,
+                (v) => _updateFilter(filter.copyWith(issueFrom: v)),
+              ),
+              _datePicker(
+                "إصدار إلى",
+                filter.issueTo,
+                (v) => _updateFilter(filter.copyWith(issueTo: v)),
+              ),
+              _datePicker(
+                "استحقاق من",
+                filter.dueFrom,
+                (v) => _updateFilter(filter.copyWith(dueFrom: v)),
+              ),
+              _datePicker(
+                "استحقاق إلى",
+                filter.dueTo,
+                (v) => _updateFilter(filter.copyWith(dueTo: v)),
+              ),
+            ],
           ],
         ),
       ),

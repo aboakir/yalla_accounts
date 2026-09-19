@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/gl/screens/gl_browser_screen.dart
 //
 // GLBrowserScreen — مستعرض قيود GL (LTR، بدون Sidebar).
@@ -231,8 +232,8 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: ${UserFacingError.message(e)}')));
     }
   }
 

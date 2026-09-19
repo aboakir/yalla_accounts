@@ -2,6 +2,7 @@ import '../widgets/quick_entry_fields.dart';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sqflite/sqflite.dart';
@@ -642,7 +643,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   }
 
   void _showError(String title, Object error) {
-    final message = error.toString().replaceFirst('StateError: ', '');
+    final message = UserFacingError.message(error);
     showDialog<void>(
       context: context,
       builder: (context) => AdaptiveAlertDialog(

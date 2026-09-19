@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:uuid/uuid.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/purchases/screens/supplier_payments_screen.dart
@@ -137,7 +138,7 @@ class _SupplierPaymentsScreenState extends State<SupplierPaymentsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل العملية: $e')),
+        SnackBar(content: Text('فشل العملية: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

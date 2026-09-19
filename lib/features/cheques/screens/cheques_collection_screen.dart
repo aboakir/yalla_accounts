@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -68,8 +69,8 @@ class _ChequesCollectionScreenState extends State<ChequesCollectionScreen> {
       setState(_reload);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تعذر تحديث الشيك: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذر تحديث الشيك: ${UserFacingError.message(e)}')));
     }
   }
 

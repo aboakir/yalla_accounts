@@ -10,14 +10,15 @@ void main() {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  test('v75 to v76 installs raw materials and restores write guards', () async {
+  test('v75 to current installs raw materials and restores write guards',
+      () async {
     final dir = await Directory.systemTemp.createTemp('raw_material_v76_');
     final path = '${dir.path}/fixture.db';
     var db = await DatabaseMigration.initDatabase(pathOverride: path);
 
     try {
-      expect(DatabaseConstants.dbVersion, 76);
-      expect(await db.getVersion(), 76);
+      expect(DatabaseConstants.dbVersion, 77);
+      expect(await db.getVersion(), 77);
 
       await db.delete(
         'schema_migrations',
@@ -29,7 +30,7 @@ void main() {
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 76);
+      expect(await db.getVersion(), 77);
 
       final columns = await db.rawQuery('PRAGMA table_info(raw_materials)');
       expect(

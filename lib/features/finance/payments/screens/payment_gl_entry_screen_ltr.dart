@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/payments/screens/payment_gl_entry_screen_ltr.dart
 //
 // PaymentGLEntryScreenLtr — عرض قيد GL لدفعة (LTR, عربي نصياً)
@@ -183,8 +184,8 @@ class _PaymentGLEntryScreenLtrState extends State<PaymentGLEntryScreenLtr> {
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('${S.t('failed')}: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${S.t('failed')}: ${UserFacingError.message(e)}')));
     }
   }
 

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -56,7 +57,8 @@ class _EditUserDialogState extends ConsumerState<EditUserDialog> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر حفظ المستخدم: $e')),
+        SnackBar(
+            content: Text('تعذر حفظ المستخدم: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) {

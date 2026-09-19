@@ -24,6 +24,12 @@ class ChequeService {
         'Collection is a lifecycle status, not a new cheque direction.',
       );
     }
+    if (cheque.chequeType == ChequeType.incoming) {
+      throw StateError(
+        'Incoming cheques must be received through the canonical receipt flow '
+        'so the client, source document and accounting entry stay linked.',
+      );
+    }
     if ((cheque.sourceType ?? '').trim().isNotEmpty ||
         (cheque.sourceId ?? '').trim().isNotEmpty ||
         cheque.glEntryId != null) {

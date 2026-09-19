@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/home/widgets/quick_actions_bar.dart
 // QuickActionsBar — شريط العمليات السريعة (هاردنيد)
 
@@ -113,7 +114,7 @@ class _ActionButtonState extends State<_ActionButton> {
       if (!mounted) return;
       // حارس هادئ بدون Scaffold.of
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ: $e')),
+        SnackBar(content: Text('حدث خطأ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _busy = false);

@@ -327,6 +327,7 @@ class DatabaseMigration {
     await _upgradeV74(db);
     await _upgradeV75(db);
     await _upgradeV76(db);
+    await _upgradeV77(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -344,6 +345,7 @@ class DatabaseMigration {
       if (oldV < 74) await _upgradeV74(db);
       if (oldV < 75) await _upgradeV75(db);
       if (oldV < 76) await _upgradeV76(db);
+      if (oldV < 77) await _upgradeV77(db);
       return;
     }
 
@@ -519,6 +521,16 @@ class DatabaseMigration {
     if (oldV < 74) await _upgradeV74(db);
     if (oldV < 75) await _upgradeV75(db);
     if (oldV < 76) await _upgradeV76(db);
+    if (oldV < 77) await _upgradeV77(db);
+  }
+
+  static Future<void> _upgradeV77(Database db) async {
+    await InsuranceTables.createAllTables(db);
+    await db.insert(
+      'schema_migrations',
+      {'version': 77, 'applied_at': DateTime.now().toUtc().toIso8601String()},
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
   static Future<void> _upgradeV76(Database db) async {

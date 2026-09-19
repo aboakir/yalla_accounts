@@ -396,17 +396,111 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
     return active.isEmpty ? all : active;
   }
 
+  Future<String?> _quickAddEmployee() async {
+    final name = TextEditingController();
+    final jobTitle = TextEditingController(text: 'فني');
+    final createdId = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => _WorkflowDialog(
+        title: 'إضافة موظف سريع',
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final fullName = name.text.trim();
+              final title = jobTitle.text.trim();
+              if (fullName.isEmpty || title.isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(
+                      content: Text('أدخل اسم الموظف والمسمى الوظيفي.')),
+                );
+                return;
+              }
+              final code = 'EMP-${DateTime.now().millisecondsSinceEpoch}';
+              try {
+                await EmployeeService.addEmployee(
+                  Employee.fromMap(<String, dynamic>{
+                    'id': '',
+                    'full_name': fullName,
+                    'employee_code': code,
+                    'job_title': title,
+                    'hire_date': DateTime.now().toIso8601String(),
+                    'status': 'active',
+                    'contract_type': 'monthly',
+                    'base_salary': 0.0,
+                    'allowances': 0.0,
+                    'deductions': 0.0,
+                    'advances': 0.0,
+                    'payment_method': 'cash',
+                    'work_days_per_week': 6,
+                    'hours_per_day': 8,
+                  }),
+                );
+                final employees = await EmployeeService.getAllEmployees();
+                final created = employees.where((e) => e.employeeCode == code);
+                if (created.isEmpty) {
+                  throw StateError('employee_not_found_after_save');
+                }
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, created.first.id);
+                }
+              } catch (e) {
+                debugPrint('Quick employee creation failed: $e');
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('تعذر إضافة الموظف. لم يتم تغيير ملف الإصلاح.'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('إضافة واختيار'),
+          ),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'اسم الموظف',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: jobTitle,
+              decoration: const InputDecoration(
+                labelText: 'المسمى الوظيفي',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    name.dispose();
+    jobTitle.dispose();
+    return createdId;
+  }
+
   Future<String?> _chooseEmployee({bool allowUnassigned = false}) async {
     final employees = await _activeEmployees();
     if (!mounted) return null;
     if (employees.isEmpty) {
-      _message(
-          'لا يوجد موظفون مسجلون. يمكنك إنشاء أمر العمل ثم إضافة موظف قبل بدء التنفيذ.');
+      final created = await _quickAddEmployee();
+      if (created != null) return created;
       return allowUnassigned ? '' : null;
     }
 
     String? selected = _workflow?.responsibleEmployeeId;
-    return showDialog<String>(
+    final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
@@ -446,6 +540,7 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
         ),
       ),
     );
+    return result;
   }
 
   Future<void> _createWorkOrder() async {

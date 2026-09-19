@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/finance/services/financial_void_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // ============================================================================
@@ -75,8 +76,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
       if (mounted) await _load();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('تعذر الإلغاء: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تعذر الإلغاء: ${UserFacingError.message(error)}')));
       }
     } finally {
       if (mounted) setState(() => _voiding = false);
@@ -228,7 +229,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إنشاء PDF: $e')),
+        SnackBar(
+            content: Text('تعذر إنشاء PDF: ${UserFacingError.message(e)}')),
       );
     }
   }

@@ -16,6 +16,7 @@ import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_invoice_service.dart';
+import 'package:yalla_accounts/features/suppliers/services/supplier_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -218,7 +219,78 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 330),
                     child: results.isEmpty
-                        ? const Center(child: Text("لا نتائج"))
+                        ? Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Text("لا نتائج"),
+                              ),
+                              FilledButton.icon(
+                                icon: const Icon(Icons.person_add_alt_1),
+                                label: Text(
+                                  ctrl.text.trim().isEmpty
+                                      ? 'إضافة مورد جديد'
+                                      : '+ إضافة "${ctrl.text.trim()}" كمورد جديد',
+                                ),
+                                onPressed: () async {
+                                  var name = byPid
+                                      ? _supplierNameCtrl.text.trim()
+                                      : ctrl.text.trim();
+                                  if (name.isEmpty) {
+                                    final nameCtrl = TextEditingController();
+                                    final entered = await showDialog<String>(
+                                      context: ctx,
+                                      builder: (nameContext) =>
+                                          AdaptiveAlertDialog(
+                                        title: const Text('إضافة مورد جديد'),
+                                        content: TextField(
+                                          controller: nameCtrl,
+                                          autofocus: true,
+                                          decoration: const InputDecoration(
+                                            labelText: 'اسم المورد',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(nameContext),
+                                            child: const Text('إلغاء'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () => Navigator.pop(
+                                                nameContext,
+                                                nameCtrl.text.trim()),
+                                            child: const Text('إضافة'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    nameCtrl.dispose();
+                                    name = entered?.trim() ?? '';
+                                  }
+                                  if (name.isEmpty) return;
+                                  try {
+                                    final created = await _createSupplier(name);
+                                    if (!ctx.mounted) return;
+                                    Navigator.pop(ctx, created);
+                                  } catch (e) {
+                                    debugPrint(
+                                        'Quick supplier creation failed: $e');
+                                    if (!ctx.mounted) return;
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'تعذر إضافة المورد. لم تتغير الفاتورة الحالية.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          )
                         : ListView.separated(
                             itemCount: results.length,
                             separatorBuilder: (_, __) =>
@@ -259,31 +331,35 @@ class _PurchaseCreateScreenState extends State<PurchaseCreateScreen> {
   // Create Supplier
   // ========================================================================
   Future<_Supplier> _createSupplier(String name) async {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) {
+      throw StateError('اسم المورد مطلوب');
+    }
+
+    final idText = await SupplierService.insertOrGetSupplierId(cleanName);
+    final id = int.tryParse(idText);
+    if (id == null || id <= 0) {
+      throw StateError('تعذر إنشاء المورد');
+    }
+
     final db = await DBService.database;
+    final rows = await db.query(
+      'suppliers',
+      columns: const ['id', 'pid', 'name'],
+      where: 'id=?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      throw StateError('تعذر قراءة المورد بعد إنشائه');
+    }
 
-    late _Supplier s;
-
-    await db.transaction((txn) async {
-      final newId = await txn.insert("suppliers", {"name": name});
-      final pid = "S${newId.toString().padLeft(4, '0')}";
-
-      final code = "2200.$pid";
-      final exists = await txn
-          .rawQuery("SELECT id FROM accounts WHERE code=? LIMIT 1", [code]);
-
-      if (exists.isEmpty) {
-        await txn.insert("accounts", {
-          "code": code,
-          "name": "ذمم مورد — $name",
-          "type": "LIABILITY",
-          "normal_balance": "CREDIT",
-        });
-      }
-
-      s = _Supplier(id: newId, pid: pid, name: name);
-    });
-
-    return s;
+    final row = rows.first;
+    return _Supplier(
+      id: id,
+      pid: (row['pid'] ?? 'S${id.toString().padLeft(4, '0')}').toString(),
+      name: (row['name'] ?? cleanName).toString(),
+    );
   }
 
   // ========================================================================

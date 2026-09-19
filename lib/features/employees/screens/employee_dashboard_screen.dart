@@ -144,6 +144,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                             label: const Text('قائمة الموظفين'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 22, vertical: 14),
                             ),
@@ -158,6 +159,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                             label: const Text('إضافة موظف'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 22, vertical: 14),
                             ),

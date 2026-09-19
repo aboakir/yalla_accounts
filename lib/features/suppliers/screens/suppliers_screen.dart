@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/suppliers/screens/suppliers_screen.dart
 //
@@ -66,8 +67,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     } catch (error) {
       if (!mounted || version != _loadVersion) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تعذر تحميل الموردين: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text('تعذر تحميل الموردين: ${UserFacingError.message(error)}')));
     }
   }
 

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/screens/general_journal_screen.dart
 //
 // اليومية العامة — General Journal (GL v29)
@@ -26,7 +27,7 @@ import 'package:flutter/gestures.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -297,8 +298,8 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
       await Share.shareXFiles([XFile(file.path)], text: 'General Journal');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل تصدير CSV: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')));
     }
   }
 

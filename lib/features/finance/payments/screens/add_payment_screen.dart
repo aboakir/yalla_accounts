@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/payments/screens/add_payment_screen.dart
 //
 // AddPaymentScreen — إدخال دفعة موحّدة + نشر GL + تحديث الفاتورة/الإصلاح.
@@ -141,7 +142,7 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ: $e')),
+        SnackBar(content: Text('خطأ: ${UserFacingError.message(e)}')),
       );
     }
   }

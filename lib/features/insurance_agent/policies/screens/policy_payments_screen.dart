@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/insurance_agent/policies/screens/policy_payments_screen.dart
 //
 // PolicyPaymentsScreen — دفعات بوليصة التأمين (DB REAL)
@@ -369,7 +370,8 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل إضافة الدفعة: $e')),
+        SnackBar(
+            content: Text('❌ فشل إضافة الدفعة: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -429,7 +431,8 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل حذف الدفعة: $e')),
+        SnackBar(
+            content: Text('❌ فشل حذف الدفعة: ${UserFacingError.message(e)}')),
       );
     }
   }
