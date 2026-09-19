@@ -84,6 +84,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rChequesReturned = '/cheques/returned';
   static const rChequesCancelled = '/cheques/cancelled';
   static const rChequesPostdated = '/cheques/postdated';
+  static const rChequeBooks = AppRoutes.chequeBooks;
 
   // Clients & Suppliers
   static const rClients = '/clients';
@@ -429,20 +430,19 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     // 4) الشيكات
     final chequesItems = [
       (Icons.dashboard, 'لوحة الشيكات', rChequesDashboard),
-      (Icons.add, 'إضافة شيك', rChequesAdd),
-      (Icons.list, 'قائمة الشيكات', rChequesList),
-      (Icons.call_received, 'شيكات واردة', rChequesIncoming),
-      (Icons.call_made, 'شيكات صادرة', rChequesOutgoing),
+      (Icons.call_received, 'الشيكات الواردة', rChequesIncoming),
+      (Icons.call_made, 'الشيكات الصادرة', rChequesOutgoing),
       (
         Icons.account_balance_outlined,
-        'إيداع وتحصيل الشيكات',
+        'إيداع للتحصيل / قيد التحصيل',
         rChequesCollection
       ),
       (Icons.verified_outlined, 'شيكات محصلة', rChequesCollected),
-      (Icons.schedule_outlined, 'شيكات آجلة', rChequesPostdated),
+      (Icons.schedule_outlined, 'شيكات مستحقة وآجلة', rChequesPostdated),
       (Icons.undo, 'شيكات راجعة', rChequesReturned),
       (Icons.cancel_outlined, 'شيكات ملغاة', rChequesCancelled),
-      (Icons.assessment_outlined, 'تقرير الشيكات', AppRoutes.chequesReport),
+      (Icons.menu_book_outlined, 'دفاتر الشيكات', rChequeBooks),
+      (Icons.assessment_outlined, 'تقارير الشيكات', AppRoutes.chequesReport),
     ].where((e) => _matches(e.$2)).toList();
 
     // 5) العملاء والموردون

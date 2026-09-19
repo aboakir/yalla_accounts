@@ -13,6 +13,7 @@ import 'package:yalla_accounts/core/services/db/tables/cheque_tables.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
+import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 
 class ChequeAccountingService {
@@ -25,6 +26,26 @@ class ChequeAccountingService {
         normalized.contains('cheque') ||
         normalized.contains('check') ||
         normalized.contains('شيك');
+  }
+
+  static String permissionForTransition(ChequeStatus status) {
+    switch (status) {
+      case ChequeStatus.deposited:
+        return PermissionKeys.chequeDeposit;
+      case ChequeStatus.collected:
+      case ChequeStatus.cleared:
+        return PermissionKeys.chequeCollect;
+      case ChequeStatus.returned:
+        return PermissionKeys.chequeReturn;
+      case ChequeStatus.cancelled:
+        return PermissionKeys.chequeCancel;
+      case ChequeStatus.held:
+      case ChequeStatus.delivered:
+      case ChequeStatus.presented:
+        return PermissionKeys.chequeEdit;
+      default:
+        return PermissionKeys.chequeManage;
+    }
   }
 
   static Future<int> createLinkedChequeOnTxn({
@@ -382,8 +403,9 @@ class ChequeAccountingService {
     DateTime? eventDate,
   }) async {
     final p16Actor = await AuthorizationGuard.require(
-      PermissionKeys.chequeManage,
+      permissionForTransition(newStatus),
     );
+    final actorId = p16Actor?.id ?? AuthSessionService.authenticatedUserId;
     final db = await DBService.database;
     final beforeRows = await db.query(
       'cheques',
@@ -402,14 +424,14 @@ class ChequeAccountingService {
         newStatus: newStatus,
         reason: reason,
         eventDate: eventDate,
-        actorUserId: p16Actor?.id,
+        actorUserId: actorId,
       ),
     );
     if (beforeStatus == result.status.name) {
       return result;
     }
     await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
+      actorUserId: actorId,
       actorRole: p16Actor?.role,
       action: 'CHEQUE_STATUS_CHANGED',
       entityType: 'cheque',
@@ -508,6 +530,8 @@ class ChequeAccountingService {
       glEntryId: lifecycleGlId,
       note: reason,
       eventDate: when,
+      actorUserId: actorUserId,
+      reason: reason,
     );
 
     final refreshed = await txn.query(
@@ -525,8 +549,9 @@ class ChequeAccountingService {
     required DateTime endorsementDate,
   }) async {
     final p16Actor = await AuthorizationGuard.require(
-      PermissionKeys.chequeManage,
+      PermissionKeys.chequeEndorse,
     );
+    final actorId = p16Actor?.id ?? AuthSessionService.authenticatedUserId;
     final db = await DBService.database;
 
     final result = await SyncFoundationService.transaction<Cheque>(db, (
@@ -632,7 +657,7 @@ class ChequeAccountingService {
             'source_obligation_type': 'SUPPLIER',
             'source_obligation_id': supplierId.toString(),
             'event_date': endorsementDate.toIso8601String(),
-            'created_by': p16Actor?.id,
+            'created_by': actorId,
             'created_at': DateTime.now().toIso8601String(),
           },
           conflictAlgorithm: ConflictAlgorithm.abort);
@@ -663,6 +688,11 @@ class ChequeAccountingService {
         glEntryId: glId,
         note: 'Supplier $supplierId',
         eventDate: endorsementDate,
+        actorUserId: actorId,
+        metadata: {
+          'supplier_id': supplierId.toString(),
+          'amount': cheque.amount,
+        },
       );
 
       final refreshed = await txn.query(
@@ -674,7 +704,7 @@ class ChequeAccountingService {
       return Cheque.fromMap(refreshed.first);
     });
     await AuditTrailService.log(
-      actorUserId: p16Actor?.id,
+      actorUserId: actorId,
       actorRole: p16Actor?.role,
       action: 'CHEQUE_ENDORSED',
       entityType: 'cheque',
@@ -1175,19 +1205,38 @@ class ChequeAccountingService {
     int? glEntryId,
     String? note,
     DateTime? eventDate,
+    String? actorUserId,
+    String? reason,
+    Map<String, Object?>? metadata,
   }) async {
-    await SyncFoundationService.writeOn(
-      db,
-      (syncTxn) => syncTxn.insert('cheque_events', {
+    await SyncFoundationService.writeOn(db, (syncTxn) async {
+      var resolvedActor = actorUserId?.trim();
+      if (resolvedActor == null || resolvedActor.isEmpty) {
+        final rows = await syncTxn.query(
+          'cheques',
+          columns: const ['created_by'],
+          where: 'id=?',
+          whereArgs: [chequeId],
+          limit: 1,
+        );
+        resolvedActor =
+            rows.isEmpty ? null : rows.single['created_by']?.toString().trim();
+      }
+      await syncTxn.insert('cheque_events', {
         'cheque_id': chequeId,
         'event_type': type,
         'from_status': fromStatus,
         'to_status': toStatus,
         'event_date': (eventDate ?? DateTime.now()).toIso8601String(),
         'gl_entry_id': glEntryId,
+        'actor_user_id': resolvedActor == null || resolvedActor.isEmpty
+            ? null
+            : resolvedActor,
+        'reason': reason,
+        'metadata_json': metadata == null ? null : jsonEncode(metadata),
         'note': note,
         'created_at': DateTime.now().toIso8601String(),
-      }),
-    );
+      });
+    });
   }
 }

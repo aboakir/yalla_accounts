@@ -1,359 +1,341 @@
-// -----------------------------------------------------------------------------
-// 📁 lib/features/cheques/screens/cheques_dashboard_screen.dart
-//
-// ChequesDashboardScreen — FINAL PRO VERSION (FULL-B SYSTEM)
-// -----------------------------------------------------------------------------
-// • إحصائيات كاملة + مجموع القيم + عدد حسب الحالة والنوع
-// • عرض أعلى 5 شيكات خطرة (استحقاق قريب ≤ 7 أيام)
-// • تنبيه شيكات مستحقة قريباً
-// • زر "تقرير الشيكات"
-// • زر فتح تفاصيل الشيك مباشرة
-// • دعم Desktop + Mobile مع Sidebar / Drawer
-// -----------------------------------------------------------------------------
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
-import 'package:yalla_accounts/shared/widgets/responsive.dart';
-import 'package:yalla_accounts/core/services/db_service.dart';
-
-import '../models/cheque.dart';
-import 'cheque_details_screen.dart';
+import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
+import 'package:yalla_accounts/features/cheques/models/cheque.dart';
+import 'package:yalla_accounts/features/cheques/services/cheque_dashboard_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
-import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/shared/widgets/responsive.dart';
 
-class ChequesDashboardScreen extends ConsumerWidget {
+class ChequesDashboardScreen extends StatefulWidget {
   const ChequesDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDesktop = Responsive.isDesktop(context);
+  State<ChequesDashboardScreen> createState() => _ChequesDashboardScreenState();
+}
 
+class _ChequesDashboardScreenState extends State<ChequesDashboardScreen> {
+  final _bank = TextEditingController();
+  final _party = TextEditingController();
+  final _currency = TextEditingController();
+  late Future<ChequeDashboardData> _future;
+  DateTime? _from;
+  DateTime? _to;
+  ChequeStatus? _status;
+  ChequeDirection? _direction;
+  String _period = 'month';
+
+  @override
+  void initState() {
+    super.initState();
+    _setPeriod('month', refresh: false);
+    _reload();
+  }
+
+  @override
+  void dispose() {
+    _bank.dispose();
+    _party.dispose();
+    _currency.dispose();
+    super.dispose();
+  }
+
+  void _reload() {
+    _future = ChequeDashboardService.load(
+      from: _from,
+      to: _to,
+      bank: _bank.text,
+      party: _party.text,
+      currency: _currency.text,
+      status: _status,
+      direction: _direction,
+    );
+  }
+
+  void _setPeriod(String period, {bool refresh = true}) {
+    final now = DateTime.now();
+    _period = period;
+    if (period == 'today') {
+      _from = DateTime(now.year, now.month, now.day);
+      _to = _from;
+    } else if (period == 'week') {
+      final start = now.subtract(Duration(days: now.weekday - 1));
+      _from = DateTime(start.year, start.month, start.day);
+      _to = DateTime(now.year, now.month, now.day);
+    } else if (period == 'month') {
+      _from = DateTime(now.year, now.month, 1);
+      _to = DateTime(now.year, now.month + 1, 0);
+    }
+    if (refresh && mounted) setState(_reload);
+  }
+
+  Future<void> _pickCustom() async {
+    final now = DateTime.now();
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDateRange: (_from != null && _to != null)
+          ? DateTimeRange(start: _from!, end: _to!)
+          : DateTimeRange(start: now, end: now),
+    );
+    if (range == null || !mounted) return;
+    setState(() {
+      _period = 'custom';
+      _from = range.start;
+      _to = range.end;
+      _reload();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final desktop = Responsive.isDesktop(context);
     return Scaffold(
       appBar: const YallaAppBar(
-        workshopName: "Yallah Accounts",
+        workshopName: 'Yallah Accounts',
         showThemeToggle: false,
         showSearch: false,
       ),
-      drawer: isDesktop
+      drawer: desktop
           ? null
-          : const YallaSidebar(currentRoute: '/cheques/dashboard'),
+          : const YallaSidebar(currentRoute: AppRoutes.chequesDashboard),
       body: AdaptiveRow(
         children: [
-          if (isDesktop) const YallaSidebar(currentRoute: '/cheques/dashboard'),
-          const Expanded(child: _DashboardBody()),
+          if (desktop)
+            const YallaSidebar(currentRoute: AppRoutes.chequesDashboard),
+          Expanded(
+            child: FutureBuilder<ChequeDashboardData>(
+              future: _future,
+              builder: (context, snap) {
+                return ListView(
+                  padding: const EdgeInsets.all(18),
+                  children: [
+                    const Text(
+                      'لوحة الشيكات',
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    _filters(),
+                    const SizedBox(height: 16),
+                    if (snap.connectionState == ConnectionState.waiting)
+                      const Center(child: CircularProgressIndicator())
+                    else if (snap.hasError)
+                      Text(
+                        'تعذر تحميل لوحة الشيكات: ${snap.error}',
+                        style: const TextStyle(color: Colors.red),
+                      )
+                    else
+                      _metrics(snap.data!),
+                  ],
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
   }
-}
 
-// ============================================================================
-// BODY
-// ============================================================================
-class _DashboardBody extends StatelessWidget {
-  const _DashboardBody();
-
-  Future<List<Cheque>> _loadCheques() async {
-    final db = await DBService.database;
-    final rows = await db.query(
-      'cheques',
-      orderBy: 'due_date ASC',
+  Widget _filters() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _periodButton('اليوم', 'today'),
+                _periodButton('أسبوع', 'week'),
+                _periodButton('شهر', 'month'),
+                ChoiceChip(
+                  label: const Text('فترة مخصصة'),
+                  selected: _period == 'custom',
+                  onSelected: (_) => _pickCustom(),
+                ),
+                if (_from != null && _to != null)
+                  Chip(
+                    label: Text(
+                      '${DateFormat('yyyy-MM-dd').format(_from!)} → '
+                      '${DateFormat('yyyy-MM-dd').format(_to!)}',
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _textFilter(_bank, 'البنك'),
+                _textFilter(_party, 'العميل / المورد / الطرف'),
+                _textFilter(_currency, 'العملة'),
+                SizedBox(
+                  width: 190,
+                  child: DropdownButtonFormField<ChequeDirection?>(
+                    value: _direction,
+                    decoration: const InputDecoration(labelText: 'الاتجاه'),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('الكل')),
+                      DropdownMenuItem(
+                        value: ChequeDirection.received,
+                        child: Text('وارد'),
+                      ),
+                      DropdownMenuItem(
+                        value: ChequeDirection.issued,
+                        child: Text('صادر'),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() {
+                      _direction = v;
+                      _reload();
+                    }),
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: DropdownButtonFormField<ChequeStatus?>(
+                    value: _status,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'الحالة'),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('الكل')),
+                      for (final status in ChequeStatus.values)
+                        if (status != ChequeStatus.pending)
+                          DropdownMenuItem(
+                            value: status,
+                            child: Text(_statusLabel(status)),
+                          ),
+                    ],
+                    onChanged: (v) => setState(() {
+                      _status = v;
+                      _reload();
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
-    return rows.map(Cheque.fromMap).toList();
   }
 
-  String _fmt(double v) => NumberFormat('#,##0.##', 'ar').format(v);
+  Widget _periodButton(String label, String value) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _period == value,
+      onSelected: (_) => _setPeriod(value),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<Cheque>>(
-      future: _loadCheques(),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snap.hasError) {
-          debugPrint('Cheques dashboard load failed: ${snap.error}');
-          return const Center(
-            child: Text(
-              "تعذر تحميل الشيكات. أعد المحاولة.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red),
-            ),
-          );
-        }
-
-        final list = snap.data ?? [];
-
-        // ----------------------------------------------------------------------
-        // حساب الإحصائيات
-        // ----------------------------------------------------------------------
-        final total = list.length;
-        final sum = list.fold<double>(0.0, (s, c) => s + c.amount);
-
-        final incoming =
-            list.where((c) => c.chequeType == ChequeType.incoming).length;
-        final outgoing =
-            list.where((c) => c.chequeType == ChequeType.outgoing).length;
-        final collection =
-            list.where((c) => c.status == ChequeStatus.deposited).length;
-
-        final pending =
-            list.where((c) => c.status == ChequeStatus.pending).length;
-        final returned =
-            list.where((c) => c.status == ChequeStatus.returned).length;
-        final collected =
-            list.where((c) => c.status == ChequeStatus.collected).length;
-        final cancelled =
-            list.where((c) => c.status == ChequeStatus.cancelled).length;
-        final deposited =
-            list.where((c) => c.status == ChequeStatus.deposited).length;
-
-        // ----------------------------------------------------------------------
-        // شيكات مستحقة قريباً (خلال 7 أيام)
-        // ----------------------------------------------------------------------
-        final now = DateTime.now();
-        final soon = now.add(const Duration(days: 7));
-
-        final dueSoon = list
-            .where((c) =>
-                c.dueDate.isAfter(now) &&
-                c.dueDate.isBefore(soon) &&
-                c.status == ChequeStatus.pending)
-            .toList();
-
-        dueSoon.sort((a, b) => a.dueDate.compareTo(b.dueDate));
-
-        final top5soon = dueSoon.take(5).toList();
-
-        final viewportWidth = MediaQuery.sizeOf(context).width;
-        final grid = viewportWidth >= 1024 ? 4 : 2;
-
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ==================================================================
-              // HEADER + REPORT BUTTON
-              // ==================================================================
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  const Text(
-                    "لوحة إدارة الشيكات",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.picture_as_pdf),
-                    label: const Text("تقرير الشيكات"),
-                    onPressed: () =>
-                        Navigator.pushNamed(context, AppRoutes.chequesReport),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-              const Text(
-                "نظرة عامة على جميع الشيكات داخل النظام.",
-                textAlign: TextAlign.right,
-              ),
-
-              const SizedBox(height: 24),
-
-              // ==================================================================
-              // KPIs GRID
-              // ==================================================================
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: grid,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: viewportWidth >= 1024 ? 2.6 : 1.35,
-                  children: [
-                    _kpi("إجمالي الشيكات", "$total", Icons.list_alt),
-                    _kpi("إجمالي القيمة", _fmt(sum), Icons.payments),
-                    _kpi("وارد", "$incoming", Icons.call_received),
-                    _kpi("صادر", "$outgoing", Icons.call_made),
-                    _kpi("قيد التحصيل", "$collection", Icons.more_time),
-                    _kpi("معلّق", "$pending", Icons.pending),
-                    _kpi("محصّل", "$collected", Icons.verified),
-                    _kpi("راجع", "$returned", Icons.undo),
-                    _kpi("ملغى", "$cancelled", Icons.cancel),
-                    _kpi("مودع", "$deposited", Icons.account_balance),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // ==================================================================
-              // تنبيه الشيكات المستحقة
-              // ==================================================================
-              if (dueSoon.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    "تنبيه: لديك ${dueSoon.length} شيكات مستحقة خلال 7 أيام!",
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              // ==================================================================
-              // أعلى 5 شيكات خطرة (استحقاق قريب)
-              // ==================================================================
-              if (top5soon.isNotEmpty) _dangerTable(context, top5soon),
-            ],
+  Widget _textFilter(TextEditingController controller, String label) {
+    return SizedBox(
+      width: 210,
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => setState(_reload),
           ),
+        ),
+        onSubmitted: (_) => setState(_reload),
+      ),
+    );
+  }
+
+  Widget _metrics(ChequeDashboardData data) {
+    final items = <(String, ChequeMetric, IconData)>[
+      ('إجمالي الشيكات', data.total, Icons.receipt_long),
+      ('وارد — محتفظ به', data.receivedHeld, Icons.inventory_2_outlined),
+      ('وارد — مودع', data.receivedDeposited, Icons.account_balance),
+      ('وارد — محصل', data.receivedCollected, Icons.verified_outlined),
+      ('وارد — راجع', data.receivedReturned, Icons.undo),
+      ('وارد — مستحق قريبًا', data.receivedDueSoon, Icons.schedule),
+      ('صادر — صادر', data.issuedOpen, Icons.outbox_outlined),
+      ('صادر — مسلّم/مقدم', data.issuedDelivered, Icons.send_outlined),
+      ('صادر — مستحق قريبًا', data.issuedDueSoon, Icons.event),
+      ('صادر — مصروف', data.issuedCleared, Icons.check_circle_outline),
+      ('صادر — ملغى', data.issuedCancelled, Icons.cancel_outlined),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth >= 1100
+            ? 4
+            : constraints.maxWidth >= 700
+                ? 3
+                : 2;
+        return GridView.count(
+          crossAxisCount: cols,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.65,
+          children: [
+            for (final item in items)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(item.$3),
+                      const SizedBox(height: 6),
+                      Text(item.$1,
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 5),
+                      Text(
+                        'عدد: ${item.$2.count}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text('القيمة: ${_money(item.$2.amount)}'),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         );
       },
     );
   }
 
-  // ====================================================================
-  // WIDGETS
-  // ====================================================================
+  String _money(double value) => NumberFormat('#,##0.00', 'ar').format(value);
 
-  Widget _kpi(String title, String value, IconData icon) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: AdaptiveRow(
-          children: [
-            Icon(icon, size: 30, color: AppColors.primary),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title, textAlign: TextAlign.right),
-                  const SizedBox(height: 6),
-                  Text(
-                    value,
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _dangerTable(BuildContext context, List<Cheque> items) {
-    final df = DateFormat('yyyy-MM-dd');
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Text(
-              "أعلى 5 شيكات مستحقة قريباً",
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Table(
-              border: TableBorder.all(color: Colors.grey.shade300),
-              columnWidths: const {
-                0: FlexColumnWidth(2),
-                1: FlexColumnWidth(2),
-                2: FlexColumnWidth(2),
-                3: FlexColumnWidth(2),
-              },
-              children: [
-                TableRow(
-                  decoration: BoxDecoration(color: Colors.grey.shade200),
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Text("رقم الشيك", textAlign: TextAlign.center),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Text("القيمة", textAlign: TextAlign.center),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Text("الاستحقاق", textAlign: TextAlign.center),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Text("فتح", textAlign: TextAlign.center),
-                    ),
-                  ],
-                ),
-                ...items.map(
-                  (c) => TableRow(
-                    children: [
-                      _cell(c.chequeNo),
-                      _cell("${c.amount} ${c.currency}"),
-                      _cell(df.format(c.dueDate)),
-                      IconButton(
-                        icon: const Icon(Icons.open_in_new),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChequeDetailsScreen(cheque: c),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _cell(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-      ),
-    );
+  String _statusLabel(ChequeStatus status) {
+    switch (status) {
+      case ChequeStatus.pending:
+        return 'قديم/معلّق';
+      case ChequeStatus.received:
+        return 'مستلم';
+      case ChequeStatus.held:
+        return 'محتفظ به';
+      case ChequeStatus.deposited:
+        return 'مودع';
+      case ChequeStatus.collected:
+        return 'محصل';
+      case ChequeStatus.endorsed:
+        return 'مظهّر';
+      case ChequeStatus.issued:
+        return 'صادر';
+      case ChequeStatus.delivered:
+        return 'مسلّم';
+      case ChequeStatus.presented:
+        return 'مقدم/مستحق';
+      case ChequeStatus.cleared:
+        return 'مصروف من البنك';
+      case ChequeStatus.returned:
+        return 'راجع';
+      case ChequeStatus.cancelled:
+        return 'ملغى';
+    }
   }
 }

@@ -32,6 +32,14 @@ class ReceiptVoucherPDF {
     required String clientName,
     required String method,
     String? notes,
+    String? chequeNumber,
+    String? chequeBank,
+    String? chequeBranch,
+    String? chequeDrawer,
+    String? chequeCurrency,
+    String? chequeStatus,
+    DateTime? chequeIssueDate,
+    DateTime? chequeDueDate,
   }) async {
     // ----------------------------------------------------------
     // تحميل إعدادات الورشة
@@ -117,6 +125,52 @@ class ReceiptVoucherPDF {
                 _info("المبلغ:", MoneyFormatter.format(amount), fontReg,
                     fontBold),
 
+                if (_isCheque(method) &&
+                    (chequeNumber ?? '').trim().isNotEmpty) ...[
+                  pw.SizedBox(height: 10),
+                  pw.Text("بيانات الشيك",
+                      style: pw.TextStyle(font: fontBold, fontSize: 15)),
+                  _info("رقم الشيك:", chequeNumber ?? "—", fontReg, fontBold),
+                  _info(
+                    "البنك:",
+                    [
+                      chequeBank,
+                      chequeBranch,
+                    ]
+                        .whereType<String>()
+                        .where((v) => v.trim().isNotEmpty)
+                        .join(" — "),
+                    fontReg,
+                    fontBold,
+                  ),
+                  _info("الساحب:", chequeDrawer ?? "—", fontReg, fontBold),
+                  _info(
+                    "العملة:",
+                    (chequeCurrency ?? '').trim().isEmpty
+                        ? "ILS"
+                        : chequeCurrency!,
+                    fontReg,
+                    fontBold,
+                  ),
+                  _info(
+                    "تاريخ الإصدار:",
+                    chequeIssueDate == null
+                        ? "—"
+                        : DateFormat("yyyy-MM-dd").format(chequeIssueDate),
+                    fontReg,
+                    fontBold,
+                  ),
+                  _info(
+                    "تاريخ الاستحقاق:",
+                    chequeDueDate == null
+                        ? "—"
+                        : DateFormat("yyyy-MM-dd").format(chequeDueDate),
+                    fontReg,
+                    fontBold,
+                  ),
+                  _info("الحالة:", chequeStatus ?? "—", fontReg, fontBold),
+                ],
+
                 pw.SizedBox(height: 16),
 
                 // ------------------------------------------------------
@@ -196,6 +250,11 @@ class ReceiptVoucherPDF {
         pw.Container(width: 120, height: 1, color: PdfColors.grey),
       ],
     );
+  }
+
+  static bool _isCheque(String method) {
+    final value = method.trim().toLowerCase();
+    return value == 'cheque' || value == 'check' || value.contains('شيك');
   }
 
   static String _arabicMethod(String m) {

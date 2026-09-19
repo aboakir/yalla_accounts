@@ -98,6 +98,9 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.editCheque == null && !widget.embedded) {
+      return _canonicalEntryGateway();
+    }
     if (widget.embedded) {
       return SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -154,6 +157,78 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
         ),
         Expanded(child: page),
       ],
+    );
+  }
+
+  Widget _canonicalEntryGateway() {
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 1024;
+    final content = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'إنشاء الشيك يبدأ من السند المالي',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'الشيك وسيلة دفع داخل سند قبض أو سند صرف، '
+                  'ولا يُنشأ كحركة مالية مستقلة.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 22),
+                FilledButton.icon(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.receiptVoucher,
+                  ),
+                  icon: const Icon(Icons.call_received),
+                  label: const Text('استلام شيك — فتح سند قبض'),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.tonalIcon(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.paymentVoucher,
+                  ),
+                  icon: const Icon(Icons.call_made),
+                  label: const Text('إصدار شيك — فتح سند صرف'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Scaffold(
+      appBar: const YallaAppBar(
+        workshopName: 'Yallah Accounts',
+        showThemeToggle: false,
+        showSearch: false,
+      ),
+      drawer: desktop
+          ? null
+          : const YallaSidebar(currentRoute: AppRoutes.chequesAdd),
+      body: desktop
+          ? Row(
+              children: [
+                const SizedBox(
+                  width: 280,
+                  child: YallaSidebar(currentRoute: AppRoutes.chequesAdd),
+                ),
+                Expanded(child: content),
+              ],
+            )
+          : content,
     );
   }
 
@@ -562,17 +637,29 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
   String _fmtStatus(ChequeStatus s) {
     switch (s) {
       case ChequeStatus.pending:
-        return 'مُعلّق';
+        return 'قديم/معلّق';
+      case ChequeStatus.received:
+        return 'مستلم';
+      case ChequeStatus.held:
+        return 'محتفظ به';
+      case ChequeStatus.deposited:
+        return 'مودع';
       case ChequeStatus.collected:
-        return 'مُحصّل';
+        return 'محصّل';
+      case ChequeStatus.endorsed:
+        return 'مظهّر';
+      case ChequeStatus.issued:
+        return 'صادر';
+      case ChequeStatus.delivered:
+        return 'مسلّم';
+      case ChequeStatus.presented:
+        return 'مقدم/مستحق';
+      case ChequeStatus.cleared:
+        return 'مصروف من البنك';
       case ChequeStatus.returned:
         return 'راجع';
       case ChequeStatus.cancelled:
         return 'ملغى';
-      case ChequeStatus.delivered:
-        return 'مُسلّم';
-      case ChequeStatus.deposited:
-        return 'مودع';
     }
   }
 

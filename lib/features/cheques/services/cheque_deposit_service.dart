@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/cheque_tables.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
+import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/services/cheque_accounting_service.dart';
@@ -21,7 +22,9 @@ class ChequeDepositService {
     String? notes,
     Database? database,
   }) async {
-    final actor = await AuthorizationGuard.require(PermissionKeys.chequeManage);
+    final actor =
+        await AuthorizationGuard.require(PermissionKeys.chequeDeposit);
+    final actorId = actor?.id ?? AuthSessionService.authenticatedUserId;
     if (bankAccountId <= 0) {
       throw StateError('Deposit requires a bank account.');
     }
@@ -103,7 +106,7 @@ class ChequeDepositService {
             'cheque_count': rows.length,
             'total_value': total,
             'notes': notes,
-            'created_by': actor?.id,
+            'created_by': actorId,
             'created_at': now,
           },
           conflictAlgorithm: ConflictAlgorithm.abort);
@@ -130,13 +133,13 @@ class ChequeDepositService {
           chequeId: chequeId,
           newStatus: ChequeStatus.deposited,
           eventDate: depositDate,
-          actorUserId: actor?.id,
+          actorUserId: actorId,
         );
       }
 
       await AuditTrailService.log(
         executor: txn,
-        actorUserId: actor?.id,
+        actorUserId: actorId,
         actorRole: actor?.role,
         action: 'CHEQUE_DEPOSIT_BATCH_CREATED',
         entityType: 'cheque_deposit_batch',

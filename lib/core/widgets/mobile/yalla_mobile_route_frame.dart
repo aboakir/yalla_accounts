@@ -91,6 +91,7 @@ class _YallaMobileRouteFrameState extends State<YallaMobileRouteFrame> {
     AppRoutes.chequesCancelled,
     AppRoutes.chequesPostdated,
     AppRoutes.chequesReport,
+    AppRoutes.chequeBooks,
     AppRoutes.clientArrears,
     AppRoutes.rawMaterials,
     AppRoutes.rawMaterialAdd,

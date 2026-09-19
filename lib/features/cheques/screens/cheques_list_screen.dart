@@ -706,14 +706,6 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                           icon: const Icon(Icons.visibility),
                           onPressed: () => _openDetails(c),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _openEdit(c),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: null, // معطّل
-                        ),
                       ],
                     ),
                   ),
@@ -791,14 +783,6 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                         IconButton(
                           icon: const Icon(Icons.visibility),
                           onPressed: () => _openDetails(c),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _openEdit(c),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: null, // معطّل
                         ),
                       ],
                     ),
@@ -916,17 +900,29 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   String _statusLabel(ChequeStatus s) {
     switch (s) {
       case ChequeStatus.pending:
-        return "معلّق";
+        return "قديم/معلّق";
+      case ChequeStatus.received:
+        return "مستلم";
+      case ChequeStatus.held:
+        return "محتفظ به";
+      case ChequeStatus.deposited:
+        return "مودع";
       case ChequeStatus.collected:
         return "مُحصّل";
+      case ChequeStatus.endorsed:
+        return "مظهّر";
+      case ChequeStatus.issued:
+        return "صادر";
+      case ChequeStatus.delivered:
+        return "مُسلّم";
+      case ChequeStatus.presented:
+        return "مقدم/مستحق";
+      case ChequeStatus.cleared:
+        return "مصروف";
       case ChequeStatus.returned:
         return "راجع";
       case ChequeStatus.cancelled:
         return "ملغى";
-      case ChequeStatus.delivered:
-        return "مُسلّم";
-      case ChequeStatus.deposited:
-        return "مودع";
     }
   }
 
@@ -950,27 +946,20 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   }
 
   Widget _coloredStatus(ChequeStatus s) {
-    Color color;
-    switch (s) {
-      case ChequeStatus.pending:
-        color = Colors.orange;
-        break;
-      case ChequeStatus.collected:
-        color = AppColors.primary;
-        break;
-      case ChequeStatus.returned:
-        color = Colors.red;
-        break;
-      case ChequeStatus.cancelled:
-        color = Colors.grey;
-        break;
-      case ChequeStatus.delivered:
-        color = Colors.blueGrey;
-        break;
-      case ChequeStatus.deposited:
-        color = Colors.blue;
-        break;
-    }
+    final color = switch (s) {
+      ChequeStatus.pending => Colors.orange,
+      ChequeStatus.received => Colors.teal,
+      ChequeStatus.held => Colors.amber,
+      ChequeStatus.deposited => Colors.blue,
+      ChequeStatus.collected => AppColors.primary,
+      ChequeStatus.endorsed => Colors.indigo,
+      ChequeStatus.issued => Colors.deepOrange,
+      ChequeStatus.delivered => Colors.blueGrey,
+      ChequeStatus.presented => Colors.purple,
+      ChequeStatus.cleared => Colors.green,
+      ChequeStatus.returned => Colors.red,
+      ChequeStatus.cancelled => Colors.grey,
+    };
     return Text(
       _statusLabel(s),
       style: TextStyle(fontWeight: FontWeight.bold, color: color),

@@ -17,7 +17,9 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../core/services/db_service.dart';
 import '../../../core/services/document_number_service.dart';
+import '../../../core/security/authorization_policy.dart';
 import '../../auth/services/audit_trail_service.dart';
+import '../../auth/services/authorization_guard.dart';
 import '../../cheques/models/cheque.dart';
 import '../../cheques/services/cheque_accounting_service.dart';
 import '../../cheques/services/cheque_book_service.dart';
@@ -304,6 +306,13 @@ class VoucherPaymentService {
     Map<String, dynamic>? chequeDraft,
     Database? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.paymentCreate);
+    if (ChequeAccountingService.isChequeMethod(voucher.method)) {
+      await AuthorizationGuard.require(PermissionKeys.chequeCreate);
+      if (chequeDraft?['allow_number_override'] == true) {
+        await AuthorizationGuard.require(PermissionKeys.chequeBookManage);
+      }
+    }
     if (!voucher.amount.isFinite || voucher.amount <= 0) {
       throw ArgumentError('Amount must be > 0');
     }

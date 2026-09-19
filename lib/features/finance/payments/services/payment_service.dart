@@ -739,6 +739,11 @@ CREATE TABLE IF NOT EXISTS payments (
   }) async {
     final p16Actor =
         await AuthorizationGuard.require(PermissionKeys.receiptCreate);
+    if (instruments.any(
+      (instrument) => ChequeAccountingService.isChequeMethod(instrument.method),
+    )) {
+      await AuthorizationGuard.require(PermissionKeys.chequeCreate);
+    }
     if (clientId <= 0) throw StateError('Receipt requires a valid client.');
     if (operationId.trim().isEmpty) {
       throw ArgumentError('Receipt operation id required');

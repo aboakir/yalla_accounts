@@ -872,21 +872,6 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
       return;
     }
 
-    if (selectedMethod == 'CHEQUE' && _pendingCheque == null) {
-      final draft = await showDialog<Map<String, dynamic>>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => ChequeStepEntry(
-          amount: amount,
-          onSubmit: (_) {},
-        ),
-      );
-
-      if (draft == null) return;
-      if (!mounted) return;
-      setState(() => _pendingCheque = draft);
-    }
-
     String partyType = "OTHER";
     String? partyId;
     String partyName = "";
@@ -945,6 +930,23 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
       partyType = "EXPENSE";
       partyId = null;
       partyName = "مصاريف تشغيلية";
+    }
+
+    if (selectedMethod == 'CHEQUE' && _pendingCheque == null) {
+      final draft = await showDialog<Map<String, dynamic>>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => ChequeStepEntry(
+          amount: amount,
+          issued: true,
+          payeeName: partyName,
+          onSubmit: (_) {},
+        ),
+      );
+
+      if (draft == null) return;
+      if (!mounted) return;
+      setState(() => _pendingCheque = draft);
     }
 
     final voucher = VoucherPayment(

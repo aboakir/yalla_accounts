@@ -87,6 +87,7 @@ import 'package:yalla_accounts/features/cheques/screens/cheques_returned_screen.
 import 'package:yalla_accounts/features/cheques/screens/cheques_cancelled_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_postdated_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_report_screen.dart';
+import 'package:yalla_accounts/features/cheques/screens/cheque_books_screen.dart';
 import 'package:yalla_accounts/features/suppliers/screens/supplier_cheques_screen.dart';
 
 // ===== Repairs =====
@@ -256,6 +257,7 @@ class AppRoutes {
   static const chequesCancelled = '/cheques/cancelled';
   static const chequesPostdated = '/cheques/postdated';
   static const chequesReport = '/cheques/report';
+  static const chequeBooks = '/cheques/books';
 
   // ===== Purchases extra =====
   static const purchasesSuppliersAging = '/purchases/suppliers-aging';
@@ -406,6 +408,7 @@ class AppRoutes {
     chequesCancelled,
     chequesPostdated,
     chequesReport,
+    chequeBooks,
     purchasesSuppliersAging,
     purchasesSupplierLedger,
     purchasesGLAudit,
@@ -923,6 +926,9 @@ class AppRoutes {
     }
     if (name == chequesReport) {
       return _page(settings, const ChequesReportScreen());
+    }
+    if (name == chequeBooks) {
+      return _page(settings, const ChequeBooksScreen());
     }
 
     // Purchases → Suppliers GL reports

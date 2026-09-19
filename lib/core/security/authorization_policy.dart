@@ -121,6 +121,18 @@ class PermissionKeys {
   static const String paymentCreate = 'PAYMENT_CREATE';
 
   static const String chequeManage = 'CHEQUE_MANAGE';
+  static const String chequeCreate = 'CHEQUE_CREATE';
+  static const String chequeEdit = 'CHEQUE_EDIT';
+  static const String chequeDeposit = 'CHEQUE_DEPOSIT';
+  static const String chequeCollect = 'CHEQUE_COLLECT';
+  static const String chequeReturn = 'CHEQUE_RETURN';
+  static const String chequeCancel = 'CHEQUE_CANCEL';
+  static const String chequeEndorse = 'CHEQUE_ENDORSE';
+  static const String chequeDueDateEdit = 'CHEQUE_DUE_DATE_EDIT';
+  static const String chequeBookManage = 'CHEQUE_BOOK_MANAGE';
+  static const String chequePrint = 'CHEQUE_PRINT';
+  static const String chequeReportView = 'CHEQUE_REPORT_VIEW';
+  static const String chequeReverse = 'CHEQUE_REVERSE';
   static const String purchaseManage = 'PURCHASE_MANAGE';
   static const String repairCostManage = 'REPAIR_COST_MANAGE';
   static const String payrollView = 'PAYROLL_VIEW';
@@ -171,6 +183,18 @@ class PermissionKeys {
     receiptReverse,
     paymentCreate,
     chequeManage,
+    chequeCreate,
+    chequeEdit,
+    chequeDeposit,
+    chequeCollect,
+    chequeReturn,
+    chequeCancel,
+    chequeEndorse,
+    chequeDueDateEdit,
+    chequeBookManage,
+    chequePrint,
+    chequeReportView,
+    chequeReverse,
     purchaseManage,
     repairCostManage,
     payrollView,
@@ -232,6 +256,18 @@ class AuthorizationPolicy {
     PermissionKeys.receiptCreate,
     PermissionKeys.paymentCreate,
     PermissionKeys.chequeManage,
+    PermissionKeys.chequeCreate,
+    PermissionKeys.chequeEdit,
+    PermissionKeys.chequeDeposit,
+    PermissionKeys.chequeCollect,
+    PermissionKeys.chequeReturn,
+    PermissionKeys.chequeCancel,
+    PermissionKeys.chequeEndorse,
+    PermissionKeys.chequeDueDateEdit,
+    PermissionKeys.chequeBookManage,
+    PermissionKeys.chequePrint,
+    PermissionKeys.chequeReportView,
+    PermissionKeys.chequeReverse,
     PermissionKeys.purchaseManage,
     PermissionKeys.repairCostManage,
     PermissionKeys.payrollView,
@@ -261,6 +297,18 @@ class AuthorizationPolicy {
       PermissionKeys.receiptReverse,
       PermissionKeys.paymentCreate,
       PermissionKeys.chequeManage,
+      PermissionKeys.chequeCreate,
+      PermissionKeys.chequeEdit,
+      PermissionKeys.chequeDeposit,
+      PermissionKeys.chequeCollect,
+      PermissionKeys.chequeReturn,
+      PermissionKeys.chequeCancel,
+      PermissionKeys.chequeEndorse,
+      PermissionKeys.chequeDueDateEdit,
+      PermissionKeys.chequeBookManage,
+      PermissionKeys.chequePrint,
+      PermissionKeys.chequeReportView,
+      PermissionKeys.chequeReverse,
       PermissionKeys.purchaseManage,
       PermissionKeys.repairCostManage,
       PermissionKeys.payrollView,
@@ -295,6 +343,12 @@ class AuthorizationPolicy {
       PermissionKeys.invoiceCreate,
       PermissionKeys.receiptCreate,
       PermissionKeys.paymentCreate,
+      PermissionKeys.chequeCreate,
+      PermissionKeys.chequeDeposit,
+      PermissionKeys.chequeCollect,
+      PermissionKeys.chequeReturn,
+      PermissionKeys.chequePrint,
+      PermissionKeys.chequeReportView,
       PermissionKeys.reportView,
     },
     RoleKeys.workshopManager: {

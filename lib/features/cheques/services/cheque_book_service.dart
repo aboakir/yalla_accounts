@@ -1,8 +1,105 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
+import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
+
 class ChequeBookService {
   ChequeBookService._();
+
+  static Future<List<Map<String, Object?>>> list({
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? await DBService.database;
+    final rows = await db.rawQuery('''
+      SELECT b.*, a.code AS bank_account_code, a.name AS bank_account_name,
+        (SELECT COUNT(*) FROM cheques c
+         WHERE c.cheque_book_id=b.id) AS used_count
+      FROM cheque_books b
+      JOIN accounts a ON a.id=b.bank_account_id
+      ORDER BY datetime(b.created_at) DESC, b.book_number
+    ''');
+    return rows.map((row) => Map<String, Object?>.from(row)).toList();
+  }
+
+  static Future<String> create({
+    required int bankAccountId,
+    required String bookNumber,
+    required int firstChequeNumber,
+    required int lastChequeNumber,
+  }) async {
+    final actor =
+        await AuthorizationGuard.require(PermissionKeys.chequeBookManage);
+    final db = await DBService.database;
+    return SyncFoundationService.transaction<String>(db, (txn) async {
+      final id = await createOnTxn(
+        txn: txn,
+        bankAccountId: bankAccountId,
+        bookNumber: bookNumber,
+        firstChequeNumber: firstChequeNumber,
+        lastChequeNumber: lastChequeNumber,
+        createdBy: actor?.id,
+      );
+      await AuditTrailService.log(
+        executor: txn,
+        actorUserId: actor?.id,
+        actorRole: actor?.role,
+        action: 'CHEQUE_BOOK_CREATED',
+        entityType: 'cheque_book',
+        entityId: id,
+        after: {
+          'bank_account_id': bankAccountId,
+          'book_number': bookNumber,
+          'first_cheque_number': firstChequeNumber,
+          'last_cheque_number': lastChequeNumber,
+        },
+      );
+      return id;
+    });
+  }
+
+  static Future<void> close(String bookId) async {
+    final actor =
+        await AuthorizationGuard.require(PermissionKeys.chequeBookManage);
+    final db = await DBService.database;
+    await SyncFoundationService.transaction(db, (txn) async {
+      final rows = await txn.query(
+        'cheque_books',
+        where: 'id=?',
+        whereArgs: [bookId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('Cheque book not found.');
+      if ((rows.single['status'] ?? '').toString().toUpperCase() == 'CLOSED') {
+        return;
+      }
+      await txn.update(
+        'cheque_books',
+        {
+          'status': 'CLOSED',
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'id=?',
+        whereArgs: [bookId],
+      );
+      await AuditTrailService.log(
+        executor: txn,
+        actorUserId: actor?.id,
+        actorRole: actor?.role,
+        action: 'CHEQUE_BOOK_CLOSED',
+        entityType: 'cheque_book',
+        entityId: bookId,
+        before: rows.single,
+        after: {
+          ...rows.single,
+          'status': 'CLOSED',
+        },
+      );
+    });
+  }
 
   static Future<String> createOnTxn({
     required Transaction txn,
@@ -24,13 +121,17 @@ class ChequeBookService {
 
     final accountRows = await txn.query(
       'accounts',
-      columns: const ['id'],
+      columns: const ['id', 'code', 'type'],
       where: 'id=?',
       whereArgs: [bankAccountId],
       limit: 1,
     );
     if (accountRows.isEmpty) {
       throw StateError('Cheque book bank account does not exist.');
+    }
+    final code = (accountRows.single['code'] ?? '').toString();
+    if (!(code == '1010' || code.startsWith('1010.'))) {
+      throw StateError('Cheque book requires a bank account code.');
     }
 
     final id = const Uuid().v4();

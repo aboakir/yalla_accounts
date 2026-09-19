@@ -7,16 +7,22 @@ import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/cheque_tables.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
+import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 
 import 'cheque_accounting_service.dart';
+import 'cheque_trace_service.dart';
 
 class ChequeService {
   static const _table = 'cheques';
 
   Future<int> addCheque(Cheque cheque) async {
+    await AuthorizationGuard.require(PermissionKeys.chequeCreate);
     final db = await DBService.database;
 
     if (cheque.chequeType == ChequeType.collection) {
@@ -84,6 +90,7 @@ class ChequeService {
   }
 
   Future<void> updateCheque(Cheque updated) async {
+    await AuthorizationGuard.require(PermissionKeys.chequeEdit);
     if (updated.id == null) throw StateError('Cheque id is required.');
 
     final db = await DBService.database;
@@ -203,6 +210,7 @@ class ChequeService {
   }
 
   Future<void> deleteCheque(int chequeId) async {
+    await AuthorizationGuard.require(PermissionKeys.chequeEdit);
     final db = await DBService.database;
     await ChequeTables.ensureChequesSchema(db);
 
@@ -248,6 +256,96 @@ class ChequeService {
         whereArgs: [chequeId],
       );
     });
+  }
+
+  Future<Cheque> updateDueDate({
+    required int chequeId,
+    required DateTime dueDate,
+    String? reason,
+  }) async {
+    final actor =
+        await AuthorizationGuard.require(PermissionKeys.chequeDueDateEdit);
+    final db = await DBService.database;
+    await ChequeTables.ensureChequesSchema(db);
+
+    late Cheque result;
+    await SyncFoundationService.transaction(db, (txn) async {
+      final rows = await txn.query(
+        _table,
+        where: 'id=?',
+        whereArgs: [chequeId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('Cheque not found.');
+      final cheque = Cheque.fromMap(rows.single);
+      if (const {
+        ChequeStatus.collected,
+        ChequeStatus.cleared,
+        ChequeStatus.returned,
+        ChequeStatus.cancelled,
+      }.contains(cheque.status)) {
+        throw StateError('Terminal cheque due date cannot be changed.');
+      }
+      final issueDay = DateTime(
+        cheque.issueDate.year,
+        cheque.issueDate.month,
+        cheque.issueDate.day,
+      );
+      if (dueDate.isBefore(issueDay)) {
+        throw StateError('Due date cannot be before issue date.');
+      }
+
+      final before = {
+        'due_date': cheque.dueDate.toIso8601String(),
+        'status': cheque.status.name,
+      };
+      final now = DateTime.now().toIso8601String();
+      await txn.update(
+        _table,
+        {
+          'due_date': dueDate.toIso8601String(),
+          'updated_at': now,
+        },
+        where: 'id=?',
+        whereArgs: [chequeId],
+      );
+      await txn.insert(
+        'cheque_events',
+        {
+          'cheque_id': chequeId,
+          'event_type': 'due_date_changed',
+          'from_status': cheque.status.name,
+          'to_status': cheque.status.name,
+          'event_date': now,
+          'actor_user_id': actor?.id ?? AuthSessionService.authenticatedUserId,
+          'reason': reason,
+          'note': cheque.dueDate.toIso8601String() +
+              ' -> ' +
+              dueDate.toIso8601String(),
+          'created_at': now,
+        },
+      );
+      result = cheque.copyWith(
+        dueDate: dueDate,
+        updatedAt: DateTime.parse(now),
+      );
+
+      await AuditTrailService.log(
+        executor: txn,
+        actorUserId: actor?.id ?? AuthSessionService.authenticatedUserId,
+        actorRole: actor?.role,
+        action: 'CHEQUE_DUE_DATE_CHANGED',
+        entityType: 'cheque',
+        entityId: chequeId.toString(),
+        before: before,
+        after: {
+          'due_date': dueDate.toIso8601String(),
+          'status': cheque.status.name,
+        },
+        reason: reason,
+      );
+    });
+    return result;
   }
 
   Future<Cheque> endorseCheque({
@@ -301,17 +399,55 @@ class ChequeService {
     final db = await DBService.database;
     await ChequeTables.ensureChequesSchema(db);
 
+    if (search != null && search.trim().isNotEmpty) {
+      var result = await ChequeTraceService.search(
+        search,
+        executor: db,
+        limit: 1000,
+      );
+      if (status != null) {
+        result = result.where((c) => c.status == status).toList();
+      }
+      if (type != null) {
+        result = result.where((c) => c.chequeType == type).toList();
+      }
+      if (issueFrom != null) {
+        result = result.where((c) => !c.issueDate.isBefore(issueFrom)).toList();
+      }
+      if (issueTo != null) {
+        final end = DateTime(
+          issueTo.year,
+          issueTo.month,
+          issueTo.day,
+          23,
+          59,
+          59,
+        );
+        result = result.where((c) => !c.issueDate.isAfter(end)).toList();
+      }
+      if (dueFrom != null) {
+        result = result.where((c) => !c.dueDate.isBefore(dueFrom)).toList();
+      }
+      if (dueTo != null) {
+        final end = DateTime(
+          dueTo.year,
+          dueTo.month,
+          dueTo.day,
+          23,
+          59,
+          59,
+        );
+        result = result.where((c) => !c.dueDate.isAfter(end)).toList();
+      }
+      result.sort((a, b) {
+        final due = a.dueDate.compareTo(b.dueDate);
+        return due != 0 ? due : a.issueDate.compareTo(b.issueDate);
+      });
+      return result;
+    }
+
     final where = <String>[];
     final args = <Object?>[];
-
-    if (search != null && search.trim().isNotEmpty) {
-      where.add(
-        '(cheque_no LIKE ? OR drawer_name LIKE ? OR bank_name LIKE ?)',
-      );
-      args.add('%$search%');
-      args.add('%$search%');
-      args.add('%$search%');
-    }
 
     if (status != null) {
       where.add('status=?');
