@@ -30,6 +30,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/parties/services/party_financial_service.dart';
 import 'package:yalla_accounts/features/finance/services/accounts_receivable_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -376,41 +377,9 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
     // تفاصيل ملفات العميل: إجمالي/مدفوع/متبقي لكل repair_id
     final db = await _db();
 
-    // إجمالي الفواتير لكل ملف
-    final invRows = await db.rawQuery('''
-      SELECT l.repair_id AS rid, COALESCE(SUM(l.debit-l.credit),0) AS tot
-      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
-      JOIN gl_entries e ON e.id=l.entry_id
-      LEFT JOIN gl_entries original ON original.id=e.reversal_of
-      WHERE l.party_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
-        AND UPPER(COALESCE(original.source,e.source)) NOT IN
-          ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE','VOUCHER')
-      GROUP BY l.repair_id
-    ''', [row.clientId]);
-    final payRows = await db.rawQuery('''
-      SELECT l.repair_id AS rid, COALESCE(SUM(l.credit-l.debit),0) AS tot
-      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
-      JOIN gl_entries e ON e.id=l.entry_id
-      LEFT JOIN gl_entries original ON original.id=e.reversal_of
-      WHERE l.party_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
-        AND UPPER(COALESCE(original.source,e.source)) IN
-          ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE','VOUCHER')
-      GROUP BY l.repair_id
-    ''', [row.clientId]);
-
-    final invByRid = <String, double>{};
-    for (final m in invRows) {
-      final rid = (m['rid'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      invByRid[rid] = (m['tot'] as num?)?.toDouble() ?? 0.0;
-    }
-
-    final paidByRid = <String, double>{};
-    for (final m in payRows) {
-      final rid = (m['rid'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      paidByRid[rid] = (m['tot'] as num?)?.toDouble() ?? 0.0;
-    }
+    // P10/HUMAN-007/008 — تفاصيل الملف لا تعيد اختراع المجاميع من
+    // استعلام GL مستقل. RepairFinancialTruthService هو المصدر الوحيد
+    // لقيمة الملف والمدفوع والمتبقي في كل شاشة مرتبطة بملف الإصلاح.
 
     // بطاقة الملف من repairs
     final metaRows = await db.rawQuery('''
@@ -431,12 +400,16 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
       if (vm.isNotEmpty) labelParts.add(vm);
       if (vn.isNotEmpty) labelParts.add(vn);
       final label = labelParts.isEmpty ? rid : labelParts.join(' – ');
+      final truth = await RepairFinancialTruthService.load(
+        rid,
+        executor: db,
+      );
 
       details.add(_RepairAgg(
         id: rid,
         label: label,
-        invoiceTotal: invByRid[rid] ?? 0.0,
-        paid: paidByRid[rid] ?? 0.0,
+        invoiceTotal: truth.fileValue,
+        paid: truth.paid,
         receivedDate: DateTime.tryParse((m['receivedDate'] ?? '').toString()),
       ));
     }
