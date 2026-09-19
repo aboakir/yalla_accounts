@@ -75,8 +75,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   // Cheques
   static const rChequesRoot = '/cheques';
   static const rChequesDashboard = '/cheques/dashboard';
-  static const rChequesAdd = '/cheques/add';
-  static const rChequesList = '/cheques/list';
   static const rChequesIncoming = '/cheques/incoming';
   static const rChequesOutgoing = '/cheques/outgoing';
   static const rChequesCollection = '/cheques/collection';
