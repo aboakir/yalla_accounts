@@ -420,11 +420,14 @@ class _ChequeDetailsScreenState extends State<ChequeDetailsScreen> {
                   padding: EdgeInsets.all(20),
                   child: Center(child: CircularProgressIndicator())));
         }
-        if (snap.hasError)
+        if (snap.hasError) {
           return Card(
-              child: ListTile(
-                  title: const Text('تعذر تحميل مسار الشيك'),
-                  subtitle: Text('${snap.error}')));
+            child: ListTile(
+              title: const Text('تعذر تحميل مسار الشيك'),
+              subtitle: Text('${snap.error}'),
+            ),
+          );
+        }
         final t = snap.data!;
         return Card(
           child: Padding(

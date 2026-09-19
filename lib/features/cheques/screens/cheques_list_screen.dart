@@ -978,14 +978,6 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     );
   }
 
-  Future<void> _openEdit(Cheque c) async {
-    await AppRoutes.pushNamedSafe(
-      context,
-      AppRoutes.chequesEdit,
-      arguments: c,
-    );
-  }
-
   // ---------------------------------------------------------------------------
   // EXPORT EXCEL — يستخدم القائمة بعد الفلترة (Provider + محلي)
   // ---------------------------------------------------------------------------

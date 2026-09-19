@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/core/services/db/tables/accounting_tables.dart';
@@ -116,7 +115,7 @@ void main() {
 
       final result = await RepairHistoricalReconciliationService.reconcile(
         db,
-        backupPath: path + '.backup',
+        backupPath: '$path.backup',
       );
       expect(result.inspected, 2);
       expect(result.repaired, 1);
@@ -147,7 +146,7 @@ void main() {
 
       final retry = await RepairHistoricalReconciliationService.reconcile(
         db,
-        backupPath: path + '.backup',
+        backupPath: '$path.backup',
       );
       expect(retry.repaired, 0);
       expect(retry.remaining, 1);

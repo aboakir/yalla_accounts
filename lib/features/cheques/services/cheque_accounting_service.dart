@@ -235,7 +235,7 @@ class ChequeAccountingService {
     await ChequeTables.ensureChequesSchema(txn);
     final canonicalType = voucherType.trim().toUpperCase();
     if (!const {'RECEIPT', 'PAYMENT'}.contains(canonicalType)) {
-      throw StateError('Unsupported cheque voucher type: ' + voucherType);
+      throw StateError('Unsupported cheque voucher type: $voucherType');
     }
 
     final existing = await txn.query(
@@ -282,7 +282,7 @@ class ChequeAccountingService {
       txn,
       chequeId: chequeId,
       type: 'linked_to_voucher',
-      note: canonicalType + '/' + voucherId,
+      note: '$canonicalType/$voucherId',
     );
   }
 
@@ -341,15 +341,7 @@ class ChequeAccountingService {
       txn,
       chequeId: chequeId,
       type: 'allocated',
-      note: canonicalType +
-          '/' +
-          voucherId +
-          ' • ' +
-          canonicalAllocationType +
-          '/' +
-          (target ?? '') +
-          ' • ' +
-          amount.toStringAsFixed(2),
+      note: '$canonicalType/$voucherId • $canonicalAllocationType/${target ?? ''} • ${amount.toStringAsFixed(2)}',
     );
   }
 

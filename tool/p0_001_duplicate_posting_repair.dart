@@ -138,8 +138,7 @@ Future<void> main(List<String> args) async {
   final db = await databaseFactoryFfi.openDatabase(_dbPath);
 
   try {
-    final version =
-        _firstIntValue(await db.rawQuery('PRAGMA user_version')) ?? 0;
+    final version = _firstIntValue(await db.rawQuery('PRAGMA user_version'));
 
     if (version != 55) {
       throw StateError(
@@ -286,17 +285,16 @@ Future<void> main(List<String> args) async {
     );
 
     final unbalanced = _firstIntValue(
-          await db.rawQuery(r'''
-            SELECT COUNT(*)
-            FROM (
-              SELECT entry_id, SUM(debit - credit) AS diff
-              FROM gl_lines
-              GROUP BY entry_id
-              HAVING ABS(diff) > 0.01
-            )
-          '''),
-        ) ??
-        -1;
+      await db.rawQuery(r'''
+        SELECT COUNT(*)
+        FROM (
+          SELECT entry_id, SUM(debit - credit) AS diff
+          FROM gl_lines
+          GROUP BY entry_id
+          HAVING ABS(diff) > 0.01
+        )
+      '''),
+    );
 
     final integrityAfter = await db.rawQuery('PRAGMA integrity_check');
     final integrityOk = integrityAfter.isNotEmpty &&

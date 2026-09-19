@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
 import 'package:yalla_accounts/core/services/db/tables/accounting_tables.dart';
@@ -331,7 +330,7 @@ void main() {
           .payableBalance;
     } // FLOW 6: supplier owes 10,000 -> issued cheque 4,000 -> 6,000.
 
-    final issued4000 = await VoucherPaymentService.insertAndPost(
+    await VoucherPaymentService.insertAndPost(
       voucher: issuedVoucher('FLOW-6-PV', 4000),
       partyName: 'Acceptance Supplier',
       chequeDraft: issuedDraft(500),

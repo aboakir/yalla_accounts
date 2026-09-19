@@ -319,9 +319,7 @@ class ChequeService {
           'event_date': now,
           'actor_user_id': actor?.id ?? AuthSessionService.authenticatedUserId,
           'reason': reason,
-          'note': cheque.dueDate.toIso8601String() +
-              ' -> ' +
-              dueDate.toIso8601String(),
+          'note': '${cheque.dueDate.toIso8601String()} -> ${dueDate.toIso8601String()}',
           'created_at': now,
         },
       );

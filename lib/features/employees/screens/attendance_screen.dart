@@ -209,6 +209,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       from: today,
       to: DateTime(today.year, today.month, today.day, 23, 59, 59, 999),
     );
+    if (!mounted) return;
     final Attendance? existing = todayRows.isEmpty ? null : todayRows.first;
 
     if (existing == null) {

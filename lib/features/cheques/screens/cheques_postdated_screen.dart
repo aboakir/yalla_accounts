@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
-import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheque_filtered_screen.dart';
 import 'package:yalla_accounts/features/cheques/services/cheque_maturity_service.dart';
 

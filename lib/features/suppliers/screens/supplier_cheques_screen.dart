@@ -554,17 +554,29 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
   String _statusLabel(ChequeStatus s) {
     switch (s) {
       case ChequeStatus.pending:
-        return "معلّق";
+        return "قديم/معلّق";
+      case ChequeStatus.received:
+        return "مستلم";
+      case ChequeStatus.held:
+        return "محتفظ به";
+      case ChequeStatus.deposited:
+        return "مودع";
       case ChequeStatus.collected:
         return "مُحصّل";
+      case ChequeStatus.endorsed:
+        return "مظهّر";
+      case ChequeStatus.issued:
+        return "صادر";
+      case ChequeStatus.delivered:
+        return "مُسلّم";
+      case ChequeStatus.presented:
+        return "مقدم/مستحق";
+      case ChequeStatus.cleared:
+        return "مصروف من البنك";
       case ChequeStatus.returned:
         return "راجع";
       case ChequeStatus.cancelled:
         return "ملغى";
-      case ChequeStatus.delivered:
-        return "مُسلّم";
-      case ChequeStatus.deposited:
-        return "مودع";
     }
   }
 

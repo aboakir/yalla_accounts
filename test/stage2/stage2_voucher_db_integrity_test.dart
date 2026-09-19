@@ -72,7 +72,7 @@ void main() {
     sqfliteFfiInit();
     final temp =
         await Directory.systemTemp.createTemp('yalla_stage2_voucher_backfill_');
-    final db = await databaseFactoryFfi.openDatabase(temp.path + '/db.sqlite');
+    final db = await databaseFactoryFfi.openDatabase('${temp.path}/db.sqlite');
     try {
       await VoucherTables.createAllTables(db);
       await db.execute(

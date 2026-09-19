@@ -200,7 +200,7 @@ class RepairHistoricalReconciliationService {
       limit: 1,
     );
     if (rows.isEmpty) {
-      throw StateError('Required reconciliation account missing: ' + code);
+      throw StateError('Required reconciliation account missing: $code');
     }
     return _i(rows.first['id'])!;
   }
@@ -225,15 +225,13 @@ class RepairHistoricalReconciliationService {
       'accounts',
       columns: const ['id'],
       where: 'code=?',
-      whereArgs: ['1200.C' + clientId.toString()],
+      whereArgs: ['1200.C$clientId'],
       limit: 1,
     );
     if (canonical.isNotEmpty) return _i(canonical.first['id'])!;
 
     throw StateError(
-      'Client ' +
-          clientId.toString() +
-          ' has no canonical AR account for reconciliation.',
+      'Client $clientId has no canonical AR account for reconciliation.',
     );
   }
 
@@ -269,9 +267,7 @@ class RepairHistoricalReconciliationService {
         );
         if (existing.isNotEmpty) {
           throw StateError(
-            'Reconciliation posting already exists but mismatch remains for ' +
-                issue.repairId +
-                '.',
+            'Reconciliation posting already exists but mismatch remains for ${issue.repairId}.',
           );
         }
 
@@ -297,14 +293,11 @@ class RepairHistoricalReconciliationService {
         final glId = await PostingEngine.postEntryOn(
           ex: tx,
           date: DateTime.now().toUtc(),
-          ref: 'REPAIR-RECON-' + issue.repairId,
+          ref: 'REPAIR-RECON-${issue.repairId}',
           source: source,
           sourceId: issue.repairId,
           createdBy: actor,
-          note: 'Historical repair reconciliation: ' +
-              current.ledgerGrossTotal.toStringAsFixed(2) +
-              ' -> ' +
-              current.fileValue.toStringAsFixed(2),
+          note: 'Historical repair reconciliation: ${current.ledgerGrossTotal.toStringAsFixed(2)} -> ${current.fileValue.toStringAsFixed(2)}',
           lines: [arLine, revenueLine],
         );
 
@@ -318,10 +311,7 @@ class RepairHistoricalReconciliationService {
         );
         if (!afterTruth.isLedgerConsistent) {
           throw StateError(
-            'Reconciliation failed to close ' +
-                issue.repairId +
-                ': ' +
-                afterTruth.ledgerMismatch.toString(),
+            'Reconciliation failed to close ${issue.repairId}: ${afterTruth.ledgerMismatch}',
           );
         }
 
@@ -363,9 +353,7 @@ class RepairHistoricalReconciliationService {
           afterInTx.where((issue) => issue.repairable).toList();
       if (unresolvedRepairable.isNotEmpty) {
         throw StateError(
-          'Repair reconciliation left ' +
-              unresolvedRepairable.length.toString() +
-              ' repairable mismatch(es).',
+          'Repair reconciliation left ${unresolvedRepairable.length} repairable mismatch(es).',
         );
       }
 

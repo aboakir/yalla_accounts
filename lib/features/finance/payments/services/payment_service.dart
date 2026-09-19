@@ -918,7 +918,7 @@ CREATE TABLE IF NOT EXISTS payments (
               limit: 1,
             );
             if (repairRows.isEmpty) {
-              throw StateError('Repair ' + line.repairId + ' not found.');
+              throw StateError('Repair ${line.repairId} not found.');
             }
             final rawClient = repairRows.first['client_id'];
             final repairClientId = rawClient is num
@@ -1060,7 +1060,7 @@ CREATE TABLE IF NOT EXISTS payments (
           }
 
           instrumentRows.add({
-            'id': operationId + ':' + key,
+            'id': '$operationId:$key',
             'receipt_number': receiptNumber,
             'instrument_key': key,
             'method': method,
@@ -1124,7 +1124,7 @@ CREATE TABLE IF NOT EXISTS payments (
           actorRole: p16Actor?.role,
           action: 'RECEIPT_POSTED',
           entityType: 'RECEIPT',
-          entityId: 'RC-' + receiptNumber.toString().padLeft(6, '0'),
+          entityId: 'RC-${receiptNumber.toString().padLeft(6, '0')}',
           after: await _receiptSnapshot(txn, receiptNumber),
           metadata: {
             'instrument_count': instruments.length,
@@ -1191,7 +1191,7 @@ CREATE TABLE IF NOT EXISTS payments (
         ? rawKey
         : (rawUuid != null && rawUuid.isNotEmpty)
             ? rawUuid
-            : 'legacy-' + operationId;
+            : 'legacy-$operationId';
 
     return insertCanonicalReceiptWithInstruments(
       operationId: operationId,
