@@ -26,7 +26,8 @@ void main() {
     expect(nav, contains('drawerNavigator.pop();'));
     expect(nav, contains('WidgetsBinding.instance.addPostFrameCallback'));
     expect(nav, contains('if (!targetNavigator.mounted)'));
-    expect(nav, contains('targetNavigator.pushNamedAndRemoveUntil('));
+    expect(nav, contains('targetNavigator.pushNamed(route)'));
+    expect(nav, isNot(contains('targetNavigator.pushNamedAndRemoveUntil(')));
     expect(nav, contains('targetNavigator.pushReplacementNamed(route)'));
   });
 }

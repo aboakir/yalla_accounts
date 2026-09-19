@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('C01 FIX5B compact drawer closes before current route replacement', () {
+  test('C01 FIX5B compact drawer closes before preserving previous route', () {
     final source = File(
       'lib/core/widgets/sidebar/yalla_sidebar.dart',
     ).readAsStringSync();
@@ -26,7 +26,8 @@ void main() {
     expect(nav, contains('scaffoldState?.isDrawerOpen == true'));
     expect(nav, contains('scaffoldState?.isEndDrawerOpen == true'));
     expect(nav, contains('drawerNavigator.pop();'));
-    expect(nav, contains('targetNavigator.pushNamedAndRemoveUntil('));
+    expect(nav, contains('targetNavigator.pushNamed(route)'));
+    expect(nav, isNot(contains('targetNavigator.pushNamedAndRemoveUntil(')));
     expect(nav, contains('targetNavigator.pushReplacementNamed(route)'));
     expect(nav, contains('if (!targetNavigator.mounted)'));
 

@@ -311,12 +311,18 @@ void main() {
     );
     expect(
       RegExp(
-        r'targetNavigator\s*\.\s*pushNamedAndRemoveUntil\s*\(',
+        r'targetNavigator\s*\.\s*pushNamed\s*\(\s*route\s*\)',
         multiLine: true,
       ).hasMatch(sidebar),
       isTrue,
       reason:
-          'Compact navigation must replace the unstable drawer route stack.',
+          'Compact navigation must preserve the visible previous route for Back.',
+    );
+    expect(
+      sidebar.contains('targetNavigator.pushNamedAndRemoveUntil('),
+      isFalse,
+      reason:
+          'Compact navigation must not expose a stale bootstrap/loading route.',
     );
     expect(
       RegExp(

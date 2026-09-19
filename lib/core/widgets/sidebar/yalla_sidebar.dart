@@ -243,11 +243,12 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         return;
       }
 
+      // ROOT-ISSUE-NAV-001: on phones the first route can be the bootstrap/auth
+      // loading route. Keeping only r.isFirst made Back reveal that stale route,
+      // producing the permanent white + green spinner across unrelated screens.
+      // Preserve the real visible route on compact layouts so Back is a true pop.
       final Future<dynamic> navigation = compactNavigation
-          ? targetNavigator.pushNamedAndRemoveUntil(
-              route,
-              (Route<dynamic> r) => r.isFirst,
-            )
+          ? targetNavigator.pushNamed(route)
           : targetNavigator.pushReplacementNamed(route);
 
       navigation
