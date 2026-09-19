@@ -60,7 +60,7 @@ void main() {
 
     // C02/P04 fail-closed encryption contract remains pinned at the deployed
     // v69 schema. P07 must not weaken it merely to add intake metadata.
-    expect(constants, contains('static const int dbVersion = 77;'));
+    expect(constants, contains('static const int dbVersion = 78;'));
     expect(migration, contains('if (oldV < 70) await _upgradeV70(db);'));
     expect(migration,
         isNot(contains('Upgrade v70 P07 repair intake schema applied')));

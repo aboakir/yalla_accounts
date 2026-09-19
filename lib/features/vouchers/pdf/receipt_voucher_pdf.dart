@@ -147,7 +147,7 @@ class ReceiptVoucherPDF {
                   _info(
                     "العملة:",
                     (chequeCurrency ?? '').trim().isEmpty
-                        ? "ILS"
+                        ? MoneyFormatter.currencyCode
                         : chequeCurrency!,
                     fontReg,
                     fontBold,

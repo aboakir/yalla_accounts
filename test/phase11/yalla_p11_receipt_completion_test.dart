@@ -116,8 +116,8 @@ void main() {
       expect(payment, contains('transitionStatusOnTxn'));
       expect(cheque, contains('static Future<Cheque> transitionStatusOnTxn'));
       expect(cheque, contains('_paymentDimensionsOnTxn'));
-      expect(cheque, contains("'repair_id': paymentDimensions['repair_id']"));
-      expect(cheque, contains("'invoice_id': paymentDimensions['invoice_id']"));
+      expect(cheque, contains("'repair_id': dimensions['repair_id']"));
+      expect(cheque, contains("'invoice_id': dimensions['invoice_id']"));
     });
 
     test('destructive payment UI routes to formal reversal', () {

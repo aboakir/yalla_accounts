@@ -2,7 +2,7 @@ name: yalla_accounts
 description: طھط·ط¨ظٹظ‚ Yalla ط§ظ„ظ…ط­ط§ط³ط¨ظٹ
 publish_to: 'none'
 
-version: 1.0.0+18
+version: 1.0.1+20
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

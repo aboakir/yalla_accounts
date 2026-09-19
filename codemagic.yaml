@@ -232,3 +232,21 @@ workflows:
       - build/ios/owner_ipa/Yallah_Accounts_Owner_Test_iPhone.ipa
       - build/ios/owner_ipa/SHA256.txt
       - /tmp/xcodebuild_logs/*.log
+
+  ios_unified_owner:
+    name: Yallah Accounts Unified Owner 2026-09-20
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.44.8
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Validate and build unified owner iPhone package
+        script: |
+          set -euo pipefail
+          bash tools/release/build_unified_ios_owner.sh
+    artifacts:
+      - build/ios/unified_owner_ipa/**/*.ipa
+      - build/ios/unified_owner_ipa/**/SHA256.txt
+      - /tmp/xcodebuild_logs/*.log

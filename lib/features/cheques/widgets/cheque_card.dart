@@ -43,7 +43,7 @@ class ChequeCard extends StatelessWidget {
       ChequeStatus.issued => Colors.deepOrange.shade700,
       ChequeStatus.delivered => Colors.blueGrey.shade700,
       ChequeStatus.presented => Colors.purple.shade700,
-      ChequeStatus.cleared => Colors.green.shade700,
+      ChequeStatus.cleared => AppColors.primary,
       ChequeStatus.returned => Colors.red.shade600,
       ChequeStatus.cancelled => Colors.grey.shade700,
     };

@@ -25,7 +25,7 @@ void main() {
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 77);
+      expect(await db.getVersion(), 78);
 
       final info = await db.rawQuery('PRAGMA table_info(insurance_invoices)');
       final columns = info.map((row) => row['name']).toSet();

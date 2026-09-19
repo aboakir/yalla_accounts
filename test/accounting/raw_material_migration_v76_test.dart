@@ -17,8 +17,8 @@ void main() {
     var db = await DatabaseMigration.initDatabase(pathOverride: path);
 
     try {
-      expect(DatabaseConstants.dbVersion, 77);
-      expect(await db.getVersion(), 77);
+      expect(DatabaseConstants.dbVersion, 78);
+      expect(await db.getVersion(), 78);
 
       await db.delete(
         'schema_migrations',
@@ -30,7 +30,7 @@ void main() {
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 77);
+      expect(await db.getVersion(), 78);
 
       final columns = await db.rawQuery('PRAGMA table_info(raw_materials)');
       expect(

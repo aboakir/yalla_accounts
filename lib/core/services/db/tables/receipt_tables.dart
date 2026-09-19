@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/constants/currencies.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// P11 canonical receipt document schema.
@@ -50,7 +51,7 @@ class ReceiptTables {
         instrument_key TEXT NOT NULL,
         method TEXT NOT NULL,
         amount REAL NOT NULL,
-        currency TEXT NOT NULL DEFAULT 'ILS',
+        currency TEXT NOT NULL DEFAULT '${Currencies.legacyDocumentCurrencyCode}',
         cheque_id INTEGER,
         bank_account_id INTEGER,
         created_at TEXT NOT NULL,

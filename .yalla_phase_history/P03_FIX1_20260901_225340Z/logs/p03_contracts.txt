@@ -1,7 +1,0 @@
-﻿00:00 +0: loading E:/flutter_projects/yalla_accounts/test/phase03/yalla_phase03_home_shell_test.dart
-00:00 +0: P03 phone shell exposes the approved five daily destinations
-00:00 +1: P03 home is a decision-first Today screen, not the old KPI wall
-00:00 +2: P03 home summary reads existing source-of-truth tables only
-00:00 +3: P03 does not reintroduce desktop-prone rows in the dashboard
-00:00 +4: P03 completion points to C01 rather than P04
-00:00 +5: All tests passed!

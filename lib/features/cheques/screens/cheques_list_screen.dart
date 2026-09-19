@@ -956,7 +956,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
       ChequeStatus.issued => Colors.deepOrange,
       ChequeStatus.delivered => Colors.blueGrey,
       ChequeStatus.presented => Colors.purple,
-      ChequeStatus.cleared => Colors.green,
+      ChequeStatus.cleared => AppColors.primary,
       ChequeStatus.returned => Colors.red,
       ChequeStatus.cancelled => Colors.grey,
     };

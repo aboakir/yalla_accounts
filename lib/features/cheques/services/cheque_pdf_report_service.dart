@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
@@ -52,12 +53,45 @@ class ChequePdfReportService {
     }
   }
 
+  static List<Cheque> filterRows(Iterable<Cheque> rows,
+      {String currency = '', ChequeStatus? status}) {
+    final code = currency.trim().toUpperCase();
+    return rows
+        .where((c) =>
+            (code.isEmpty || c.currency.toUpperCase() == code) &&
+            (status == null || c.status == status))
+        .toList(growable: false);
+  }
+
+  static Map<String, double> totalsByCurrency(Iterable<Cheque> rows) {
+    final totals = <String, double>{};
+    for (final cheque in rows) {
+      final code = cheque.currency.trim().toUpperCase();
+      totals.update(code, (amount) => amount + cheque.amount,
+          ifAbsent: () => cheque.amount);
+    }
+    return totals;
+  }
+
   static Future<Uint8List> generate(
     ChequePdfReportKind kind, {
     DatabaseExecutor? executor,
     DateTime? asOf,
+    List<Cheque>? rowSnapshot,
   }) async {
-    final rows = await loadRows(kind, executor: executor, asOf: asOf);
+    final pdf = await buildDocument(kind,
+        executor: executor, asOf: asOf, rowSnapshot: rowSnapshot);
+    return pdf.save();
+  }
+
+  static Future<pw.Document> buildDocument(
+    ChequePdfReportKind kind, {
+    DatabaseExecutor? executor,
+    DateTime? asOf,
+    List<Cheque>? rowSnapshot,
+  }) async {
+    final rows = List<Cheque>.unmodifiable(
+        rowSnapshot ?? await loadRows(kind, executor: executor, asOf: asOf));
     final regular = pw.Font.ttf(
       await rootBundle.load('assets/fonts/Cairo-Regular.ttf'),
     );
@@ -67,77 +101,72 @@ class ChequePdfReportService {
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(base: regular, bold: bold),
     );
-    final total = rows.fold<double>(0, (sum, c) => sum + c.amount);
+    final totals = totalsByCurrency(rows);
+    final totalText = totals.entries
+        .map((e) =>
+            MoneyFormatter.format(e.value, currencyCode: e.key, showCode: true))
+        .join(' — ');
     final df = DateFormat('yyyy-MM-dd');
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(24),
+        textDirection: pw.TextDirection.rtl,
         build: (_) => [
-          pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                pw.Text(
-                  _title(kind),
-                  textAlign: pw.TextAlign.center,
-                  style: pw.TextStyle(font: bold, fontSize: 20),
-                ),
-                pw.SizedBox(height: 6),
-                pw.Text(
-                  'عدد الشيكات: ${rows.length} — إجمالي القيمة: ${total.toStringAsFixed(2)}',
-                  textAlign: pw.TextAlign.center,
-                ),
-                pw.SizedBox(height: 14),
-                pw.TableHelper.fromTextArray(
-                  headers: const [
-                    'رقم الشيك',
-                    'الاتجاه',
-                    'الساحب / المستفيد',
-                    'البنك',
-                    'القيمة',
-                    'العملة',
-                    'الإصدار',
-                    'الاستحقاق',
-                    'الحالة',
-                    'المرجع المالي',
-                  ],
-                  data: [
-                    for (final c in rows)
-                      [
-                        c.chequeNo,
-                        c.direction == ChequeDirection.received
-                            ? 'وارد'
-                            : 'صادر',
-                        c.direction == ChequeDirection.received
-                            ? c.drawerName
-                            : (c.recipientName ?? '—'),
-                        c.bankBranch.isEmpty
-                            ? c.bankName
-                            : '${c.bankName} — ${c.bankBranch}',
-                        c.amount.toStringAsFixed(2),
-                        c.currency,
-                        df.format(c.issueDate),
-                        df.format(c.dueDate),
-                        _status(c.status),
-                        _reference(c),
-                      ],
-                  ],
-                  headerStyle: pw.TextStyle(font: bold, fontSize: 8),
-                  cellStyle: pw.TextStyle(font: regular, fontSize: 7),
-                  headerDecoration: const pw.BoxDecoration(
-                    color: PdfColors.grey300,
-                  ),
-                  cellAlignment: pw.Alignment.centerRight,
-                ),
-              ],
+          pw.Text(
+            _title(kind),
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(font: bold, fontSize: 20),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'عدد الشيكات: ${rows.length} — إجمالي القيمة: $totalText',
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 14),
+          pw.TableHelper.fromTextArray(
+            headers: const [
+              'رقم الشيك',
+              'الاتجاه',
+              'الساحب / المستفيد',
+              'البنك',
+              'القيمة',
+              'العملة',
+              'الإصدار',
+              'الاستحقاق',
+              'الحالة',
+              'المرجع المالي',
+            ],
+            data: [
+              for (final c in rows)
+                [
+                  c.chequeNo,
+                  c.direction == ChequeDirection.received ? 'وارد' : 'صادر',
+                  c.direction == ChequeDirection.received
+                      ? c.drawerName
+                      : (c.recipientName ?? '—'),
+                  c.bankBranch.isEmpty
+                      ? c.bankName
+                      : '${c.bankName} — ${c.bankBranch}',
+                  MoneyFormatter.number(c.amount, currencyCode: c.currency),
+                  c.currency,
+                  df.format(c.issueDate),
+                  df.format(c.dueDate),
+                  _status(c.status),
+                  _reference(c),
+                ],
+            ],
+            headerStyle: pw.TextStyle(font: bold, fontSize: 8),
+            cellStyle: pw.TextStyle(font: regular, fontSize: 7),
+            headerDecoration: const pw.BoxDecoration(
+              color: PdfColors.grey300,
             ),
+            cellAlignment: pw.Alignment.centerRight,
           ),
         ],
       ),
     );
-    return pdf.save();
+    return pdf;
   }
 
   static String _reference(Cheque c) {

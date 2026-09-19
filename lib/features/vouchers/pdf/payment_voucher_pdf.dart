@@ -140,7 +140,7 @@ class PaymentVoucherPdf {
                         infoRow(
                           "العملة:",
                           (chequeCurrency ?? '').trim().isEmpty
-                              ? "ILS"
+                              ? MoneyFormatter.currencyCode
                               : chequeCurrency!,
                           ttf,
                           ttfBold,

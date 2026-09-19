@@ -79,7 +79,7 @@ void main() {
         }
 
         final db = await DatabaseMigration.initDatabase(pathOverride: dbPath);
-        expect(await db.getVersion(), 77);
+        expect(await db.getVersion(), 78);
         expect(await _count(db, 'repairs'), repairsBefore);
         expect(await _count(db, 'vouchers'), vouchersBefore);
         expect(await _count(db, 'gl_entries'), glBefore);

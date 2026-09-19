@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/constants/currencies.dart';
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
@@ -608,7 +609,9 @@ class ChequeReconciliationService {
                 'bank_name': '',
                 'bank_branch': '',
                 'amount': amount,
-                'currency': (voucher['currency'] ?? 'ILS').toString(),
+                'currency': (voucher['currency'] ??
+                        Currencies.legacyDocumentCurrencyCode)
+                    .toString(),
                 'issue_date': voucher['date']?.toString(),
                 'due_date': null,
                 'source_type': 'VOUCHER',

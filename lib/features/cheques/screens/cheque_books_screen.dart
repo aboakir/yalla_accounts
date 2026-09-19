@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -131,7 +132,7 @@ class _ChequeBooksScreenState extends State<ChequeBooksScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إنشاء الدفتر: $e')),
+        SnackBar(content: Text(UserFacingError.message(e))),
       );
     } finally {
       book.dispose();
@@ -148,7 +149,7 @@ class _ChequeBooksScreenState extends State<ChequeBooksScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إغلاق الدفتر: $e')),
+        SnackBar(content: Text(UserFacingError.message(e))),
       );
     }
   }

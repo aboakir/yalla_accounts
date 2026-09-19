@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -125,7 +126,7 @@ class _ChequesDashboardScreenState extends State<ChequesDashboardScreen> {
                       const Center(child: CircularProgressIndicator())
                     else if (snap.hasError)
                       Text(
-                        'تعذر تحميل لوحة الشيكات: ${snap.error}',
+                        UserFacingError.message(snap.error!),
                         style: const TextStyle(color: Colors.red),
                       )
                     else
@@ -267,18 +268,16 @@ class _ChequesDashboardScreenState extends State<ChequesDashboardScreen> {
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cols = constraints.maxWidth >= 1100
-            ? 4
-            : constraints.maxWidth >= 700
-                ? 3
-                : 2;
+        final viewportWidth = MediaQuery.sizeOf(context).width;
+        final grid = viewportWidth >= 1024 ? 4 : 2;
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
         return GridView.count(
-          crossAxisCount: cols,
+          crossAxisCount: grid,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 1.65,
+          mainAxisExtent: 162 + (textScale > 1 ? (textScale - 1) * 80 : 0),
           children: [
             for (final item in items)
               Card(

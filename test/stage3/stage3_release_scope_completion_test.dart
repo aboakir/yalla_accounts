@@ -25,7 +25,7 @@ void main() {
       expect(text, contains("'اللوحة المالية'"));
       expect(text, contains("'المصروفات'"));
       expect(text, contains("'تقرير السلف والمكافآت'"));
-      expect(text, contains("'شيكات آجلة'"));
+      expect(text, contains("'شيكات مستحقة وآجلة'"));
       expect(text, contains("'مشتريات مواد الدهان'"));
       expect(text, contains("'مشتريات العِدّة والأدوات'"));
       expect(text, contains("'المخزون والمواد'"));
