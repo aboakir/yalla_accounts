@@ -70,7 +70,6 @@ dependencies:
   uuid: ^4.4.0
   carousel_slider: ^5.0.0
   smooth_page_indicator: ^1.2.0+3
-  flutter_facebook_auth: ^7.1.0
   sign_in_with_apple: ^6.1.0
   badges: ^3.1.2
   speech_to_text: 7.4.0
