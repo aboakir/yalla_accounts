@@ -3,7 +3,20 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/theme/yalla_button_themes.dart';
 
 abstract final class YallaMobileTheme {
-  static ThemeData from(ThemeData base) => base.copyWith(
+  static const double drawerMinWidth = 260;
+  static const double drawerMaxWidth = 300;
+  static const double drawerWidthFraction = 0.82;
+
+  static double drawerWidthFor(double viewportWidth) =>
+      (viewportWidth * drawerWidthFraction)
+          .clamp(drawerMinWidth, drawerMaxWidth)
+          .toDouble();
+
+  static ThemeData from(
+    ThemeData base, {
+    double? viewportWidth,
+  }) =>
+      base.copyWith(
         scaffoldBackgroundColor: const Color(0xFFF6F8F7),
         appBarTheme: base.appBarTheme.copyWith(
           backgroundColor: AppColors.primary,
@@ -65,10 +78,12 @@ abstract final class YallaMobileTheme {
           backgroundColor: Colors.white,
           indicatorColor: AppColors.lightGreen,
         ),
-        drawerTheme: const DrawerThemeData(
-          width: 300,
+        drawerTheme: DrawerThemeData(
+          width: viewportWidth == null
+              ? drawerMaxWidth
+              : drawerWidthFor(viewportWidth),
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(),
+          shape: const RoundedRectangleBorder(),
         ),
         dialogTheme: const DialogThemeData(
           backgroundColor: Colors.white,

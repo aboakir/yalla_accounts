@@ -122,7 +122,9 @@ class _YallaMobileRouteFrameState extends State<YallaMobileRouteFrame> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(
-        width: 300,
+        width: YallaSidebar.compactDrawerWidth(
+          MediaQuery.sizeOf(context).width,
+        ),
         shape: const RoundedRectangleBorder(),
         child: SafeArea(
           child: YallaSidebar(currentRoute: widget.routeName),
