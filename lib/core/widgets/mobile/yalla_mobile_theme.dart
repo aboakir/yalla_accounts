@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/theme/yalla_button_themes.dart';
 
 abstract final class YallaMobileTheme {
   static ThemeData from(ThemeData base) => base.copyWith(
@@ -35,25 +36,28 @@ abstract final class YallaMobileTheme {
           ),
         ),
         filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            minimumSize: const Size(48, 50),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          style: YallaButtonThemes.filled.style!.copyWith(
+            minimumSize: const MaterialStatePropertyAll(Size(48, 50)),
+            shape: MaterialStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(48, 50),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          style: YallaButtonThemes.elevated.style!.copyWith(
+            minimumSize: const MaterialStatePropertyAll(Size(48, 50)),
+            shape: MaterialStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
           ),
         ),
+        textButtonTheme: YallaButtonThemes.text,
         outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(48, 48),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          style: YallaButtonThemes.outlined.style!.copyWith(
+            minimumSize: const MaterialStatePropertyAll(Size(48, 48)),
+            shape: MaterialStatePropertyAll(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
           ),
         ),
         navigationBarTheme: NavigationBarThemeData(

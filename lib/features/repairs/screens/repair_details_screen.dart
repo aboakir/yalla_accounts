@@ -32,6 +32,7 @@ import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_workflow_card.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_profitability_card.dart';
+import 'package:yalla_accounts/features/repairs/widgets/repair_delete_image_confirm_dialog.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -417,21 +418,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                   onInvoke: (intent) async {
                     final ok = await showDialog<bool>(
                       context: dlgCtx,
-                      builder: (dialogContext) => AdaptiveAlertDialog(
-                        title: const Text('حذف الصورة'),
-                        content: const Text('هل تريد حذف هذه الصورة نهائيًا؟'),
-                        actions: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.pop(dialogContext, false),
-                            child: const Text('إلغاء'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(dialogContext, true),
-                            child: const Text('ط­ط°ظپ'),
-                          ),
-                        ],
-                      ),
+                      builder: (_) => const RepairDeleteImageConfirmDialog(),
                     );
                     if (ok == true) {
                       await _deleteImage(images[current]);
@@ -753,21 +740,9 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                                 onTap: () async {
                                   final ok = await showDialog<bool>(
                                     context: context,
-                                    builder: (dialogContext) =>
-                                        AdaptiveAlertDialog(
-                                      title: const Text('حذف الصورة'),
-                                      content:
-                                          const Text('تأكيد حذف هذه الصورة؟'),
-                                      actions: [
-                                        TextButton(
-                                            onPressed: () => Navigator.pop(
-                                                dialogContext, false),
-                                            child: const Text('إلغاء')),
-                                        ElevatedButton(
-                                            onPressed: () => Navigator.pop(
-                                                dialogContext, true),
-                                            child: const Text('ط­ط°ظپ')),
-                                      ],
+                                    builder: (_) =>
+                                        const RepairDeleteImageConfirmDialog(
+                                      message: 'تأكيد حذف هذه الصورة؟',
                                     ),
                                   );
                                   if (ok == true) {

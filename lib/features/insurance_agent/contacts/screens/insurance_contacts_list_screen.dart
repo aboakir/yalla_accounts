@@ -301,7 +301,7 @@ class _InsuranceContactsListScreenState
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ط­ط°ظپ'),
+            child: const Text('حذف'),
           ),
         ],
       ),
@@ -970,7 +970,7 @@ class _WideTable extends StatelessWidget {
                               color: Colors.blueGrey),
                         ),
                         IconButton(
-                          tooltip: 'ط­ط°ظپ',
+                          tooltip: 'حذف',
                           onPressed: () => onDelete(e),
                           icon: const Icon(Icons.delete_outline,
                               color: Colors.redAccent),
@@ -1056,7 +1056,7 @@ class _CardsList extends StatelessWidget {
               AdaptiveRow(
                 children: [
                   IconButton(
-                    tooltip: 'ط­ط°ظپ',
+                    tooltip: 'حذف',
                     onPressed: () => onDelete(e),
                     icon: const Icon(Icons.delete_outline,
                         color: Colors.redAccent),
@@ -1289,7 +1289,7 @@ class _LeadDialogState extends State<_LeadDialog> {
         ),
         FilledButton(
           onPressed: _submit,
-          child: const Text('ط­ظپط¸'),
+          child: const Text('حفظ'),
         ),
       ],
     );

@@ -8,6 +8,7 @@ import 'dart:ui' as ui show PlatformDispatcher;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/theme/yalla_button_themes.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show Intl;
@@ -368,6 +369,10 @@ class MyApp extends ConsumerWidget {
             centerTitle: true,
             elevation: 0,
           ),
+          elevatedButtonTheme: YallaButtonThemes.elevated,
+          filledButtonTheme: YallaButtonThemes.filled,
+          textButtonTheme: YallaButtonThemes.text,
+          outlinedButtonTheme: YallaButtonThemes.outlined,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
       ),

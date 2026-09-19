@@ -359,6 +359,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:
                                       const Color.fromARGB(255, 217, 211, 227),
+                                  foregroundColor: Colors.black87,
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 20, vertical: 12),
                                 ),

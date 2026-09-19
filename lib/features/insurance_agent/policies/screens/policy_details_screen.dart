@@ -507,7 +507,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(c2, true),
-                            child: const Text('ط­ط°ظپ'),
+                            child: const Text('حذف'),
                           ),
                         ],
                       ),
@@ -1707,7 +1707,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
                                           ElevatedButton(
                                             onPressed: () =>
                                                 Navigator.pop(c2, true),
-                                            child: const Text('ط­ط°ظپ'),
+                                            child: const Text('حذف'),
                                           ),
                                         ],
                                       ),

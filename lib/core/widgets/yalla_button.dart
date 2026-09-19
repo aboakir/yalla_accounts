@@ -34,6 +34,9 @@ class YallaButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor ??
             (isDanger ? AppColors.danger : AppColors.primary),
+        foregroundColor: textColor ?? AppColors.textLight,
+        disabledBackgroundColor: AppColors.lightGrey,
+        disabledForegroundColor: Colors.black54,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
