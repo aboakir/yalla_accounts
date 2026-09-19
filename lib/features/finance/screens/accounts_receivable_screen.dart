@@ -383,9 +383,22 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
 
     // بطاقة الملف من repairs
     final metaRows = await db.rawQuery('''
-      SELECT id, vehicleType, vehicleModel, vehicleNumber, receivedDate
-      FROM repairs
-      WHERE client_id = ?
+      SELECT r.id, r.vehicleType, r.vehicleModel, r.vehicleNumber,
+        r.receivedDate
+      FROM repairs r
+      WHERE r.client_id = ?
+        AND (
+          EXISTS (
+            SELECT 1 FROM invoices i WHERE i.repair_id = r.id
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM gl_lines l
+            JOIN accounts a ON a.id = l.account_id
+            WHERE l.repair_id = r.id
+              AND (a.code = '1200' OR a.code LIKE '1200.%')
+          )
+        )
     ''', [row.clientId]);
 
     final details = <_RepairAgg>[];
