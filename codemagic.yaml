@@ -208,6 +208,14 @@ workflows:
           flutter build ios --release --no-codesign \
             --dart-define=YALLA_OWNER_LOCAL_FULL_ACCESS=true
 
+      - name: Verify iOS file sharing contract
+        script: |
+          set -euo pipefail
+          APP="build/ios/iphoneos/Runner.app"
+          test -d "$APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :UIFileSharingEnabled' "$APP/Info.plist")" = "true"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSSupportsOpeningDocumentsInPlace' "$APP/Info.plist")" = "true"
+
       - name: Package owner test IPA
         script: |
           set -euo pipefail
