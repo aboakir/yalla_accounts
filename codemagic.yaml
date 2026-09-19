@@ -148,3 +148,70 @@ workflows:
       - build/api_phase1/analyze.log
       - build/api_phase1/gate_tests.log
       - build/api_phase1/full_test.log
+
+  ios_owner_test:
+    name: Yallah Accounts iPhone Owner Test
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      flutter: 3.44.8
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Verify isolated mobile source
+        script: |
+          set -euo pipefail
+          test -f pubspec.yaml
+          test -f lib/core/config/owner_local_access.dart
+          grep -Eq '^name:[[:space:]]*yalla_accounts[[:space:]]*$' pubspec.yaml
+          echo "Branch=${CM_BRANCH:-unknown}"
+          echo "Commit=${CM_COMMIT:-unknown}"
+          flutter --version
+          xcodebuild -version
+
+      - name: Resolve locked dependencies
+        script: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile
+
+      - name: Validate owner mobile baseline
+        script: |
+          set -euo pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test --no-pub \
+            test/visual_identity/yallah_visual_identity_contract_test.dart \
+            test/responsive/r11_adaptive_layout_contract_test.dart \
+            test/repairs/add_repair_post_save_navigation_test.dart
+
+      - name: Install canonical CocoaPods input
+        script: |
+          set -euo pipefail
+          test -f ci/Podfile
+          cp ci/Podfile ios/Podfile
+          cd ios
+          pod install --repo-update
+
+      - name: Build unsigned owner iPhone app
+        script: |
+          set -euo pipefail
+          flutter build ios --release --no-codesign \
+            --dart-define=YALLA_OWNER_LOCAL_FULL_ACCESS=true
+
+      - name: Package owner test IPA
+        script: |
+          set -euo pipefail
+          APP="build/ios/iphoneos/Runner.app"
+          OUT="build/ios/owner_ipa"
+          test -d "$APP"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/Payload"
+          cp -R "$APP" "$OUT/Payload/Runner.app"
+          (cd "$OUT" && zip -qry "Yallah_Accounts_Owner_Test_iPhone.ipa" Payload)
+          shasum -a 256 "$OUT/Yallah_Accounts_Owner_Test_iPhone.ipa" > "$OUT/SHA256.txt"
+
+    artifacts:
+      - build/ios/owner_ipa/Yallah_Accounts_Owner_Test_iPhone.ipa
+      - build/ios/owner_ipa/SHA256.txt
+      - /tmp/xcodebuild_logs/*.log
