@@ -528,6 +528,41 @@ class ChequeTables {
     ''');
 
     await db.execute(r'''
+      CREATE TRIGGER IF NOT EXISTS trg_cheque_voucher_link_insert
+      BEFORE INSERT ON cheque_voucher_links
+      BEGIN
+        SELECT CASE
+          WHEN NOT EXISTS(
+            SELECT 1 FROM cheques c WHERE c.id=NEW.cheque_id
+          )
+          THEN RAISE(ABORT, 'CHEQUE_LINK_CHEQUE_NOT_FOUND')
+        END;
+        SELECT CASE
+          WHEN ABS(
+            COALESCE((SELECT c.amount FROM cheques c WHERE c.id=NEW.cheque_id),0)
+            - NEW.amount
+          ) > 0.005
+          THEN RAISE(ABORT, 'CHEQUE_LINK_AMOUNT_MISMATCH')
+        END;
+        SELECT CASE
+          WHEN NEW.voucher_type='RECEIPT'
+            AND UPPER(COALESCE((
+              SELECT c.direction FROM cheques c WHERE c.id=NEW.cheque_id
+            ),''))<>'RECEIVED'
+          THEN RAISE(ABORT, 'CHEQUE_RECEIPT_DIRECTION_MISMATCH')
+        END;
+        SELECT CASE
+          WHEN NEW.voucher_type='PAYMENT'
+            AND UPPER(COALESCE((
+              SELECT c.direction FROM cheques c WHERE c.id=NEW.cheque_id
+            ),''))<>'ISSUED'
+          THEN RAISE(ABORT, 'CHEQUE_PAYMENT_DIRECTION_MISMATCH')
+        END;
+
+      END
+    ''');
+
+    await db.execute(r'''
       CREATE TRIGGER IF NOT EXISTS trg_cheque_allocation_insert_cap
       BEFORE INSERT ON cheque_allocations
       BEGIN
@@ -632,6 +667,10 @@ class ChequeTables {
         FROM cheques c
         JOIN payments p ON p.id=c.source_id
         WHERE UPPER(COALESCE(c.source_type,''))='PAYMENT'
+          AND NOT EXISTS(
+            SELECT 1 FROM cheque_allocations a
+            WHERE a.cheque_id=c.id
+          )
       ''');
     }
 
@@ -687,6 +726,10 @@ class ChequeTables {
         FROM cheques c
         JOIN vouchers v ON v.id=c.source_id
         WHERE UPPER(COALESCE(c.source_type,''))='VOUCHER'
+          AND NOT EXISTS(
+            SELECT 1 FROM cheque_allocations a
+            WHERE a.cheque_id=c.id
+          )
       ''');
     }
 
