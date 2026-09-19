@@ -210,9 +210,10 @@ class ChequeTraceService {
       JOIN gl_entries e ON e.id=l.entry_id
       JOIN accounts a ON a.id=l.account_id
       WHERE l.cheque_id=?
+         OR e.id=?
       ORDER BY e.id, l.id
       ''',
-      [chequeId],
+      [chequeId, cheque.glEntryId ?? -1],
     );
 
     final payments = await db.rawQuery(
