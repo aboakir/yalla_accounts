@@ -287,6 +287,13 @@ class ChequeTables {
               ELSE 'RECEIVED'
             END
           ),
+          status = CASE
+            WHEN LOWER(COALESCE(status,''))='pending'
+              AND cheque_type='outgoing' THEN 'issued'
+            WHEN LOWER(COALESCE(status,''))='pending'
+              THEN 'received'
+            ELSE status
+          END,
           instrument_key = COALESCE(
             NULLIF(instrument_key,''),
             NULLIF(uuid,''),
@@ -601,10 +608,7 @@ class ChequeTables {
     ''');
   }
 
-  static Future<bool> _tableExists(
-    DatabaseExecutor db,
-    String table,
-  ) async {
+  static Future<bool> _tableExists(DatabaseExecutor db, String table) async {
     final rows = await db.rawQuery(
       "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
       [table],
@@ -806,16 +810,15 @@ class ChequeTables {
     }
 
     return db.insert(
-      'accounts',
-      {
-        'code': code,
-        'name': name,
-        'type': type,
-        'normal_balance': normalBalance,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+        'accounts',
+        {
+          'code': code,
+          'name': name,
+          'type': type,
+          'normal_balance': normalBalance,
+          'created_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
   static Future<void> _ensureColumn(
@@ -849,10 +852,7 @@ class ChequeTables {
   ) async {
     await db.update(
       'cheques',
-      {
-        'status': status,
-        'updated_at': DateTime.now().toIso8601String(),
-      },
+      {'status': status, 'updated_at': DateTime.now().toIso8601String()},
       where: 'id=?',
       whereArgs: [chequeId],
     );
