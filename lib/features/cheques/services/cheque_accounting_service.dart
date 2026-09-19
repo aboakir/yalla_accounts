@@ -35,6 +35,14 @@ class ChequeAccountingService {
     required String currency,
     required String sourceType,
     required String sourceId,
+    String? instrumentKey,
+    int? receiptVoucherId,
+    String? paymentVoucherId,
+    String? sourcePartyType,
+    String? sourcePartyId,
+    int? bankAccountId,
+    String? chequeBookId,
+    String? createdBy,
     int? clientId,
     String? supplierPid,
     String? recipientType,
@@ -69,12 +77,24 @@ class ChequeAccountingService {
 
     final issueDate = _parseDate(draft['issue_date'], 'issue date');
     final dueDate = _parseDate(draft['due_date'], 'due date');
+    final uuid = (draft['uuid'] ?? '').toString().trim().isNotEmpty
+        ? draft['uuid'].toString().trim()
+        : 'chq-${DateTime.now().microsecondsSinceEpoch}';
+    final canonicalInstrumentKey =
+        (instrumentKey ?? draft['instrument_key']?.toString() ?? uuid).trim();
+    if (canonicalInstrumentKey.isEmpty) {
+      throw StateError('Cheque instrument key is required.');
+    }
 
     final existing = await txn.query(
       'cheques',
       columns: ['id', 'amount', 'cheque_type'],
-      where: 'source_type=? AND source_id=?',
-      whereArgs: [sourceType.toUpperCase(), sourceId],
+      where: 'source_type=? AND source_id=? AND instrument_key=?',
+      whereArgs: [
+        sourceType.toUpperCase(),
+        sourceId,
+        canonicalInstrumentKey,
+      ],
       limit: 1,
     );
 
@@ -104,13 +124,23 @@ class ChequeAccountingService {
       throw StateError('Incoming cheque requires a client.');
     }
 
-    final uuid = (draft['uuid'] ?? '').toString().trim().isNotEmpty
-        ? draft['uuid'].toString().trim()
-        : 'chq-${DateTime.now().microsecondsSinceEpoch}';
+    final canonicalBankAccountId = bankAccountId ??
+        (draft['bank_account_id'] is num
+            ? (draft['bank_account_id'] as num).toInt()
+            : int.tryParse('${draft['bank_account_id'] ?? ''}'));
+    final canonicalChequeBookId =
+        (chequeBookId ?? draft['cheque_book_id']?.toString())?.trim();
+    if (type == ChequeType.outgoing && canonicalBankAccountId == null) {
+      throw StateError('Outgoing cheque requires a bank account.');
+    }
 
     final now = DateTime.now().toIso8601String();
     final linkedPayments =
         sourceType.toUpperCase() == 'PAYMENT' ? jsonEncode([sourceId]) : '[]';
+    final direction = type == ChequeType.outgoing ? 'ISSUED' : 'RECEIVED';
+    final initialStatus = type == ChequeType.outgoing
+        ? ChequeStatus.issued.name
+        : ChequeStatus.received.name;
 
     final id = await txn.insert(
       'cheques',
@@ -118,7 +148,9 @@ class ChequeAccountingService {
         'uuid': uuid,
         'cheque_no': chequeNo,
         'cheque_type': type.name,
-        'status': ChequeStatus.pending.name,
+        'direction': direction,
+        'status': initialStatus,
+        'instrument_key': canonicalInstrumentKey,
         'drawer_name': drawerName,
         'bank_name': bankName,
         'bank_branch': bankBranch,
@@ -128,6 +160,12 @@ class ChequeAccountingService {
         'due_date': dueDate.toIso8601String(),
         'source_type': sourceType.toUpperCase(),
         'source_id': sourceId,
+        'receipt_voucher_id': receiptVoucherId,
+        'payment_voucher_id': paymentVoucherId,
+        'source_party_type': sourcePartyType,
+        'source_party_id': sourcePartyId,
+        'bank_account_id': canonicalBankAccountId,
+        'cheque_book_id': canonicalChequeBookId,
         'supplier_pid': supplierPid,
         'client_id': clientId,
         'recipient_type': recipientType,
@@ -144,6 +182,7 @@ class ChequeAccountingService {
         'auto_return_date': null,
         'return_reason': null,
         'is_legacy_incomplete': 0,
+        'created_by': createdBy,
         'created_at': now,
         'updated_at': now,
 
@@ -162,11 +201,144 @@ class ChequeAccountingService {
       chequeId: id,
       type: 'registered',
       fromStatus: null,
-      toStatus: ChequeStatus.pending.name,
+      toStatus: initialStatus,
       note: '$sourceType/$sourceId',
     );
 
     return id;
+  }
+
+  static Future<void> linkChequeToVoucherOnTxn({
+    required Transaction txn,
+    required int chequeId,
+    required String voucherType,
+    required String voucherId,
+    required String instrumentKey,
+    required double amount,
+  }) async {
+    await ChequeTables.ensureChequesSchema(txn);
+    final canonicalType = voucherType.trim().toUpperCase();
+    if (!const {'RECEIPT', 'PAYMENT'}.contains(canonicalType)) {
+      throw StateError('Unsupported cheque voucher type: ' + voucherType);
+    }
+
+    final existing = await txn.query(
+      'cheque_voucher_links',
+      where: 'cheque_id=?',
+      whereArgs: [chequeId],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      final same = existing.first['voucher_type'] == canonicalType &&
+          existing.first['voucher_id'].toString() == voucherId &&
+          existing.first['instrument_key'].toString() == instrumentKey &&
+          (((existing.first['amount'] as num?)?.toDouble() ?? 0) - amount)
+                  .abs() <=
+              0.005;
+      if (!same) {
+        throw StateError('Cheque is already linked to a different voucher.');
+      }
+      return;
+    }
+
+    await txn.insert(
+      'cheque_voucher_links',
+      {
+        'cheque_id': chequeId,
+        'voucher_type': canonicalType,
+        'voucher_id': voucherId,
+        'instrument_key': instrumentKey,
+        'amount': amount,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
+
+    await txn.update(
+      'cheques',
+      canonicalType == 'RECEIPT'
+          ? {'receipt_voucher_id': int.tryParse(voucherId)}
+          : {'payment_voucher_id': voucherId},
+      where: 'id=?',
+      whereArgs: [chequeId],
+    );
+
+    await _event(
+      txn,
+      chequeId: chequeId,
+      type: 'linked_to_voucher',
+      note: canonicalType + '/' + voucherId,
+    );
+  }
+
+  static Future<void> allocateChequeOnTxn({
+    required Transaction txn,
+    required int chequeId,
+    required String voucherType,
+    required String voucherId,
+    required String allocationType,
+    String? targetId,
+    required double amount,
+  }) async {
+    if (amount <= 0.005) {
+      throw StateError('Cheque allocation amount must be positive.');
+    }
+    final canonicalType = voucherType.trim().toUpperCase();
+    final canonicalAllocationType = allocationType.trim().toUpperCase();
+    final target = targetId?.trim();
+
+    final existing = await txn.query(
+      'cheque_allocations',
+      where:
+          "cheque_id=? AND voucher_type=? AND voucher_id=? AND allocation_type=? "
+          "AND COALESCE(target_id,'')=COALESCE(?,'')",
+      whereArgs: [
+        chequeId,
+        canonicalType,
+        voucherId,
+        canonicalAllocationType,
+        target,
+      ],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      final oldAmount = (existing.first['amount'] as num?)?.toDouble() ?? 0;
+      if ((oldAmount - amount).abs() > 0.005) {
+        throw StateError(
+          'Existing cheque allocation has a different amount.',
+        );
+      }
+      return;
+    }
+
+    await txn.insert(
+      'cheque_allocations',
+      {
+        'cheque_id': chequeId,
+        'voucher_type': canonicalType,
+        'voucher_id': voucherId,
+        'allocation_type': canonicalAllocationType,
+        'target_id': target,
+        'amount': amount,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
+
+    await _event(
+      txn,
+      chequeId: chequeId,
+      type: 'allocated',
+      note: canonicalType +
+          '/' +
+          voucherId +
+          ' • ' +
+          canonicalAllocationType +
+          '/' +
+          (target ?? '') +
+          ' • ' +
+          amount.toStringAsFixed(2),
+    );
   }
 
   static Future<void> attachInitialGlOnTxn({

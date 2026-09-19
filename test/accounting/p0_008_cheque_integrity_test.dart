@@ -68,6 +68,10 @@ void main() {
     expect(source.contains('chequeDraft:'), isTrue);
     expect(
       source.contains('الشيك الواحد يجب ربطه بملف واحد'),
+      isFalse,
+    );
+    expect(
+      source.contains('one physical cheque may cover multiple'),
       isTrue,
     );
   });

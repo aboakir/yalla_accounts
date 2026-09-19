@@ -875,13 +875,8 @@ class _ReceiptVoucherScreenState extends State<ReceiptVoucherScreen> {
           setState(() {});
 
           if (selectedMethod == "CHEQUE") {
-            if (selectedRepairs.length > 1) {
-              _snack(
-                  "الشيك الواحد يجب ربطه بملف واحد فقط. أنشئ سندًا منفصلًا لكل شيك.");
-              selectedMethod = "CASH";
-              setState(() {});
-              return;
-            }
+            // CHEQUES CORE v78: one physical cheque may cover multiple
+            // selected repair obligations inside the same receipt.
             double amt = selectedRepairs.isEmpty
                 ? double.tryParse(amountCtrl.text.trim()) ?? 0
                 : totalPayment;

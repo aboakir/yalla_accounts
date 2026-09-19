@@ -528,6 +528,7 @@ class DatabaseMigration {
   }
 
   static Future<void> _upgradeV78(Database db) async {
+    await ReceiptTables.createAllTables(db);
     await ChequeTables.ensureChequesSchema(db);
     await db.insert(
       'schema_migrations',

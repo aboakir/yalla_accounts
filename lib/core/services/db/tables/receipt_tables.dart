@@ -44,6 +44,22 @@ class ReceiptTables {
     ''');
 
     await db.execute('''
+      CREATE TABLE IF NOT EXISTS receipt_instruments (
+        id TEXT PRIMARY KEY,
+        receipt_number INTEGER NOT NULL,
+        instrument_key TEXT NOT NULL,
+        method TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'ILS',
+        cheque_id INTEGER,
+        bank_account_id INTEGER,
+        created_at TEXT NOT NULL,
+        CHECK(amount > 0),
+        UNIQUE(receipt_number, instrument_key)
+      )
+    ''');
+
+    await db.execute('''
       CREATE TABLE IF NOT EXISTS customer_credit_allocations (
         id TEXT PRIMARY KEY,
         client_id INTEGER NOT NULL,
@@ -61,6 +77,7 @@ class ReceiptTables {
     for (final table in [
       'receipt_headers',
       'receipt_allocations',
+      'receipt_instruments',
       'customer_credit_allocations',
       'receipt_requests'
     ]) {
@@ -84,6 +101,14 @@ class ReceiptTables {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_receipt_headers_date ON receipt_headers(date)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_receipt_instruments_receipt '
+      'ON receipt_instruments(receipt_number)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_receipt_instruments_cheque '
+      'ON receipt_instruments(cheque_id)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_receipt_allocations_receipt ON receipt_allocations(receipt_number)',
