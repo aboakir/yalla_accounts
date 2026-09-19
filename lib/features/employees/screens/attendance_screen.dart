@@ -34,9 +34,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   static const stPaidLeave = 'إجازة_مدفوعة';
   static const stUnpaidLeave = 'إجازة_غير_مدفوعة';
   static const stHoliday = 'عطلة_رسمية';
+  static const stOffDay = 'يوم غير مجدول';
 
   Employee? selectedEmployee;
   DateTime selectedMonth = DateTime.now();
+  DateTimeRange? _customRange;
+  Set<int> _workWeekdays = const {1, 2, 3, 4, 5, 6};
   List<Attendance> records = [];
   bool isLoading = false;
   String? loadError;
@@ -56,6 +59,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   int kpiHolidayDays = 0;
   int kpiLateMinutes = 0;
   double kpiOvertimeHours = 0.0;
+  double kpiWorkedHours = 0.0;
   double kpiPayableHours = 0.0;
   double kpiPayableDays = 0.0;
 
@@ -85,6 +89,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         : _parseHHMM(ws.workEnd!);
 
     workHours = ws.dailyHours ?? 0;
+    final weekdays = (ws.weekWorkdays ?? '1,2,3,4,5,6')
+        .split(',')
+        .map((value) => int.tryParse(value.trim()))
+        .whereType<int>()
+        .where((day) => day >= DateTime.monday && day <= DateTime.sunday)
+        .toSet();
+    _workWeekdays = weekdays.isEmpty ? const {1, 2, 3, 4, 5, 6} : weekdays;
 
     if (mounted) setState(() {});
   }
@@ -97,6 +108,39 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return TimeOfDay(hour: h.clamp(0, 23), minute: m.clamp(0, 59));
   }
 
+  DateTime get _periodStart {
+    final custom = _customRange;
+    if (custom != null) {
+      return DateTime(custom.start.year, custom.start.month, custom.start.day);
+    }
+    return DateTime(selectedMonth.year, selectedMonth.month, 1);
+  }
+
+  DateTime get _periodEnd {
+    final custom = _customRange;
+    final day = custom == null
+        ? DateTime(selectedMonth.year, selectedMonth.month + 1, 0)
+        : DateTime(custom.end.year, custom.end.month, custom.end.day);
+    return DateTime(day.year, day.month, day.day, 23, 59, 59, 999);
+  }
+
+  String get _periodLabel => _customRange == null
+      ? DateFormat('yyyy-MM').format(selectedMonth)
+      : '${DateFormat('yyyy-MM-dd').format(_periodStart)} — '
+          '${DateFormat('yyyy-MM-dd').format(_periodEnd)}';
+
+  List<DateTime> get _periodDays {
+    final days = <DateTime>[];
+    var cursor =
+        DateTime(_periodStart.year, _periodStart.month, _periodStart.day);
+    final end = DateTime(_periodEnd.year, _periodEnd.month, _periodEnd.day);
+    while (!cursor.isAfter(end)) {
+      days.add(cursor);
+      cursor = cursor.add(const Duration(days: 1));
+    }
+    return days;
+  }
+
   Future<void> _loadAttendance() async {
     if (selectedEmployee == null) return;
     setState(() {
@@ -104,12 +148,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       loadError = null;
     });
     try {
-      final from = DateTime(selectedMonth.year, selectedMonth.month, 1);
-      final to = DateTime(selectedMonth.year, selectedMonth.month + 1, 0);
       final result = await AttendanceDatabaseService.getAttendanceForEmployee(
         employeeId: selectedEmployee!.id,
-        from: from,
-        to: to,
+        from: _periodStart,
+        to: _periodEnd,
       );
       setState(() => records = result);
       _recomputeKPIs();
@@ -130,9 +172,29 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       initialDatePickerMode: DatePickerMode.year,
     );
     if (picked != null) {
-      setState(() => selectedMonth = picked);
+      setState(() {
+        selectedMonth = picked;
+        _customRange = null;
+      });
       await _loadAttendance();
     }
+  }
+
+  Future<void> _pickCustomRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: now,
+      initialDateRange: DateTimeRange(
+        start: _periodStart,
+        end: DateTime(_periodEnd.year, _periodEnd.month, _periodEnd.day),
+      ),
+      helpText: 'اختر فترة كشف الحضور',
+    );
+    if (picked == null) return;
+    setState(() => _customRange = picked);
+    await _loadAttendance();
   }
 
   Future<void> _markTodayAsPresent() async {
@@ -142,13 +204,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final today = DateTime(now.year, now.month, now.day);
     final currentHmm = _fmtHmm(now.hour * 60 + now.minute);
 
-    Attendance? existing;
-    for (final r in records) {
-      if (_isSameDate(r.date, today)) {
-        existing = r;
-        break;
-      }
-    }
+    final todayRows = await AttendanceDatabaseService.getAttendanceForEmployee(
+      employeeId: selectedEmployee!.id,
+      from: today,
+      to: DateTime(today.year, today.month, today.day, 23, 59, 59, 999),
+    );
+    final Attendance? existing = todayRows.isEmpty ? null : todayRows.first;
 
     if (existing == null) {
       final id =
@@ -297,76 +358,79 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         else ...[
                           _buildKPIsBar(),
                           const SizedBox(height: 12),
-                          AdaptiveRow(
-                            children: [
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.calculate),
-                                label: const Text('احتساب الراتب لهذا الشهر'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 12),
-                                ),
-                                onPressed: () async {
-                                  if (selectedEmployee == null) return;
+                          if (_customRange == null)
+                            AdaptiveRow(
+                              children: [
+                                ElevatedButton.icon(
+                                  icon: const Icon(Icons.calculate),
+                                  label: const Text('احتساب الراتب لهذا الشهر'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                  ),
+                                  onPressed: () async {
+                                    if (selectedEmployee == null) return;
 
-                                  final totalDays = DateUtils.getDaysInMonth(
-                                    selectedMonth.year,
-                                    selectedMonth.month,
-                                  );
+                                    final totalDays = DateUtils.getDaysInMonth(
+                                      selectedMonth.year,
+                                      selectedMonth.month,
+                                    );
 
-                                  final salary = await ref
-                                      .read(salaryProvider.notifier)
-                                      .calculateAndReturn(
-                                        employeeId: selectedEmployee!.id,
-                                        baseSalary:
-                                            selectedEmployee!.baseSalary,
-                                        totalWorkDaysInMonth: totalDays,
-                                        attendanceRecords: records,
-                                        periodStart: DateTime(
-                                            selectedMonth.year,
-                                            selectedMonth.month,
-                                            1),
-                                        periodEnd: DateTime(selectedMonth.year,
-                                            selectedMonth.month + 1, 0),
-                                        payOfficialHolidays: true,
-                                      );
+                                    final salary = await ref
+                                        .read(salaryProvider.notifier)
+                                        .calculateAndReturn(
+                                          employeeId: selectedEmployee!.id,
+                                          baseSalary:
+                                              selectedEmployee!.baseSalary,
+                                          totalWorkDaysInMonth: totalDays,
+                                          attendanceRecords: records,
+                                          periodStart: DateTime(
+                                              selectedMonth.year,
+                                              selectedMonth.month,
+                                              1),
+                                          periodEnd: DateTime(
+                                              selectedMonth.year,
+                                              selectedMonth.month + 1,
+                                              0),
+                                          payOfficialHolidays: true,
+                                        );
 
-                                  if (!context.mounted) return;
+                                    if (!context.mounted) return;
 
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AdaptiveAlertDialog(
-                                      title: const Text('📊 الراتب المحسوب'),
-                                      content: Text(
-                                        'راتب ${selectedEmployee!.fullName} هو: ${MoneyFormatter.format(salary)}',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          child: const Text('حسنًا'),
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AdaptiveAlertDialog(
+                                        title: const Text('📊 الراتب المحسوب'),
+                                        content: Text(
+                                          'راتب ${selectedEmployee!.fullName} هو: ${MoneyFormatter.format(salary)}',
                                         ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 12),
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.picture_as_pdf),
-                                label: const Text('كشف دوام شهري'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      const Color.fromARGB(255, 217, 211, 227),
-                                  foregroundColor: Colors.black87,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 12),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Text('حسنًا'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
-                                onPressed: _exportMonthlyAttendancePdf,
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  icon: const Icon(Icons.picture_as_pdf),
+                                  label: const Text('كشف دوام شهري'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color.fromARGB(
+                                        255, 217, 211, 227),
+                                    foregroundColor: Colors.black87,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                  ),
+                                  onPressed: _exportMonthlyAttendancePdf,
+                                ),
+                              ],
+                            ),
                           AdaptiveRow(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -410,7 +474,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             child: SingleChildScrollView(
                               child: ExpansionTile(
                                 initiallyExpanded: true,
-                                title: const Text('تفاصيل أيام الشهر'),
+                                title:
+                                    Text('تفاصيل أيام الفترة: $_periodLabel'),
                                 children: [_buildAttendanceTable()],
                               ),
                             ),
@@ -467,25 +532,30 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           child: Center(child: CircularProgressIndicator()),
         );
       }
-      if (records.isEmpty) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Text(
-            'لا توجد سجلات حضور لهذا الشهر',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54),
-          ),
-        );
-      }
-
-      final sorted = [...records]..sort((a, b) => b.date.compareTo(a.date));
+      final byDay = <String, Attendance>{
+        for (final record in records)
+          DateFormat('yyyy-MM-dd').format(record.date): record,
+      };
+      final displayDays = _periodDays.reversed.toList(growable: false);
       return Column(
-        children: sorted.map((record) {
+        children: displayDays.map((day) {
+          final key = DateFormat('yyyy-MM-dd').format(day);
+          final existing = byDay[key];
+          final scheduled = _workWeekdays.contains(day.weekday);
+          final record = existing ??
+              Attendance(
+                id: '',
+                employeeId: selectedEmployee!.id,
+                date: day,
+                status: scheduled ? stAbsent : stOffDay,
+              );
           final details = <String>[
             if (record.checkIn?.isNotEmpty == true) 'دخول ${record.checkIn}',
             if (record.checkOut?.isNotEmpty == true) 'خروج ${record.checkOut}',
             if (record.hoursWorked != null)
               '${record.hoursWorked!.toStringAsFixed(2)} ساعة',
+            if (existing == null && scheduled) 'لا يوجد تسجيل',
+            if (existing == null && !scheduled) 'خارج أيام العمل',
           ].join(' • ');
           return Card(
             elevation: 0,
@@ -495,7 +565,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 _iconForStatus(record.status),
                 color: _colorForStatus(record.status),
               ),
-              title: Text(DateFormat('yyyy-MM-dd').format(record.date)),
+              title: Text(key),
               subtitle: details.isEmpty ? null : Text(details),
               trailing: Text(
                 record.status,
@@ -504,7 +574,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              onTap: () => _openEditDialog(record),
+              onTap: record.status == stOffDay
+                  ? null
+                  : () => _openEditDialog(record),
             ),
           );
         }).toList(growable: false),
@@ -558,21 +630,55 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             await _loadAttendance();
                           },
                         ),
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          onPressed: _pickMonth,
-                          icon: const Icon(Icons.calendar_month_outlined),
-                          label: Text(
-                            DateFormat('yyyy-MM').format(selectedMonth),
-                          ),
-                        ),
                         if (selectedEmployee != null) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'تسجيل حضور اليوم',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           ElevatedButton.icon(
                             onPressed: _markTodayAsPresent,
                             icon: const Icon(Icons.check_circle_outline),
-                            label: const Text('تسجيل حضور اليوم'),
+                            label: const Text('تسجيل حضور / انصراف اليوم'),
                           ),
+                          const SizedBox(height: 24),
+                          const Divider(),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'كشف وسجل الحضور',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: _pickMonth,
+                                icon: const Icon(Icons.calendar_month_outlined),
+                                label: const Text('اختيار شهر'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: _pickCustomRange,
+                                icon: const Icon(Icons.date_range_outlined),
+                                label: const Text('فترة مخصصة'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'الفترة المعروضة: $_periodLabel',
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildKPIsBar(),
                         ],
                         const SizedBox(height: 16),
                         recordsBody(),
@@ -632,8 +738,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         const SizedBox(width: 16),
         TextButton.icon(
           icon: const Icon(Icons.calendar_month),
-          label: Text(DateFormat('yyyy-MM').format(selectedMonth)),
+          label: Text(
+            _customRange == null
+                ? DateFormat('yyyy-MM').format(selectedMonth)
+                : 'اختيار شهر',
+          ),
           onPressed: _pickMonth,
+        ),
+        const SizedBox(width: 8),
+        TextButton.icon(
+          icon: const Icon(Icons.date_range),
+          label: Text(_customRange == null ? 'فترة مخصصة' : _periodLabel),
+          onPressed: _pickCustomRange,
         ),
       ],
     );
@@ -683,7 +799,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   Widget _buildKPIsBar() {
     final totalDays =
-        DateUtils.getDaysInMonth(selectedMonth.year, selectedMonth.month);
+        _periodDays.where((day) => _workWeekdays.contains(day.weekday)).length;
     final percent =
         totalDays == 0 ? 0 : (kpiPresentDays / totalDays * 100).round();
 
@@ -707,6 +823,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         chip('إجازات غير مدفوعة', '$kpiUnpaidLeaveDays', Colors.orange),
         chip('عطل رسمية', '$kpiHolidayDays', Colors.teal),
         chip('التأخير', '$kpiLateMinutesد', Colors.purple),
+        chip(
+          'إجمالي ساعات العمل',
+          '${kpiWorkedHours.toStringAsFixed(2)}س',
+          Colors.blueGrey,
+          bold: true,
+        ),
         chip('الإضافي', '${kpiOvertimeHours.toStringAsFixed(2)}س',
             Colors.indigo),
         chip('ساعات مدفوعة', '${kpiPayableHours.toStringAsFixed(2)}س',
@@ -720,25 +842,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   Widget _buildAttendanceTable() {
-    final totalDays =
-        DateUtils.getDaysInMonth(selectedMonth.year, selectedMonth.month);
     final today = DateTime.now();
-    final isCurrentMonth =
-        selectedMonth.year == today.year && selectedMonth.month == today.month;
-
-    final days = List.generate(
-      totalDays,
-      (i) => DateTime(selectedMonth.year, selectedMonth.month, i + 1),
-    )..sort((a, b) {
-        if (!isCurrentMonth) {
-          // لو مش الشهر الحالي: ترتيب تنازلي يطلع آخر يوم فوق
-          return b.compareTo(a);
-        }
-
-        // لو الشهر الحالي:
-        if (_isSameDate(a, today)) return -1; // اليوم أولًا
+    final days = [..._periodDays]..sort((a, b) {
+        if (_isSameDate(a, today)) return -1;
         if (_isSameDate(b, today)) return 1;
-        return b.compareTo(a); // الباقي تنازلي
+        return b.compareTo(a);
       });
 
     return ListView.builder(
@@ -752,7 +860,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           orElse: () => Attendance(
             employeeId: selectedEmployee!.id,
             date: day,
-            status: stAbsent,
+            status: _workWeekdays.contains(day.weekday) ? stAbsent : stOffDay,
             id: '',
           ),
         );
@@ -768,6 +876,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           stPaidLeave => 'إجازة مدفوعة',
           stUnpaidLeave => 'إجازة غير مدفوعة',
           stHoliday => 'عطلة رسمية',
+          stOffDay => 'خارج أيام العمل',
           _ => (match.notes ?? ''),
         };
 
@@ -782,7 +891,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 style: TextStyle(
                     color: _colorForStatus(match.status),
                     fontWeight: FontWeight.bold)),
-            onTap: () => _openEditDialog(match),
+            onTap:
+                match.status == stOffDay ? null : () => _openEditDialog(match),
           ),
         );
       },
@@ -1002,13 +1112,26 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     int present = 0, absent = 0, paidLv = 0, unpLv = 0, hol = 0;
     int lateMin = 0;
-    double otHours = 0.0, payableH = 0.0;
+    double otHours = 0.0, workedH = 0.0, payableH = 0.0;
+    final byDay = <String, Attendance>{
+      for (final record in records)
+        DateFormat('yyyy-MM-dd').format(record.date): record,
+    };
 
-    for (final r in records) {
-      final st = r.status.trim();
-      if (st == stPresent) {
+    for (final day in _periodDays) {
+      final key = DateFormat('yyyy-MM-dd').format(day);
+      final r = byDay[key];
+      final scheduled = _workWeekdays.contains(day.weekday);
+      if (r == null) {
+        if (scheduled) absent++;
+        continue;
+      }
+
+      final st = AttendanceStatus.normalize(r.status);
+      if (st == AttendanceStatus.present) {
         present++;
         final wh = _workedHoursOf(r);
+        workedH += wh;
         if ((r.checkIn ?? '').isNotEmpty) {
           final acMin = _parseHmm(r.checkIn!);
           if (acMin != null) {
@@ -1023,15 +1146,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         } else {
           payableH += wh;
         }
-      } else if (st == stPaidLeave) {
+      } else if (st == AttendanceStatus.paidLeave) {
         paidLv++;
         payableH += dayMinutes / 60.0;
-      } else if (st == stUnpaidLeave) {
+      } else if (st == AttendanceStatus.unpaidLeave) {
         unpLv++;
-      } else if (st == stHoliday) {
+      } else if (st == AttendanceStatus.holiday) {
         hol++;
         payableH += dayMinutes / 60.0;
-      } else if (st == stAbsent) {
+      } else if (st == AttendanceStatus.absent && scheduled) {
         absent++;
       }
     }
@@ -1047,6 +1170,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       kpiHolidayDays = hol;
       kpiLateMinutes = lateMin;
       kpiOvertimeHours = _round2(otHours);
+      kpiWorkedHours = _round2(workedH);
       kpiPayableHours = _round2(payableH);
       kpiPayableDays = payableD;
     });
@@ -1158,6 +1282,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         return Icons.beach_access_outlined;
       case stHoliday:
         return Icons.flag;
+      case stOffDay:
+        return Icons.weekend_outlined;
       default:
         return Icons.help_outline;
     }
@@ -1175,6 +1301,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         return Colors.orange;
       case stHoliday:
         return Colors.teal;
+      case stOffDay:
+        return Colors.grey;
       default:
         return Colors.grey;
     }

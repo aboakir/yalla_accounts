@@ -742,6 +742,21 @@ class VoucherPaymentService {
     return v is int ? v : int.tryParse("$v");
   }
 
+  static Future<void> _ensureSalaryPeriodsSchema(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS salary_periods(
+        month TEXT PRIMARY KEY,
+        is_locked INTEGER NOT NULL DEFAULT 0,
+        locked_at TEXT,
+        note TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_salary_periods_locked '
+      'ON salary_periods(is_locked)',
+    );
+  }
+
   static Future<void> _ensureVoucherColumn(
     DatabaseExecutor db,
     String column,
@@ -850,6 +865,7 @@ class VoucherPaymentService {
         }
         final run = runs.first;
         final month = (run['period_start'] ?? '').toString().substring(0, 7);
+        await _ensureSalaryPeriodsSchema(txn);
         final locked = await txn.query('salary_periods',
             columns: ['is_locked'],
             where: 'month=? AND is_locked=1',

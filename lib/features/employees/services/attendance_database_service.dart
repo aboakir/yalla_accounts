@@ -185,7 +185,7 @@ class AttendanceDatabaseService {
   static Future<Database> get _db async => DBService.database;
 
   /// إنشاء/تأكيد الجدول والفهارس
-  static Future<void> _ensureSchema(Database db) async {
+  static Future<void> _ensureSchema(DatabaseExecutor db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS $_table (
         id TEXT PRIMARY KEY,
@@ -341,8 +341,9 @@ class AttendanceDatabaseService {
     required String employeeId,
     required DateTime from,
     required DateTime to,
+    DatabaseExecutor? executor,
   }) async {
-    final db = await _db;
+    final db = executor ?? await _db;
     await _ensureSchema(db);
     final maps = await db.query(
       _table,
@@ -464,6 +465,7 @@ class AttendanceDatabaseService {
     required String employeeId,
     required DateTime from,
     required DateTime to,
+    DatabaseExecutor? executor,
   }) async {
     final policy = await AttendancePolicy.fromWorkshopSettings();
     return summarizeForPayroll(
@@ -471,6 +473,7 @@ class AttendanceDatabaseService {
       from: from,
       to: to,
       policy: policy,
+      executor: executor,
     );
   }
 
@@ -480,11 +483,13 @@ class AttendanceDatabaseService {
     required DateTime from,
     required DateTime to,
     required AttendancePolicy policy,
+    DatabaseExecutor? executor,
   }) async {
     final rows = await getAttendanceForEmployee(
       employeeId: employeeId,
       from: from,
       to: to,
+      executor: executor,
     );
 
     if (to.isBefore(from)) throw ArgumentError('نهاية الفترة تسبق بدايتها.');
