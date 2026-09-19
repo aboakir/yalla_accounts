@@ -27,7 +27,7 @@ class LocalLegalDocuments {
     title: 'شروط الاستخدام',
     version: 'terms_ps_v1',
     assetPath: 'assets/legal/terms_ps_v1.html',
-    sha256: '63e269d87e39c6a375179e3b9084c997ede81f2c8438aae7e855bb112aa170a2',
+    sha256: 'e27f079b68546ce1c428e3368910d3e911a01a04d4944cc2a0a35efd3ec70c58',
   );
 
   static const privacy = LocalLegalDocument(
@@ -35,7 +35,7 @@ class LocalLegalDocuments {
     title: 'سياسة الخصوصية',
     version: 'privacy_ps_v1',
     assetPath: 'assets/legal/privacy_ps_v1.html',
-    sha256: 'fd4d27a032b7103682334eb9bbedbe704a1d567e96a66fee2a02c92c51ee4080',
+    sha256: '97e602c2dc38fb4e78d465c193cd53f473ed955fd94441da40ccf918461b02b5',
   );
 
   static const deletion = LocalLegalDocument(
@@ -43,7 +43,7 @@ class LocalLegalDocuments {
     title: 'حذف الحساب والبيانات',
     version: 'deletion_ps_v1',
     assetPath: 'assets/legal/account_deletion_ps_v1.html',
-    sha256: '704ac6b2c8fbfa667c6af5a39c9f77904c956dae9fac42dcff4feb35816695c8',
+    sha256: '35846e89cbcebdf782bd08a176baeceed58175a45dc1dbc75050b846d215f16a',
   );
 
   static const refund = LocalLegalDocument(
@@ -51,7 +51,7 @@ class LocalLegalDocuments {
     title: 'الإلغاء والاسترداد',
     version: 'refund_ps_v1',
     assetPath: 'assets/legal/refund_ps_v1.html',
-    sha256: '44c19a098c8a231e94c94598ea4866e0eebbd1e8f81a6c5987e6e8b0a35b5c61',
+    sha256: 'd1e99ce368d53314409458c6f8bacf8fea2b1df62f184ad417abba251f1b446e',
   );
 
   static const support = LocalLegalDocument(
@@ -59,7 +59,7 @@ class LocalLegalDocuments {
     title: 'الدعم والشكاوى',
     version: 'support_ps_v1',
     assetPath: 'assets/legal/support_ps_v1.html',
-    sha256: 'a64ab7b0478c633711e454392318b6f71446d27c02f412e82862b30056044b06',
+    sha256: '9e322daa206711c1d6341399045f41d4a8726409ae1add80d0b5a7248a18bc65',
   );
 
   static const contact = LocalLegalDocument(
@@ -67,7 +67,7 @@ class LocalLegalDocuments {
     title: 'اتصل بنا',
     version: 'contact_ps_v1',
     assetPath: 'assets/legal/contact_ps_v1.html',
-    sha256: 'fda201c8d3fe1120fd1ab487fd57699efc21ea3ebe8dda0d6646743f43e9c828',
+    sha256: '131ba72b11c20ca094609c774094c7fd64bd4b31fc42145333ba5ad3791e081c',
   );
 
   static const all = <LocalLegalDocument>[

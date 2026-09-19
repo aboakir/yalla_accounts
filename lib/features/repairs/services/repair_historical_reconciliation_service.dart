@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
-import 'package:yalla_accounts/core/services/db/tables/accounting_tables.dart';
+import 'package:yalla_accounts/core/services/posting_engine.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 
@@ -294,7 +294,7 @@ class RepairHistoricalReconciliationService {
           'repair_id': issue.repairId,
         };
 
-        final glId = await AccountingTables.postEntryGLOn(
+        final glId = await PostingEngine.postEntryOn(
           ex: tx,
           date: DateTime.now().toUtc(),
           ref: 'REPAIR-RECON-' + issue.repairId,

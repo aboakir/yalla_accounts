@@ -678,7 +678,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             style: const TextStyle(color: Colors.black54),
                           ),
                           const SizedBox(height: 12),
-                          _buildKPIsBar(),
+                          _buildPhoneAttendanceSummary(),
                         ],
                         const SizedBox(height: 16),
                         recordsBody(),
@@ -688,6 +688,26 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   // ───────────── UI parts ─────────────
+
+  Widget _buildPhoneAttendanceSummary() {
+    Chip metric(String label, String value) => Chip(
+          label: Text(
+            '$label: $value',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        );
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        metric('أيام الحضور', '$kpiPresentDays'),
+        metric('أيام الغياب', '$kpiAbsentDays'),
+        metric('ساعات العمل', kpiPayableHours.toStringAsFixed(2)),
+        metric('التأخير', '$kpiLateMinutes د'),
+      ],
+    );
+  }
 
   ImageProvider<Object>? _resolveUserLogo(dynamic user) {
     final rawPath = user?.workshopLogoPath?.toString().trim();
