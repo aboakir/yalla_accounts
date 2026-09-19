@@ -74,6 +74,15 @@ void main() {
         throwsA(isA<DatabaseException>()),
       );
       await expectLater(
+        db.update(
+          'purchase_invoices',
+          {'date': '2026-09-08'},
+          where: 'id=?',
+          whereArgs: ['P-1'],
+        ),
+        throwsA(isA<DatabaseException>()),
+      );
+      await expectLater(
         db.delete(
           'purchase_invoices',
           where: 'id=?',

@@ -35,6 +35,55 @@ void main() {
     await tester.tap(find.text('حذف'));
     await tester.pumpAndSettle();
     expect(result, isTrue);
+    expect(find.text('حذف الصورة'), findsNothing);
+  });
+
+  testWidgets('REP-UI-002 cancel closes dialog without delete', (tester) async {
+    var deleteCalls = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(builder: (context) {
+        return ElevatedButton(
+          onPressed: () async {
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (_) => const RepairDeleteImageConfirmDialog(),
+            );
+            if (ok == true) deleteCalls++;
+          },
+          child: const Text('فتح'),
+        );
+      }),
+    ));
+    await tester.tap(find.text('فتح'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+    expect(deleteCalls, 0);
+    expect(find.text('حذف الصورة'), findsNothing);
+  });
+
+  testWidgets('REP-UI-003 confirm requests delete exactly once', (tester) async {
+    var deleteCalls = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(builder: (context) {
+        return ElevatedButton(
+          onPressed: () async {
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (_) => const RepairDeleteImageConfirmDialog(),
+            );
+            if (ok == true) deleteCalls++;
+          },
+          child: const Text('فتح'),
+        );
+      }),
+    ));
+    await tester.tap(find.text('فتح'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('حذف'));
+    await tester.pumpAndSettle();
+    expect(deleteCalls, 1);
+    expect(find.text('حذف الصورة'), findsNothing);
   });
 
   test('TEST-UI-004..006 shared button colors preserve readable contrast', () {

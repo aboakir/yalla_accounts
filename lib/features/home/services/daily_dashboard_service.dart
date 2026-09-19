@@ -42,7 +42,23 @@ class DashboardCar {
   final DateTime? since;
   final double remaining, value, cost;
   final bool insurance;
+
+  /// Operational readiness only. Collection eligibility is separate.
   bool get ready => stage == 'جاهز للتسليم';
+}
+
+class DashboardCollectionItem {
+  const DashboardCollectionItem({
+    required this.repairId,
+    required this.name,
+    required this.amount,
+    required this.invoiceId,
+  });
+
+  final String repairId;
+  final String name;
+  final double amount;
+  final String invoiceId;
 }
 
 class DailyDashboardData {
@@ -53,6 +69,7 @@ class DailyDashboardData {
       required this.today,
       required this.period,
       required this.cars,
+      required this.collectionItems,
       required this.newFiles,
       required this.previousFiles,
       required this.materials,
@@ -64,6 +81,7 @@ class DailyDashboardData {
   final String? logo;
   final FinancialOverviewSnapshot today, period;
   final List<DashboardCar> cars;
+  final List<DashboardCollectionItem> collectionItems;
   final List<Map<String, Object?>> recentFiles;
   final int newFiles, previousFiles;
   final List<String> materials;
@@ -71,7 +89,7 @@ class DailyDashboardData {
   final DateTime now;
   final Map<String, Object?>? lastEntry;
   double get readyAmount =>
-      cars.where((c) => c.ready).fold(0, (n, c) => n + c.remaining);
+      collectionItems.fold(0, (n, item) => n + item.amount);
   String money(double value) =>
       '${NumberFormat('#,##0.##').format(value)} $currency';
 }
@@ -130,7 +148,19 @@ class DailyDashboardService {
     final rows = await db.rawQuery('''
       SELECT r.*, w.stage AS workflow_stage, w.updated_at AS stage_updated,
         COALESCE(p.paid,0) AS canonical_paid,
-        COALESCE(c.cost,0) AS direct_cost
+        COALESCE(c.cost,0) AS direct_cost,
+        (SELECT i.id
+         FROM invoices i
+         WHERE i.repair_id=r.id
+           AND UPPER(COALESCE(i.status,'')) NOT IN ('VOID','CANCELLED','REVERSED')
+           AND COALESCE(i.total,0) > 0.005
+           AND EXISTS (
+             SELECT 1 FROM gl_entries ge
+             WHERE UPPER(COALESCE(ge.source,''))='INVOICE'
+               AND ge.source_id=i.id
+           )
+         ORDER BY datetime(i.created_at) DESC, i.rowid DESC
+         LIMIT 1) AS collectible_invoice_id
       FROM repairs r LEFT JOIN repair_workflow w ON w.repair_id=r.id
       LEFT JOIN (${RepairFinancialTruthService.paidByRepairSql}) p ON p.repair_id=r.id
       LEFT JOIN ($costs) c ON c.repair_id=r.id
@@ -138,6 +168,33 @@ class DailyDashboardService {
         AND substr(r.receivedDate,1,10) < substr(?,1,10)
     ''', [end.toIso8601String()]);
     double d(Object? v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
+
+    // Financial collectability is deliberately independent from vehicle stage.
+    // A posted, non-void repair invoice is the project's financial-finalization
+    // evidence. Outstanding comes from the same canonical repair payment truth.
+    final collectionItems = rows.where((r) {
+      final invoiceId = (r['collectible_invoice_id'] ?? '').toString().trim();
+      final workflow = (r['workflow_stage'] ?? '').toString().toUpperCase();
+      final status = (r['status'] ?? '').toString().toUpperCase();
+      final outstanding =
+          math.max(0.0, d(r['fileValue']) - d(r['canonical_paid']));
+      return invoiceId.isNotEmpty &&
+          outstanding > 0.005 &&
+          !const {'CANCELLED', 'VOID', 'CLOSED'}.contains(status) &&
+          !const {'REJECTED', 'CLOSED'}.contains(workflow);
+    }).map((r) {
+      final nameParts = [r['beneficiaryName'], r['vehicleNumber']]
+          .where((v) => v != null && '$v'.trim().isNotEmpty)
+          .map((v) => '$v'.trim())
+          .toList();
+      return DashboardCollectionItem(
+        repairId: '${r['id']}',
+        name: nameParts.isEmpty ? '${r['id']}' : nameParts.join(' • '),
+        amount: math.max(0.0, d(r['fileValue']) - d(r['canonical_paid'])),
+        invoiceId: '${r['collectible_invoice_id']}',
+      );
+    }).toList(growable: false);
+
     final cars = rows
         .map((r) => DashboardCar(
             '${r['id']}',
@@ -230,6 +287,7 @@ class DailyDashboardService {
         today: today,
         period: finance,
         cars: cars,
+        collectionItems: collectionItems,
         recentFiles: recentFiles,
         newFiles: newFiles,
         previousFiles: previousFiles,
@@ -244,17 +302,17 @@ class DailyDashboardService {
   static List<DashboardStep> recommendations(
       DailyDashboardData data, DashboardPeriod period) {
     final steps = <DashboardStep>[...data.issues];
-    final ready =
-        data.cars.where((c) => c.ready && c.remaining > 0.005).toList();
-    if (ready.isNotEmpty) {
+    final collectible =
+        data.collectionItems.where((item) => item.amount > 0.005).toList();
+    if (collectible.isNotEmpty) {
       steps.add(DashboardStep(
           'collect',
-          'حصّل ${data.money(data.readyAmount)} من الملفات الجاهزة',
-          'يوجد ${ready.length} ملف جاهز للتسليم وله مبلغ متبقٍ.',
+          'حصّل ${data.money(data.readyAmount)} من الالتزامات المعتمدة',
+          'يوجد ${collectible.length} التزام مالي مثبت بفاتورة مقيدة وله رصيد قائم.',
           'يعزز السيولة ويخفف الذمم خلال ${period.label}.',
-          'افتح الملفات',
+          'افتح الملف',
           AppRoutes.repairs,
-          repairId: ready.first.id,
+          repairId: collectible.first.repairId,
           priority: 100));
     }
     final available = math.max(0.0, data.period.liquidFunds);
@@ -344,7 +402,7 @@ class DailyDashboardService {
           AppRoutes.employeeList,
           priority: 70));
     }
-    if (data.period.customerReceivables > 0 && ready.isEmpty) {
+    if (data.period.customerReceivables > 0 && collectible.isEmpty) {
       steps.add(DashboardStep(
           'debts',
           'تابع الذمم القابلة للتحصيل',

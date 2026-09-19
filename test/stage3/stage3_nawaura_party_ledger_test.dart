@@ -352,4 +352,36 @@ void main() {
     expect(period.documents.length, 1);
     expect(period.dates.values.single, '2026-09-02T10:15:00');
   });
+
+  test('supplier statement accumulates precision before currency rounding',
+      () async {
+    final db = await _db();
+    addTearDown(db.close);
+    await db.insert('suppliers', {'id': 2, 'name': 'Fraction supplier'});
+    await PartyTables.ensure(db);
+
+    for (var i = 0; i < 4; i++) {
+      final entry = await db.insert('gl_entries', {
+        'date': '2026-09-0${i + 1}T10:00:00',
+        'source': 'PURCHASE',
+        'source_id': 'FRAC-$i',
+      });
+      await _line(db, entry,
+          debit: 0,
+          credit: 0.006,
+          partyType: 'SUPPLIER',
+          partyId: '2');
+    }
+
+    final balance = (await PartyFinancialService.balances(executor: db))
+        .singleWhere((p) => p.supplierLegacyId == '2');
+    final statement = await PartyFinancialService.statement(
+      role: 'SUPPLIER',
+      legacyId: 2,
+      executor: db,
+    );
+    expect(balance.payableBalance, 0.02);
+    expect(statement.closingBalance, balance.payableBalance);
+    expect(statement.lines.last.runningBalance, 0.02);
+  });
 }
