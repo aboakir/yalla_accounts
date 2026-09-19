@@ -30,6 +30,66 @@ import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
+List<Repair> filterFinancialReceivables(
+  List<Repair> source, {
+  required bool insuranceTab,
+  String search = '',
+  String paymentStatus = 'الكل',
+  DateTimeRange? dateRange,
+}) {
+  final needle = search.trim().toLowerCase();
+  return source.where((repair) {
+    final isInsurance = repair.beneficiaryType == 'شركة تأمين';
+    if (insuranceTab != isInsurance) return false;
+    final haystack =
+        '${repair.beneficiaryName} ${repair.vehicleNumber} ${repair.vehicleType}'
+            .toLowerCase();
+    final matchesSearch = needle.isEmpty || haystack.contains(needle);
+    final matchesStatus =
+        paymentStatus == 'الكل' || repair.paymentStatus == paymentStatus;
+    final matchesDate = dateRange == null ||
+        (!repair.receivedDate.isBefore(dateRange.start) &&
+            !repair.receivedDate.isAfter(dateRange.end));
+    return matchesSearch && matchesStatus && matchesDate;
+  }).toList(growable: false);
+}
+
+Map<String, int> financialReceivableStats(List<Repair> repairs) {
+  final total = repairs.length;
+  final paid = repairs.where((r) => r.paymentStatus == 'مسدد').length;
+  final partial = repairs.where((r) => r.paymentStatus == 'مسدد جزئي').length;
+  return {
+    'المجموع': total,
+    'مسدد': paid,
+    'جزئي': partial,
+    'غير مسدد': total - paid - partial,
+  };
+}
+
+List<PieChartSectionData> financialReceivablePieSections(
+  Map<String, int> stats,
+) =>
+    [
+      PieChartSectionData(
+        value: (stats['مسدد'] ?? 0).toDouble(),
+        showTitle: false,
+        radius: 28,
+        color: AppColors.primary,
+      ),
+      PieChartSectionData(
+        value: (stats['جزئي'] ?? 0).toDouble(),
+        showTitle: false,
+        radius: 28,
+        color: Colors.orange,
+      ),
+      PieChartSectionData(
+        value: (stats['غير مسدد'] ?? 0).toDouble(),
+        showTitle: false,
+        radius: 28,
+        color: Colors.red,
+      ),
+    ];
+
 class RepairsAndARScreen extends ConsumerStatefulWidget {
   const RepairsAndARScreen({super.key});
 
@@ -50,8 +110,22 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(_onTabChanged);
     _loadRepairs();
+  }
+
+  void _onTabChanged() {
+    if (!mounted || _tabController.indexIsChanging) return;
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _tabController
+      ..removeListener(_onTabChanged)
+      ..dispose();
+    super.dispose();
   }
 
   Future<void> _loadRepairs() async {
@@ -131,40 +205,13 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
     );
   }
 
-  Map<String, int> get _stats {
-    var total = _allRepairs.length;
-    var paid = _allRepairs.where((r) => r.paymentStatus == 'مسدد').length;
-    var partial =
-        _allRepairs.where((r) => r.paymentStatus == 'مسدد جزئي').length;
-    var unpaid = total - paid - partial;
-
-    return {
-      'المجموع': total,
-      'مسدد': paid,
-      'جزئي': partial,
-      'غير مسدد': unpaid,
-    };
-  }
-
-  List<PieChartSectionData> get _pieSections {
-    final s = _stats;
-    final total = s['المجموع']!.toDouble();
-
-    return [
-      PieChartSectionData(
-          value: s['مسدد']!.toDouble(),
-          title: 'مسدد ${(s['مسدد']! / total * 100).toStringAsFixed(0)}%',
-          color: AppColors.primary),
-      PieChartSectionData(
-          value: s['جزئي']!.toDouble(),
-          title: 'جزئي ${(s['جزئي']! / total * 100).toStringAsFixed(0)}%',
-          color: Colors.orange),
-      PieChartSectionData(
-          value: s['غير مسدد']!.toDouble(),
-          title: 'غير ${(s['غير مسدد']! / total * 100).toStringAsFixed(0)}%',
-          color: Colors.red),
-    ];
-  }
+  List<Repair> get _visibleRepairs => filterFinancialReceivables(
+        _allRepairs,
+        insuranceTab: _tabController.index == 1,
+        search: _search,
+        paymentStatus: _statusFilter,
+        dateRange: _dateRange,
+      );
 
   List<Repair> _filterList(List<Repair> list) {
     return list.where((r) {
@@ -187,7 +234,7 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
-    final stats = _stats;
+    final stats = financialReceivableStats(_visibleRepairs);
 
     return Scaffold(
       drawer:
@@ -264,43 +311,113 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
     );
   }
 
-  Widget _statsRow(Map<String, int> stats) => Padding(
-        padding: const EdgeInsets.all(12),
-        child: AdaptiveRow(
+  Widget _statsRow(Map<String, int> stats) {
+    final total = stats['المجموع'] ?? 0;
+    final metrics = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _summaryMetric('المجموع', total, Colors.blue),
+        _summaryMetric('مسدد', stats['مسدد'] ?? 0, AppColors.primary),
+        _summaryMetric('جزئي', stats['جزئي'] ?? 0, Colors.orange),
+        _summaryMetric('غير مسدد', stats['غير مسدد'] ?? 0, Colors.red),
+      ],
+    );
+    final chartBlock = SizedBox(
+      width: 220,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 150,
+            height: 150,
+            child: total == 0
+                ? const Center(child: Text('لا توجد بيانات'))
+                : PieChart(
+                    PieChartData(
+                      sections: financialReceivablePieSections(stats),
+                      centerSpaceRadius: 38,
+                      sectionsSpace: 2,
+                      startDegreeOffset: -90,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 6,
+            children: [
+              _legendItem('مسدد', stats['مسدد'] ?? 0, total, AppColors.primary),
+              _legendItem('جزئي', stats['جزئي'] ?? 0, total, Colors.orange),
+              _legendItem(
+                  'غير مسدد', stats['غير مسدد'] ?? 0, total, Colors.red),
+            ],
+          ),
+        ],
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: LayoutBuilder(
+            builder: (context, box) => box.maxWidth < 560
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      metrics,
+                      const SizedBox(height: 12),
+                      Center(child: chartBlock)
+                    ],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: metrics),
+                      const SizedBox(width: 16),
+                      chartBlock
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryMetric(String title, int value, Color color) => Container(
+        width: 112,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _statCard('المجموع', stats['المجموع']!, Colors.blue),
-            const SizedBox(width: 8),
-            _statCard('غير مسدد', stats['غير مسدد']!, Colors.red),
+            Text(title, style: const TextStyle(fontSize: 11)),
+            Text('$value',
+                style: TextStyle(
+                    color: color, fontSize: 19, fontWeight: FontWeight.w800)),
           ],
         ),
       );
 
-  Widget _statCard(String title, int value, Color color) {
-    return Expanded(
-      child: Card(
-        color: color.withOpacity(0.12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.bold)),
-              Text(value.toString(),
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(
-                height: 70,
-                child: PieChart(PieChartData(
-                    sections: _pieSections,
-                    centerSpaceRadius: 18,
-                    sectionsSpace: 0)),
-              )
-            ],
-          ),
+  Widget _legendItem(String label, int count, int total, Color color) {
+    final percentage = total == 0 ? 0.0 : count * 100 / total;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-      ),
+        const SizedBox(width: 4),
+        Text('$label $count (${percentage.toStringAsFixed(0)}%)',
+            style: const TextStyle(fontSize: 11)),
+      ],
     );
   }
 

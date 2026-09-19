@@ -89,6 +89,24 @@ class AccountsReceivableService {
     return Repair.fromMap(rows.first);
   }
 
+  Future<void> _requirePostedRepairDocument(Database db, String repairId) async {
+    final rows = await db.rawQuery('''
+      SELECT i.id
+      FROM invoices i
+      JOIN gl_entries e
+        ON e.source='INVOICE' AND e.source_id=i.id
+      WHERE i.repair_id=?
+        AND UPPER(COALESCE(i.status,'')) NOT IN ('VOID','CANCELLED','REVERSED')
+      LIMIT 1
+    ''', [repairId]);
+    if (rows.isEmpty) {
+      throw StateError(
+        'لا يمكن تسجيل دفعة على ملف إصلاح بلا فاتورة مالية مُرحّلة. '
+        'استخدم سند قبض على حساب العميل إذا كانت الدفعة مقدّمة.',
+      );
+    }
+  }
+
   Future<void> _updateOutstandingAR({
     required Database db,
     required Repair repair,
@@ -126,27 +144,15 @@ class AccountsReceivableService {
   Future<void> _resyncForRepair(Database db, Repair repair) async {
     final currentPaid = await _sumPaidForRepair(db, repair.id);
 
-    // 1) تأكيد وجود فاتورة مرتبطة
+    // Never invent an unposted invoice while resyncing a receipt.
+    // A repair-specific receipt is allowed only after the commercial document
+    // has already been posted through the canonical invoice/repair workflow.
     final inv = await InvoiceService.I.getByRepairId(repair.id);
-    if (inv == null) {
-      await InvoiceService.I.createInvoice(
-        repairId: repair.id,
-        date: repair.receivedDate,
-        total: repair.totalFileValue,
-        status: 'unpaid',
-        clientId: repair.clientId,
-        postToGL: false, // GL يُنشر من مسار الفواتير الرسمي
-        notes: 'فاتورة ملف إصلاح (${repair.id})',
-      );
+    if (inv != null) {
+      await InvoiceService.I.recomputePaidFromPayments('${inv['id']}');
     }
 
-    // 2) إعادة احتساب المدفوع من جدول payments
-    final inv2 = await InvoiceService.I.getByRepairId(repair.id);
-    if (inv2 != null) {
-      await InvoiceService.I.recomputePaidFromPayments('${inv2['id']}');
-    }
-
-    // 3) تحديث رصيد الذمة المتبقي
+    // تحديث رصيد الذمة المتبقي
     await _updateOutstandingAR(
         db: db, repair: repair, currentPaid: currentPaid);
   }
@@ -199,6 +205,7 @@ class AccountsReceivableService {
     await ensureTable();
     final db = await _db;
     final now = date ?? DateTime.now();
+    await _requirePostedRepairDocument(db, repair.id);
 
     final p = Payment(
       id: const Uuid().v4(),

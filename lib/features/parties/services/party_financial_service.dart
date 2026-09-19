@@ -397,7 +397,11 @@ class PartyFinancialService {
           combined || canonicalRole == 'CUSTOMER' ? rawDebit : rawCredit;
       final credit =
           combined || canonicalRole == 'CUSTOMER' ? rawCredit : rawDebit;
-      running = double.parse((running + debit - credit).toStringAsFixed(2));
+      // Keep full precision while accumulating. Rounding every row creates
+      // cumulative drift versus the balance engine for historical fractional
+      // postings; only presentation/final balances are rounded to currency.
+      running += debit - credit;
+      final roundedRunning = double.parse(running.toStringAsFixed(2));
 
       final source = (row['source'] ?? '').toString();
       final sourceNumber = (row['source_number'] ?? '').toString().trim();
@@ -412,7 +416,7 @@ class PartyFinancialService {
           description: _description(source, row),
           debit: double.parse(debit.toStringAsFixed(2)),
           credit: double.parse(credit.toStringAsFixed(2)),
-          runningBalance: running,
+          runningBalance: roundedRunning,
           invoiceId: row['invoice_id']?.toString(),
           repairId: row['repair_id']?.toString(),
         ),
