@@ -208,7 +208,16 @@ class _BootstrapLoadingApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
             fontFamily: 'Cairo',
-            colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary)),
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              primaryContainer: AppColors.lightGreen,
+              onPrimaryContainer: AppColors.textDark,
+              secondary: AppColors.secondary,
+              surface: Colors.white,
+              onSurface: AppColors.textDark,
+              error: AppColors.danger,
+            )),
         home: Directionality(
           textDirection: TextDirection.rtl,
           child: Scaffold(
