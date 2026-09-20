@@ -286,13 +286,15 @@ class RepairAutoAccountingService {
     required double newValue,
     required double difference,
     required String reason,
+    String source = 'REPAIR_VALUE_ADJ',
+    String? eventId,
   }) async {
     final diff = _round2(difference);
     if (diff.abs() < 0.01) return 0;
 
     final arId = await _ensureClientAccountOn(tx, clientId);
     final revenueId = await _revenueAccountOn(tx);
-    final eventId = _uuid.v4();
+    final adjustmentId = eventId ?? _uuid.v4();
     final absDiff = diff.abs();
 
     final lines = diff > 0
@@ -337,14 +339,14 @@ class RepairAutoAccountingService {
       ex: tx,
       date: DateTime.now(),
       ref: invoiceId ?? repairId,
-      source: 'REPAIR_VALUE_ADJ',
-      sourceId: eventId,
+      source: source,
+      sourceId: adjustmentId,
       note: reason,
       lines: lines,
     );
 
     await tx.insert('repair_accounting_adjustments', {
-      'id': eventId,
+      'id': adjustmentId,
       'repair_id': repairId,
       'invoice_id': invoiceId,
       'old_value': _round2(oldValue),
@@ -512,7 +514,7 @@ class RepairAutoAccountingService {
 
   /// Reconciles a value change after an edit while keeping posted documents
   /// immutable. [wasAutoManaged] should describe the state before this edit.
-  static Future<void> reconcileEditedValueOn({
+  static Future<int?> reconcileEditedValueOn({
     required DatabaseExecutor tx,
     required String repairId,
     required int clientId,
@@ -521,6 +523,9 @@ class RepairAutoAccountingService {
     required bool wasAutoManaged,
     required String paymentType,
     String reason = 'تعديل قيمة ملف الإصلاح',
+    bool preserveOperationalStatus = false,
+    String adjustmentSource = 'REPAIR_VALUE_ADJ',
+    String? adjustmentId,
   }) async {
     await _ensureAdjustmentSchema(tx);
 
@@ -545,12 +550,13 @@ class RepairAutoAccountingService {
     // If this edit created/posted the first invoice, that invoice already posts
     // the full current value. An adjustment is needed only when accounting was
     // already posted before this edit.
+    int? adjustmentGlId;
     if (postedBefore && invoiceId != null) {
       final recognized = await _recognizedRevenueOn(tx, repairId);
       final diff = wasAutoManaged
           ? _round2(newValue - recognized)
           : _round2(newValue - oldValue);
-      await _postValueAdjustmentOn(
+      adjustmentGlId = await _postValueAdjustmentOn(
         tx: tx,
         repairId: repairId,
         clientId: clientId,
@@ -559,6 +565,8 @@ class RepairAutoAccountingService {
         newValue: newValue,
         difference: diff,
         reason: reason,
+        source: adjustmentSource,
+        eventId: adjustmentId,
       );
     }
 
@@ -573,11 +581,11 @@ class RepairAutoAccountingService {
         'paidAmount': paid,
         'total_paid_amount': paid,
         'paymentStatus': paymentStatusFor(newValue, paid),
-        'status': 'APPROVED',
+        if (!preserveOperationalStatus) 'status': 'APPROVED',
         'isLedgerEnabled': 1,
         'isLedgerSynced': 1,
-        'approved_at': now,
-        'approved_by': 'AUTO_EDIT',
+        if (!preserveOperationalStatus) 'approved_at': now,
+        if (!preserveOperationalStatus) 'approved_by': 'AUTO_EDIT',
         'updated_at': now,
       },
       where: 'id = ?',
@@ -592,6 +600,7 @@ class RepairAutoAccountingService {
         after: (await tx.query('repairs', where: 'id=?', whereArgs: [repairId]))
             .single,
         reason: reason);
+    return adjustmentGlId;
   }
 
   static Future<void> deleteRepair(String repairId,

@@ -22,12 +22,16 @@ class MonthlyFinanceService {
   static Future<MonthlyFinanceSummary> getSummaryForMonth(String month) async {
     final db = await DBService.database;
 
-    // 1) الدخل من الفواتير (مصدر الحقيقة): SUM(invoices.total) لنفس الشهر
+    // Revenue comes from the posted GL so repair settlements (+/-) are
+    // reflected in the same month in which the financial adjustment occurred.
     final incomeRow = await db.rawQuery(
       '''
-      SELECT IFNULL(SUM(total), 0) AS v
-      FROM invoices
-      WHERE strftime('%Y-%m', date) = ?
+      SELECT IFNULL(SUM(l.credit-l.debit), 0) AS v
+      FROM gl_lines l
+      JOIN gl_entries e ON e.id=l.entry_id
+      JOIN accounts a ON a.id=l.account_id
+      WHERE a.code='4000'
+        AND strftime('%Y-%m', e.date) = ?
       ''',
       [month],
     );

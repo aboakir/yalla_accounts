@@ -26,6 +26,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -66,32 +67,6 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
 
   Future<Database> _db() async => DBService.database;
 
-  Future<bool> _tableExists(Database db, String table) async {
-    final rows = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-        [table]);
-    return rows.isNotEmpty;
-  }
-
-  Future<double> _paidFromJournal(Database db, String repairId) async {
-    if (!await _tableExists(db, 'journal_entries')) return 0.0;
-    // نعتمد أن الدفعة تُسجل كـ credit على حساب "العملاء"
-    // (يمكنك توسيع قائمة الأسماء إن لزم)
-    const account = 'العملاء';
-    final rows = await db.rawQuery(
-      '''
-      SELECT IFNULL(SUM(credit),0) AS paid
-      FROM journal_entries
-      WHERE relatedRepairId = ?
-        AND accountName = ?
-      ''',
-      [repairId, account],
-    );
-    return rows.isEmpty
-        ? 0.0
-        : ((rows.first['paid'] as num?)?.toDouble() ?? 0.0);
-  }
-
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -119,22 +94,31 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
         where.add('receivedDate BETWEEN ? AND ?');
         args.add(_range!.start.toIso8601String());
         // نهاية اليوم
-        args.add(DateTime(_range!.end.year, _range!.end.month, _range!.end.day,
-                23, 59, 59)
-            .toIso8601String());
+        args.add(
+          DateTime(
+            _range!.end.year,
+            _range!.end.month,
+            _range!.end.day,
+            23,
+            59,
+            59,
+          ).toIso8601String(),
+        );
       }
 
       // بحث نصي
       final q = _searchCtrl.text.trim();
       if (q.isNotEmpty) {
         where.add(
-            '(vehicleNumber LIKE ? OR vehicleType LIKE ? OR vehicleModel LIKE ? OR beneficiaryName LIKE ?)');
+          '(vehicleNumber LIKE ? OR vehicleType LIKE ? OR vehicleModel LIKE ? OR beneficiaryName LIKE ?)',
+        );
         final like = '%$q%';
         args.addAll([like, like, like, like]);
       }
 
       final sql = StringBuffer(
-          'SELECT id, vehicleType, vehicleModel, vehicleNumber, beneficiaryType, beneficiaryName, receivedDate, fileValue FROM repairs');
+        'SELECT id, vehicleType, vehicleModel, vehicleNumber, beneficiaryType, beneficiaryName, receivedDate, fileValue FROM repairs',
+      );
       if (where.isNotEmpty) sql.write(' WHERE ${where.join(' AND ')}');
       sql.write(' ORDER BY receivedDate DESC');
 
@@ -151,25 +135,29 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
         final bn = (m['beneficiaryName'] ?? '').toString();
         final rdRaw = (m['receivedDate'] ?? '').toString();
         final rd = DateTime.tryParse(rdRaw) ?? DateTime(1970, 1, 1);
-        final total = (m['fileValue'] as num?)?.toDouble() ?? 0.0;
+        final truth = await RepairFinancialTruthService.load(id, executor: db);
+        final total = truth.fileValue;
+        final paid = truth.paid;
+        final remaining = truth.remaining;
+        final status = RepairFinancialTruthService.paymentStatusFor(
+          total,
+          paid,
+        );
 
-        final paid = await _paidFromJournal(db, id);
-        final remaining = (total - paid).clamp(-0.0, double.infinity);
-        final status =
-            remaining <= 0.0 ? 'مسدد' : (paid > 0 ? 'مسدد جزئي' : 'غير مسدد');
-
-        list.add(_ArRow(
-          repairId: id,
-          title: '$vt — $vn',
-          vehicleModel: vm,
-          beneficiaryType: bt,
-          beneficiaryName: bn,
-          receivedDate: rd,
-          total: total,
-          paid: paid,
-          remaining: remaining,
-          status: status,
-        ));
+        list.add(
+          _ArRow(
+            repairId: id,
+            title: '$vt — $vn',
+            vehicleModel: vm,
+            beneficiaryType: bt,
+            beneficiaryName: bn,
+            receivedDate: rd,
+            total: total,
+            paid: paid,
+            remaining: remaining,
+            status: status,
+          ),
+        );
       }
 
       // الأحدث أولاً + أعلى متبقي على السطح
@@ -217,17 +205,22 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
       final repair = await RepairDatabaseService.getRepairById(repairId);
       if (!mounted) return;
       if (repair == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر جلب ملف الإصلاح')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تعذر جلب ملف الإصلاح')));
         return;
       }
-      Navigator.of(context)
-          .pushNamed(AppRoutes.repairDetail, arguments: repair);
+      await Navigator.of(
+        context,
+      ).pushNamed(AppRoutes.repairDetail, arguments: repair);
+      if (mounted) await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('خطأ فتح التفاصيل: ${UserFacingError.message(e)}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ فتح التفاصيل: ${UserFacingError.message(e)}'),
+        ),
+      );
     }
   }
 
@@ -249,18 +242,19 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
             ),
       appBar: AppBar(
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('💳 ذمم المركبات',
-            style: TextStyle(color: Colors.white)),
+        title: const Text('💳 ذمم المركبات'),
         centerTitle: true,
         actions: [
           IconButton(
-              onPressed: _load,
-              icon: const Icon(Icons.refresh),
-              color: Colors.white),
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+            color: Colors.white,
+          ),
         ],
       ),
       body: AdaptiveRow(
@@ -321,13 +315,17 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                                       value: _type,
                                       items: const [
                                         DropdownMenuItem(
-                                            value: 'الكل', child: Text('الكل')),
+                                          value: 'الكل',
+                                          child: Text('الكل'),
+                                        ),
                                         DropdownMenuItem(
-                                            value: 'تأمين',
-                                            child: Text('تأمين')),
+                                          value: 'تأمين',
+                                          child: Text('تأمين'),
+                                        ),
                                         DropdownMenuItem(
-                                            value: 'أفراد',
-                                            child: Text('أفراد')),
+                                          value: 'أفراد',
+                                          child: Text('أفراد'),
+                                        ),
                                       ],
                                       onChanged: (v) {
                                         setState(() => _type = v ?? 'الكل');
@@ -337,14 +335,17 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                                     OutlinedButton.icon(
                                       onPressed: _pickRange,
                                       icon: const Icon(Icons.date_range),
-                                      label: Text(_range == null
-                                          ? 'كل التواريخ'
-                                          : '${_df.format(_range!.start)} → ${_df.format(_range!.end)}'),
+                                      label: Text(
+                                        _range == null
+                                            ? 'كل التواريخ'
+                                            : '${_df.format(_range!.start)} → ${_df.format(_range!.end)}',
+                                      ),
                                     ),
                                     if (_range != null)
                                       IconButton(
-                                          onPressed: _clearRange,
-                                          icon: const Icon(Icons.clear)),
+                                        onPressed: _clearRange,
+                                        icon: const Icon(Icons.clear),
+                                      ),
                                   ],
                                 ),
                               ],
@@ -359,15 +360,25 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                               child: Wrap(
                                 spacing: 12,
                                 children: [
-                                  _chipStat('الإجمالي المتبقي',
-                                      _currency.format(_sumRemaining)),
-                                  _chipStat('غير مسدد', _countUnpaid.toString(),
-                                      color: Colors.red),
                                   _chipStat(
-                                      'مسدد جزئي', _countPartial.toString(),
-                                      color: Colors.orange),
-                                  _chipStat('مسدد', _countPaid.toString(),
-                                      color: AppColors.primary),
+                                    'الإجمالي المتبقي',
+                                    _currency.format(_sumRemaining),
+                                  ),
+                                  _chipStat(
+                                    'غير مسدد',
+                                    _countUnpaid.toString(),
+                                    color: Colors.red,
+                                  ),
+                                  _chipStat(
+                                    'مسدد جزئي',
+                                    _countPartial.toString(),
+                                    color: Colors.orange,
+                                  ),
+                                  _chipStat(
+                                    'مسدد',
+                                    _countPaid.toString(),
+                                    color: AppColors.primary,
+                                  ),
                                 ],
                               ),
                             ),
@@ -438,25 +449,38 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                   final statusColor = r.status == 'مسدد'
                       ? AppColors.primary
                       : (r.status == 'مسدد جزئي' ? Colors.orange : Colors.red);
-                  return DataRow(cells: [
-                    DataCell(Text(r.status,
-                        style: TextStyle(
-                            color: statusColor, fontWeight: FontWeight.w600))),
-                    DataCell(Text(_currency.format(r.remaining),
-                        style: const TextStyle(fontWeight: FontWeight.bold))),
-                    DataCell(Text(_currency.format(r.paid))),
-                    DataCell(Text(_currency.format(r.total))),
-                    DataCell(
-                        Text('${r.beneficiaryType} — ${r.beneficiaryName}')),
-                    DataCell(Text(r.title)),
-                    DataCell(Text(_df.format(r.receivedDate))),
-                    DataCell(
-                      TextButton(
-                        onPressed: () => _openDetails(r.repairId),
-                        child: const Text('عرض'),
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Text(
+                          r.status,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
-                    ),
-                  ]);
+                      DataCell(
+                        Text(
+                          _currency.format(r.remaining),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataCell(Text(_currency.format(r.paid))),
+                      DataCell(Text(_currency.format(r.total))),
+                      DataCell(
+                        Text('${r.beneficiaryType} — ${r.beneficiaryName}'),
+                      ),
+                      DataCell(Text(r.title)),
+                      DataCell(Text(_df.format(r.receivedDate))),
+                      DataCell(
+                        TextButton(
+                          onPressed: () => _openDetails(r.repairId),
+                          child: const Text('عرض'),
+                        ),
+                      ),
+                    ],
+                  );
                 }).toList(),
                 columns:
                     columns.map((c) => DataColumn(label: Text(c))).toList(),
@@ -486,26 +510,34 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AdaptiveRow(children: [
-                  Expanded(
-                    child: Text(r.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  Text(_df.format(r.receivedDate)),
-                ]),
+                AdaptiveRow(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        r.title,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Text(_df.format(r.receivedDate)),
+                  ],
+                ),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 12,
                   runSpacing: 6,
                   children: [
-                    _kv('المستفيد',
-                        '${r.beneficiaryType} — ${r.beneficiaryName}'),
+                    _kv(
+                      'المستفيد',
+                      '${r.beneficiaryType} — ${r.beneficiaryName}',
+                    ),
                     _kv('قيمة الملف', _currency.format(r.total)),
                     _kv('المدفوع', _currency.format(r.paid)),
                     _kv('المتبقي', _currency.format(r.remaining), bold: true),
                     Chip(
-                      label: Text(r.status,
-                          style: const TextStyle(color: Colors.white)),
+                      label: Text(
+                        r.status,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                       backgroundColor: statusColor,
                     ),
                   ],
@@ -527,8 +559,10 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
   }
 
   Widget _kv(String k, String v, {bool bold = false}) {
-    final maxWidth =
-        (MediaQuery.sizeOf(context).width - 48).clamp(180.0, 320.0);
+    final maxWidth = (MediaQuery.sizeOf(context).width - 48).clamp(
+      180.0,
+      320.0,
+    );
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: Text.rich(

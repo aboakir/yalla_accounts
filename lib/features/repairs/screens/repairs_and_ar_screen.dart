@@ -508,9 +508,14 @@ class _RepairsAndARScreenState extends ConsumerState<RepairsAndARScreen>
               motion: const DrawerMotion(),
               children: [
                 SlidableAction(
-                    onPressed: (_) => Navigator.pushNamed(
-                        context, AppRoutes.repairDetail,
-                        arguments: r),
+                    onPressed: (_) async {
+                      await Navigator.pushNamed(
+                        context,
+                        AppRoutes.repairDetail,
+                        arguments: r,
+                      );
+                      if (mounted) await _loadRepairs();
+                    },
                     backgroundColor: AppColors.primary,
                     icon: Icons.description,
                     label: 'تفاصيل')

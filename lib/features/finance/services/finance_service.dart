@@ -268,9 +268,23 @@ class FinanceService {
   // ---------- الضرائب (مبسّط) ----------
   static Future<TaxReport> getTaxReport() async {
     final db = await _db();
-    final taxableIncome = await _tableExists(db, 'invoices')
-        ? await _sum(db, 'SELECT IFNULL(SUM(total),0) FROM invoices')
-        : 0.0;
+    double taxableIncome = 0.0;
+    if (await _tableExists(db, 'gl_lines') &&
+        await _tableExists(db, 'gl_entries') &&
+        await _tableExists(db, 'accounts')) {
+      taxableIncome = await _sum(
+        db,
+        '''
+        SELECT COALESCE(SUM(l.credit-l.debit),0) AS v
+        FROM gl_lines l
+        JOIN accounts a ON a.id=l.account_id
+        WHERE a.code='4000'
+        ''',
+      );
+    } else if (await _tableExists(db, 'invoices')) {
+      taxableIncome =
+          await _sum(db, 'SELECT IFNULL(SUM(total),0) FROM invoices');
+    }
 
     const rate = 0.0; // لا يوجد إعداد ضريبة حالياً
     return TaxReport(

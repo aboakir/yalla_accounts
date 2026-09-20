@@ -14,6 +14,8 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/finance/invoices/services/invoice_service.dart';
 import 'package:yalla_accounts/features/finance/invoices/widgets/invoice_add_payment_button.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_settlement_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
@@ -44,6 +46,8 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
   double _sumCredit = 0.0;
 
   List<Map<String, Object?>> _payments = const [];
+  RepairFinancialTruth? _repairTruth;
+  List<Map<String, Object?>> _repairSettlements = const [];
   int _payLimit = 50;
 
   bool _loading = true;
@@ -124,6 +128,21 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
 
       final inv = await InvoiceService.I.getById(widget.invoiceId);
 
+      RepairFinancialTruth? repairTruth;
+      List<Map<String, Object?>> repairSettlements = const [];
+      final repairId = (inv?['repair_id'] ?? '').toString().trim();
+      if (repairId.isNotEmpty) {
+        try {
+          repairTruth =
+              await RepairFinancialTruthService.load(repairId, executor: db);
+          repairSettlements = await RepairSettlementService.historyForRepair(
+            repairId,
+            executor: db,
+            limit: 30,
+          );
+        } catch (_) {}
+      }
+
       // P0.003 — authoritative posting state comes from GL itself.
       // gl_entry_id/post_to_gl are compatibility caches, never the truth.
       int? glId;
@@ -195,6 +214,8 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
         _sumDebit = double.parse(sD.toStringAsFixed(2));
         _sumCredit = double.parse(sC.toStringAsFixed(2));
         _payments = pays;
+        _repairTruth = repairTruth;
+        _repairSettlements = repairSettlements;
         _loading = false;
       });
     } catch (e) {
@@ -404,6 +425,10 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
     final vat = _asD(inv['vat']);
     final total = _asD(inv['total']);
     final paid = _asD(inv['paid']);
+    final settledValue = _repairTruth?.fileValue;
+    final settlementDelta = settledValue == null ? 0.0 : settledValue - total;
+    final hasSettlement =
+        _repairSettlements.isNotEmpty || settlementDelta.abs() > 0.005;
 
     final clientId = inv['client_id'];
     final balanced = (_sumDebit - _sumCredit).abs() < 0.005;
@@ -445,11 +470,53 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                         label: 'ضريبة القيمة المضافة',
                         value: MoneyFormatter.format(vat)),
                     _row(
-                        label: 'الإجمالي', value: MoneyFormatter.format(total)),
-                    _row(label: 'المدفوع', value: MoneyFormatter.format(paid)),
+                        label: hasSettlement
+                            ? 'إجمالي الفاتورة الأصلي'
+                            : 'الإجمالي',
+                        value: MoneyFormatter.format(total)),
+                    if (hasSettlement && _repairTruth != null) ...[
+                      const Divider(height: 18),
+                      _row(
+                        label: 'صافي التسويات',
+                        value:
+                            '${settlementDelta >= 0 ? '+' : ''}${MoneyFormatter.format(settlementDelta)}',
+                      ),
+                      _row(
+                        label: 'القيمة الحالية بعد التسويات',
+                        value: MoneyFormatter.format(_repairTruth!.fileValue),
+                      ),
+                      _row(
+                        label: 'المدفوع الحالي',
+                        value: MoneyFormatter.format(_repairTruth!.paid),
+                      ),
+                      _row(
+                        label: 'المتبقي الحالي',
+                        value: MoneyFormatter.format(_repairTruth!.remaining),
+                      ),
+                      if (_repairTruth!.credit > 0.005)
+                        _row(
+                          label: 'رصيد دائن للعميل',
+                          value: MoneyFormatter.format(_repairTruth!.credit),
+                        ),
+                      _row(
+                        label: 'عدد التسويات',
+                        value: _repairSettlements.length,
+                      ),
+                      const Divider(height: 18),
+                    ] else
+                      _row(
+                        label: 'المدفوع',
+                        value: MoneyFormatter.format(paid),
+                      ),
                     _row(
-                        label: 'حالة السداد',
-                        value: statusStr.isEmpty ? '—' : statusStr),
+                      label:
+                          hasSettlement ? 'حالة السداد الحالية' : 'حالة السداد',
+                      value: hasSettlement && _repairTruth != null
+                          ? (_repairTruth!.remaining <= 0.005
+                              ? 'مسدد'
+                              : 'غير مسدد')
+                          : (statusStr.isEmpty ? '—' : statusStr),
+                    ),
                     if (methodStr.isNotEmpty)
                       _row(label: 'طريقة الدفع', value: methodStr),
                     if (noteStr.isNotEmpty)

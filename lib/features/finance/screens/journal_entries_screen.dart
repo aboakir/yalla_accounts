@@ -290,11 +290,11 @@ class _JournalEntriesScreenState extends State<JournalEntriesScreen> {
 
       // (3) فواتير حسب repair_id
       _invoiceMap.clear();
-      if (await _tableExists(db, 'invoices')) {
+      if (await _tableExists(db, 'repairs')) {
         final rows = await db.rawQuery('''
-          SELECT COALESCE(repair_id,'') AS rid, IFNULL(SUM(total),0) AS tot
-          FROM invoices
-          GROUP BY COALESCE(repair_id,'')
+          SELECT COALESCE(id,'') AS rid, IFNULL(fileValue,0) AS tot
+          FROM repairs
+          WHERE UPPER(COALESCE(status,'')) NOT IN ('CANCELLED','VOID')
         ''');
         for (final m in rows) {
           final rid = (m['rid'] ?? '').toString();

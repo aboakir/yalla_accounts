@@ -15,6 +15,7 @@ import 'package:yalla_accounts/features/finance/payments/services/payment_servic
 import 'package:yalla_accounts/features/finance/payments/models/payment.dart';
 import 'package:yalla_accounts/features/finance/services/invoice_database_service.dart';
 import 'package:yalla_accounts/features/finance/models/invoice.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -58,19 +59,30 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
     String method = 'cash'; // 'cash' | 'bank'
     final df = DateFormat('yyyy-MM-dd');
 
-    // احسب المتبقي من الفاتورة
+    // A repair settlement changes the collectible balance without rewriting
+    // the historical invoice. Prefer the canonical repair truth when linked.
     double remaining = double.infinity;
     try {
-      final Invoice? inv =
-          await InvoiceDatabaseService.instance.getById(widget.invoiceId);
-      if (inv != null) {
-        remaining = (inv.total - inv.paid);
-        if (remaining < 0) remaining = 0;
+      final repairId = widget.repairId?.trim() ?? '';
+      if (repairId.isNotEmpty) {
+        final truth = await RepairFinancialTruthService.load(repairId);
+        remaining = truth.remaining;
+      } else {
+        final Invoice? inv =
+            await InvoiceDatabaseService.instance.getById(widget.invoiceId);
+        if (inv != null) {
+          remaining = (inv.total - inv.paid);
+          if (remaining < 0) remaining = 0;
+        }
       }
     } catch (_) {
       remaining = double.infinity;
     }
     if (!mounted) return;
+    if (remaining.isFinite && remaining <= 0.005) {
+      _snack('لا يوجد مبلغ متبقٍ للتحصيل على هذا الملف.');
+      return;
+    }
 
     final ok = await showDialog<bool>(
       context: context,

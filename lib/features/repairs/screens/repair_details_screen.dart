@@ -27,12 +27,15 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repairs_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_pdf_generator.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_settlement_service.dart';
 
 import 'package:yalla_accounts/features/repairs/constants/repair_status.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_thumb.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_workflow_card.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_profitability_card.dart';
 import 'package:yalla_accounts/features/repairs/widgets/repair_delete_image_confirm_dialog.dart';
+import 'package:yalla_accounts/features/repairs/widgets/repair_settlement_dialog.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -53,6 +56,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   List<Map<String, dynamic>> _repairWorks = [];
   List<Map<String, dynamic>> _repairParts = [];
   List<Map<String, Object?>> _changeHistory = [];
+  List<Map<String, Object?>> _settlementHistory = [];
+  bool _settlementSaving = false;
 
   final _df = DateFormat('yyyy-MM-dd');
   final _historyDf = DateFormat('yyyy-MM-dd HH:mm');
@@ -100,6 +105,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     await _loadPersistedRepairLines();
     await _refreshInvoiceGl();
     await _loadChangeHistory();
+    await _loadSettlementHistory();
   }
 
   Future<void> _reloadRepair() async {
@@ -110,6 +116,22 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
       setState(() => _repair = r);
       await _refreshInvoiceGl();
       await _loadChangeHistory();
+      await _loadSettlementHistory();
+    }
+  }
+
+  Future<void> _loadSettlementHistory() async {
+    if (_repair.id.isEmpty) {
+      if (mounted) setState(() => _settlementHistory = []);
+      return;
+    }
+    try {
+      final rows =
+          await RepairSettlementService.historyForRepair(_repair.id, limit: 30);
+      if (!mounted) return;
+      setState(() => _settlementHistory = rows);
+    } catch (_) {
+      if (mounted) setState(() => _settlementHistory = []);
     }
   }
 
@@ -291,6 +313,53 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
 
     if (updated == true) {
       await _reloadRepair();
+    }
+  }
+
+  Future<void> _openSettlement() async {
+    if (_repair.id.isEmpty || _settlementSaving) return;
+    try {
+      final truth = await RepairFinancialTruthService.load(_repair.id);
+      if (!mounted) return;
+      final draft = await showDialog<RepairSettlementDraft>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => RepairSettlementDialog(
+          currentValue: truth.fileValue,
+          paid: truth.paid,
+        ),
+      );
+      if (draft == null || !mounted) return;
+
+      setState(() => _settlementSaving = true);
+      final result = await RepairSettlementService.apply(
+        repairId: _repair.id,
+        adjustment: draft.adjustment,
+        reason: draft.reason,
+        note: draft.note,
+      );
+      await _reloadRepair();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تم حفظ التسوية. قيمة الملف الآن '
+            '${MoneyFormatter.format(result.newValue)}، والمتبقي '
+            '${MoneyFormatter.format(result.remaining)}.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تعذر حفظ التسوية: ${UserFacingError.message(e)}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _settlementSaving = false);
     }
   }
 
@@ -908,6 +977,95 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
+  Widget _buildSettlementHistoryCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'سجل التسويات',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'كل تسوية محفوظة كحركة مالية مستقلة ومربوطة بالملف.',
+              style: TextStyle(color: Colors.black54, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            if (_settlementHistory.isEmpty)
+              const Text(
+                'لا توجد تسويات مسجلة لهذا الملف.',
+                style: TextStyle(color: Colors.black54),
+              )
+            else
+              ..._settlementHistory.map((row) {
+                final oldValue = _historyNumber(row['old_value']);
+                final newValue = _historyNumber(row['new_value']);
+                final adjustment = _historyNumber(row['adjustment']);
+                final remaining = _historyNumber(row['remaining_after']);
+                final reason = (row['reason'] ?? '').toString().trim();
+                final note = (row['note'] ?? '').toString().trim();
+                final actor = (row['created_by'] ?? '').toString().trim();
+                final sign = adjustment >= 0 ? '+' : '';
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.lightGrey),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          '${MoneyFormatter.format(oldValue)} → '
+                          '${MoneyFormatter.format(newValue)}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'التسوية: $sign${MoneyFormatter.format(adjustment)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: adjustment < 0
+                                ? Colors.deepOrange
+                                : AppColors.primary,
+                          ),
+                        ),
+                        Text(
+                          'المتبقي بعد التسوية: '
+                          '${MoneyFormatter.format(remaining)}',
+                        ),
+                        if (reason.isNotEmpty) Text('السبب: $reason'),
+                        Text(
+                          'التاريخ: ${_formatHistoryDate(row['created_at'])}',
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                        if (actor.isNotEmpty)
+                          Text(
+                            'بواسطة: $actor',
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                        if (note.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(note),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildChangeHistoryCard() {
     return Card(
       child: Padding(
@@ -1006,6 +1164,22 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
     );
   }
 
+  Widget _buildSettlementButton() {
+    final cancelled = _repair.status.trim().toUpperCase() == 'CANCELLED';
+    return OutlinedButton.icon(
+      key: const ValueKey('repair_settlement_action'),
+      onPressed: cancelled || _settlementSaving ? null : _openSettlement,
+      icon: _settlementSaving
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.balance_rounded),
+      label: Text(_settlementSaving ? 'جارٍ الحفظ…' : 'تسوية ±'),
+    );
+  }
+
   // شريط الإجراءات
   Widget _buildActionsBar({bool showPaymentAction = true}) {
     final remaining = _repair.remainingAmount;
@@ -1027,6 +1201,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
               '✅ محفوظ محاسبيًا تلقائيًا',
               style: TextStyle(color: AppColors.primary),
             ),
+            _buildSettlementButton(),
             if (showPaymentAction && remaining > 0.005) _buildPaymentButton(),
           ],
         ),
@@ -1215,6 +1390,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
             _buildDataTable('القطع المطلوبة', _repairParts),
             const SizedBox(height: 16),
             _buildNotesCard(),
+            const SizedBox(height: 16),
+            _buildSettlementHistoryCard(),
             const SizedBox(height: 16),
             _buildChangeHistoryCard(),
           ],
@@ -1488,6 +1665,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           const SizedBox(height: 16),
                           _buildNotesCard(),
                           const SizedBox(height: 16),
+                          _buildSettlementHistoryCard(),
+                          const SizedBox(height: 16),
                           _buildChangeHistoryCard(),
                         ],
                       )
@@ -1599,6 +1778,8 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
                           _buildDataTable('القطع المطلوبة', _repairParts),
                           const SizedBox(height: 16),
                           _buildNotesCard(),
+                          const SizedBox(height: 16),
+                          _buildSettlementHistoryCard(),
                           const SizedBox(height: 16),
                           _buildChangeHistoryCard(),
                         ],
