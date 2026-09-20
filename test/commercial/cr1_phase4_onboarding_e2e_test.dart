@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/legal/legal_acceptance_service.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -123,6 +124,23 @@ void main() {
     expect(await identity.verifiedAccessToken(), null);
     await identity.signIn(email, password);
     final authUser = (await identity.verifiedOnboardingSession()).authUserId;
+    // Match the current application flow: explicit consent is mandatory.
+    await expectLater(
+        service.submit(draft),
+        throwsA(isA<CustomerOnboardingException>()
+            .having((e) => e.status, 'consent must not be bypassed', 409)));
+    final legal = HttpLegalAcceptanceService(
+      baseUri: Uri.parse(info['base']),
+      allowInsecureLoopbackForTesting: true,
+      bearerTokenProvider: identity.verifiedAccessToken,
+    );
+    try {
+      final accepted = await legal.accept(source: 'SIGNUP');
+      expect(accepted.termsVersion, 'terms_ps_v1');
+      expect(accepted.privacyVersion, 'privacy_ps_v1');
+    } finally {
+      legal.dispose();
+    }
     final pending = await service.submit(draft);
     expect(pending.status, 'PENDING');
     expect(pending.operationalAccess, false);

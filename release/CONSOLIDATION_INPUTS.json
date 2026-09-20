@@ -1,0 +1,41 @@
+{
+  "release": "1.0.2+21",
+  "schema": 84,
+  "commercialBase": "c7692421c1ab253805c6308db33ce01d20334684",
+  "ownerConsolidation": "5a586fcf7e99bebc46a66c2602c31a0f48ee7acb",
+  "commercialPendingCommit": "17059529f1c24eebdfa399d48724697dc77de1fe",
+  "parallelHeads": {
+    "cheques": "45aa635",
+    "financial": "87b4397",
+    "ux": "41dd1c2"
+  },
+  "equivalentMobileTrees": {
+    "branches": [
+      "0fcc490",
+      "e0a1ec3"
+    ],
+    "sameTree": true
+  },
+  "pendingReview": [
+    {
+      "track": "commercial phase20",
+      "decision": "Financial sync staging now uses canonical accounting gateway; retained current local-legal readiness checks."
+    },
+    {
+      "track": "cheques",
+      "decision": "Added conservative unknown-status handling, canonical received-state colors and missing error masking. Kept superior filtered multi-page PDF implementation and stable historical currency default."
+    },
+    {
+      "track": "mobile drafts",
+      "decision": "Preserved approved v3 party identity, payroll executor support, audited financial truth and canonical cheque allocation flows rather than regress them to earlier draft replacements. Superseded automatic financial reconciliation and calendar-day attendance drafts are archived privately, not executed on customer data."
+    }
+  ],
+  "security": {
+    "defaultOwnerAccess": false,
+    "productionSyncProtocol": 3,
+    "commercialContract": 2,
+    "serverProductionChanges": false,
+    "customerDatabaseTouched": false
+  },
+  "fixtures": "test/fixtures/migration/PROVENANCE.json"
+}
