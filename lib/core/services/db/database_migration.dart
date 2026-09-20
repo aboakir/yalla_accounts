@@ -221,6 +221,9 @@ class DatabaseMigration {
     final recoveredInterruptedRestore =
         await Directory('$path.restore-journal').exists();
     await RestoreFileJournal.recover(path);
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.journalRecovery);
+    await DatabaseEncryptionService.recoverInterruptedCanonicalWrite(path);
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.versionCheck);
     if (await databaseExists(path)) {
       final version = await _readExistingVersion(
         path,
@@ -231,6 +234,7 @@ class DatabaseMigration {
             '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.');
       }
     }
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.encryption);
     final encryption = pathOverride == null
         ? await DatabaseEncryptionService.prepareCanonical(path)
         : null;
@@ -238,6 +242,7 @@ class DatabaseMigration {
     Database? db;
     Database? openingHandle;
     try {
+      ReleaseDiagnostics.markStartupPhase(StartupPhase.databaseOpen);
       db = encryption == null
           ? await openDatabase(
               path,
@@ -267,6 +272,7 @@ class DatabaseMigration {
               singleInstance: true,
             );
 
+      ReleaseDiagnostics.markStartupPhase(StartupPhase.validation);
       await _validateDatabase(db);
       await encryption?.commit();
       return db;

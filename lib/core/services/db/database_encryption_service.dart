@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart' as sqlcipher;
 
 import 'database_encryption_key_store.dart';
+import 'database_startup_recovery.dart';
 
 /// P04.1 — mobile SQLCipher boundary.
 ///
@@ -19,6 +20,36 @@ class DatabaseEncryptionService {
 
   static bool get mobileEncryptionEnabled =>
       !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+  /// The live database may have a hot rollback journal after an interrupted
+  /// migration. A read-only open cannot recover it (SQLITE_READONLY_ROLLBACK).
+  /// This opener has no version/callbacks and therefore performs no migration.
+  static Future<bool> recoverInterruptedCanonicalWrite(String path) =>
+      DatabaseStartupRecovery.recoverIfNeeded(path,
+          openWithoutMigration: () async {
+        if (!await File(path).exists()) {
+          throw StateError('STARTUP_RECOVERY_DATABASE_MISSING');
+        }
+        if (!mobileEncryptionEnabled) {
+          return openDatabase(path, readOnly: false, singleInstance: false);
+        }
+        final handle = await File(path).open(mode: FileMode.read);
+        late final List<int> header;
+        try {
+          header = await handle.read(16);
+        } finally {
+          await handle.close();
+        }
+        final plaintext =
+            String.fromCharCodes(header) == 'SQLite format 3\u0000';
+        final password =
+            plaintext ? null : await DatabaseEncryptionKeyStore.readExisting();
+        if (!plaintext && password == null) {
+          throw StateError('STARTUP_RECOVERY_KEY_UNAVAILABLE');
+        }
+        return sqlcipher.openDatabase(path,
+            password: password, readOnly: false, singleInstance: false);
+      });
 
   static Future<DatabaseEncryptionPreparation?> prepareCanonical(
     String livePath,

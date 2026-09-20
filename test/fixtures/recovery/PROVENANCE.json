@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "containsCustomerData": false,
+  "case": "Interrupted SQLite rollback journal after uncommitted update",
+  "expectedCommittedRows": 80,
+  "expectedVersion": 7,
+  "generatedUsing": "Python sqlite3 child process os._exit without COMMIT",
+  "journalMustNotBeDeletedManually": true
+}

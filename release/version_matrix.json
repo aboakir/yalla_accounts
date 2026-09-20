@@ -1,7 +1,7 @@
 {
   "matrix_schema": 1,
   "release_train": "UNIFIED-20260920",
-  "accounts_version": "1.0.2+21",
+  "accounts_version": "1.0.3+22",
   "control_version": "1.0.0+1",
   "server_version": "0.1.0",
   "commercial_contract_version": 2,

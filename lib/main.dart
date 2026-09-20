@@ -87,6 +87,7 @@ class YallaScrollBehavior extends MaterialScrollBehavior {
 /// ---------------------------------------------------------------------------
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ReleaseDiagnostics.markStartupPhase(StartupPhase.preparing);
   final authCallbackRegistered = await ensureWindowsAuthCallbackRegistration();
   ReleaseDiagnostics.debug(
     'Windows auth callback registration: $authCallbackRegistered',
@@ -108,29 +109,28 @@ Future<void> _bootstrap() async {
   }
 
   try {
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.databasePath);
     final path = await DBService.dbFilePath();
     ReleaseDiagnostics.debug('DB path resolved: $path');
 
-    final dbOpenTimeout =
-        isDesktop ? const Duration(seconds: 15) : const Duration(seconds: 120);
-    final db = await DBService.database.timeout(
-      dbOpenTimeout,
-      onTimeout: () {
-        throw TimeoutException('DB open timed out');
-      },
-    );
+    // Future.timeout does not cancel SQLite work. Do not report failure while
+    // a migration is still writing; keep the progress UI until it settles.
+    final db = await DBService.database;
 
     // SQLite runtime configuration is owned by DatabaseMigration.
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.settings);
     await WorkshopSettingsService.createTable(db);
     await DBService.ensureDefaultAccountsExist();
     await CommercialSettingsService.instance.get();
 
     // SEC.005 - materialize a stable local installation/device identity.
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.deviceIdentity);
     await DeviceIdentityService().ensureCurrent();
 
     // SEC.011 - project the signed license into a local operational mode.
     // Existing unactivated legacy installs remain activation-required, while a
     // signed expired/suspended/revoked license becomes DB-enforced READ ONLY.
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.license);
     final runtimeDecision =
         await LicenseRuntimeService().refreshFromStoredLicense();
     ReleaseDiagnostics.debug(
@@ -151,6 +151,7 @@ Future<void> _bootstrap() async {
       await UnifiedSyncCoordinatorV3.instance.start();
     }
 
+    ReleaseDiagnostics.markStartupPhase(StartupPhase.ready);
     ReleaseDiagnostics.debug(
       'DB + commercial presentation settings + device identity + '
       'license runtime + periodic validation ready',
@@ -180,6 +181,8 @@ Future<void> _bootstrap() async {
 void main() {
   runZonedGuarded(() async {
     try {
+      WidgetsFlutterBinding.ensureInitialized();
+      runApp(const _BootstrapLoadingApp());
       await _bootstrap();
 
       runApp(
@@ -195,6 +198,44 @@ void main() {
   }, (error, stack) {
     ReleaseDiagnostics.debug('Uncaught zone error', error: error, stack: stack);
   });
+}
+
+class _BootstrapLoadingApp extends StatelessWidget {
+  const _BootstrapLoadingApp();
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+            fontFamily: 'Cairo',
+            colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary)),
+        home: Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+              body: Center(
+                  child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              const Text('جارٍ فتح بياناتك بأمان',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              const Text(
+                  'قد يستغرق تحديث قاعدة البيانات وقتًا في أول تشغيل. اترك التطبيق مفتوحًا حتى يكتمل.',
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ValueListenableBuilder<StartupPhase>(
+                valueListenable: ReleaseDiagnostics.startupPhase,
+                builder: (_, phase, __) => Text(
+                    'مرحلة التشغيل: ${phase.name.toUpperCase()}',
+                    textAlign: TextAlign.center),
+              ),
+            ]),
+          ))),
+        ),
+      );
 }
 
 class _BootstrapFailureApp extends StatefulWidget {
@@ -271,6 +312,9 @@ class _BootstrapFailureAppState extends State<_BootstrapFailureApp> {
                       ReleaseDiagnostics.publicFailureText(_error),
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                        'مرحلة التشغيل: ${ReleaseDiagnostics.startupPhase.value.name.toUpperCase()}'),
                     const SizedBox(height: 20),
                     FilledButton.icon(
                       onPressed: _retrying ? null : _retry,

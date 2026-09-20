@@ -1,10 +1,28 @@
 import 'package:flutter/foundation.dart';
 
+enum StartupPhase {
+  preparing,
+  databasePath,
+  journalRecovery,
+  versionCheck,
+  encryption,
+  databaseOpen,
+  validation,
+  settings,
+  deviceIdentity,
+  license,
+  ready
+}
+
 /// Centralizes diagnostics so release builds never expose raw runtime details.
 class ReleaseDiagnostics {
   const ReleaseDiagnostics._();
 
   static const String startupBlockedCode = 'STARTUP_BLOCKED';
+  static final startupPhase =
+      ValueNotifier<StartupPhase>(StartupPhase.preparing);
+  static void markStartupPhase(StartupPhase phase) =>
+      startupPhase.value = phase;
 
   static void debug(
     String message, {

@@ -88,7 +88,7 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
 
   ios_unified_owner:
-    name: Yallah Accounts Owner iPhone 1.0.2+21 DB84
+    name: Yallah Accounts Owner iPhone 1.0.3+22 DB84 Startup Fix
     instance_type: mac_mini_m2
     max_build_duration: 60
     triggering:
