@@ -19,7 +19,16 @@ void main() {
         "      return _page(settings, const RepairsScreen(showAll: true));",
       ),
     );
-    expect(shell, contains('routeName == AppRoutes.repairsList'));
+    final featureRoutesStart =
+        shell.indexOf('static const _featureOwnedPhoneRoutes');
+    final frameOwnNavStart = shell.indexOf(
+        'bool get _screenAlreadyOwnsPhoneNav', featureRoutesStart);
+    expect(featureRoutesStart, greaterThanOrEqualTo(0));
+    expect(frameOwnNavStart, greaterThan(featureRoutesStart));
+    expect(
+      shell.substring(featureRoutesStart, frameOwnNavStart),
+      contains('AppRoutes.repairsList'),
+    );
     expect(sidebar, contains("route: AppRoutes.repairsList"));
     expect(sidebar, contains("title: 'ملفات الإصلاح'"));
   });

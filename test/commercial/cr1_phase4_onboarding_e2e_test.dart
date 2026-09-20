@@ -20,6 +20,27 @@ class _NetworkBinding extends AutomatedTestWidgetsFlutterBinding {
   bool get overrideHttpClient => false;
 }
 
+Future<Map<String, dynamic>> _readFixtureInfo(
+  StreamIterator<String> lines,
+  Set<String> requiredKeys,
+) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 30));
+  while (DateTime.now().isBefore(deadline)) {
+    final remaining = deadline.difference(DateTime.now());
+    if (!await lines.moveNext().timeout(remaining)) break;
+    try {
+      final decoded = jsonDecode(lines.current);
+      if (decoded is Map) {
+        final info = Map<String, dynamic>.from(decoded);
+        if (requiredKeys.every(info.containsKey)) return info;
+      }
+    } catch (_) {
+      // Structured server logs may precede the fixture metadata line.
+    }
+  }
+  throw StateError('Phase 4 fixture metadata was not emitted.');
+}
+
 void main() {
   _NetworkBinding();
   final controlRoot = Platform.environment['YALLA_CR1_CONTROL_ROOT'];
@@ -41,6 +62,7 @@ void main() {
         workingDirectory: controlRoot);
     final errors = StringBuffer();
     final err = process.stderr.transform(utf8.decoder).listen(errors.write);
+    Future<void>? stdoutDrain;
     addTearDown(() async {
       process.stdin.writeln('close');
       try {
@@ -48,13 +70,17 @@ void main() {
       } catch (_) {
         process.kill();
       }
+      try {
+        await stdoutDrain?.timeout(const Duration(seconds: 2));
+      } catch (_) {}
       await err.cancel();
     });
     final lines = StreamIterator(
         process.stdout.transform(utf8.decoder).transform(const LineSplitter()));
-    expect(await lines.moveNext().timeout(const Duration(seconds: 30)), true,
-        reason: errors.toString());
-    final info = jsonDecode(lines.current) as Map<String, dynamic>;
+    final info = await _readFixtureInfo(lines, {'base', 'auth_base', 'admin'});
+    stdoutDrain = () async {
+      while (await lines.moveNext()) {}
+    }();
     const config = CloudAuthConfig(
         url: 'https://phase4-auth.example.invalid',
         publicKey: 'sb_publishable_phase4_fixture_only',

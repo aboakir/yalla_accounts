@@ -25,6 +25,12 @@ Future<Database> _openDb(String path, String device,
       'CREATE TABLE installation_identity(singleton_id INTEGER PRIMARY KEY,organization_id TEXT NOT NULL,device_id TEXT NOT NULL)');
   await db.insert('installation_identity',
       {'singleton_id': 1, 'organization_id': _org, 'device_id': device});
+  await db.execute('''CREATE TABLE accounts(
+    id INTEGER PRIMARY KEY,code TEXT,name TEXT,type TEXT,
+    normal_balance TEXT,report_class TEXT,is_postable INTEGER,
+    is_system INTEGER,is_active INTEGER,parent_id INTEGER)''');
+  await db.execute('''CREATE TABLE party_roles(
+    party_id INTEGER NOT NULL,role TEXT NOT NULL,legacy_id INTEGER)''');
   await InventoryTables.ensure(db);
   await SyncFoundationTables.ensure(db);
   if (preseed) {

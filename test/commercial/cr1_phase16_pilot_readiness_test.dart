@@ -18,7 +18,9 @@ void main() {
     await db.execute('''CREATE TABLE accounting_audit_events(
       id INTEGER PRIMARY KEY,gl_entry_id INTEGER UNIQUE)''');
     await db.execute('''CREATE TABLE sync_outbox(
-      outbox_id TEXT PRIMARY KEY,state TEXT NOT NULL)''');
+      outbox_id TEXT PRIMARY KEY,
+      state TEXT NOT NULL,
+      last_error TEXT)''');
     await db.execute('''CREATE TABLE sync_conflicts(
       conflict_id TEXT PRIMARY KEY,status TEXT NOT NULL)''');
     await db.execute('''CREATE TABLE inventory_movements(

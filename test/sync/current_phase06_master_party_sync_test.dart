@@ -112,6 +112,10 @@ Future<Database> openDeviceDb(String path, String deviceId) async {
     address TEXT,
     account_id INTEGER
   )''');
+  await db.execute('''CREATE TABLE accounts(
+    id INTEGER PRIMARY KEY,code TEXT,name TEXT,type TEXT,
+    normal_balance TEXT,report_class TEXT,is_postable INTEGER,
+    is_system INTEGER,is_active INTEGER,parent_id INTEGER)''');
   await PartyTables.ensure(db);
   await SyncFoundationTables.ensure(db);
   await UnifiedSyncTables.ensure(db);

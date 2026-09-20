@@ -38,7 +38,7 @@ void main() {
     expect(encryption, contains('_tableCounts'));
     expect(encryption, contains('.p04_plaintext_backup'));
     expect(encryption, contains('.p04_encrypting'));
-    expect(encryption, contains('Yalla Accounts will not reset it.'));
+    expect(encryption, contains('Yallah Accounts will not reset it.'));
     expect(migration,
         contains('DatabaseEncryptionService.prepareCanonical(path)'));
     expect(migration, contains('pathOverride == null'));

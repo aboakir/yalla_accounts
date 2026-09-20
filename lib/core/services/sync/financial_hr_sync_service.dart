@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../accounting_source_policy.dart';
 import '../db/tables/accounting_integrity_tables.dart';
+import '../db/tables/accounting_tables.dart';
 import '../db/tables/sync_foundation_tables.dart';
 import 'sync_foundation_service.dart';
 import 'unified_sync_queue_service.dart';
@@ -1109,19 +1110,20 @@ class FinancialHrSyncService {
       entityType: 'gl_entry',
       entityUuid: change.entityUuid,
       revision: 1,
-      action: () => txn.insert('gl_entries', {
-        'date': _text(payload['date']) ?? change.occurredAt.toIso8601String(),
-        'ref': _text(payload['ref']),
-        'source': source,
-        'source_id': sourceId,
-        'source_number': _text(payload['source_number']),
-        'posting_version': _int(payload['posting_version']) ?? 1,
-        'reversal_of': reversal,
-        'created_by': _text(payload['created_by']),
-        'note': _text(payload['note']),
-        'created_at':
-            _text(payload['created_at']) ?? change.occurredAt.toIso8601String(),
-      }),
+      action: () => AccountingTables.stageSyncedGlEntryOn(
+        ex: txn,
+        date: DateTime.tryParse(_text(payload['date']) ?? '') ??
+            change.occurredAt,
+        ref: _text(payload['ref']),
+        source: source,
+        sourceId: sourceId,
+        sourceNumber: _text(payload['source_number']),
+        postingVersion: _int(payload['posting_version']) ?? 1,
+        reversalOf: reversal,
+        createdBy: _text(payload['created_by']),
+        note: _text(payload['note']),
+        createdAt: DateTime.tryParse(_text(payload['created_at']) ?? ''),
+      ),
     );
   }
 
@@ -1172,21 +1174,22 @@ class FinancialHrSyncService {
       revision: 1,
       action: () async {
         final account = await _accountId(txn, payload);
-        await txn.insert('gl_lines', {
-          'entry_id': entry,
-          'account_id': account,
-          'debit': debit,
-          'credit': credit,
-          'party_type': partyType,
-          'party_id': partyId,
-          'invoice_id': invoice,
-          'repair_id': repair,
-          'cheque_id': cheque,
-          'reference_id': _text(payload['reference_id']),
-          'reference_type': _text(payload['reference_type']),
-          'created_at': _text(payload['created_at']) ??
-              change.occurredAt.toIso8601String(),
-        });
+        await AccountingTables.stageSyncedGlLineOn(
+          ex: txn,
+          entryId: entry,
+          accountId: account,
+          debit: debit,
+          credit: credit,
+          partyType: partyType,
+          partyId: partyId,
+          invoiceId: invoice,
+          repairId: repair,
+          chequeId: cheque,
+          referenceId: _text(payload['reference_id']),
+          referenceType: _text(payload['reference_type']),
+          createdAt: DateTime.tryParse(_text(payload['created_at']) ?? '') ??
+              change.occurredAt,
+        );
       },
     );
   }

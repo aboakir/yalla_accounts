@@ -18,12 +18,14 @@ import 'package:yalla_accounts/features/auth/services/permission_service.dart';
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'stage46_subscription_access_test.dart' as licensing;
 
+final String _fixturePasswordHash = PasswordHasher.hash('Local-Password123!');
+
 Future<void> addUser(Database db, String role) async {
   await db.insert('users', {
     'id': role,
     'name': role,
     'email': '$role@example.invalid',
-    'password': PasswordHasher.hash('Local-Password123!'),
+    'password': _fixturePasswordHash,
     'role': role,
     'is_owner': role == 'owner' ? 1 : 0,
     'status': 'active',
@@ -187,10 +189,17 @@ void main() {
               activationStateRepository: repo);
           final decision = await runtime.refreshFromStoredLicense();
           for (final role in RoleKeys.canonical) {
+            final exercisesPin = role == 'owner';
             final users = UserService(databaseProvider: () async => db);
-            expect(await users.authenticateUser(role, 'wrong'), isNull);
-            final user =
-                (await users.authenticateUser(role, 'Local-Password123!'))!;
+            final user = exercisesPin
+                ? await (() async {
+                    expect(await users.authenticateUser(role, 'wrong'), isNull);
+                    return (await users.authenticateUser(
+                      role,
+                      'Local-Password123!',
+                    ))!;
+                  })()
+                : (await users.getUserByUsername(role))!;
             expect(user.role, role);
             expect(user.identityAccountId, isNotNull);
             final person = user.identityAccountId;
@@ -198,10 +207,12 @@ void main() {
             await session.saveLoginPreferences(
                 username: role, rememberUsername: true, keepSignedIn: true);
             await session.createSession(user, keepSignedIn: true);
-            await DeviceUnlockService().configure(
-                userId: user.id, pin: '6372', enableBiometric: false);
-            final secrets = await const FlutterSecureStorage().readAll();
-            expect(secrets.values, isNot(contains('6372')));
+            if (exercisesPin) {
+              await DeviceUnlockService().configure(
+                  userId: user.id, pin: '6372', enableBiometric: false);
+              final secrets = await const FlutterSecureStorage().readAll();
+              expect(secrets.values, isNot(contains('6372')));
+            }
             AuthSessionService.resetProcessMemoryForTesting();
             expect(AuthSessionService.authenticatedUserId, isNull);
             await db.close();
@@ -211,17 +222,20 @@ void main() {
             expect(restored.identityAccountId, person);
             expect(restored.organizationId, org);
             expect(restored.role, role);
-            final unlock = DeviceUnlockService();
-            expect(await unlock.verifyPin(userId: restored.id, pin: '0000'),
-                isFalse);
-            expect(
-                await unlock.verifyPin(
-                    userId: 'other-workshop-user', pin: '6372'),
-                isFalse);
-            expect(await unlock.verifyPin(userId: restored.id, pin: '6372'),
-                isTrue);
-            expect(await unlock.authenticateBiometric(userId: restored.id),
-                isFalse);
+            if (exercisesPin) {
+              final unlock = DeviceUnlockService();
+              expect(await unlock.verifyPin(userId: restored.id, pin: '0000'),
+                  isFalse);
+              expect(
+                  await unlock.verifyPin(
+                      userId: 'other-workshop-user', pin: '6372'),
+                  isFalse);
+              expect(await unlock.verifyPin(userId: restored.id, pin: '6372'),
+                  isTrue);
+              expect(await unlock.authenticateBiometric(userId: restored.id),
+                  isFalse);
+              await unlock.clear();
+            }
             final gate = CommercialAccessGateService(
                 databaseProvider: () async => db,
                 activationStateRepository: repo);

@@ -1133,6 +1133,143 @@ class AccountingTables {
     );
   }
 
+  /// Controlled low-level gateway for inbound financial synchronization.
+  ///
+  /// Sync stages immutable GL facts one entity at a time, then
+  /// [FinancialHrSyncService] accepts the matching accounting audit event only
+  /// after the full entry is balanced. Keeping the raw table writes here
+  /// prevents sync from becoming a second posting engine while preserving
+  /// stable remote UUID mapping and idempotent revision handling.
+  static Future<int> stageSyncedGlEntryOn({
+    required DatabaseExecutor ex,
+    required DateTime date,
+    String? ref,
+    required String source,
+    required String sourceId,
+    String? sourceNumber,
+    int postingVersion = 1,
+    int? reversalOf,
+    String? createdBy,
+    String? note,
+    DateTime? createdAt,
+  }) async {
+    final canonicalSource = AccountingSourcePolicy.canonical(source);
+    final cleanSourceId = sourceId.trim();
+    if (canonicalSource.isEmpty || cleanSourceId.isEmpty) {
+      throw StateError('SYNC_GL_SOURCE_IDENTITY_REQUIRED');
+    }
+    if (postingVersion < 1) {
+      throw StateError('SYNC_GL_POSTING_VERSION_INVALID');
+    }
+    if (reversalOf != null) {
+      if (reversalOf <= 0) {
+        throw StateError('SYNC_GL_REVERSAL_REFERENCE_INVALID');
+      }
+      final target = await ex.query(
+        'gl_entries',
+        columns: const ['id'],
+        where: 'id=?',
+        whereArgs: [reversalOf],
+        limit: 1,
+      );
+      if (target.isEmpty) {
+        throw StateError('SYNC_GL_REVERSAL_REFERENCE_MISSING');
+      }
+    }
+
+    final duplicate = await ex.rawQuery(
+      '''SELECT id FROM gl_entries
+      WHERE ${AccountingSourcePolicy.sqlCanonicalExpression('source')}=?
+        AND TRIM(source_id)=? LIMIT 1''',
+      [canonicalSource, cleanSourceId],
+    );
+    if (duplicate.isNotEmpty) {
+      throw StateError('SYNC_GL_SOURCE_CONFLICT');
+    }
+
+    return ex.insert('gl_entries', {
+      'date': date.toUtc().toIso8601String(),
+      'ref': ref,
+      'source': source.trim().toUpperCase(),
+      'source_id': cleanSourceId,
+      'source_number': sourceNumber,
+      'posting_version': postingVersion,
+      'reversal_of': reversalOf,
+      'created_by': createdBy,
+      'note': note,
+      'created_at': (createdAt ?? date).toUtc().toIso8601String(),
+    });
+  }
+
+  /// Stages one immutable synchronized GL line through the accounting gateway.
+  ///
+  /// A staged entry is not considered accepted accounting evidence until its
+  /// corresponding sync audit event validates the complete double-entry set.
+  static Future<int> stageSyncedGlLineOn({
+    required DatabaseExecutor ex,
+    required int entryId,
+    required int accountId,
+    required double debit,
+    required double credit,
+    String? partyType,
+    String? partyId,
+    String? invoiceId,
+    String? repairId,
+    int? chequeId,
+    String? referenceId,
+    String? referenceType,
+    DateTime? createdAt,
+  }) async {
+    if (entryId <= 0 || accountId <= 0) {
+      throw StateError('SYNC_GL_REFERENCE_INVALID');
+    }
+    if (!debit.isFinite ||
+        !credit.isFinite ||
+        debit < 0 ||
+        credit < 0 ||
+        (debit > 0 && credit > 0) ||
+        (debit == 0 && credit == 0)) {
+      throw StateError('SYNC_GL_LINE_AMOUNT_INVALID');
+    }
+
+    final entry = await ex.query(
+      'gl_entries',
+      columns: const ['id'],
+      where: 'id=?',
+      whereArgs: [entryId],
+      limit: 1,
+    );
+    if (entry.isEmpty) {
+      throw StateError('SYNC_GL_ENTRY_MISSING');
+    }
+    final account = await ex.query(
+      'accounts',
+      columns: const ['id'],
+      where: 'id=?',
+      whereArgs: [accountId],
+      limit: 1,
+    );
+    if (account.isEmpty) {
+      throw StateError('SYNC_GL_ACCOUNT_MISSING');
+    }
+
+    return ex.insert('gl_lines', {
+      'entry_id': entryId,
+      'account_id': accountId,
+      'debit': debit,
+      'credit': credit,
+      'party_type': partyType,
+      'party_id': partyId,
+      'invoice_id': invoiceId,
+      'repair_id': repairId,
+      'cheque_id': chequeId,
+      'reference_id': referenceId,
+      'reference_type': referenceType,
+      'created_at':
+          (createdAt ?? DateTime.now().toUtc()).toUtc().toIso8601String(),
+    });
+  }
+
   static Future<bool> _accountsHaveCoaMetadata(
     DatabaseExecutor db,
   ) async {

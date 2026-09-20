@@ -13,6 +13,25 @@ import 'package:yalla_accounts/core/licensing/lifecycle/license_lifecycle_transp
 String b64(List<int> bytes) => base64Url.encode(bytes).replaceAll('=', '');
 List<int> decode(String value) => base64Url.decode(base64Url.normalize(value));
 
+Future<Map<String, dynamic>> _readFixtureInfo(
+  StreamIterator<String> lines,
+  Set<String> requiredKeys,
+) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 30));
+  while (DateTime.now().isBefore(deadline)) {
+    final remaining = deadline.difference(DateTime.now());
+    if (!await lines.moveNext().timeout(remaining)) break;
+    try {
+      final decoded = jsonDecode(lines.current);
+      if (decoded is Map) {
+        final info = Map<String, dynamic>.from(decoded);
+        if (requiredKeys.every(info.containsKey)) return info;
+      }
+    } catch (_) {}
+  }
+  throw StateError('Control V2 fixture metadata was not emitted.');
+}
+
 void main() {
   test(
       'V2 transports reject an absent authenticated identity before sending requests',
@@ -52,6 +71,7 @@ void main() {
     final errors = StringBuffer();
     final stderrSub =
         process.stderr.transform(utf8.decoder).listen(errors.write);
+    Future<void>? stdoutDrain;
     addTearDown(() async {
       process.stdin.writeln('close');
       try {
@@ -59,13 +79,25 @@ void main() {
       } on TimeoutException {
         process.kill();
       }
+      try {
+        await stdoutDrain?.timeout(const Duration(seconds: 2));
+      } catch (_) {}
       await stderrSub.cancel();
     });
     final lines = StreamIterator(
         process.stdout.transform(utf8.decoder).transform(const LineSplitter()));
-    expect(await lines.moveNext().timeout(const Duration(seconds: 20)), true,
-        reason: errors.toString());
-    final info = jsonDecode(lines.current) as Map<String, dynamic>;
+    final info = await _readFixtureInfo(lines, {
+      'base',
+      'organization_id',
+      'installation_id',
+      'activation_code',
+      'license_id',
+      'signing_hash',
+      'token',
+    });
+    stdoutDrain = () async {
+      while (await lines.moveNext()) {}
+    }();
     final client = HttpClient();
     addTearDown(() => client.close(force: true));
     final algorithm = Ed25519();
@@ -136,7 +168,6 @@ void main() {
         now: completion.serverTime);
     expect(refreshed.deviceId, device.deviceId);
     expect(tokenCalls, 5);
-    await lines.cancel();
   },
       skip: controlRoot == null
           ? 'Set YALLA_CR1_CONTROL_ROOT to run the cross-repository HTTP contract test.'
