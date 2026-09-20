@@ -6,11 +6,12 @@ class ArabicPdfText {
   static pw.Widget build(String value,
       {required pw.TextStyle style, required pw.Font latin}) {
     final hasArabic = RegExp(r'[\u0600-\u06ff]').hasMatch(value);
-    if (!hasArabic)
+    if (!hasArabic) {
       return pw.Text(value,
           textDirection: pw.TextDirection.ltr,
           textAlign: pw.TextAlign.right,
           style: style.copyWith(font: latin));
+    }
     if (!RegExp(r'[A-Za-z0-9]').hasMatch(value)) {
       return pw.Text(value,
           textDirection: pw.TextDirection.rtl,

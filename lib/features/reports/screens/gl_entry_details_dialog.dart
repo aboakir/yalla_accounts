@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -93,8 +94,8 @@ Future<void> showGlEntryDetails(BuildContext context, int entryId) async {
             ));
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('تعذر عرض القيد: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذر عرض القيد: ${UserFacingError.message(e)}')));
     }
   }
 }

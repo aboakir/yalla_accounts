@@ -471,7 +471,8 @@ class _AccountingHealthCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(icon, size: 28, color: healthy ? Colors.green : Colors.orange),
+            Icon(icon,
+                size: 28, color: healthy ? AppColors.primary : Colors.orange),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/screens/general_journal_screen.dart
 //
 // اليومية العامة — General Journal (GL v29)
@@ -26,7 +27,7 @@ import 'package:flutter/gestures.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -297,8 +298,8 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
       await Share.shareXFiles([XFile(file.path)], text: 'General Journal');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل تصدير CSV: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -452,10 +453,10 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
         runSpacing: 8,
         alignment: WrapAlignment.end,
         children: [
-          _stat('إجمالي مدين', _sumD, Colors.green),
+          _stat('إجمالي مدين', _sumD, AppColors.primary),
           _stat('إجمالي دائن', _sumC, Colors.red),
           _stat('الصافي', _sumD - _sumC,
-              (_sumD - _sumC) >= 0 ? Colors.green : Colors.red,
+              (_sumD - _sumC) >= 0 ? AppColors.primary : Colors.red,
               bold: true),
         ],
       ),
@@ -561,7 +562,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
                       DataCell(Text(r.source)),
                       DataCell(Text('${r.accountCode} — ${r.accountName}')),
                       DataCell(Text(_money.format(r.debit),
-                          style: const TextStyle(color: Colors.green))),
+                          style: const TextStyle(color: AppColors.primary))),
                       DataCell(Text(_money.format(r.credit),
                           style: const TextStyle(color: Colors.red))),
                       DataCell(Text([r.partyType, r.partyId]
@@ -626,7 +627,7 @@ class _GeneralJournalScreenState extends State<GeneralJournalScreen> {
                       label: Text('${r.accountCode} — ${r.accountName}'),
                     ),
                     Chip(
-                      backgroundColor: Colors.green.withOpacity(.1),
+                      backgroundColor: AppColors.primary.withOpacity(.1),
                       label: Text('مدين: ${_money.format(r.debit)}'),
                     ),
                     Chip(

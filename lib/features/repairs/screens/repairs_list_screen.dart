@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/screens/repairs_list_screen.dart
 //
 // RepairsListScreen — شاشة قائمة ملفات الإصلاح
@@ -171,7 +172,7 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      final message = error.toString().replaceFirst('Bad state: ', '');
+      final message = UserFacingError.message(error);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -180,29 +181,29 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
 
   Future<void> _exportExcel() async {
     try {
-      final file = await RepairExportService.exportExcel();
+      await RepairExportService.exportExcel();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء Excel:\n${file.path}')),
+        SnackBar(content: Text('تم إنشاء ملف Excel بنجاح.')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل التصدير: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل التصدير: ${UserFacingError.message(e)}')));
     }
   }
 
   Future<void> _exportPdfZip() async {
     try {
-      final file = await RepairExportService.exportPdfZip();
+      await RepairExportService.exportPdfZip();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء ZIP:\n${file.path}')),
+        SnackBar(content: Text('تم إنشاء ملف ZIP بنجاح.')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل التصدير: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل التصدير: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -331,7 +332,7 @@ class _RepairsListScreenState extends ConsumerState<RepairsListScreen> {
 
                                 Color statusColor() {
                                   if (vehicleStatus == 'تم التسليم') {
-                                    return Colors.green;
+                                    return AppColors.primary;
                                   }
                                   if (vehicleStatus == 'قيد الإصلاح') {
                                     return Colors.orange;

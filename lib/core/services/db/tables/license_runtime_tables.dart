@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../../../config/owner_local_access.dart';
 import '../../../licensing/entitlements/commercial_feature_catalog.dart';
 
 class LicenseRuntimeMode {
@@ -103,7 +104,41 @@ class LicenseRuntimeTables {
       });
     }
 
+    if (OwnerLocalAccess.enabled) {
+      await disableCommercialGuardsForOwnerLocalAccess(db);
+      return;
+    }
+
     await installOperationalTriggers(db);
+  }
+
+  static Future<void> disableCommercialGuardsForOwnerLocalAccess(
+      DatabaseExecutor db) async {
+    if (!OwnerLocalAccess.enabled) return;
+    final triggers = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='trigger' "
+      "AND (name LIKE 'yalla_sec011_ro_%' OR name LIKE 'yalla_cr1_feature_%')",
+    );
+    for (final row in triggers) {
+      final name = row['name']?.toString() ?? '';
+      if (_safeIdentifier(name)) {
+        await db.execute('DROP TRIGGER IF EXISTS $name');
+      }
+    }
+    final now = DateTime.now().toUtc().toIso8601String();
+    await db.update(
+      table,
+      <String, Object?>{
+        'mode': LicenseRuntimeMode.writable,
+        'reason': 'Owner local full-access build.',
+        'source': 'LOCAL_BOOTSTRAP',
+        'effective_at': now,
+        'license_expires_at': null,
+        'last_verified_at': null,
+        'updated_at': now,
+      },
+      where: 'singleton_id = 1',
+    );
   }
 
   static Future<void> upgradeForSec012(Database db) async {

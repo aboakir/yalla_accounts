@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/search/screens/global_search_screen.dart
 
 import 'dart:async';
@@ -79,7 +80,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ في البحث: $e')),
+        SnackBar(content: Text('خطأ في البحث: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);

@@ -211,7 +211,7 @@ void main() {
     );
   });
 
-  test('known dashboard grids include a one-column phone mode', () {
+  test('known dashboard grids keep their intended phone modes', () {
     final employees = File(
       'lib/features/employees/screens/employee_dashboard_screen.dart',
     ).readAsStringSync();
@@ -234,12 +234,12 @@ void main() {
     );
     expect(
       RegExp(
-        r'viewportWidth\s*>=\s*600\s*\?\s*2\s*:\s*1',
+        r'final\s+grid\s*=\s*viewportWidth\s*>=\s*1024\s*\?\s*4\s*:\s*2',
         multiLine: true,
       ).hasMatch(cheques),
       isTrue,
       reason:
-          'Cheque dashboard must preserve the 2-column tablet / 1-column phone branch after dart format.',
+          'Human QA requires the cheque KPI dashboard to keep two compact columns on phone and tablet.',
     );
     expect(
       RegExp(r'DeviceType\.mobile\s*=>\s*1').hasMatch(quickActions),
@@ -311,12 +311,18 @@ void main() {
     );
     expect(
       RegExp(
-        r'targetNavigator\s*\.\s*pushNamedAndRemoveUntil\s*\(',
+        r'targetNavigator\s*\.\s*pushNamed\s*\(\s*route\s*\)',
         multiLine: true,
       ).hasMatch(sidebar),
       isTrue,
       reason:
-          'Compact navigation must replace the unstable drawer route stack.',
+          'Compact navigation must preserve the visible previous route for Back.',
+    );
+    expect(
+      sidebar.contains('targetNavigator.pushNamedAndRemoveUntil('),
+      isFalse,
+      reason:
+          'Compact navigation must not expose a stale bootstrap/loading route.',
     );
     expect(
       RegExp(

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
 // 📁 lib/features/employees/screens/employee_advances_screen.dart
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class EmployeeAdvancesScreen extends ConsumerStatefulWidget {
   final Employee employee;
@@ -141,8 +143,8 @@ class _EmployeeAdvancesScreenState
               : 'تم الحفظ وربط GL')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل العملية: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل العملية: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -173,8 +175,8 @@ class _EmployeeAdvancesScreenState
             .showSnackBar(const SnackBar(content: Text('تم الحذف وعكس GL')));
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('فشل الحذف: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('فشل الحذف: ${UserFacingError.message(e)}')));
       }
     }
   }
@@ -205,8 +207,8 @@ class _EmployeeAdvancesScreenState
             const SnackBar(content: Text('تم عكس القيد وتحديث الرصيد')));
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('فشل عكس القيد: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('فشل عكس القيد: ${UserFacingError.message(e)}')));
       }
     }
   }
@@ -305,7 +307,7 @@ class _EmployeeAdvancesScreenState
                       _kpiChip(
                           label: 'إجمالي المكافآت',
                           value: totalRewards,
-                          color: Colors.green),
+                          color: AppColors.primary),
                       _kpiChip(
                           label: 'إجمالي التسديدات',
                           value: totalRepayments,
@@ -596,7 +598,7 @@ class _EmployeeAdvancesScreenState
       return DataRow(cells: [
         DataCell(Text(a.id.length > 8 ? a.id.substring(0, 8) : a.id)),
         DataCell(Text(label, style: TextStyle(color: color))),
-        DataCell(Text('${MoneyFormatter.format(a.amount)}')),
+        DataCell(Text(MoneyFormatter.format(a.amount))),
         DataCell(Text(dfFull.format(a.date))),
         DataCell(Text(a.method ?? '—')),
         DataCell(Text(a.note ?? '—')),
@@ -639,7 +641,7 @@ class _EmployeeAdvancesScreenState
   (String, IconData, Color) _labelIconForType(String type) {
     switch (type.toLowerCase()) {
       case 'bonus':
-        return ('مكافأة', Icons.card_giftcard, Colors.green);
+        return ('مكافأة', Icons.card_giftcard, AppColors.primary);
       case 'repayment':
         return ('تسديد سلفة', Icons.reply, Colors.teal);
       default:

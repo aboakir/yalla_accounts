@@ -70,6 +70,7 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
     } catch (_) {
       remaining = double.infinity;
     }
+    if (!mounted) return;
 
     final ok = await showDialog<bool>(
       context: context,
@@ -159,21 +160,23 @@ class _InvoiceAddPaymentButtonState extends State<InvoiceAddPaymentButton> {
                 if (remaining.isFinite && amt - remaining > 0.0001) {
                   final cont = await showDialog<bool>(
                     context: ctx,
-                    builder: (_) => AdaptiveAlertDialog(
+                    builder: (confirmContext) => AdaptiveAlertDialog(
                       title: const Text('Confirm'),
                       content: Text(
                           'Amount exceeds remaining (${_money(remaining)}). Continue?'),
                       actions: [
                         TextButton(
-                            onPressed: () => Navigator.pop(_, false),
+                            onPressed: () =>
+                                Navigator.pop(confirmContext, false),
                             child: const Text('No')),
                         ElevatedButton(
-                            onPressed: () => Navigator.pop(_, true),
+                            onPressed: () =>
+                                Navigator.pop(confirmContext, true),
                             child: const Text('Yes')),
                       ],
                     ),
                   );
-                  if (cont != true) return;
+                  if (!ctx.mounted || cont != true) return;
                 }
 
                 Navigator.pop(ctx, true);

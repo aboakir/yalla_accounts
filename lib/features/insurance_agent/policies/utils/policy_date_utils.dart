@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PolicyDateUtils {
   PolicyDateUtils._();
@@ -74,7 +75,7 @@ class PolicyDateUtils {
       return const PolicyStatus(label: 'تنتهي قريباً', color: Colors.orange);
     }
 
-    return const PolicyStatus(label: 'سارية', color: Colors.green);
+    return const PolicyStatus(label: 'سارية', color: AppColors.primary);
   }
 }
 

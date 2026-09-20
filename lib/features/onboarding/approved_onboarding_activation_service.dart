@@ -190,6 +190,7 @@ class ApprovedOnboardingActivationService {
       // Catalogs checked below; these contain no commercial authority.
       'accounts', 'suppliers', 'parties', 'party_roles',
       'party_projection_guard',
+      'schema_feature_migrations',
       'insurance_companies', 'document_sequences',
     };
     final tables = await db.rawQuery(

@@ -44,7 +44,7 @@ class SummaryCardsGrid extends StatelessWidget {
           icon: Icons.attach_money,
           title: 'الإيرادات',
           value: MoneyFormatter.format(12300),
-          color: Colors.green,
+          color: AppColors.primary,
         ),
         SummaryCard(
           icon: Icons.payments,

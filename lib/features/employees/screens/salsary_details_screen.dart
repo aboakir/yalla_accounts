@@ -182,9 +182,9 @@ class _SalaryDetailsScreenState extends ConsumerState<SalaryDetailsScreen> {
                 Text('الراتب الصافي',
                     style: TextStyle(color: Colors.grey.shade600)),
                 const SizedBox(height: 4),
-                Text('${MoneyFormatter.format(netSalary)}',
+                Text(MoneyFormatter.format(netSalary),
                     style: const TextStyle(
-                        color: Colors.green,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 20)),
               ],
@@ -235,13 +235,10 @@ class _SalaryDetailsScreenState extends ConsumerState<SalaryDetailsScreen> {
             _infoRow(
                 'الشهر', DateFormat('MMMM yyyy', 'ar').format(selectedMonth)),
             _infoRow('الراتب الأساسي',
-                salary == null ? '—' : '${MoneyFormatter.format(salary.base)}'),
-            _infoRow(
-                'السلفة',
-                salary == null
-                    ? '—'
-                    : '${MoneyFormatter.format(salary.advance)}'),
-            _infoRow('الراتب الصافي', '${MoneyFormatter.format(netSalary)}'),
+                salary == null ? '—' : MoneyFormatter.format(salary.base)),
+            _infoRow('السلفة',
+                salary == null ? '—' : MoneyFormatter.format(salary.advance)),
+            _infoRow('الراتب الصافي', MoneyFormatter.format(netSalary)),
           ],
         ),
       ),

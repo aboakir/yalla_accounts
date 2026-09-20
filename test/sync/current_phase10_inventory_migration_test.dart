@@ -18,7 +18,7 @@ void main() {
     final path = '${root.path}/fixture.sqlite';
     var db = await DatabaseMigration.initDatabase(pathOverride: path);
     try {
-      expect(DatabaseConstants.dbVersion, 83);
+      expect(DatabaseConstants.dbVersion, 84);
       await db.insert('raw_materials', {
         'name': 'Primer',
         'supplier': 'Supplier A',
@@ -40,7 +40,7 @@ void main() {
       await db.close();
 
       db = await DatabaseMigration.initDatabase(pathOverride: path);
-      expect(await db.getVersion(), 83);
+      expect(await db.getVersion(), DatabaseConstants.dbVersion);
       expect(
           await db
               .query('schema_migrations', where: 'version=?', whereArgs: [82]),

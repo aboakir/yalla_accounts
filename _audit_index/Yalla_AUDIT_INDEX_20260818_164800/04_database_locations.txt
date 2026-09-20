@@ -1,2 +1,0 @@
-﻿yalla_accounts.db	0 bytes
-data\yalla_test.db	16384 bytes

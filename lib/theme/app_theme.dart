@@ -22,9 +22,19 @@ class AppTheme {
     fontFamily: 'Cairo',
     primaryColor: const Color(0xFF67BC1F),
     scaffoldBackgroundColor: AppColors.scaffoldBg,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF67BC1F),
-      brightness: Brightness.light,
+    colorScheme: const ColorScheme.light(
+      primary: AppColors.primary,
+      onPrimary: Colors.white,
+      primaryContainer: AppColors.lightGreen,
+      onPrimaryContainer: AppColors.textDark,
+      secondary: AppColors.secondary,
+      onSecondary: Colors.white,
+      secondaryContainer: Color(0xFFF0F1F2),
+      onSecondaryContainer: AppColors.textDark,
+      surface: Colors.white,
+      onSurface: AppColors.textDark,
+      error: AppColors.danger,
+      onError: Colors.white,
     ),
     cardColor: AppColors.cardBackground,
     appBarTheme: const AppBarTheme(

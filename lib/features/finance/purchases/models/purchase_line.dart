@@ -5,30 +5,30 @@
 
 import 'package:meta/meta.dart';
 
-enum PurchaseLineCategory { RAW, PARTS, TOOLS, OTHER }
+enum PurchaseLineCategory { raw, parts, tools, other }
 
 PurchaseLineCategory lineCatFromDb(String? v) {
   switch ((v ?? '').toUpperCase()) {
     case 'PARTS':
-      return PurchaseLineCategory.PARTS;
+      return PurchaseLineCategory.parts;
     case 'TOOLS':
-      return PurchaseLineCategory.TOOLS;
+      return PurchaseLineCategory.tools;
     case 'OTHER':
-      return PurchaseLineCategory.OTHER;
+      return PurchaseLineCategory.other;
     default:
-      return PurchaseLineCategory.RAW;
+      return PurchaseLineCategory.raw;
   }
 }
 
 String lineCatToDb(PurchaseLineCategory c) {
   switch (c) {
-    case PurchaseLineCategory.RAW:
+    case PurchaseLineCategory.raw:
       return 'RAW';
-    case PurchaseLineCategory.PARTS:
+    case PurchaseLineCategory.parts:
       return 'PARTS';
-    case PurchaseLineCategory.TOOLS:
+    case PurchaseLineCategory.tools:
       return 'TOOLS';
-    case PurchaseLineCategory.OTHER:
+    case PurchaseLineCategory.other:
       return 'OTHER';
   }
 }

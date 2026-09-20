@@ -3,34 +3,61 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 
 void main() {
-  testWidgets('Phase 17 legal links open bundled privacy inside the app', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: ReleaseLegalLinks(compact: true)),
-      ),
-    );
-    await tester.tap(find.byKey(const Key('localPrivacyPolicyLink')));
-    await tester.pumpAndSettle();
-    expect(find.text('سياسة الخصوصية'), findsWidgets);
-    expect(find.textContaining('privacy_ps_v1'), findsWidgets);
-    expect(find.textContaining('yalla.accou@gmail.com'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  const cases = <({
+    String keyName,
+    String title,
+    String version,
+  })>[
+    (
+      keyName: 'localPrivacyPolicyLink',
+      title: 'سياسة الخصوصية',
+      version: 'privacy_ps_v1',
+    ),
+    (
+      keyName: 'localTermsLink',
+      title: 'شروط الاستخدام',
+      version: 'terms_ps_v1',
+    ),
+    (
+      keyName: 'localAccountDeletionLink',
+      title: 'حذف الحساب والبيانات',
+      version: 'deletion_ps_v1',
+    ),
+    (
+      keyName: 'localRefundLink',
+      title: 'الإلغاء والاسترداد',
+      version: 'refund_ps_v1',
+    ),
+    (
+      keyName: 'localSupportLink',
+      title: 'الدعم والشكاوى',
+      version: 'support_ps_v1',
+    ),
+    (
+      keyName: 'localContactLink',
+      title: 'اتصل بنا',
+      version: 'contact_ps_v1',
+    ),
+  ];
 
-  testWidgets('Phase 17 terms are local and do not launch an external URL', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: ReleaseLegalLinks(compact: true)),
-      ),
+  for (final item in cases) {
+    testWidgets(
+      'Phase 17 opens bundled ${item.version} inside the app',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: ReleaseLegalLinks(compact: true)),
+          ),
+        );
+
+        await tester.tap(find.byKey(Key(item.keyName)));
+        await tester.pumpAndSettle();
+
+        expect(find.text(item.title), findsWidgets);
+        expect(find.textContaining(item.version), findsWidgets);
+        expect(find.textContaining('yalla.accou@gmail.com'), findsWidgets);
+        expect(tester.takeException(), isNull);
+      },
     );
-    await tester.tap(find.byKey(const Key('localTermsLink')));
-    await tester.pumpAndSettle();
-    expect(find.text('شروط الاستخدام'), findsWidgets);
-    expect(find.textContaining('terms_ps_v1'), findsWidgets);
-    expect(tester.takeException(), isNull);
-  });
+  }
 }

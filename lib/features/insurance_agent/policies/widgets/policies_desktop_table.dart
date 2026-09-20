@@ -95,7 +95,7 @@ class PoliciesDesktopTable extends StatelessWidget {
       case 'تنتهي خلال 30 يوم':
         return Colors.deepOrange;
       case 'سارية':
-        return Colors.green;
+        return AppColors.primary;
       default:
         return Colors.grey;
     }
@@ -299,7 +299,7 @@ class PoliciesDesktopTable extends StatelessWidget {
                         tooltip: 'عرض',
                         onPressed: () => onOpenDetails(r),
                         icon: const Icon(Icons.remove_red_eye,
-                            color: Colors.green),
+                            color: AppColors.primary),
                       ),
                       IconButton(
                         tooltip: 'تعديل',

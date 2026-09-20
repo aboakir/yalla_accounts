@@ -182,8 +182,7 @@ class _SmartCardsState extends State<SmartCards> {
   }
 
   String _fmtCurrency(double v) {
-    final nf = NumberFormat('#,##0.##');
-    return '${MoneyFormatter.format(v)}';
+    return MoneyFormatter.format(v);
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
@@ -51,6 +52,7 @@ class WeeklyBackupGuardianDialog {
           FilledButton.icon(
             onPressed: () async {
               Navigator.pop(dialogContext);
+              if (!context.mounted) return;
               await _createNow(context, status.backupEmail);
             },
             icon: const Icon(Icons.shield_outlined),
@@ -63,6 +65,7 @@ class WeeklyBackupGuardianDialog {
 
   static Future<void> _createNow(BuildContext context, String? email) async {
     var password = await BackupKeyStore.readPassword();
+    if (!context.mounted) return;
     if (password == null) {
       password = await _requestPassword(context);
       if (password == null) return;
@@ -121,7 +124,9 @@ class WeeklyBackupGuardianDialog {
       if (!context.mounted) return;
       Navigator.of(context, rootNavigator: true).maybePop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل إنشاء النسخة الاحتياطية: $e')),
+        SnackBar(
+            content: Text(
+                'فشل إنشاء النسخة الاحتياطية: ${UserFacingError.message(e)}')),
       );
     }
   }

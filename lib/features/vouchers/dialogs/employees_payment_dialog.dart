@@ -14,6 +14,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class EmployeesPaymentDialog extends StatefulWidget {
   const EmployeesPaymentDialog({super.key});
@@ -155,12 +156,12 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
                               margin: const EdgeInsets.symmetric(vertical: 5),
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? Colors.green.shade50
+                                    ? AppColors.lightGreen
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                   color: selected
-                                      ? Colors.green
+                                      ? AppColors.primary
                                       : Colors.grey.shade300,
                                 ),
                               ),
@@ -257,7 +258,7 @@ class _EmployeesPaymentDialogState extends State<EmployeesPaymentDialog> {
               child: ElevatedButton(
                 onPressed: _confirmPayment,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: AppColors.primary,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 ),

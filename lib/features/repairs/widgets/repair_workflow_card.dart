@@ -147,6 +147,16 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'إعداد عرض السعر',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('حفظ العرض'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -187,16 +197,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('حفظ العرض'),
-            ),
-          ],
         ),
       ),
     );
@@ -277,6 +277,16 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'تسجيل موافقة العميل',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('اعتماد الموافقة'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -310,16 +320,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('اعتماد الموافقة'),
-            ),
-          ],
         ),
       ),
     );
@@ -348,15 +348,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       context: context,
       builder: (dialogContext) => _WorkflowDialog(
         title: 'تسجيل رفض العرض',
-        child: TextField(
-          controller: reason,
-          minLines: 2,
-          maxLines: 5,
-          decoration: const InputDecoration(
-            labelText: 'سبب الرفض (اختياري)',
-            border: OutlineInputBorder(),
-          ),
-        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -367,6 +358,15 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
             child: const Text('تسجيل الرفض'),
           ),
         ],
+        child: TextField(
+          controller: reason,
+          minLines: 2,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            labelText: 'سبب الرفض (اختياري)',
+            border: OutlineInputBorder(),
+          ),
+        ),
       ),
     );
     if (submit != true) {
@@ -396,36 +396,115 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
     return active.isEmpty ? all : active;
   }
 
+  Future<String?> _quickAddEmployee() async {
+    final name = TextEditingController();
+    final jobTitle = TextEditingController(text: 'فني');
+    final createdId = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => _WorkflowDialog(
+        title: 'إضافة موظف سريع',
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final fullName = name.text.trim();
+              final title = jobTitle.text.trim();
+              if (fullName.isEmpty || title.isEmpty) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(
+                      content: Text('أدخل اسم الموظف والمسمى الوظيفي.')),
+                );
+                return;
+              }
+              final code = 'EMP-${DateTime.now().millisecondsSinceEpoch}';
+              try {
+                await EmployeeService.addEmployee(
+                  Employee.fromMap(<String, dynamic>{
+                    'id': '',
+                    'full_name': fullName,
+                    'employee_code': code,
+                    'job_title': title,
+                    'hire_date': DateTime.now().toIso8601String(),
+                    'status': 'active',
+                    'contract_type': 'monthly',
+                    'base_salary': 0.0,
+                    'allowances': 0.0,
+                    'deductions': 0.0,
+                    'advances': 0.0,
+                    'payment_method': 'cash',
+                    'work_days_per_week': 6,
+                    'hours_per_day': 8,
+                  }),
+                );
+                final employees = await EmployeeService.getAllEmployees();
+                final created = employees.where((e) => e.employeeCode == code);
+                if (created.isEmpty) {
+                  throw StateError('employee_not_found_after_save');
+                }
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, created.first.id);
+                }
+              } catch (e) {
+                debugPrint('Quick employee creation failed: $e');
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('تعذر إضافة الموظف. لم يتم تغيير ملف الإصلاح.'),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('إضافة واختيار'),
+          ),
+        ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'اسم الموظف',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: jobTitle,
+              decoration: const InputDecoration(
+                labelText: 'المسمى الوظيفي',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    name.dispose();
+    jobTitle.dispose();
+    return createdId;
+  }
+
   Future<String?> _chooseEmployee({bool allowUnassigned = false}) async {
     final employees = await _activeEmployees();
     if (!mounted) return null;
     if (employees.isEmpty) {
-      _message(
-          'لا يوجد موظفون مسجلون. يمكنك إنشاء أمر العمل ثم إضافة موظف قبل بدء التنفيذ.');
+      final created = await _quickAddEmployee();
+      if (created != null) return created;
       return allowUnassigned ? '' : null;
     }
 
     String? selected = _workflow?.responsibleEmployeeId;
-    return showDialog<String>(
+    final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'المسؤول / الفني',
-          child: DropdownButtonFormField<String>(
-            value: employees.any((e) => e.id == selected) ? selected : null,
-            items: employees
-                .map((employee) => DropdownMenuItem(
-                      value: employee.id,
-                      child:
-                          Text('${employee.fullName} — ${employee.jobTitle}'),
-                    ))
-                .toList(),
-            onChanged: (value) => setDialogState(() => selected = value),
-            decoration: const InputDecoration(
-              labelText: 'اختر المسؤول عن الملف',
-              border: OutlineInputBorder(),
-            ),
-          ),
           actions: [
             if (allowUnassigned)
               TextButton(
@@ -443,9 +522,25 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               child: const Text('اختيار'),
             ),
           ],
+          child: DropdownButtonFormField<String>(
+            value: employees.any((e) => e.id == selected) ? selected : null,
+            items: employees
+                .map((employee) => DropdownMenuItem(
+                      value: employee.id,
+                      child:
+                          Text('${employee.fullName} — ${employee.jobTitle}'),
+                    ))
+                .toList(),
+            onChanged: (value) => setDialogState(() => selected = value),
+            decoration: const InputDecoration(
+              labelText: 'اختر المسؤول عن الملف',
+              border: OutlineInputBorder(),
+            ),
+          ),
         ),
       ),
     );
+    return result;
   }
 
   Future<void> _createWorkOrder() async {
@@ -509,6 +604,18 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'الفحص الأولي للجودة',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: work && finish && cleanliness && docs
+                  ? () => Navigator.pop(dialogContext, true)
+                  : null,
+              child: const Text('اعتماد الفحص'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -554,18 +661,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: work && finish && cleanliness && docs
-                  ? () => Navigator.pop(dialogContext, true)
-                  : null,
-              child: const Text('اعتماد الفحص'),
-            ),
-          ],
         ),
       ),
     );
@@ -602,6 +697,22 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'فحص الجودة النهائي',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إلغاء'),
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(dialogContext, 'rework'),
+              child: const Text('إرجاع للتنفيذ'),
+            ),
+            FilledButton(
+              onPressed: work && finish && cleanliness && docs
+                  ? () => Navigator.pop(dialogContext, 'pass')
+                  : null,
+              child: const Text('اعتماد الجودة النهائية'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -647,22 +758,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء'),
-            ),
-            OutlinedButton(
-              onPressed: () => Navigator.pop(dialogContext, 'rework'),
-              child: const Text('إرجاع للتنفيذ'),
-            ),
-            FilledButton(
-              onPressed: work && finish && cleanliness && docs
-                  ? () => Navigator.pop(dialogContext, 'pass')
-                  : null,
-              child: const Text('اعتماد الجودة النهائية'),
-            ),
-          ],
         ),
       ),
     );
@@ -726,6 +821,16 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => _WorkflowDialog(
           title: 'تسليم المركبة',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('تأكيد التسليم'),
+            ),
+          ],
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -776,16 +881,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('تأكيد التسليم'),
-            ),
-          ],
         ),
       ),
     );
@@ -819,6 +914,18 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
       context: context,
       builder: (dialogContext) => _WorkflowDialog(
         title: 'إغلاق ملف الإصلاح',
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: remaining > 0.005
+                ? null
+                : () => Navigator.pop(dialogContext, true),
+            child: const Text('إغلاق رسمي'),
+          ),
+        ],
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -855,18 +962,6 @@ class _RepairWorkflowCardState extends State<RepairWorkflowCard> {
             ],
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: remaining > 0.005
-                ? null
-                : () => Navigator.pop(dialogContext, true),
-            child: const Text('إغلاق رسمي'),
-          ),
-        ],
       ),
     );
     if (submit != true) {

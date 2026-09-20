@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:yalla_accounts/core/security/release_diagnostics.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_identity_tables.dart';
 // Database migration compatibility note.
@@ -110,6 +112,103 @@ class DatabaseMigration {
     return SyncFoundationService.transaction<T>(db, action);
   }
 
+  static Future<int> _readRecoveredPlaintextVersion(String path) async {
+    const sqliteHeader = <int>[
+      0x53,
+      0x51,
+      0x4c,
+      0x69,
+      0x74,
+      0x65,
+      0x20,
+      0x66,
+      0x6f,
+      0x72,
+      0x6d,
+      0x61,
+      0x74,
+      0x20,
+      0x33,
+      0x00,
+    ];
+    const maxAttempts = 10;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      RandomAccessFile? handle;
+      try {
+        handle = await File(path).open(mode: FileMode.read);
+        final header = await handle.read(64);
+        if (header.length < 64) {
+          throw StateError('Recovered SQLite database header is truncated.');
+        }
+        for (var index = 0; index < sqliteHeader.length; index++) {
+          if (header[index] != sqliteHeader[index]) {
+            throw StateError(
+                'Recovered file is not a plaintext SQLite database.');
+          }
+        }
+        return (header[60] << 24) |
+            (header[61] << 16) |
+            (header[62] << 8) |
+            header[63];
+      } on FileSystemException {
+        final fileStillExists = await File(path).exists();
+        if (!fileStillExists || attempt + 1 >= maxAttempts) rethrow;
+        final linearDelayMs = 50 * (attempt + 1);
+        final delayMs = linearDelayMs > 500 ? 500 : linearDelayMs;
+        ReleaseDiagnostics.debug(
+          '[DB] recovered file not readable yet; retry ${attempt + 1}/$maxAttempts in ${delayMs}ms',
+        );
+        await Future<void>.delayed(Duration(milliseconds: delayMs));
+      } finally {
+        if (handle != null) await handle.close();
+      }
+    }
+
+    throw StateError('Unable to read recovered SQLite database header.');
+  }
+
+  static Future<int> _readExistingVersion(
+    String path, {
+    required bool retryAfterRestore,
+  }) async {
+    if (retryAfterRestore &&
+        !DatabaseEncryptionService.mobileEncryptionEnabled) {
+      return _readRecoveredPlaintextVersion(path);
+    }
+
+    final maxAttempts = retryAfterRestore ? 10 : 1;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      Database? existing;
+      try {
+        existing = await DatabaseEncryptionService.openReadOnlyCandidate(path);
+        return await existing.getVersion();
+      } catch (error) {
+        final message = error.toString().toLowerCase();
+        final retryable = message.contains('unable to open database file') ||
+            message.contains('sqlite_error: 14') ||
+            message.contains('code 14');
+        final fileStillExists = await File(path).exists();
+        final canRetry =
+            retryable && fileStillExists && attempt + 1 < maxAttempts;
+        if (!canRetry) rethrow;
+
+        final delayMs = 50 * (1 << attempt);
+        ReleaseDiagnostics.debug(
+          '[DB] transient reopen after restore; retry ${attempt + 1}/$maxAttempts in ${delayMs}ms',
+        );
+        await Future<void>.delayed(Duration(milliseconds: delayMs));
+      } finally {
+        if (existing != null && existing.isOpen) {
+          await existing.close();
+        }
+      }
+    }
+
+    throw StateError('Unable to read existing database version.');
+  }
+
   // ============================================================
   // INIT
   // ============================================================
@@ -119,16 +218,14 @@ class DatabaseMigration {
       '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );
 
+    final recoveredInterruptedRestore =
+        await Directory('$path.restore-journal').exists();
     await RestoreFileJournal.recover(path);
     if (await databaseExists(path)) {
-      final existing =
-          await DatabaseEncryptionService.openReadOnlyCandidate(path);
-      late int version;
-      try {
-        version = await existing.getVersion();
-      } finally {
-        await existing.close();
-      }
+      final version = await _readExistingVersion(
+        path,
+        retryAfterRestore: recoveredInterruptedRestore,
+      );
       if (version > DatabaseConstants.dbVersion) {
         throw StateError('Database version $version is newer than supported '
             '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.');
@@ -240,6 +337,7 @@ class DatabaseMigration {
     await _upgradeV81(db);
     await _upgradeV82(db);
     await _upgradeV83(db);
+    await _upgradeV84(db, fromSchemaVersion: 0);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -251,6 +349,11 @@ class DatabaseMigration {
     // v70 already contains compatibility schemas. Avoid replaying seed writes
     // under an expired license for additive identity and sync upgrades.
     if (oldV >= 70) {
+      // Two independently released branches used 77/78 for different features.
+      // Probe capabilities before v79 references the v3 mutation context.
+      if (oldV >= 77 && oldV <= 78) {
+        await _ensureParallelLineagePrerequisites(db);
+      }
       if (oldV < 71) await _upgradeV71(db);
       if (oldV < 72) await _upgradeV72(db);
       if (oldV < 73) await _upgradeV73(db);
@@ -264,6 +367,7 @@ class DatabaseMigration {
       if (oldV < 81) await _upgradeV81(db);
       if (oldV < 82) await _upgradeV82(db);
       if (oldV < 83) await _upgradeV83(db);
+      if (oldV < 84) await _upgradeV84(db, fromSchemaVersion: oldV);
       return;
     }
 
@@ -382,6 +486,10 @@ class DatabaseMigration {
           "Upgrade v60 commercial configuration schema applied");
     }
 
+    // SEC.001 must exist before SEC.005+ and First Owner bootstrap. Legacy
+    // databases before v64 did not yet have organization_id on users.
+    await OrganizationIdentityTables.ensure(db);
+
     // SEC.005 - installation/device identity metadata foundation.
     if (oldV < 64) {
       await DeviceIdentityTables.ensure(db);
@@ -442,6 +550,70 @@ class DatabaseMigration {
     if (oldV < 81) await _upgradeV81(db);
     if (oldV < 82) await _upgradeV82(db);
     if (oldV < 83) await _upgradeV83(db);
+    if (oldV < 84) await _upgradeV84(db, fromSchemaVersion: oldV);
+  }
+
+  /// v77/v78 existed on two parallel branches. Check schema features, not only
+  /// PRAGMA user_version; otherwise the owner v78 misses the v3 sync context.
+  static Future<void> _ensureParallelLineagePrerequisites(Database db) async {
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='sync_outbox'",
+    );
+    final partyColumns = await db.rawQuery('PRAGMA table_info(parties)');
+    if (tables.isNotEmpty &&
+        partyColumns.any((c) => c['name'] == 'role_codes')) {
+      return;
+    }
+    await LicenseRuntimeTables.runTrustedMigrationBackfill(db, () async {
+      await _upgradeV77(db);
+      await _upgradeV78(db);
+    });
+  }
+
+  /// Joins commercial sync v83 with the independent insurance/cheque branch.
+  /// This is additive: no database reset and no replacement of financial rows.
+  static Future<void> _upgradeV84(
+    Database db, {
+    required int fromSchemaVersion,
+  }) async {
+    await LicenseRuntimeTables.runTrustedMigrationBackfill(db, () async {
+      await InsuranceTables.createAllTables(db);
+      await ReceiptTables.createAllTables(db);
+      await ChequeTables.ensureChequesSchema(db);
+      await PartyTables.ensure(db);
+      await HRTables.ensureSyncColumns(db);
+      await SyncFoundationTables.ensure(db);
+      await UnifiedSyncTables.ensure(db);
+      await UnifiedSyncQueueService.resetInterruptedSending(db);
+      await db.execute('''CREATE TABLE IF NOT EXISTS schema_feature_migrations(
+        feature_key TEXT PRIMARY KEY, from_schema_version INTEGER NOT NULL,
+        applied_at TEXT NOT NULL
+      )''');
+      final now = DateTime.now().toUtc().toIso8601String();
+      for (final feature in [
+        'commercial_sync_v3',
+        'insurance_invoice_v77',
+        'canonical_cheques_v78',
+        'parallel_lineages_unified_v84'
+      ]) {
+        await db.insert(
+            'schema_feature_migrations',
+            {
+              'feature_key': feature,
+              'from_schema_version': fromSchemaVersion,
+              'applied_at': now,
+            },
+            conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    });
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert(
+        'schema_migrations',
+        {
+          'version': 84,
+          'applied_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV83(Database db) async {
@@ -740,6 +912,7 @@ class DatabaseMigration {
     await SyncFoundationTables.ensure(db);
     await UnifiedSyncTables.ensure(db);
     await UnifiedSyncQueueService.resetInterruptedSending(db);
+    await InsuranceTables.createAllTables(db);
     await db.insert(
       'schema_migrations',
       {'version': 77, 'applied_at': DateTime.now().toUtc().toIso8601String()},
@@ -1014,12 +1187,15 @@ class DatabaseMigration {
           currency_decimals = COALESCE(currency_decimals, 2);
     ''');
 
-    await db.execute(r'''
-      UPDATE vouchers
-      SET currency = COALESCE(NULLIF(TRIM(currency), ''), 'ILS'),
-          currency_decimals = COALESCE(currency_decimals, 2)
-      WHERE NULLIF(TRIM(currency), '') IS NULL OR currency_decimals IS NULL;
-    ''');
+    await VoucherTables.runTrustedPostedVoucherBackfill(
+      db,
+      () => db.execute(r'''
+        UPDATE vouchers
+        SET currency = COALESCE(NULLIF(TRIM(currency), ''), 'ILS'),
+            currency_decimals = COALESCE(currency_decimals, 2)
+        WHERE NULLIF(TRIM(currency), '') IS NULL OR currency_decimals IS NULL;
+      '''),
+    );
 
     await db.execute(r'''
       CREATE TABLE IF NOT EXISTS document_sequences (

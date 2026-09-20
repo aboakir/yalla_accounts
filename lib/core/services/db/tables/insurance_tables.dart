@@ -131,6 +131,31 @@ class InsuranceTables {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_policy_promissories_policy ON insurance_policy_promissories(policy_id);',
     );
+
+    // ======================================================================
+    // insurance_invoices — canonical schema for the workshop insurance module
+    // ======================================================================
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS insurance_invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_number TEXT NOT NULL,
+        client_name TEXT NOT NULL,
+        insurance_company TEXT NOT NULL,
+        amount REAL NOT NULL DEFAULT 0,
+        date TEXT NOT NULL,
+        status TEXT NOT NULL
+      );
+    ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_insurance_invoices_date ON insurance_invoices(date);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_insurance_invoices_status ON insurance_invoices(status);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_insurance_invoices_company ON insurance_invoices(insurance_company);',
+    );
   }
 
   // ==========================================================================

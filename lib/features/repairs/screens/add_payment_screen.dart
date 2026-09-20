@@ -225,13 +225,13 @@ class _AddPaymentScreenState extends State<AddPaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
+                      color: AppColors.lightGreen,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.shade200),
+                      border: Border.all(color: AppColors.lightGreen),
                     ),
                     child: AdaptiveRow(
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green.shade700),
+                        Icon(Icons.check_circle, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(

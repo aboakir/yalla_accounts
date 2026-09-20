@@ -3,6 +3,7 @@ import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
@@ -591,7 +592,7 @@ class RepairTables {
         }
       }
     } catch (e) {
-      print('⚠️ migrateRepairsInvoiceId error: $e');
+      debugPrint('migrateRepairsInvoiceId error: $e');
     }
   }
 

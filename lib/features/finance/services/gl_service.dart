@@ -32,7 +32,7 @@ class GLService {
   }
 
   /// قيد سلفة موظف:
-  /// Dr 1120.E<employeeId> سلف الموظف / Cr 1000 أو 1010
+  /// Dr 1120.E[employeeId] سلف الموظف / Cr 1000 أو 1010
   static Future<int> recordEmployeeAdvance({
     required String employeeId,
     required double amount,

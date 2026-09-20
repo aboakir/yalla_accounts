@@ -56,7 +56,7 @@ void main() {
           await tester.pump();
           // Dialog result completes before its exit animation/unmount.
           expect(result, save ? 'vehicle-123' : isNull);
-          final listener = () {};
+          void listener() {}
           owned!.first.addListener(listener);
           owned!.first.removeListener(listener);
           await tester.pump(const Duration(milliseconds: 75));

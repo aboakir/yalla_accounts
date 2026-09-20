@@ -79,8 +79,9 @@ class WindowsMigrationService {
     final actor =
         await AuthorizationGuard.require(PermissionKeys.windowsImport);
     final source = File(sourcePath);
-    if (!await source.exists())
+    if (!await source.exists()) {
       throw StateError('قاعدة Windows المحددة غير موجودة.');
+    }
     final livePath = await BackupService.currentDbPath();
     if (p.equals(p.absolute(source.path), p.absolute(livePath))) {
       throw StateError(

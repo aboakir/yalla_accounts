@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
@@ -249,7 +250,9 @@ class _RepairProfitabilityCardState extends State<RepairProfitabilityCard> {
                   } catch (e) {
                     if (!dialogContext.mounted) return;
                     ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text('تعذر حفظ التكلفة: $e')),
+                      SnackBar(
+                          content: Text(
+                              'تعذر حفظ التكلفة: ${UserFacingError.message(e)}')),
                     );
                   }
                 },
@@ -275,7 +278,9 @@ class _RepairProfitabilityCardState extends State<RepairProfitabilityCard> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر تحميل المشتريات: $e')),
+        SnackBar(
+            content:
+                Text('تعذر تحميل المشتريات: ${UserFacingError.message(e)}')),
       );
       return;
     }
@@ -409,7 +414,9 @@ class _RepairProfitabilityCardState extends State<RepairProfitabilityCard> {
                 } catch (e) {
                   if (!dialogContext.mounted) return;
                   ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text('تعذر التخصيص: $e')),
+                    SnackBar(
+                        content: Text(
+                            'تعذر التخصيص: ${UserFacingError.message(e)}')),
                   );
                 }
               },
@@ -455,7 +462,9 @@ class _RepairProfitabilityCardState extends State<RepairProfitabilityCard> {
               } catch (e) {
                 if (!dialogContext.mounted) return;
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(content: Text('تعذر العكس: $e')),
+                  SnackBar(
+                      content:
+                          Text('تعذر العكس: ${UserFacingError.message(e)}')),
                 );
               }
             },

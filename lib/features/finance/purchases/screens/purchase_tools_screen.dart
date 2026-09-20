@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -102,8 +103,8 @@ class _PurchaseToolsScreenState extends State<PurchaseToolsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل الإنشاء: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل الإنشاء: ${UserFacingError.message(e)}')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

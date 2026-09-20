@@ -72,7 +72,7 @@ void main() {
     final safeBody = _between(
       source,
       'STAGE1_RUNTIME_FIX3B_ATTENDANCE_PHONE_SAFE_BODY',
-      'Widget _buildPhoneAttendance({',
+      '// ───────────── UI parts ─────────────',
     );
 
     expect(safeBody, contains('DropdownButtonFormField<String>'));

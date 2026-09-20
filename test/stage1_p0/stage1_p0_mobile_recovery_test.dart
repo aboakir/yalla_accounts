@@ -8,11 +8,14 @@ void main() {
       'lib/features/repairs/screens/repair_details_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('STAGE1_P0_MOBILE_REPAIR_DETAILS_RECOVERY'));
-    expect(source, contains("'حالة الملف'"));
-    expect(source, contains("'حالة المركبة'"));
+    expect(source, contains('STAGE1_P0_01_FINAL_FIX4C_PHONE_PARITY'));
+    expect(source, contains('Widget _buildPhoneDetailsParity({'));
+    expect(source, contains('_repair.displayPaymentStatus'));
+    expect(source, contains(r"Text('حالة المركبة: $vehicleStatus')"));
     expect(source, contains("_buildDataTable('أعمال الإصلاح'"));
     expect(source, contains("_buildDataTable('القطع المطلوبة'"));
+    expect(source, contains('if (width < YallaBreakpoints.phone)'));
+    expect(source, contains('return _buildPhoneDetailsParity('));
   });
 
   test('P0-02 repair journal uses canonical route and repair SQL scope', () {

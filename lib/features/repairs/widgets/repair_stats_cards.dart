@@ -38,13 +38,12 @@ class RepairStatsCards extends ConsumerWidget {
             error: (_, __) => _errorWidget(),
           ),
           icon: Icons.done_all,
-          color: Colors.green,
+          color: AppColors.primary,
         ),
         _buildCard(
           title: 'القيمة الإجمالية',
           valueWidget: totalFileValue.when(
-            data: (val) =>
-                Text('${MoneyFormatter.format(val)}', style: _valueStyle),
+            data: (val) => Text(MoneyFormatter.format(val), style: _valueStyle),
             loading: () => _loadingWidget(),
             error: (_, __) => _errorWidget(),
           ),
@@ -54,8 +53,7 @@ class RepairStatsCards extends ConsumerWidget {
         _buildCard(
           title: 'المبالغ المدفوعة',
           valueWidget: totalPaid.when(
-            data: (val) =>
-                Text('${MoneyFormatter.format(val)}', style: _valueStyle),
+            data: (val) => Text(MoneyFormatter.format(val), style: _valueStyle),
             loading: () => _loadingWidget(),
             error: (_, __) => _errorWidget(),
           ),

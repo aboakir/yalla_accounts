@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
 import 'package:yalla_accounts/core/licensing/entitlements/commercial_feature_catalog.dart';
 import 'package:yalla_accounts/core/licensing/entitlements/signed_feature_authorization_service.dart';
@@ -29,6 +30,9 @@ class AuthorizationGuard {
   }
 
   static Future<AppUser?> require(String permission) async {
+    if (OwnerLocalAccess.enabled) {
+      return PermissionService().requireCurrent(permission);
+    }
     if (!_interactiveEnforcement &&
         !AuthSessionService.isRecoverySession &&
         permission != PermissionKeys.backupRestore) {

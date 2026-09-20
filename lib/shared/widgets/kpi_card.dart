@@ -33,12 +33,14 @@ class KpiCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: highlight
-            ? (isDark ? Colors.green.withOpacity(0.2) : Colors.green.shade100)
+            ? (isDark
+                ? AppColors.primary.withOpacity(0.2)
+                : AppColors.lightGreen)
             : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: highlight
-              ? (isDark ? Colors.greenAccent.shade400 : Colors.green.shade700)
+              ? (isDark ? AppColors.primary : AppColors.primary)
               : (isDark ? Colors.grey[700]! : Colors.grey.shade300),
           width: highlight ? 2 : 1,
         ),
@@ -77,9 +79,7 @@ class KpiCard extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: highlight
-                        ? (isDark
-                            ? Colors.greenAccent.shade400
-                            : Colors.green.shade800)
+                        ? (isDark ? AppColors.primary : AppColors.primary)
                         : AppColors.primary,
                   ),
                 ),

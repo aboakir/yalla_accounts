@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/screens/vehicles_arrears_screen.dart
 //
 // VehiclesArrearsScreen — ذمم المركبات (بيانات حقيقية فقط)
@@ -12,7 +13,7 @@
 //
 // يعتمد وجود الأعمدة في repairs:
 // id, vehicleType, vehicleModel, vehicleNumber, beneficiaryType, beneficiaryName,
-// receivedDate (TEXT), totalFileValue (REAL)
+// receivedDate (TEXT), fileValue (REAL)
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -133,7 +134,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
       }
 
       final sql = StringBuffer(
-          'SELECT id, vehicleType, vehicleModel, vehicleNumber, beneficiaryType, beneficiaryName, receivedDate, totalFileValue FROM repairs');
+          'SELECT id, vehicleType, vehicleModel, vehicleNumber, beneficiaryType, beneficiaryName, receivedDate, fileValue FROM repairs');
       if (where.isNotEmpty) sql.write(' WHERE ${where.join(' AND ')}');
       sql.write(' ORDER BY receivedDate DESC');
 
@@ -150,7 +151,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
         final bn = (m['beneficiaryName'] ?? '').toString();
         final rdRaw = (m['receivedDate'] ?? '').toString();
         final rd = DateTime.tryParse(rdRaw) ?? DateTime(1970, 1, 1);
-        final total = (m['totalFileValue'] as num?)?.toDouble() ?? 0.0;
+        final total = (m['fileValue'] as num?)?.toDouble() ?? 0.0;
 
         final paid = await _paidFromJournal(db, id);
         final remaining = (total - paid).clamp(-0.0, double.infinity);
@@ -180,7 +181,8 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
 
       _rows = list;
     } catch (e) {
-      _error = e.toString();
+      debugPrint('Vehicle arrears load failed: $e');
+      _error = 'تعذر تحميل ذمم المركبات. أعد المحاولة.';
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -224,8 +226,8 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
           .pushNamed(AppRoutes.repairDetail, arguments: repair);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('خطأ فتح التفاصيل: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('خطأ فتح التفاصيل: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -365,7 +367,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                                       'مسدد جزئي', _countPartial.toString(),
                                       color: Colors.orange),
                                   _chipStat('مسدد', _countPaid.toString(),
-                                      color: Colors.green),
+                                      color: AppColors.primary),
                                 ],
                               ),
                             ),
@@ -390,14 +392,20 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
   Widget _chipStat(String label, String value, {Color? color}) {
     return Chip(
       backgroundColor: Colors.grey.shade100,
-      label: AdaptiveRow(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('$label: ',
-              style: TextStyle(fontWeight: FontWeight.w600, color: color)),
-          Text(value,
-              style: TextStyle(fontWeight: FontWeight.bold, color: color)),
-        ],
+      label: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: TextStyle(fontWeight: FontWeight.w600, color: color),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(fontWeight: FontWeight.bold, color: color),
+            ),
+          ],
+        ),
+        softWrap: true,
       ),
     );
   }
@@ -428,7 +436,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
                 headingTextStyle: const TextStyle(fontWeight: FontWeight.bold),
                 rows: _rows.map((r) {
                   final statusColor = r.status == 'مسدد'
-                      ? Colors.green
+                      ? AppColors.primary
                       : (r.status == 'مسدد جزئي' ? Colors.orange : Colors.red);
                   return DataRow(cells: [
                     DataCell(Text(r.status,
@@ -468,7 +476,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
       itemBuilder: (_, i) {
         final r = _rows[i];
         final statusColor = r.status == 'مسدد'
-            ? Colors.green
+            ? AppColors.primary
             : (r.status == 'مسدد جزئي' ? Colors.orange : Colors.red);
 
         return Card(
@@ -519,14 +527,27 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
   }
 
   Widget _kv(String k, String v, {bool bold = false}) {
-    return AdaptiveRow(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('$k: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-        Text(v,
-            style: TextStyle(
-                fontWeight: bold ? FontWeight.bold : FontWeight.w400)),
-      ],
+    final maxWidth =
+        (MediaQuery.sizeOf(context).width - 48).clamp(180.0, 320.0);
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$k: ',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            TextSpan(
+              text: v,
+              style: TextStyle(
+                fontWeight: bold ? FontWeight.bold : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+        softWrap: true,
+      ),
     );
   }
 }

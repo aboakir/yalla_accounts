@@ -57,7 +57,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                         return ListTile(
                           leading: const Icon(Icons.receipt_long_outlined),
                           title: Text(
-                            '${MoneyFormatter.format(payment.amount)}',
+                            MoneyFormatter.format(payment.amount),
                           ),
                           subtitle: Text(
                             '${DateFormat('yyyy-MM-dd').format(payment.date)}'

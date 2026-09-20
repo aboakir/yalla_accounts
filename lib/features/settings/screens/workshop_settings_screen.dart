@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'commercial_settings_screen.dart';
 import '../providers/workshop_settings_provider.dart';
 import 'package:yalla_accounts/features/settings/widgets/work_schedule_fields.dart';
@@ -153,7 +154,7 @@ class _WorkshopSettingsScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل الحفظ: $e')),
+        SnackBar(content: Text('❌ فشل الحفظ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

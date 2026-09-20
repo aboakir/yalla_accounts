@@ -24,6 +24,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PayrollReportScreen extends ConsumerStatefulWidget {
   const PayrollReportScreen({super.key});
@@ -126,7 +127,7 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
     await file.writeAsString(b.toString());
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء الملف: ${file.path}')),
+        SnackBar(content: Text('تم إنشاء ملف الرواتب بنجاح.')),
       );
     }
   }
@@ -260,7 +261,7 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
       runSpacing: 12,
       children: [
         _kpi('إجمالي المستحق', _sumTotal, Colors.black87),
-        _kpi('المدفوع', _sumPaid, Colors.green),
+        _kpi('المدفوع', _sumPaid, AppColors.primary),
         _kpi('المتبقي', _sumDue, Colors.blue, bold: true),
       ],
     );
@@ -319,11 +320,11 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
         DataCell(Text(s.employeeName ?? s.employeeId)),
         DataCell(Text(s.employeeId)),
         DataCell(Text(s.month ?? _yyyyMm)),
-        DataCell(Text('${MoneyFormatter.format(s.base)}')),
-        DataCell(Text('${MoneyFormatter.format(s.advance)}')),
-        DataCell(Text('${MoneyFormatter.format(s.total)}')),
-        DataCell(Text('${MoneyFormatter.format(s.paid)}')),
-        DataCell(Text('${MoneyFormatter.format(s.due)}')),
+        DataCell(Text(MoneyFormatter.format(s.base))),
+        DataCell(Text(MoneyFormatter.format(s.advance))),
+        DataCell(Text(MoneyFormatter.format(s.total))),
+        DataCell(Text(MoneyFormatter.format(s.paid))),
+        DataCell(Text(MoneyFormatter.format(s.due))),
         DataCell(Text(DateFormat('yyyy-MM-dd').format(s.date))),
       ]);
     }).toList();

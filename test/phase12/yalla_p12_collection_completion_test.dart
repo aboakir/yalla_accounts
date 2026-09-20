@@ -211,7 +211,9 @@ void main() {
     final sidebar =
         File('lib/core/widgets/sidebar/yalla_sidebar.dart').readAsStringSync();
 
-    expect(postdated.contains("status: ChequeStatus.pending"), isTrue);
+    expect(postdated.contains('ChequeMaturityService.classify(c)'), isTrue);
+    expect(postdated.contains('ChequeMaturityClass.postDated'), isTrue);
+    expect(postdated.contains('ChequeMaturityClass.overdue'), isTrue);
     expect(postdated.contains('POSTDATED'), isFalse);
     expect(collection.contains('ChequeStatus.deposited'), isTrue);
     expect(alerts.contains('CollectionService.loadAlerts'), isTrue);

@@ -290,12 +290,12 @@ class _VehicleProfileThumb extends StatelessWidget {
   Widget build(BuildContext context) {
     return YallaStoredImage(
       storedPath: path,
-      width: 48,
-      height: 48,
-      cacheWidth: 180,
-      borderRadius: BorderRadius.circular(14),
+      width: 64,
+      height: 64,
+      cacheWidth: 220,
+      borderRadius: BorderRadius.circular(16),
       fallback: CircleAvatar(
-        radius: 24,
+        radius: 32,
         backgroundColor: AppColors.primary.withOpacity(.12),
         child: const Icon(
           Icons.directions_car,

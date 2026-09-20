@@ -199,8 +199,9 @@ void main() {
       expect(totals, isEmpty);
       final legacyTables = await db.rawQuery(
           "SELECT name FROM sqlite_master WHERE type='table' AND name='salary_payments'");
-      if (legacyTables.isNotEmpty)
+      if (legacyTables.isNotEmpty) {
         expect(await db.query('salary_payments'), isEmpty);
+      }
       await session.endEphemeralPreviewSession();
       await db.close();
       final reopened =

@@ -343,6 +343,27 @@ class RepairDatabaseService {
     final wc = await WorkCostCalculator.calculateForMonth(r.receivedDate);
 
     await DBService.inTx((tx) async {
+      final currentRows = await tx.query(
+        'repairs',
+        columns: const ['fileValue', 'status', 'invoice_id'],
+        where: 'id=?',
+        whereArgs: [r.id],
+        limit: 1,
+      );
+      if (currentRows.isEmpty) {
+        throw StateError('Repair not found (${r.id})');
+      }
+      final current = currentRows.first;
+      final currentValue = _toD(current['fileValue']);
+      final status = (current['status'] ?? '').toString().toUpperCase();
+      final financiallyPosted = current['invoice_id'] != null ||
+          const {'APPROVED', 'INVOICED', 'COMPLETED'}.contains(status);
+      if (financiallyPosted && (fileValue - currentValue).abs() > 0.005) {
+        throw StateError(
+          'Financial repair value changes must use the audited accounting edit path.',
+        );
+      }
+
       final paid = await _sumPaymentsForRepair(tx, r.id);
       final paymentStatus = _statusFor(fileValue, paid);
 

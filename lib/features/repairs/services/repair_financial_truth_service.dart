@@ -22,6 +22,7 @@ class RepairFinancialTruth {
     required this.credit,
     required this.customerArBalance,
     required this.recognizedRevenue,
+    required this.ledgerGrossTotal,
   });
 
   final String repairId;
@@ -32,7 +33,27 @@ class RepairFinancialTruth {
   final double customerArBalance;
   final double recognizedRevenue;
 
+  /// Gross obligation reconstructed from the ledger before allocated receipts.
+  /// It must equal [fileValue] after every audited value adjustment.
+  final double ledgerGrossTotal;
+
+  /// Canonical definitions:
+  /// - Repair Gross Total = current persisted commercial [fileValue].
+  /// - Payments Allocated = net posted receipt movements [paid].
+  /// - Adjustments = immutable GL value-adjustment entries; they change the
+  ///   ledger gross until it equals the current Repair Gross Total.
+  /// - Settlement = never a hidden scalar; a commercial settlement must be
+  ///   represented by an audited credit/value adjustment to Repair Gross Total.
+  /// - Outstanding Balance = max(Gross Total - Payments Allocated, 0).
+  double get repairGrossTotal => fileValue;
+  double get paymentsAllocated => paid;
+  double get outstandingBalance => remaining;
+  double get ledgerOutstanding => customerArBalance;
+  double get ledgerMismatch =>
+      double.parse((ledgerGrossTotal - fileValue).toStringAsFixed(2));
+
   bool get isFinanciallySettled => remaining <= 0.005;
+  bool get isLedgerConsistent => ledgerMismatch.abs() <= 0.005;
 }
 
 class RepairFinancialTruthService {
@@ -132,6 +153,7 @@ class RepairFinancialTruthService {
     final credit = _round2(math.max(paid - fileValue, 0.0));
     final ar = await customerArForRepair(repairId, executor: db);
     final revenue = await recognizedRevenueForRepair(repairId, executor: db);
+    final ledgerGross = _round2(ar + paid);
 
     return RepairFinancialTruth(
       repairId: repairId,
@@ -141,6 +163,7 @@ class RepairFinancialTruthService {
       credit: credit,
       customerArBalance: ar,
       recognizedRevenue: revenue,
+      ledgerGrossTotal: ledgerGross,
     );
   }
 

@@ -1,12 +1,13 @@
 import '../widgets/quick_entry_fields.dart';
-import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db/tables/vehicle_tables.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
@@ -620,10 +621,14 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
       });
       if (!mounted) return;
       setState(() => _busy = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ واعتماد ملف الإصلاح تلقائيًا.')),
-      );
-      Navigator.of(context).pop(repairId);
+
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop(repairId);
+        return;
+      }
+
+      navigator.pushReplacementNamed(AppRoutes.repairsList);
     } catch (error) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -638,7 +643,7 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   }
 
   void _showError(String title, Object error) {
-    final message = error.toString().replaceFirst('StateError: ', '');
+    final message = UserFacingError.message(error);
     showDialog<void>(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
@@ -1340,8 +1345,9 @@ class _AddRepairScreenState extends State<AddRepairScreen> {
   ) async {
     final hasWorksValue = _sectionTotal(isPart: false) > 0;
     final hasPartsValue = _sectionTotal(isPart: true) > 0;
-    if (_works.isEmpty && _parts.isEmpty && !hasWorksValue && !hasPartsValue)
+    if (_works.isEmpty && _parts.isEmpty && !hasWorksValue && !hasPartsValue) {
       return;
+    }
     final info = await txn.rawQuery('PRAGMA table_info(repair_lines)');
     final columns = info
         .map((row) => (row['name'] ?? '').toString())

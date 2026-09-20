@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/repairs/screens/receive_payment_screen.dart
 //
@@ -32,7 +33,7 @@ class ReceivePaymentScreen extends StatefulWidget {
   const ReceivePaymentScreen({super.key, required this.repair});
 
   @override
-  _ReceivePaymentScreenState createState() => _ReceivePaymentScreenState();
+  State<ReceivePaymentScreen> createState() => _ReceivePaymentScreenState();
 }
 
 class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
@@ -163,8 +164,8 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('خطأ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -211,7 +212,8 @@ class _ReceivePaymentScreenState extends State<ReceivePaymentScreen> {
                       Text('المتبقي: ${MoneyFormatter.format(remaining)}',
                           textAlign: TextAlign.right,
                           style: TextStyle(
-                            color: remaining > 0 ? Colors.red : Colors.green,
+                            color:
+                                remaining > 0 ? Colors.red : AppColors.primary,
                           )),
                     ],
                   ),

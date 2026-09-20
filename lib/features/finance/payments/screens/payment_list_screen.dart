@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // ---------------------------------------------------------------------------
 // 📁 lib/features/finance/payments/screens/payment_list_screen.dart
 // شاشة عرض الدفعات — نسخة نهائية متوافقة مع Payment model الحالي
@@ -15,6 +16,7 @@ import 'package:yalla_accounts/shared/widgets/error_widget.dart';
 import 'package:yalla_accounts/shared/widgets/loading.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class PaymentListScreen extends StatefulWidget {
   final String? initialRepairId;
@@ -181,7 +183,7 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
     Color c;
     switch (status) {
       case 'confirmed':
-        c = Colors.green;
+        c = AppColors.primary;
         break;
       case 'pending':
         c = Colors.orange;
@@ -281,7 +283,8 @@ class _PaymentListScreenState extends State<PaymentListScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر عكس الدفعة: $e')),
+        SnackBar(
+            content: Text('تعذر عكس الدفعة: ${UserFacingError.message(e)}')),
       );
     }
   }

@@ -23,7 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -54,6 +54,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   String? _currencyFilter;
   double? _amountMin;
   double? _amountMax;
+  bool _showAdvancedFilters = false;
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +226,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.06),
+          color: AppColors.primary.withOpacity(0.06),
           borderRadius: BorderRadius.circular(10),
         ),
         child: const Text(
@@ -233,7 +234,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           textAlign: TextAlign.right,
           style: TextStyle(
             fontSize: 13,
-            color: Colors.green,
+            color: AppColors.primary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -322,45 +323,61 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   // FILTER CARD — يستخدم فقط حقول ChequeFilter القديمة + فلاتر محلية جديدة
   // ---------------------------------------------------------------------------
   Widget _buildFilterCard(ChequeFilter filter) {
+    final compact = context.isPhoneWidth;
+    final showAdvanced = !compact || _showAdvancedFilters;
+
     return Card(
       elevation: 2,
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(compact ? 12 : 18),
         child: Wrap(
-          spacing: 16,
-          runSpacing: 16,
+          spacing: 12,
+          runSpacing: 12,
           alignment: WrapAlignment.end,
           children: [
             _searchField(filter),
             _typeDropdown(filter),
             _statusDropdown(filter),
-            _bankField(),
-            _currencyField(),
-            _branchField(),
-            _currencyField(),
-            _amountMinField(),
-            _amountMaxField(),
-            _datePicker(
-              "إصدار من",
-              filter.issueFrom,
-              (v) => _updateFilter(filter.copyWith(issueFrom: v)),
-            ),
-            _datePicker(
-              "إصدار إلى",
-              filter.issueTo,
-              (v) => _updateFilter(filter.copyWith(issueTo: v)),
-            ),
-            _datePicker(
-              "استحقاق من",
-              filter.dueFrom,
-              (v) => _updateFilter(filter.copyWith(dueFrom: v)),
-            ),
-            _datePicker(
-              "استحقاق إلى",
-              filter.dueTo,
-              (v) => _updateFilter(filter.copyWith(dueTo: v)),
-            ),
+            if (compact)
+              OutlinedButton.icon(
+                icon: Icon(
+                  showAdvanced ? Icons.expand_less : Icons.tune,
+                ),
+                label: Text(
+                  showAdvanced ? 'إخفاء الفلاتر المتقدمة' : 'فلاتر متقدمة',
+                ),
+                onPressed: () => setState(
+                  () => _showAdvancedFilters = !_showAdvancedFilters,
+                ),
+              ),
+            if (showAdvanced) ...[
+              _bankField(),
+              _branchField(),
+              _currencyField(),
+              _amountMinField(),
+              _amountMaxField(),
+              _datePicker(
+                "إصدار من",
+                filter.issueFrom,
+                (v) => _updateFilter(filter.copyWith(issueFrom: v)),
+              ),
+              _datePicker(
+                "إصدار إلى",
+                filter.issueTo,
+                (v) => _updateFilter(filter.copyWith(issueTo: v)),
+              ),
+              _datePicker(
+                "استحقاق من",
+                filter.dueFrom,
+                (v) => _updateFilter(filter.copyWith(dueFrom: v)),
+              ),
+              _datePicker(
+                "استحقاق إلى",
+                filter.dueTo,
+                (v) => _updateFilter(filter.copyWith(dueTo: v)),
+              ),
+            ],
           ],
         ),
       ),
@@ -400,7 +417,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           );
         }),
         const SizedBox(width: 8),
-        _quickBtn("اليوم", Colors.green, () {
+        _quickBtn("اليوم", AppColors.primary, () {
           final now = DateTime.now();
           final d = DateTime(now.year, now.month, now.day);
           _updateFilter(
@@ -689,14 +706,6 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                           icon: const Icon(Icons.visibility),
                           onPressed: () => _openDetails(c),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _openEdit(c),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: null, // معطّل
-                        ),
                       ],
                     ),
                   ),
@@ -775,14 +784,6 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                           icon: const Icon(Icons.visibility),
                           onPressed: () => _openDetails(c),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _openEdit(c),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: null, // معطّل
-                        ),
                       ],
                     ),
                     _linksSection(c),
@@ -805,13 +806,16 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           TextButton.icon(
             icon: const Icon(Icons.store, size: 18),
             label: const Text("فتح حساب المورد"),
-            onPressed: () async {
-              await AppRoutes.openSupplierLedger(
+            onPressed: () {
+              Navigator.pushNamed(
                 context,
-                supplierId: c.supplierPid!,
-                supplierName: (c.recipientName?.trim().isNotEmpty ?? false)
-                    ? c.recipientName!.trim()
-                    : 'المورد',
+                AppRoutes.supplierPayables,
+                arguments: {
+                  'supplierId': c.supplierPid,
+                  'supplierName': (c.recipientName?.trim().isNotEmpty ?? false)
+                      ? c.recipientName
+                      : 'المورد',
+                },
               );
             },
           ),
@@ -825,9 +829,8 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                 AppRoutes.clientStatement,
                 arguments: {
                   'clientId': c.clientId,
-                  'clientName': (c.recipientName?.trim().isNotEmpty ?? false)
-                      ? c.recipientName!.trim()
-                      : 'العميل',
+                  'clientName':
+                      c.drawerName.trim().isNotEmpty ? c.drawerName : 'العميل',
                 },
               );
             },
@@ -841,9 +844,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
                 TextButton.icon(
                   icon: const Icon(Icons.attach_money, size: 18),
                   label: Text("دفعة مرتبطة – ملف $rid"),
-                  onPressed: () async {
-                    await AppRoutes.openRepairById(context, rid);
-                  },
+                  onPressed: () => AppRoutes.openRepairById(context, rid),
                 ),
             ],
           ),
@@ -852,9 +853,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
           TextButton.icon(
             icon: const Icon(Icons.receipt_long, size: 18),
             label: const Text("فتح قيد GL"),
-            onPressed: () async {
-              await AppRoutes.openGlEntry(context, c.glEntryId!);
-            },
+            onPressed: () => AppRoutes.openGlEntry(context, c.glEntryId!),
           ),
       ],
     );
@@ -901,17 +900,29 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   String _statusLabel(ChequeStatus s) {
     switch (s) {
       case ChequeStatus.pending:
-        return "معلّق";
+        return "قديم/معلّق";
+      case ChequeStatus.received:
+        return "مستلم";
+      case ChequeStatus.held:
+        return "محتفظ به";
+      case ChequeStatus.deposited:
+        return "مودع";
       case ChequeStatus.collected:
         return "مُحصّل";
+      case ChequeStatus.endorsed:
+        return "مظهّر";
+      case ChequeStatus.issued:
+        return "صادر";
+      case ChequeStatus.delivered:
+        return "مُسلّم";
+      case ChequeStatus.presented:
+        return "مقدم/مستحق";
+      case ChequeStatus.cleared:
+        return "مصروف";
       case ChequeStatus.returned:
         return "راجع";
       case ChequeStatus.cancelled:
         return "ملغى";
-      case ChequeStatus.delivered:
-        return "مُسلّم";
-      case ChequeStatus.deposited:
-        return "مودع";
     }
   }
 
@@ -919,7 +930,7 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
     Color color;
     switch (t) {
       case ChequeType.incoming:
-        color = Colors.green;
+        color = AppColors.primary;
         break;
       case ChequeType.outgoing:
         color = Colors.red;
@@ -935,27 +946,20 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
   }
 
   Widget _coloredStatus(ChequeStatus s) {
-    Color color;
-    switch (s) {
-      case ChequeStatus.pending:
-        color = Colors.orange;
-        break;
-      case ChequeStatus.collected:
-        color = Colors.green;
-        break;
-      case ChequeStatus.returned:
-        color = Colors.red;
-        break;
-      case ChequeStatus.cancelled:
-        color = Colors.grey;
-        break;
-      case ChequeStatus.delivered:
-        color = Colors.blueGrey;
-        break;
-      case ChequeStatus.deposited:
-        color = Colors.blue;
-        break;
-    }
+    final color = switch (s) {
+      ChequeStatus.pending => Colors.orange,
+      ChequeStatus.received => AppColors.primary,
+      ChequeStatus.held => Colors.amber,
+      ChequeStatus.deposited => Colors.blue,
+      ChequeStatus.collected => AppColors.primary,
+      ChequeStatus.endorsed => Colors.indigo,
+      ChequeStatus.issued => Colors.deepOrange,
+      ChequeStatus.delivered => Colors.blueGrey,
+      ChequeStatus.presented => Colors.purple,
+      ChequeStatus.cleared => AppColors.primary,
+      ChequeStatus.returned => Colors.red,
+      ChequeStatus.cancelled => Colors.grey,
+    };
     return Text(
       _statusLabel(s),
       style: TextStyle(fontWeight: FontWeight.bold, color: color),
@@ -971,14 +975,6 @@ class _ChequesListScreenState extends ConsumerState<ChequesListScreen> {
       MaterialPageRoute(
         builder: (_) => ChequeDetailsScreen(cheque: c),
       ),
-    );
-  }
-
-  Future<void> _openEdit(Cheque c) async {
-    await AppRoutes.pushNamedSafe(
-      context,
-      AppRoutes.chequesEdit,
-      arguments: c,
     );
   }
 

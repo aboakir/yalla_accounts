@@ -1,7 +1,9 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/settings/services/data_health_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class DataHealthScreen extends StatefulWidget {
   const DataHealthScreen({super.key});
@@ -58,13 +60,13 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
     if (report == null) return;
 
     try {
-      final path = await DataHealthService.instance.export(report);
+      await DataHealthService.instance.export(report);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تم حفظ التقرير في Downloads:\n$path'),
+          content: Text('تم حفظ تقرير سلامة البيانات بنجاح.'),
         ),
       );
     } catch (error) {
@@ -72,7 +74,8 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تعذر تصدير التقرير: $error'),
+          content:
+              Text('تعذر تصدير التقرير: ${UserFacingError.message(error)}'),
         ),
       );
     }
@@ -141,7 +144,8 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('فشل الإصلاح ولم يعتمد: $error'),
+          content:
+              Text('فشل الإصلاح ولم يعتمد: ${UserFacingError.message(error)}'),
         ),
       );
     } finally {
@@ -159,7 +163,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
   ) {
     switch (status) {
       case DataHealthStatus.pass:
-        return Colors.green;
+        return AppColors.primary;
       case DataHealthStatus.warning:
         return Colors.orange;
       case DataHealthStatus.error:
@@ -249,7 +253,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
             ? Colors.blue
             : report.warningCount > 0
                 ? Colors.orange
-                : Colors.green;
+                : AppColors.primary;
 
     final overallLabel = report.errorCount > 0
         ? 'توجد أخطاء تتطلب المعالجة'
@@ -289,7 +293,7 @@ class _DataHealthScreenState extends State<DataHealthScreen> {
                 _counterChip(
                   'PASS',
                   report.passCount,
-                  Colors.green,
+                  AppColors.primary,
                 ),
                 _counterChip(
                   'WARNING',

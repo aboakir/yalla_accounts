@@ -208,7 +208,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
 
     final remaining =
         (form.fileValue - form.paidAmount).clamp(0, form.fileValue);
-    final remColor = remaining == 0 ? Colors.green : Colors.red;
+    final remColor = remaining == 0 ? AppColors.primary : Colors.red;
 
     // هذا المتغير استخدمه لتمكين أي زر/سويتش اعتماد في نفس الويجت أو خارجه
     final canApprove = widget.forceEnableApprove || remaining == 0;
@@ -306,7 +306,7 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.right,
-                style: const TextStyle(color: Colors.green),
+                style: const TextStyle(color: AppColors.primary),
                 onChanged: (s) {
                   final val = _parseNumber(s);
                   final safe = val > form.fileValue ? form.fileValue : val;
@@ -437,8 +437,8 @@ class _StepFinancialDataState extends ConsumerState<StepFinancialData> {
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
                   child: Center(
-                    child:
-                        Icon(Icons.check_circle, color: Colors.green, size: 28),
+                    child: Icon(Icons.check_circle,
+                        color: AppColors.primary, size: 28),
                   ),
                 ),
               const SizedBox(height: 12),

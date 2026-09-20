@@ -114,16 +114,18 @@ class EmployeeDatabaseService {
 
   static void _validate(Employee employee) {
     if (employee.fullName.trim().isEmpty ||
-        employee.employeeCode.trim().isEmpty)
+        employee.employeeCode.trim().isEmpty) {
       throw ArgumentError('اسم الموظف ورقمه مطلوبان.');
+    }
     for (final amount in [
       employee.baseSalaryForType,
       employee.allowances,
       employee.deductions
     ]) {
-      if (!amount.isFinite || amount < 0)
+      if (!amount.isFinite || amount < 0) {
         throw ArgumentError(
             'الأجر والبدلات والخصومات يجب أن تكون أرقاماً موجبة أو صفراً.');
+      }
     }
   }
 
@@ -196,9 +198,10 @@ class EmployeeDatabaseService {
       final activity = await txn.rawQuery(
           "SELECT id FROM attendance WHERE employeeId=? UNION ALL SELECT id FROM payroll_runs WHERE employee_id=? UNION ALL SELECT id FROM vouchers WHERE party_type='EMPLOYEE' AND party_id=? LIMIT 1",
           [id, id, id]);
-      if (activity.isNotEmpty)
+      if (activity.isNotEmpty) {
         throw StateError(
             'للموظف حضور أو حركات مالية؛ غيّر حالته إلى غير نشط بدلاً من حذفه.');
+      }
       await txn.delete(tableName, where: 'id=?', whereArgs: [id]);
     });
   }

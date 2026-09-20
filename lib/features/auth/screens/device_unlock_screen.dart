@@ -85,10 +85,20 @@ class _DeviceUnlockScaffoldState extends State<DeviceUnlockScaffold> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          'assets/branding/yallah_logo_horizontal.png',
-                          height: 64,
-                          fit: BoxFit.contain,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.lightGreen,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Image.asset(
+                            'assets/branding/yallah_logo_horizontal.png',
+                            height: 64,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                         const SizedBox(height: 18),
                         Text('مرحبًا، ${widget.displayName}',

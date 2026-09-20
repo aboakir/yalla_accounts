@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:yalla_accounts/core/services/db/database_constants.dart';
@@ -274,7 +273,13 @@ void main() {
       'lib/features/finance/purchases/screens/purchase_create_screen.dart',
     ).readAsStringSync();
     expect(purchaseCreate.contains(r'final code = "2200.S$pid"'), isFalse);
-    expect(purchaseCreate.contains(r'final code = "2200.$pid"'), isTrue);
+    expect(purchaseCreate.contains(r'final code = "2200.$pid"'), isFalse);
+    expect(
+      purchaseCreate.contains('SupplierService.insertOrGetSupplierId'),
+      isTrue,
+      reason:
+          'Purchase quick-add must delegate supplier/account creation to the canonical SupplierService.',
+    );
 
     final invoiceGl = File(
       'lib/features/finance/invoices/services/invoice_gl_service.dart',
@@ -291,7 +296,7 @@ void main() {
       'lib/features/finance/advances/services/advance_service.dart',
     ).readAsStringSync();
     expect(
-      advanceService.contains(r"'$_ACC_EMP_ADV_CODE.E$employeeId'"),
+      advanceService.contains(r"'$_accEmpAdvCode.E$employeeId'"),
       isTrue,
     );
 

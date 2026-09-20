@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/vouchers/screens/payment_voucher_screen.dart';
 // 📁 lib/features/employees/screens/salary_screen.dart
 //
@@ -107,7 +108,8 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تبديل القفل: $e')),
+        SnackBar(
+            content: Text('فشل تبديل القفل: ${UserFacingError.message(e)}')),
       );
     } finally {
       await _refreshLockFlag();
@@ -185,7 +187,9 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل إنشاء الاستحقاق: $e')),
+        SnackBar(
+            content:
+                Text('فشل إنشاء الاستحقاق: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -205,7 +209,8 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل عكس الاستحقاق: $e')),
+        SnackBar(
+            content: Text('فشل عكس الاستحقاق: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -240,7 +245,7 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
       loading: () => const LinearProgressIndicator(minHeight: 2),
       error: (e, _) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Text('تعذّر تحميل إعدادات الورشة: $e',
+        child: Text('تعذّر تحميل إعدادات الورشة: ${UserFacingError.message(e)}',
             style: const TextStyle(color: Colors.red, fontSize: 12)),
       ),
       data: (ws) {

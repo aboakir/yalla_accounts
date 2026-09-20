@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/screens/repairs_screen.dart
 //
 // RepairsScreen — إدارة ملفات الإصلاح
@@ -8,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' hide Border;
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 
@@ -181,7 +182,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      final message = error.toString().replaceFirst('Bad state: ', '');
+      final message = UserFacingError.message(error);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -228,7 +229,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
       rows: rows,
     );
 
-    final file = await YallaPdfService.saveAndOpen(
+    await YallaPdfService.saveAndOpen(
       bytes: bytes,
       fileName: "vehicles_export.pdf",
     );
@@ -236,7 +237,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("📄 تم توليد الملف: ${file.path}"),
+          content: Text("📄 تم توليد ملف PDF بنجاح."),
         ),
       );
     }
@@ -284,7 +285,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ تم حفظ Excel في ${file.path}')),
+        SnackBar(content: Text('✅ تم حفظ ملف Excel بنجاح.')),
       );
     }
   }
@@ -441,7 +442,7 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
+        SnackBar(content: Text(UserFacingError.message(e))),
       );
     } finally {
       reason.dispose();
@@ -809,13 +810,13 @@ class _RepairsScreenState extends ConsumerState<RepairsScreen> {
                   children: [
                     YallaStoredImage(
                       storedPath: profilePath,
-                      width: 48,
-                      height: 48,
-                      cacheWidth: 180,
-                      borderRadius: BorderRadius.circular(14),
+                      width: 72,
+                      height: 72,
+                      cacheWidth: 240,
+                      borderRadius: BorderRadius.circular(16),
                       fallback: Container(
-                        width: 48,
-                        height: 48,
+                        width: 72,
+                        height: 72,
                         color: AppColors.lightGreen,
                         child: const Icon(
                           Icons.directions_car_filled_rounded,

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
+import 'package:yalla_accounts/core/window/desktop_window_service.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
+import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
+import 'package:yalla_accounts/features/cloud_auth/cloud_auth_screen.dart';
+import 'package:yalla_accounts/features/cloud_auth/cloud_auth_service.dart';
 
 /// Persisted sessions are verified and unlocked by LoginScreen before use.
 class StartupScreen extends ConsumerStatefulWidget {
@@ -14,11 +19,44 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _route());
+  }
+
+  Future<void> _route() async {
+    if (!mounted) return;
+    ref.read(currentUserProvider.notifier).state = null;
+
+    if (OwnerLocalAccess.enabled) {
+      await configureMainAppWindow();
+      final user =
+          await ref.read(authSessionServiceProvider).startOwnerLocalSession();
       if (!mounted) return;
-      ref.read(currentUserProvider.notifier).state = null;
-      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
-    });
+      ref.read(currentUserProvider.notifier).state = user;
+      Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+      return;
+    }
+
+    if (ref.read(cloudConfigProvider).enabled) {
+      try {
+        final identity = ref.read(supabaseIdentityProvider);
+        final handled = await identity.handleStartupCallback();
+        if (!mounted) return;
+        if (handled) {
+          Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
+            builder: (_) => CloudAuthScreen(
+              onboarding: !identity.recoveryPending,
+              resumeVerifiedCallback: true,
+            ),
+          ));
+          return;
+        }
+      } catch (_) {
+        // A cloud callback failure must never block ordinary local login.
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed(AppRoutes.login);
   }
 
   @override

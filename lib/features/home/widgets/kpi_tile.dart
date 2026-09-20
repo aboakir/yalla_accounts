@@ -12,13 +12,14 @@
 //     title: 'إيرادات الشهر',
 //     value: 15400.0,
 //     change: 12.5,
-//     color: Colors.green,
+//     color: AppColors.primary,
 //     sparkline: [1000, 2000, 2500, 4000, 3000, 3500, 4500],
 //   );
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class KpiTile extends StatelessWidget {
   final String title;
@@ -34,7 +35,7 @@ class KpiTile extends StatelessWidget {
     required this.value,
     this.change,
     this.sparkline,
-    this.color = Colors.green,
+    this.color = AppColors.primary,
     this.onTap,
   });
 
@@ -110,14 +111,15 @@ class KpiTile extends StatelessWidget {
                     change! >= 0
                         ? Icons.arrow_upward_rounded
                         : Icons.arrow_downward_rounded,
-                    color: change! >= 0 ? Colors.green : Colors.redAccent,
+                    color: change! >= 0 ? AppColors.primary : Colors.redAccent,
                     size: 16,
                   ),
                   Text(
                     '${change!.toStringAsFixed(1)}%',
                     style: TextStyle(
                       fontSize: 12,
-                      color: change! >= 0 ? Colors.green : Colors.redAccent,
+                      color:
+                          change! >= 0 ? AppColors.primary : Colors.redAccent,
                     ),
                   ),
                 ],

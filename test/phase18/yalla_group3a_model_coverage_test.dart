@@ -476,6 +476,13 @@ void main() {
         'cancelled': ChequeStatus.cancelled,
         'delivered': ChequeStatus.delivered,
         'deposited': ChequeStatus.deposited,
+        'received': ChequeStatus.received,
+        'held': ChequeStatus.held,
+        'endorsed': ChequeStatus.endorsed,
+        'issued': ChequeStatus.issued,
+        'presented': ChequeStatus.presented,
+        'due': ChequeStatus.presented,
+        'cleared': ChequeStatus.cleared,
         'unexpected': ChequeStatus.pending,
       };
 

@@ -159,48 +159,4 @@ class PaymentsTables {
   // ============================================================
   // 🔧 DROP COLUMN (غير مستخدم)
   // ============================================================
-  static Future<void> _dropColumnIfExists(
-      DatabaseExecutor db, String table, String column) async {
-    final info = await db.rawQuery('PRAGMA table_info($table)');
-    final exists = info.any((c) => c['name'] == column);
-    if (!exists) return;
-
-    final cols =
-        info.where((c) => c['name'] != column).map((c) => c['name']).toList();
-
-    final colsList = cols.join(', ');
-    final placeholders = cols.join(', ');
-
-    await db.execute('ALTER TABLE $table RENAME TO ${table}_old;');
-
-    await db.execute('''
-      CREATE TABLE $table (
-        id TEXT PRIMARY KEY,
-        receipt_number INTEGER,
-        reversal_of_payment_id TEXT,
-        party_id TEXT,
-        client_id INTEGER,
-        repair_id TEXT,
-        invoice_id TEXT,
-        amount REAL NOT NULL,
-        date TEXT NOT NULL,
-        method TEXT NOT NULL,
-        accountName TEXT,
-        status TEXT,
-        notes TEXT,
-        attachments TEXT,
-        relatedRepairId TEXT,
-        gl_entry_id INTEGER,
-        cheque_id INTEGER,
-        isIncome INTEGER NOT NULL DEFAULT 1
-      );
-    ''');
-
-    await db.execute('''
-      INSERT INTO $table($colsList)
-      SELECT $placeholders FROM ${table}_old;
-    ''');
-
-    await db.execute('DROP TABLE ${table}_old;');
-  }
 }

@@ -17,7 +17,7 @@ import 'package:meta/meta.dart';
 
 enum PurchaseMethod { cash, bank, credit }
 
-enum PurchaseType { RAW, PARTS, TOOLS, OTHER }
+enum PurchaseType { raw, parts, tools, other }
 
 // --------------------------
 // METHOD MAPPERS
@@ -50,25 +50,25 @@ String methodToDb(PurchaseMethod m) {
 PurchaseType typeFromDb(String? v) {
   switch ((v ?? '').toUpperCase()) {
     case 'PARTS':
-      return PurchaseType.PARTS;
+      return PurchaseType.parts;
     case 'TOOLS':
-      return PurchaseType.TOOLS;
+      return PurchaseType.tools;
     case 'OTHER':
-      return PurchaseType.OTHER;
+      return PurchaseType.other;
     default:
-      return PurchaseType.RAW;
+      return PurchaseType.raw;
   }
 }
 
 String typeToDb(PurchaseType t) {
   switch (t) {
-    case PurchaseType.RAW:
+    case PurchaseType.raw:
       return 'RAW';
-    case PurchaseType.PARTS:
+    case PurchaseType.parts:
       return 'PARTS';
-    case PurchaseType.TOOLS:
+    case PurchaseType.tools:
       return 'TOOLS';
-    case PurchaseType.OTHER:
+    case PurchaseType.other:
       return 'OTHER';
   }
 }

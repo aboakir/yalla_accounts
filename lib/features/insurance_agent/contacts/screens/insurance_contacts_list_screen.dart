@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // lib/features/insurance_agent/contacts/screens/insurance_contacts_list_screen.dart
 //
 // InsuranceContactsListScreen — UPDATED (Hamburger + Back + Right Overlay Sidebar)
@@ -300,7 +301,7 @@ class _InsuranceContactsListScreenState
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ط­ط°ظپ'),
+            child: const Text('حذف'),
           ),
         ],
       ),
@@ -398,7 +399,8 @@ class _InsuranceContactsListScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل إنشاء PDF: $e')),
+        SnackBar(
+            content: Text('❌ فشل إنشاء PDF: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -757,12 +759,12 @@ class _ExpiringBanner extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.green.shade200),
-          color: Colors.green.withOpacity(0.08),
+          border: Border.all(color: AppColors.lightGreen),
+          color: AppColors.primary.withOpacity(0.08),
         ),
         child: AdaptiveRow(
           children: [
-            Icon(Icons.verified, color: Colors.green.shade700),
+            Icon(Icons.verified, color: AppColors.primary),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
@@ -887,7 +889,7 @@ class _WideTable extends StatelessWidget {
     final left = daysLeft(d);
     if (left < 0) return Colors.redAccent;
     if (left <= 30) return Colors.orange.shade800;
-    return Colors.green.shade700;
+    return AppColors.primary;
   }
 
   String _statusText(_LeadContact e) {
@@ -968,7 +970,7 @@ class _WideTable extends StatelessWidget {
                               color: Colors.blueGrey),
                         ),
                         IconButton(
-                          tooltip: 'ط­ط°ظپ',
+                          tooltip: 'حذف',
                           onPressed: () => onDelete(e),
                           icon: const Icon(Icons.delete_outline,
                               color: Colors.redAccent),
@@ -1018,7 +1020,7 @@ class _CardsList extends StatelessWidget {
     final left = daysLeft(d);
     if (left < 0) return Colors.redAccent;
     if (left <= 30) return Colors.orange.shade800;
-    return Colors.green.shade700;
+    return AppColors.primary;
   }
 
   String _statusText(_LeadContact e) {
@@ -1054,7 +1056,7 @@ class _CardsList extends StatelessWidget {
               AdaptiveRow(
                 children: [
                   IconButton(
-                    tooltip: 'ط­ط°ظپ',
+                    tooltip: 'حذف',
                     onPressed: () => onDelete(e),
                     icon: const Icon(Icons.delete_outline,
                         color: Colors.redAccent),
@@ -1287,7 +1289,7 @@ class _LeadDialogState extends State<_LeadDialog> {
         ),
         FilledButton(
           onPressed: _submit,
-          child: const Text('ط­ظپط¸'),
+          child: const Text('حفظ'),
         ),
       ],
     );
@@ -1328,7 +1330,7 @@ class _LeadContact {
       };
 
   static _LeadContact fromJson(Map<String, dynamic> j) {
-    DateTime? _dt(String? s) =>
+    DateTime? dt(String? s) =>
         (s == null || s.isEmpty) ? null : DateTime.tryParse(s);
 
     return _LeadContact(
@@ -1336,9 +1338,9 @@ class _LeadContact {
       name: (j['name'] ?? '').toString(),
       phone: (j['phone'] ?? '').toString(),
       vehicleMake: (j['vehicleMake'] ?? '').toString(),
-      endDate: _dt(j['endDate']?.toString()),
-      createdAt: _dt(j['createdAt']?.toString()),
-      updatedAt: _dt(j['updatedAt']?.toString()),
+      endDate: dt(j['endDate']?.toString()),
+      createdAt: dt(j['createdAt']?.toString()),
+      updatedAt: dt(j['updatedAt']?.toString()),
     );
   }
 }

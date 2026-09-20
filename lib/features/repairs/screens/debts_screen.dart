@@ -12,6 +12,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class DebtsScreen extends StatefulWidget {
   const DebtsScreen({super.key});
@@ -66,7 +67,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
             IFNULL(SUM(je.credit),0) AS paid,
             MAX(je.date) AS lastPaidDate,
             -- معلومات من repairs
-            COALESCE(r.totalFileValue, 0) AS fileTotal,
+            COALESCE(r.fileValue, 0) AS fileTotal,
             COALESCE(r.beneficiaryName, '') AS beneficiaryName,
             COALESCE(r.vehicleNumber, '') AS vehicleNumber,
             COALESCE(r.receivedDate, '') AS receivedDate
@@ -232,7 +233,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                               ? Icons.check_circle
                                               : Icons.warning_amber,
                                           color: remain <= 0
-                                              ? Colors.green
+                                              ? AppColors.primary
                                               : Colors.orange,
                                         ),
                                         title: Text('ملف: $rid'),
@@ -253,7 +254,7 @@ class _DebtsScreenState extends State<DebtsScreen> {
                                               'المتبقي: ${_currency.format(remain)}',
                                               style: TextStyle(
                                                 color: remain <= 0
-                                                    ? Colors.green
+                                                    ? AppColors.primary
                                                     : Colors.red,
                                                 fontWeight: FontWeight.w600,
                                               ),

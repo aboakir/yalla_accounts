@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/gl/screens/gl_browser_screen.dart
 //
 // GLBrowserScreen — مستعرض قيود GL (LTR، بدون Sidebar).
@@ -11,6 +12,7 @@ import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class GLBrowserScreen extends StatefulWidget {
   const GLBrowserScreen({super.key});
@@ -230,8 +232,8 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -524,12 +526,13 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
                     label: Text(
                       bal ? 'Balanced' : 'Not balanced',
                       style: TextStyle(
-                          color: bal ? Colors.green[900] : Colors.red[900],
+                          color: bal ? AppColors.primary : Colors.red[900],
                           fontWeight: FontWeight.w700),
                     ),
-                    backgroundColor: bal ? Colors.green[50] : Colors.red[50],
+                    backgroundColor:
+                        bal ? AppColors.lightGreen : Colors.red[50],
                     side: BorderSide(
-                        color: bal ? Colors.green[200]! : Colors.red[200]!),
+                        color: bal ? AppColors.lightGreen : Colors.red[200]!),
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -572,12 +575,12 @@ class _GLBrowserScreenState extends State<GLBrowserScreen> {
                 label: Text(
                   bal ? 'Balanced' : 'Not balanced',
                   style: TextStyle(
-                      color: bal ? Colors.green[900] : Colors.red[900],
+                      color: bal ? AppColors.primary : Colors.red[900],
                       fontWeight: FontWeight.w700),
                 ),
-                backgroundColor: bal ? Colors.green[50] : Colors.red[50],
+                backgroundColor: bal ? AppColors.lightGreen : Colors.red[50],
                 side: BorderSide(
-                    color: bal ? Colors.green[200]! : Colors.red[200]!),
+                    color: bal ? AppColors.lightGreen : Colors.red[200]!),
               ),
               const SizedBox(width: 12),
               Text('Σ D: ${_money.format(sD)} / Σ C: ${_money.format(sC)}',

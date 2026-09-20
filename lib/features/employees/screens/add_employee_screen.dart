@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/employees/screens/add_employee_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,19 +107,20 @@ class _AddEmployeeScreenState extends ConsumerState<AddEmployeeScreen> {
         await ref.read(employeeProvider.notifier).loadEmployees();
       }
     } catch (e) {
-      errorMsg = e.toString();
+      errorMsg = UserFacingError.message(e);
     } finally {
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      if (errorMsg != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ $errorMsg')),
-        );
-      } else {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم إضافة الموظف بنجاح')),
-        );
+      if (mounted) {
+        setState(() => _isSaving = false);
+        if (errorMsg != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ $errorMsg')),
+          );
+        } else {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ تم إضافة الموظف بنجاح')),
+          );
+        }
       }
     }
   }

@@ -1,7 +1,9 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'support_complaint_service.dart';
 
 class SupportComplaintButton extends ConsumerStatefulWidget {
@@ -23,7 +25,7 @@ class _SupportComplaintButtonState
     final payload = await showDialog<(String, String)>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) => AdaptiveAlertDialog(
           title: const Text('تقديم شكوى أو طلب دعم'),
           content: SizedBox(
             width: 460,
@@ -136,7 +138,7 @@ class _SupportComplaintButtonState
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(UserFacingError.message(error))));
     } finally {
       service.dispose();
       if (mounted) setState(() => _busy = false);

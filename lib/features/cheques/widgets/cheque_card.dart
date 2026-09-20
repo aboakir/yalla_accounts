@@ -33,37 +33,37 @@ class ChequeCard extends StatelessWidget {
   // ألوان الحالات
   // --------------------------------------------------------
   Color _statusColor(ChequeStatus status) {
-    switch (status) {
-      case ChequeStatus.collected:
-        return Colors.green.shade600;
-      case ChequeStatus.returned:
-        return Colors.red.shade600;
-      case ChequeStatus.cancelled:
-        return Colors.grey.shade700;
-      case ChequeStatus.delivered:
-        return Colors.blue.shade700;
-      case ChequeStatus.deposited:
-        return Colors.teal.shade700;
-      case ChequeStatus.pending:
-        return Colors.amber.shade700;
-    }
+    return switch (status) {
+      ChequeStatus.pending => Colors.amber.shade700,
+      ChequeStatus.received => AppColors.primary,
+      ChequeStatus.held => Colors.amber.shade800,
+      ChequeStatus.deposited => Colors.blue.shade700,
+      ChequeStatus.collected => AppColors.primary,
+      ChequeStatus.endorsed => Colors.indigo.shade700,
+      ChequeStatus.issued => Colors.deepOrange.shade700,
+      ChequeStatus.delivered => Colors.blueGrey.shade700,
+      ChequeStatus.presented => Colors.purple.shade700,
+      ChequeStatus.cleared => AppColors.primary,
+      ChequeStatus.returned => Colors.red.shade600,
+      ChequeStatus.cancelled => Colors.grey.shade700,
+    };
   }
 
   String _statusLabel(ChequeStatus status) {
-    switch (status) {
-      case ChequeStatus.pending:
-        return 'قيد الانتظار';
-      case ChequeStatus.collected:
-        return 'مُحصَّل';
-      case ChequeStatus.returned:
-        return 'راجع';
-      case ChequeStatus.cancelled:
-        return 'ملغى';
-      case ChequeStatus.delivered:
-        return 'مسلم لطرف آخر';
-      case ChequeStatus.deposited:
-        return 'مودع في البنك';
-    }
+    return switch (status) {
+      ChequeStatus.pending => 'قديم/معلّق',
+      ChequeStatus.received => 'مستلم',
+      ChequeStatus.held => 'محتفظ به',
+      ChequeStatus.deposited => 'مودع في البنك',
+      ChequeStatus.collected => 'مُحصَّل',
+      ChequeStatus.endorsed => 'مظهّر',
+      ChequeStatus.issued => 'صادر',
+      ChequeStatus.delivered => 'مسلّم',
+      ChequeStatus.presented => 'مقدم/مستحق',
+      ChequeStatus.cleared => 'مصروف من البنك',
+      ChequeStatus.returned => 'راجع',
+      ChequeStatus.cancelled => 'ملغى',
+    };
   }
 
   String _typeLabel(ChequeType type) {

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/finance/services/financial_void_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // ============================================================================
@@ -60,8 +61,9 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
                     child: const Text('رجوع')),
                 TextButton(
                     onPressed: () {
-                      if (reason.trim().isNotEmpty)
+                      if (reason.trim().isNotEmpty) {
                         Navigator.pop(dialogContext, true);
+                      }
                     },
                     child: const Text('تأكيد الإلغاء'))
               ],
@@ -73,9 +75,10 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
           purchase: true, reason: reason);
       if (mounted) await _load();
     } catch (error) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('تعذر الإلغاء: $error')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('تعذر الإلغاء: ${UserFacingError.message(error)}')));
+      }
     } finally {
       if (mounted) setState(() => _voiding = false);
     }
@@ -113,7 +116,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
         CASE WHEN UPPER(pi.status) IN ('VOID','CANCELLED','REVERSED') THEN 'VOID' WHEN pi.amount_total - ${PurchaseBalanceSql.paid('pi.id')} <= 0.0001 THEN 'PAID' WHEN ${PurchaseBalanceSql.paid('pi.id')} > 0 THEN 'PARTIAL' ELSE 'UNPAID' END AS status,
         pi.method,
         pi.date,
-        pi.note
+        pi.note,
+        pi.gl_entry_id
       FROM purchase_invoices pi
       LEFT JOIN suppliers s ON s.id = pi.supplier_id
       WHERE pi.id = ?
@@ -226,7 +230,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إنشاء PDF: $e')),
+        SnackBar(
+            content: Text('تعذر إنشاء PDF: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -387,7 +392,8 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
   // HEADER CARD
   // ----------------------------------------------------------------------------
   Widget _headerCard(Map h, double amount, double paid, double remain) {
-    final canEditDate = _d(h['paid_total']) == 0 &&
+    final canEditDate = h['gl_entry_id'] == null &&
+        _d(h['paid_total']) == 0 &&
         h['status'] != 'PAID' &&
         h['status'] != 'VOID';
 
@@ -585,6 +591,18 @@ class _PurchaseDetailsScreenState extends State<PurchaseDetailsScreen> {
     final date = _editingDate;
     final h = header;
     if (date == null || h == null) return;
+    if (h['gl_entry_id'] != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'لا يمكن تغيير تاريخ فاتورة مُرحّلة. ألغِ الفاتورة وأعد إصدارها لتبقى مطابقة للقيد.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
 
     final db = await DBService.database;
     await db.update(

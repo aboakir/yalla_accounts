@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/purchases/screens/add_raw_material_purchase_screen.dart
 //
 // AddRawMaterialPurchaseScreen — إنشاء فاتورة شراء "مواد خام" (بدون فرض RTL)
@@ -178,7 +179,7 @@ class _AddRawMaterialPurchaseScreenState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل الحفظ: $e')),
+        SnackBar(content: Text('فشل الحفظ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

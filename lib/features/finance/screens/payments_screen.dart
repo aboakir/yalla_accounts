@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/screens/payments_screen.dart
 //
 // Payments Screen — قراءة مباشرة من GL مع تكامل payments عند الحاجة
@@ -277,7 +278,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر عكس سند القبض: $e')),
+        SnackBar(
+            content: Text('تعذر عكس سند القبض: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -849,8 +851,8 @@ class _AddEditPaymentDialogState extends State<AddEditPaymentDialog> {
       (editing ? widget.onUpdated : widget.onCreated)?.call();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل الحفظ: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل الحفظ: ${UserFacingError.message(e)}')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -24,6 +24,14 @@ class PaymentVoucherPdf {
     required String partyName,
     required String notes,
     required int? glEntryId,
+    String? chequeNumber,
+    String? chequeBank,
+    String? chequeBranch,
+    String? chequePayee,
+    String? chequeCurrency,
+    String? chequeStatus,
+    DateTime? chequeIssueDate,
+    DateTime? chequeDueDate,
   }) async {
     final pdf = pw.Document();
 
@@ -58,6 +66,11 @@ class PaymentVoucherPdf {
                         pw.Container(
                           width: 120,
                           height: 120,
+                          padding: const pw.EdgeInsets.all(10),
+                          decoration: pw.BoxDecoration(
+                            color: const PdfColor.fromInt(0xFFDFF5D2),
+                            borderRadius: pw.BorderRadius.circular(12),
+                          ),
                           child: pw.Image(pw.MemoryImage(logoData)),
                         ),
                       ],
@@ -90,13 +103,64 @@ class PaymentVoucherPdf {
                       infoRow("رقم السند:", voucherId, ttf, ttfBold),
                       infoRow("التاريخ:", _format(date), ttf, ttfBold),
                       infoRow("نوع المصروف:", expenseType, ttf, ttfBold),
-                      infoRow("طريقة الدفع:", method == "CASH" ? "نقدي" : "بنك",
-                          ttf, ttfBold),
+                      infoRow(
+                        "طريقة الدفع:",
+                        _methodLabel(method),
+                        ttf,
+                        ttfBold,
+                      ),
                       infoRow("الطرف:", partyName, ttf, ttfBold),
-                      infoRow("قيمة السند:", "${MoneyFormatter.format(amount)}",
-                          ttf, ttfBold),
+                      infoRow("قيمة السند:", MoneyFormatter.format(amount), ttf,
+                          ttfBold),
                       infoRow("رقم القيد المحاسبي (GL):",
                           glEntryId?.toString() ?? "—", ttf, ttfBold),
+                      if (_isCheque(method) &&
+                          (chequeNumber ?? '').trim().isNotEmpty) ...[
+                        pw.Divider(),
+                        pw.Text(
+                          "بيانات الشيك",
+                          style: pw.TextStyle(font: ttfBold, fontSize: 15),
+                        ),
+                        infoRow(
+                            "رقم الشيك:", chequeNumber ?? "—", ttf, ttfBold),
+                        infoRow(
+                          "البنك:",
+                          [
+                            chequeBank,
+                            chequeBranch,
+                          ]
+                              .whereType<String>()
+                              .where((v) => v.trim().isNotEmpty)
+                              .join(" — "),
+                          ttf,
+                          ttfBold,
+                        ),
+                        infoRow("المستفيد:", chequePayee ?? partyName, ttf,
+                            ttfBold),
+                        infoRow(
+                          "العملة:",
+                          (chequeCurrency ?? '').trim().isEmpty
+                              ? MoneyFormatter.currencyCode
+                              : chequeCurrency!,
+                          ttf,
+                          ttfBold,
+                        ),
+                        infoRow(
+                          "تاريخ الإصدار:",
+                          chequeIssueDate == null
+                              ? "—"
+                              : _format(chequeIssueDate),
+                          ttf,
+                          ttfBold,
+                        ),
+                        infoRow(
+                          "تاريخ الاستحقاق:",
+                          chequeDueDate == null ? "—" : _format(chequeDueDate),
+                          ttf,
+                          ttfBold,
+                        ),
+                        infoRow("الحالة:", chequeStatus ?? "—", ttf, ttfBold),
+                      ],
                     ],
                   ),
                 ),
@@ -175,6 +239,21 @@ class PaymentVoucherPdf {
         ],
       ),
     );
+  }
+
+  static bool _isCheque(String method) {
+    final value = method.trim().toLowerCase();
+    return value == 'cheque' || value == 'check' || value.contains('شيك');
+  }
+
+  static String _methodLabel(String method) {
+    final value = method.trim().toLowerCase();
+    if (value == 'cash') return 'نقدي';
+    if (_isCheque(value)) return 'شيك';
+    if (value == 'bank' || value == 'transfer' || value == 'bank_transfer') {
+      return 'تحويل بنكي';
+    }
+    return method;
   }
 
   static String _format(DateTime d) {

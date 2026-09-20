@@ -7,6 +7,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class ChequeDialog extends StatefulWidget {
   final ChequeType initialType; // وارد أو صادر
@@ -123,12 +124,12 @@ class _ChequeDialogState extends State<ChequeDialog> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: _chequeType == ChequeType.incoming
-            ? Colors.green.shade50
+            ? AppColors.lightGreen
             : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: _chequeType == ChequeType.incoming
-              ? Colors.green.shade200
+              ? AppColors.lightGreen
               : Colors.orange.shade200,
         ),
       ),
@@ -140,7 +141,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
                 ? Icons.call_received
                 : Icons.call_made,
             color: _chequeType == ChequeType.incoming
-                ? Colors.green
+                ? AppColors.primary
                 : Colors.orange,
             size: 18,
           ),
@@ -150,7 +151,7 @@ class _ChequeDialogState extends State<ChequeDialog> {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               color: _chequeType == ChequeType.incoming
-                  ? Colors.green
+                  ? AppColors.primary
                   : Colors.orange,
             ),
           ),

@@ -1,0 +1,4 @@
+
+# Stable consent document hashes on Windows and macOS.
+assets/legal/*.html text eol=lf
+*.sh text eol=lf

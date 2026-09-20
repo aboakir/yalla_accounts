@@ -156,7 +156,7 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
           if (showUserAvatar)
             CircleAvatar(
               radius: 20,
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.lightGreen,
               child: resolvedImage == null
                   ? _brandMark()
                   : ClipOval(

@@ -173,7 +173,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
                         label: 'مسدد',
                         value: paid,
                         total: total,
-                        color: Colors.green),
+                        color: AppColors.primary),
                     _makePieSection(
                         index: 1,
                         label: 'جزئي',
@@ -228,7 +228,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
           alignment: WrapAlignment.center,
           children: [
             _buildLegendItem(
-                color: Colors.green, label: 'مسدد ($paid)', index: 0),
+                color: AppColors.primary, label: 'مسدد ($paid)', index: 0),
             _buildLegendItem(
                 color: Colors.orange, label: 'جزئي ($partial)', index: 1),
             _buildLegendItem(
@@ -375,7 +375,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
   Color _colorForLabel(String label) {
     switch (label) {
       case 'مسدد':
-        return Colors.green;
+        return AppColors.primary;
       case 'جزئي':
         return Colors.orange;
       case 'غير مسدد':
@@ -437,7 +437,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StatusCard(
-          color: Colors.green,
+          color: AppColors.primary,
           icon: Icons.check_circle,
           label: 'مسدد',
           count: paidCount.toInt(),
@@ -476,7 +476,7 @@ class _RepairSummarySectionState extends State<RepairSummarySection> {
           'إجمالي الباقي: ${MoneyFormatter.format(totalRemaining)}',
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: totalRemaining == 0 ? Colors.green : Colors.red,
+            color: totalRemaining == 0 ? AppColors.primary : Colors.red,
           ),
         ),
       ],

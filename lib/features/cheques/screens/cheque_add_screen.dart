@@ -10,6 +10,7 @@ import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/widgets/yalla_appbar.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import '../models/cheque.dart';
 import '../providers/cheque_provider.dart';
@@ -97,6 +98,9 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.editCheque == null && !widget.embedded) {
+      return _canonicalEntryGateway();
+    }
     if (widget.embedded) {
       return SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -110,37 +114,133 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
       );
     }
 
-    return Scaffold(
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= 1024;
+
+    final page = Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
       appBar: const YallaAppBar(
         workshopName: 'Yallah Accounts',
         showThemeToggle: false,
         showSearch: false,
       ),
-      drawer: const YallaSidebar(),
+      drawer: isDesktop
+          ? null
+          : const Drawer(
+              child: SafeArea(
+                child: YallaSidebar(currentRoute: '/cheques/add'),
+              ),
+            ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: EdgeInsets.fromLTRB(
-            MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
-            12,
-            MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+            width < 600 ? 12 : 28,
+            isDesktop ? 24 : 12,
+            width < 600 ? 12 : 28,
             24 + MediaQuery.viewInsetsOf(context).bottom,
           ),
           child: _card(context, _buildForm(context)),
         ),
       ),
     );
+
+    if (!isDesktop) return page;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(
+          width: 280,
+          child: YallaSidebar(currentRoute: '/cheques/add'),
+        ),
+        Expanded(child: page),
+      ],
+    );
+  }
+
+  Widget _canonicalEntryGateway() {
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 1024;
+    final content = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'إنشاء الشيك يبدأ من السند المالي',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'الشيك وسيلة دفع داخل سند قبض أو سند صرف، '
+                  'ولا يُنشأ كحركة مالية مستقلة.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 22),
+                FilledButton.icon(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.receiptVoucher,
+                  ),
+                  icon: const Icon(Icons.call_received),
+                  label: const Text('استلام شيك — فتح سند قبض'),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.tonalIcon(
+                  onPressed: () => Navigator.pushReplacementNamed(
+                    context,
+                    AppRoutes.paymentVoucher,
+                  ),
+                  icon: const Icon(Icons.call_made),
+                  label: const Text('إصدار شيك — فتح سند صرف'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Scaffold(
+      appBar: const YallaAppBar(
+        workshopName: 'Yallah Accounts',
+        showThemeToggle: false,
+        showSearch: false,
+      ),
+      drawer: desktop
+          ? null
+          : const YallaSidebar(currentRoute: AppRoutes.chequesAdd),
+      body: desktop
+          ? Row(
+              children: [
+                const SizedBox(
+                  width: 280,
+                  child: YallaSidebar(currentRoute: AppRoutes.chequesAdd),
+                ),
+                Expanded(child: content),
+              ],
+            )
+          : content,
+    );
   }
 
   Widget _card(BuildContext context, Widget child) {
-    final phone = MediaQuery.sizeOf(context).width < 600;
+    final width = MediaQuery.sizeOf(context).width;
+    final phone = width < 600;
+    final desktop = width >= 1024;
     return Center(
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.all(phone ? 14 : 24),
-        constraints: const BoxConstraints(maxWidth: 760),
+        constraints: BoxConstraints(maxWidth: desktop ? 1040 : 760),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
@@ -235,9 +335,19 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.save),
-                    label: const Text('حفظ'),
-                    onPressed: () => _save(context),
+                    icon: Icon(
+                      widget.editCheque == null &&
+                              chequeType == ChequeType.incoming
+                          ? Icons.receipt_long
+                          : Icons.save,
+                    ),
+                    label: Text(
+                      widget.editCheque == null &&
+                              chequeType == ChequeType.incoming
+                          ? 'استلام الشيك وربطه بسند قبض'
+                          : 'حفظ',
+                    ),
+                    onPressed: _save,
                   ),
                 ),
         ],
@@ -248,7 +358,13 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
   // ---------------------------------------------------------------------------
   // SAVE
   // ---------------------------------------------------------------------------
-  Future<void> _save(BuildContext context) async {
+  Future<void> _save() async {
+    if (widget.editCheque == null && chequeType == ChequeType.incoming) {
+      await Navigator.of(context)
+          .pushReplacementNamed(AppRoutes.receiptVoucher);
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     if (chequeType == null || chequeStatus == null || currency == null) {
@@ -521,17 +637,29 @@ class _ChequeAddScreenState extends ConsumerState<ChequeAddScreen> {
   String _fmtStatus(ChequeStatus s) {
     switch (s) {
       case ChequeStatus.pending:
-        return 'مُعلّق';
+        return 'قديم/معلّق';
+      case ChequeStatus.received:
+        return 'مستلم';
+      case ChequeStatus.held:
+        return 'محتفظ به';
+      case ChequeStatus.deposited:
+        return 'مودع';
       case ChequeStatus.collected:
-        return 'مُحصّل';
+        return 'محصّل';
+      case ChequeStatus.endorsed:
+        return 'مظهّر';
+      case ChequeStatus.issued:
+        return 'صادر';
+      case ChequeStatus.delivered:
+        return 'مسلّم';
+      case ChequeStatus.presented:
+        return 'مقدم/مستحق';
+      case ChequeStatus.cleared:
+        return 'مصروف من البنك';
       case ChequeStatus.returned:
         return 'راجع';
       case ChequeStatus.cancelled:
         return 'ملغى';
-      case ChequeStatus.delivered:
-        return 'مُسلّم';
-      case ChequeStatus.deposited:
-        return 'مودع';
     }
   }
 

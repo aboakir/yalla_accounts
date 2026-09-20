@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/employees/screens/edit_employee_screen.dart
 //
 // EditEmployeeScreen — تحديث بيانات الموظف (نسخة محدثة)
@@ -200,7 +201,7 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل الحفظ: $e')),
+        SnackBar(content: Text('❌ فشل الحفظ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -419,8 +420,9 @@ class _EditEmployeeScreenState extends ConsumerState<EditEmployeeScreen> {
                                             child: Text('مقاولة'))
                                       ],
                                       onChanged: (v) {
-                                        if (v != null)
+                                        if (v != null) {
                                           setState(() => contractType = v);
+                                        }
                                       }),
                                   _buildNumberField(
                                     salaryController,

@@ -47,12 +47,11 @@ class _RepairInvoiceCreateButtonState extends State<RepairInvoiceCreateButton> {
 
   Future<void> _handleCreate() async {
     setState(() => _busy = true);
-    final ctx = context;
-
     try {
       final exists = await _getExistingInvoiceId(widget.repairId);
+      if (!mounted) return;
       if (exists != null) {
-        _snack(ctx, 'Invoice exists: $exists');
+        _snack('Invoice exists: $exists');
         setState(() => _busy = false);
         return;
       }
@@ -85,10 +84,12 @@ class _RepairInvoiceCreateButtonState extends State<RepairInvoiceCreateButton> {
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
 
-      _snack(ctx, 'Invoice created: $invId');
+      if (!mounted) return;
+      _snack('Invoice created: $invId');
       widget.onCreated?.call();
     } catch (e) {
-      _snack(ctx, 'Error: $e', isErr: true);
+      if (!mounted) return;
+      _snack('Error: $e', isErr: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -157,8 +158,9 @@ class _RepairInvoiceCreateButtonState extends State<RepairInvoiceCreateButton> {
 
   double _round(double v) => double.parse(v.toStringAsFixed(2));
 
-  void _snack(BuildContext ctx, String msg, {bool isErr = false}) {
-    ScaffoldMessenger.of(ctx).showSnackBar(
+  void _snack(String msg, {bool isErr = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
         backgroundColor: isErr ? Colors.red : null,

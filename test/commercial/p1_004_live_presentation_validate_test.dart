@@ -4,8 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite/sqflite.dart' as sq;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'package:yalla_accounts/core/services/db/database_constants.dart';
-
 double n(Object? value) {
   if (value is num) return value.toDouble();
   return double.tryParse(value?.toString() ?? '') ?? 0;
@@ -59,12 +57,12 @@ void main() {
         expect(settings.first['currency_symbol'], '₪');
         expect((settings.first['currency_decimals'] as num).toInt(), 2);
 
-        print('P1.004 live presentation validation PASS.');
-        print('Database version 60: PASS');
-        print('GL balanced: PASS');
-        print('Foreign-key validation: PASS');
-        print('DB integrity: PASS');
-        print('Live base currency ILS / 2 decimals: PASS');
+        stdout.writeln('P1.004 live presentation validation PASS.');
+        stdout.writeln('Database version 60: PASS');
+        stdout.writeln('GL balanced: PASS');
+        stdout.writeln('Foreign-key validation: PASS');
+        stdout.writeln('DB integrity: PASS');
+        stdout.writeln('Live base currency ILS / 2 decimals: PASS');
       } finally {
         await db.close();
       }

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +11,7 @@ import 'package:yalla_accounts/features/auth/widgets/edit_user_dialog.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class ManageUsersScreen extends ConsumerStatefulWidget {
   const ManageUsersScreen({super.key});
@@ -179,7 +181,7 @@ class _ManageUsersScreenState extends ConsumerState<ManageUsersScreen> {
                                 active ? 'نشط' : 'مجمّد',
                                 style: TextStyle(
                                   color: active
-                                      ? Colors.green.shade700
+                                      ? AppColors.primary
                                       : Colors.orange.shade800,
                                 ),
                               ),
@@ -291,7 +293,9 @@ class _ResetUserPasswordDialogState
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إعادة تعيين كلمة المرور: $e')),
+        SnackBar(
+            content: Text(
+                'تعذر إعادة تعيين كلمة المرور: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/home/widgets/operations_distribution_chart.dart
 
 import 'package:flutter/material.dart';
@@ -39,7 +40,8 @@ class OperationsDistributionChart extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('خطأ عرض الرسم: $e')),
+      error: (e, _) =>
+          Center(child: Text('خطأ عرض الرسم: ${UserFacingError.message(e)}')),
     );
   }
 }

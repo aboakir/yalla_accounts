@@ -63,8 +63,8 @@ class RepairCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isNarrow = MediaQuery.of(context).size.width < 480;
-    final paid = (repair.totalPaidAmount ?? repair.paidAmount ?? 0).toDouble();
-    final total = (repair.totalFileValue ?? repair.fileValue ?? 0).toDouble();
+    final paid = repair.totalPaidAmount.toDouble();
+    final total = repair.totalFileValue.toDouble();
     final remaining = total - paid;
     final theme = Theme.of(context).textTheme;
     final dateText = DateFormat('yyyy-MM-dd').format(repair.receivedDate);
@@ -120,7 +120,7 @@ class RepairCard extends StatelessWidget {
                         Text(
                           'المدفوع: ${MoneyFormatter.format(paid)}',
                           style: const TextStyle(
-                            color: Colors.green,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -140,7 +140,7 @@ class RepairCard extends StatelessWidget {
                       Text(
                         '💰 السعر المعتمد: ${MoneyFormatter.format(repair.finalApprovedAmount!)}',
                         style: theme.bodySmall?.copyWith(
-                          color: Colors.green[900],
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -176,17 +176,17 @@ class RepairCard extends StatelessWidget {
                       label: Text(
                         'معتمد ✅',
                         style: TextStyle(
-                          color: Colors.green[800],
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: isNarrow ? 10 : 12,
                         ),
                       ),
-                      backgroundColor: Colors.green[50],
+                      backgroundColor: AppColors.lightGreen,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.green[200]!),
+                        side: BorderSide(color: AppColors.lightGreen),
                       ),
                     ),
                   const SizedBox(height: 8),
@@ -204,7 +204,7 @@ class RepairCard extends StatelessWidget {
                       label: const Text('اعتماد السعر'),
                       onPressed: onApproveFinalAmount,
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.green[700],
+                        foregroundColor: AppColors.primary,
                         textStyle: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 12),
                       ),
@@ -366,6 +366,7 @@ class _InvoiceButton extends StatelessWidget {
         ].fold<double>(0, (m, v) => v > m ? v : m);
 
         final total = await _computeTotal(db, repair.id, fallback: fallback);
+        if (!context.mounted) return;
 
         if (total <= 0) {
           _snack(context, 'الإجمالي صفر. أضف بنودًا أو قيمة قبل الفوترة',
@@ -390,12 +391,15 @@ class _InvoiceButton extends StatelessWidget {
           where: 'id = ?',
           whereArgs: [repair.id],
         );
+        if (!context.mounted) return;
 
         _snack(context, 'تم إنشاء الفاتورة: $invoiceId');
       }
 
+      if (!context.mounted) return;
       await InvoiceViewScreen.open(context, invoiceId!);
     } catch (e) {
+      if (!context.mounted) return;
       _snack(context, 'فشل: $e', err: true);
     }
   }

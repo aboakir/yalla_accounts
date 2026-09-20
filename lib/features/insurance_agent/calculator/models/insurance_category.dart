@@ -40,7 +40,7 @@ class InsuranceCategories {
       InsuranceInputType.engineCc,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [], // ضع هنا خيارات حقيقية عند توفرها
+    fixedOptions: [], // ضع هنا خيارات حقيقية عند توفرها
   );
 
   static const commercialCars = InsuranceCategory(
@@ -52,7 +52,7 @@ class InsuranceCategories {
       InsuranceInputType.weightTon,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const rentalCars = InsuranceCategory(
@@ -64,7 +64,7 @@ class InsuranceCategories {
       InsuranceInputType.weightTon,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const taxiSingleDriver = InsuranceCategory(
@@ -75,7 +75,7 @@ class InsuranceCategories {
       InsuranceInputType.passengers,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const taxiTwoDrivers = InsuranceCategory(
@@ -86,7 +86,7 @@ class InsuranceCategories {
       InsuranceInputType.passengers,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const taxiAnyDriver = InsuranceCategory(
@@ -97,7 +97,7 @@ class InsuranceCategories {
       InsuranceInputType.passengers,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const privateBuses = InsuranceCategory(
@@ -108,7 +108,7 @@ class InsuranceCategories {
       InsuranceInputType.passengers,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const publicBuses = InsuranceCategory(
@@ -119,7 +119,7 @@ class InsuranceCategories {
       InsuranceInputType.passengers,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const vehicleTrading = InsuranceCategory(
@@ -129,7 +129,7 @@ class InsuranceCategories {
     requiredInputs: [
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const motorcycles = InsuranceCategory(
@@ -140,7 +140,7 @@ class InsuranceCategories {
       InsuranceInputType.engineCc,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   static const trailers = InsuranceCategory(
@@ -151,7 +151,7 @@ class InsuranceCategories {
       InsuranceInputType.weightTon,
       InsuranceInputType.fixedOption,
     ],
-    fixedOptions: const [],
+    fixedOptions: [],
   );
 
   // ✅ UPDATED: آليات منوعة أخرى (القائمة المنسدلة ستظهر الآن)

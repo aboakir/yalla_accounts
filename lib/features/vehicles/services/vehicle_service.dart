@@ -5,6 +5,7 @@ import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.da
 import 'package:yalla_accounts/core/services/db/tables/vehicle_tables.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/offline_outbox_service.dart';
+import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 
 import '../models/vehicle.dart';
@@ -40,11 +41,22 @@ class VehicleService {
       );
       String? profileImagePath;
       for (final repair in history) {
-        final candidate = repair.thumbnailPath?.trim();
-        if (candidate != null && candidate.isNotEmpty) {
-          profileImagePath = candidate;
-          break;
+        final canonicalThumbnail = repair.thumbnailPath?.trim();
+        final candidates = <String?>[
+          canonicalThumbnail,
+          ...repair.imagePaths,
+        ];
+        for (final raw in candidates) {
+          final candidate = raw?.trim();
+          if (candidate == null || candidate.isEmpty) continue;
+          final resolved =
+              await YallaStorageService.resolveExistingPath(candidate);
+          if (resolved != null) {
+            profileImagePath = candidate;
+            break;
+          }
         }
+        if (profileImagePath != null) break;
       }
 
       vehicles.add(

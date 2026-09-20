@@ -16,7 +16,7 @@ void main() {
         read('lib/core/licensing/activation/activation_transport.dart');
 
     expect(matrix['matrix_schema'], 1);
-    expect(matrix['release_train'], 'CR1-P12');
+    expect(matrix['release_train'], 'UNIFIED-20260920');
     expect(pubspec, contains('version: ${matrix['accounts_version']}'));
     expect(db, contains('dbVersion = ${matrix['accounts_db_schema_version']}'));
     expect(

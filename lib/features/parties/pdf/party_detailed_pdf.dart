@@ -42,9 +42,9 @@ class PartyDetailedPdf {
         workshopHeader ? await YallaPdfService.buildHeader() : pw.SizedBox();
     final s = r.statement;
     final widgets = <pw.Widget>[
-      heading('كشف حساب تفصيلي: ' + s.displayName),
-      pw.Text('الفترة: ' + period),
-      pw.Text('إصدار الكشف: ' + date(DateTime.now().toIso8601String())),
+      heading('كشف حساب تفصيلي: ${s.displayName}'),
+      pw.Text('الفترة: $period'),
+      pw.Text('إصدار الكشف: ${date(DateTime.now().toIso8601String())}'),
       pw.Text(
           'المدين يزيد ما لك، والدائن يزيد ما عليك. الرصيد الموجب لك والسالب عليك. الصافي لا ينشئ مقاصة أو سدادًا.'),
       table([
@@ -72,13 +72,7 @@ class PartyDetailedPdf {
           s.lines
               .map((l) => [
                     date(r.dates[l.entryId]),
-                    l.description +
-                        ' / ' +
-                        (l.sourceNumber.isEmpty
-                            ? l.entryId.toString()
-                            : l.sourceNumber) +
-                        ' / ' +
-                        l.source,
+                    '${l.description} / ${l.sourceNumber.isEmpty ? l.entryId.toString() : l.sourceNumber} / ${l.source}',
                     money(l.debit),
                     money(l.credit),
                     money(l.runningBalance)
@@ -96,16 +90,18 @@ class PartyDetailedPdf {
           ],
           r.payments
               .map((p) => [
-                    text(p, ['voucher_type']) +
-                        ' / ' +
-                        text(p, ['voucher_number', 'id']),
+                    '${text(p, ['voucher_type'])} / ${text(p, [
+                          'voucher_number',
+                          'id'
+                        ])}',
                     date(p['date']),
                     money(p['amount']),
                     text(p, ['currency']),
                     text(p, ['method']),
-                    text(p, ['reference', 'invoice_id']) +
-                        ' / ' +
-                        text(p, ['notes', 'note'])
+                    '${text(p, ['reference', 'invoice_id'])} / ${text(p, [
+                          'notes',
+                          'note'
+                        ])}'
                   ])
               .toList()),
       heading('تفاصيل الفواتير المرتبطة بالحركات'),
@@ -115,22 +111,19 @@ class PartyDetailedPdf {
     for (final d in r.documents) {
       final h = d.header;
       widgets.addAll([
-        heading('فاتورة ' + d.kind + ' / ' + text(h, ['invoice_number', 'id'])),
-        pw.Text('تاريخ الفاتورة: ' +
-            date(h['date']) +
-            ' | وقت الإنشاء المسجل: ' +
-            date(h['created_at'])),
+        heading('فاتورة ${d.kind} / ${text(h, ['invoice_number', 'id'])}'),
+        pw.Text(
+            'تاريخ الفاتورة: ${date(h['date'])} | وقت الإنشاء المسجل: ${date(h['created_at'])}'),
         if (d.vehicle.isNotEmpty)
-          pw.Text('المركبة: ' +
-              text(d.vehicle, ['vehicleType']) +
-              ' ' +
-              text(d.vehicle, ['vehicleModel']) +
-              ' | اللوحة: ' +
-              text(d.vehicle, ['vehicleNumber']) +
-              ' | ملف الإصلاح: ' +
-              text(d.vehicle, ['invoiceNumber', 'id']) +
-              ' | الاستلام: ' +
-              date(d.vehicle['receivedDate'])),
+          pw.Text(
+              'المركبة: ${text(d.vehicle, ['vehicleType'])} ${text(d.vehicle, [
+                'vehicleModel'
+              ])} | اللوحة: ${text(d.vehicle, [
+                'vehicleNumber'
+              ])} | ملف الإصلاح: ${text(d.vehicle, [
+                'invoiceNumber',
+                'id'
+              ])} | الاستلام: ${date(d.vehicle['receivedDate'])}'),
         table(
             ['البند', 'التصنيف', 'الكمية', 'سعر الوحدة', 'الإجمالي', 'ملاحظات'],
             d.items
@@ -163,7 +156,7 @@ class PartyDetailedPdf {
             money(h[d.kind == 'بيع' ? 'total' : 'amount_total'])
           ]
         ]),
-        pw.Text('ملاحظات: ' + text(h, ['notes', 'note'])),
+        pw.Text('ملاحظات: ${text(h, ['notes', 'note'])}'),
       ]);
     }
     widgets.add(pw.Text(
@@ -174,10 +167,7 @@ class PartyDetailedPdf {
         margin: const pw.EdgeInsets.all(24),
         textDirection: pw.TextDirection.rtl,
         header: (_) => header,
-        footer: (c) => pw.Text('صفحة ' +
-            c.pageNumber.toString() +
-            ' / ' +
-            c.pagesCount.toString()),
+        footer: (c) => pw.Text('صفحة ${c.pageNumber} / ${c.pagesCount}'),
         build: (_) => widgets));
     return doc.save();
   }

@@ -172,6 +172,7 @@ class DBService {
     required String source,
     required String sourceId,
     String? sourceNumber,
+    String? createdBy,
     String? note,
     required List<Map<String, Object?>> lines,
   }) async {
@@ -182,6 +183,7 @@ class DBService {
       source: source,
       sourceId: sourceId,
       sourceNumber: sourceNumber,
+      createdBy: createdBy,
       note: note,
       lines: lines,
     );

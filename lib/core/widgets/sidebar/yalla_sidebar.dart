@@ -7,17 +7,24 @@
 // ——————————————————————————————————————————————
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_theme.dart';
 
 import 'sidebar_header.dart';
 import 'sidebar_search.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class YallaSidebar extends ConsumerStatefulWidget {
   final String? currentRoute;
   const YallaSidebar({super.key, this.currentRoute});
+
+  static double compactDrawerWidth(double viewportWidth) =>
+      YallaMobileTheme.drawerWidthFor(viewportWidth);
 
   @override
   ConsumerState<YallaSidebar> createState() => _YallaSidebarState();
@@ -73,8 +80,6 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   // Cheques
   static const rChequesRoot = '/cheques';
   static const rChequesDashboard = '/cheques/dashboard';
-  static const rChequesAdd = '/cheques/add';
-  static const rChequesList = '/cheques/list';
   static const rChequesIncoming = '/cheques/incoming';
   static const rChequesOutgoing = '/cheques/outgoing';
   static const rChequesCollection = '/cheques/collection';
@@ -82,6 +87,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rChequesReturned = '/cheques/returned';
   static const rChequesCancelled = '/cheques/cancelled';
   static const rChequesPostdated = '/cheques/postdated';
+  static const rChequeBooks = AppRoutes.chequeBooks;
 
   // Clients & Suppliers
   static const rClients = '/clients';
@@ -242,11 +248,12 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         return;
       }
 
+      // ROOT-ISSUE-NAV-001: on phones the first route can be the bootstrap/auth
+      // loading route. Keeping only r.isFirst made Back reveal that stale route,
+      // producing the permanent white + green spinner across unrelated screens.
+      // Preserve the real visible route on compact layouts so Back is a true pop.
       final Future<dynamic> navigation = compactNavigation
-          ? targetNavigator.pushNamedAndRemoveUntil(
-              route,
-              (Route<dynamic> r) => r.isFirst,
-            )
+          ? targetNavigator.pushNamed(route)
           : targetNavigator.pushReplacementNamed(route);
 
       navigation
@@ -288,12 +295,28 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     if (sel == 'ap') _navigate(AppRoutes.suppliersPayablesList);
   }
 
+  bool _isRouteVisible(String route) {
+    if (AppRoutes.isInsuranceAgentFrozenRoute(route)) return false;
+    if (!ReleaseScopeConfig.chequesEnabled && route.startsWith('/cheques')) {
+      return false;
+    }
+    if (!ReleaseScopeConfig.employeeAdvancesEnabled &&
+        route == rReportsAdvances) {
+      return false;
+    }
+    return true;
+  }
+
   Widget _tile({
     required IconData icon,
     required String title,
     required String route,
   }) {
-    final enabled = !AppRoutes.isInsuranceAgentFrozenRoute(route);
+    // Hidden means hidden: unavailable features must not leave grey/dead rows.
+    if (!_isRouteVisible(route)) {
+      return const SizedBox.shrink();
+    }
+
     final bool active = (widget.currentRoute == route) ||
         (ModalRoute.of(context)?.settings.name == route);
 
@@ -301,7 +324,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       width: 3,
       height: 26,
       decoration: BoxDecoration(
-        color: active ? Colors.green : Colors.transparent,
+        color: active ? AppColors.primary : Colors.transparent,
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -310,17 +333,14 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       children: [
         line,
         const SizedBox(width: 8),
-        Icon(icon,
-            color: enabled ? (active ? Colors.green : null) : Colors.grey),
+        Icon(icon, color: active ? AppColors.primary : null),
         const SizedBox(width: 8),
         if (!_isCollapsed)
           Expanded(
             child: Text(
               title,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  color:
-                      enabled ? (active ? Colors.green : null) : Colors.grey),
+              style: TextStyle(color: active ? AppColors.primary : null),
             ),
           ),
       ],
@@ -330,17 +350,10 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 10),
       title: row,
-      enabled: enabled,
-      subtitle: !enabled && !_isCollapsed
-          ? const Text('غير مفعّل حاليًا', style: TextStyle(fontSize: 11))
-          : null,
-      onTap: enabled ? () => _navigate(route) : null,
+      onTap: () => _navigate(route),
     );
 
-    return _isCollapsed
-        ? Tooltip(
-            message: enabled ? title : '$title — غير مفعّل حاليًا', child: tile)
-        : tile;
+    return _isCollapsed ? Tooltip(message: title, child: tile) : tile;
   }
 
   Widget _actionTile({
@@ -426,21 +439,20 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     // 4) الشيكات
     final chequesItems = [
       (Icons.dashboard, 'لوحة الشيكات', rChequesDashboard),
-      (Icons.add, 'إضافة شيك', rChequesAdd),
-      (Icons.list, 'قائمة الشيكات', rChequesList),
-      (Icons.call_received, 'شيكات واردة', rChequesIncoming),
-      (Icons.call_made, 'شيكات صادرة', rChequesOutgoing),
+      (Icons.call_received, 'الشيكات الواردة', rChequesIncoming),
+      (Icons.call_made, 'الشيكات الصادرة', rChequesOutgoing),
       (
         Icons.account_balance_outlined,
-        'إيداع وتحصيل الشيكات',
+        'إيداع للتحصيل / قيد التحصيل',
         rChequesCollection
       ),
       (Icons.verified_outlined, 'شيكات محصلة', rChequesCollected),
-      (Icons.schedule_outlined, 'شيكات آجلة', rChequesPostdated),
+      (Icons.schedule_outlined, 'شيكات مستحقة وآجلة', rChequesPostdated),
       (Icons.undo, 'شيكات راجعة', rChequesReturned),
       (Icons.cancel_outlined, 'شيكات ملغاة', rChequesCancelled),
-      (Icons.assessment_outlined, 'تقرير الشيكات', AppRoutes.chequesReport),
-    ].where((e) => _matches(e.$2)).toList();
+      (Icons.menu_book_outlined, 'دفاتر الشيكات', rChequeBooks),
+      (Icons.assessment_outlined, 'تقارير الشيكات', AppRoutes.chequesReport),
+    ].where((e) => _matches(e.$2) && _isRouteVisible(e.$3)).toList();
 
     // 5) العملاء والموردون
     final clientsSuppliersItems = <Widget>[];
@@ -549,7 +561,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (Icons.account_balance_wallet, 'المالية', rInsuranceFinance),
       (Icons.notifications_active, 'التنبيهات والمتابعة', rInsuranceAlerts),
       (Icons.print, 'التقارير والطباعة', rInsuranceReports),
-    ].where((e) => _matches(e.$2)).toList();
+    ].where((e) => _matches(e.$2) && _isRouteVisible(e.$3)).toList();
 
     // 7) المخزون والمواد
     final inventoryItems = [
@@ -570,8 +582,9 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       ),
       (Icons.check_circle, 'تقرير الحضور والغياب', rReportsAttendance),
       (Icons.payments_outlined, 'تقرير الرواتب', rReportsPayroll),
-      (Icons.savings_outlined, 'تقرير السلف والمكافآت', rReportsAdvances),
-    ].where((e) => _matches(e.$2)).toList();
+      if (ReleaseScopeConfig.employeeAdvancesEnabled)
+        (Icons.savings_outlined, 'تقرير السلف والمكافآت', rReportsAdvances),
+    ].where((e) => _matches(e.$2) && _isRouteVisible(e.$3)).toList();
 
     return AnimatedBuilder(
       animation: _widthAnim,
@@ -579,7 +592,11 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         color: Theme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           child: SizedBox(
-            width: context.isDesktopWidth ? _widthAnim.value : 300,
+            width: context.isDesktopWidth
+                ? _widthAnim.value
+                : YallaSidebar.compactDrawerWidth(
+                    MediaQuery.sizeOf(context).width,
+                  ),
             child: Column(
               children: [
                 SidebarHeader(
@@ -777,40 +794,45 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               icon: Icons.shield_outlined,
                               title: 'حماية البيانات',
                               route: rSettingsSecurityData),
-                          _tile(
-                              icon: Icons.sync_problem,
-                              title: 'تعارضات المزامنة',
-                              route: rSettingsSyncConflicts),
-                          _tile(
-                              icon: Icons.verified_outlined,
-                              title: 'حالة الاشتراك',
-                              route: '/current-subscription'),
-                          _tile(
-                              icon: Icons.workspace_premium_outlined,
-                              title: 'الاشتراك والخطط',
-                              route: rSubscription),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                                icon: Icons.sync_problem,
+                                title: 'تعارضات المزامنة',
+                                route: rSettingsSyncConflicts),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                                icon: Icons.verified_outlined,
+                                title: 'حالة الاشتراك',
+                                route: '/current-subscription'),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                                icon: Icons.workspace_premium_outlined,
+                                title: 'الاشتراك والخطط',
+                                route: rSubscription),
                           _tile(
                               icon: Icons.support_agent,
                               title: 'الدعم الفني',
                               route: rTechnicalSupport),
-                          ListTile(
-                            leading: const Icon(Icons.logout,
-                                color: Colors.redAccent),
-                            title: _isCollapsed
-                                ? const SizedBox.shrink()
-                                : const Text('تسجيل خروج',
-                                    style: TextStyle(color: Colors.redAccent)),
-                            dense: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            onTap: () {
-                              final scaffoldState = Scaffold.maybeOf(context);
-                              if (scaffoldState?.isDrawerOpen == true) {
-                                Navigator.of(context).pop();
-                              }
-                              _navigate(rLogout);
-                            },
-                          ),
+                          if (!OwnerLocalAccess.enabled)
+                            ListTile(
+                              leading: const Icon(Icons.logout,
+                                  color: Colors.redAccent),
+                              title: _isCollapsed
+                                  ? const SizedBox.shrink()
+                                  : const Text('تسجيل خروج',
+                                      style:
+                                          TextStyle(color: Colors.redAccent)),
+                              dense: true,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              onTap: () {
+                                final scaffoldState = Scaffold.maybeOf(context);
+                                if (scaffoldState?.isDrawerOpen == true) {
+                                  Navigator.of(context).pop();
+                                }
+                                _navigate(rLogout);
+                              },
+                            ),
                         ],
                       ),
                     ],
@@ -833,7 +855,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   }) {
     final hasSearch = _searchQuery.trim().isNotEmpty;
 
-    if (hasSearch && children.isEmpty) return const SizedBox.shrink();
+    if (children.isEmpty) return const SizedBox.shrink();
 
     if (_isCollapsed) {
       return Tooltip(

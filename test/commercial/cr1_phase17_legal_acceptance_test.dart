@@ -63,8 +63,8 @@ void main() {
     ).readAsStringSync();
     expect(source, contains('bool _termsAccepted = false;'));
     expect(source, contains('bool _privacyAccepted = false;'));
-    expect(source, contains("Key('termsAcceptanceCheckbox')"));
-    expect(source, contains("Key('privacyAcceptanceCheckbox')"));
+    expect(RegExp(r"Key\(\s*'termsAcceptanceCheckbox'\s*\)").hasMatch(source), isTrue);
+    expect(RegExp(r"Key\(\s*'privacyAcceptanceCheckbox'\s*\)").hasMatch(source), isTrue);
     expect(source, contains('ReleaseLegalLinks(compact: true)'));
     expect(
       source,

@@ -17,9 +17,12 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../../core/services/db_service.dart';
 import '../../../core/services/document_number_service.dart';
+import '../../../core/security/authorization_policy.dart';
 import '../../auth/services/audit_trail_service.dart';
+import '../../auth/services/authorization_guard.dart';
 import '../../cheques/models/cheque.dart';
 import '../../cheques/services/cheque_accounting_service.dart';
+import '../../cheques/services/cheque_book_service.dart';
 import '../models/voucher_payment_model.dart';
 
 class VoucherPaymentService {
@@ -122,6 +125,178 @@ class VoucherPaymentService {
     return DocumentNumberService.nextOn(txn, documentType: type);
   }
 
+  static int? _intValue(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  static Future<int> _createIssuedChequeOnTxn({
+    required Transaction txn,
+    required Map<String, dynamic> draft,
+    required VoucherPayment voucher,
+    required String voucherId,
+    required String partyName,
+  }) async {
+    final bankAccountId = _intValue(draft['bank_account_id']);
+    final chequeBookId = draft['cheque_book_id']?.toString().trim();
+    final requestedNumber = int.tryParse(
+      (draft['cheque_no'] ?? '').toString().trim(),
+    );
+
+    if (bankAccountId == null || bankAccountId <= 0) {
+      throw StateError('Issued cheque requires a bank account.');
+    }
+    if (chequeBookId == null || chequeBookId.isEmpty) {
+      throw StateError('Issued cheque requires a cheque book.');
+    }
+    if (requestedNumber == null || requestedNumber <= 0) {
+      throw StateError('Issued cheque number must be numeric.');
+    }
+
+    final reserved = await ChequeBookService.reserveNumberOnTxn(
+      txn: txn,
+      bookId: chequeBookId,
+      requestedNumber: requestedNumber,
+      allowOverride: draft['allow_number_override'] == true,
+    );
+    final canonicalDraft = Map<String, dynamic>.from(draft)
+      ..['cheque_no'] = reserved.toString()
+      ..['bank_account_id'] = bankAccountId
+      ..['cheque_book_id'] = chequeBookId;
+
+    return ChequeAccountingService.createLinkedChequeOnTxn(
+      txn: txn,
+      draft: canonicalDraft,
+      type: ChequeType.outgoing,
+      amount: voucher.amount,
+      currency: voucher.currency,
+      sourceType: 'VOUCHER',
+      sourceId: voucherId,
+      instrumentKey: draft['instrument_key']?.toString(),
+      paymentVoucherId: voucherId,
+      sourcePartyType: voucher.partyType,
+      sourcePartyId: voucher.partyId,
+      bankAccountId: bankAccountId,
+      chequeBookId: chequeBookId,
+      supplierPid: voucher.partyType?.toUpperCase() == 'SUPPLIER'
+          ? voucher.partyId
+          : null,
+      recipientType: voucher.partyType,
+      recipientId: voucher.partyId,
+      recipientName: partyName,
+    );
+  }
+
+  static Future<void> _ensureIssuedChequeVoucherLinkOnTxn({
+    required Transaction txn,
+    required VoucherPayment voucher,
+  }) async {
+    if (!ChequeAccountingService.isChequeMethod(voucher.method)) return;
+    final chequeId = int.tryParse(voucher.chequeId ?? '');
+    if (chequeId == null) {
+      throw StateError('Issued cheque voucher has no cheque id.');
+    }
+    final chequeRows = await txn.query(
+      'cheques',
+      columns: const ['instrument_key'],
+      where: 'id=?',
+      whereArgs: [chequeId],
+      limit: 1,
+    );
+    if (chequeRows.isEmpty) {
+      throw StateError('Issued cheque voucher points to a missing cheque.');
+    }
+    final instrumentKey =
+        (chequeRows.first['instrument_key'] ?? '').toString().trim();
+    if (instrumentKey.isEmpty) {
+      throw StateError('Issued cheque has no canonical instrument key.');
+    }
+    await ChequeAccountingService.linkChequeToVoucherOnTxn(
+      txn: txn,
+      chequeId: chequeId,
+      voucherType: 'PAYMENT',
+      voucherId: voucher.id,
+      instrumentKey: instrumentKey,
+      amount: voucher.amount,
+    );
+  }
+
+  static Future<void> _syncIssuedChequeAllocationsOnTxn({
+    required Transaction txn,
+    required VoucherPayment voucher,
+  }) async {
+    if (!ChequeAccountingService.isChequeMethod(voucher.method)) return;
+    final chequeId = int.tryParse(voucher.chequeId ?? '');
+    if (chequeId == null) {
+      throw StateError('Issued cheque voucher has no cheque id.');
+    }
+
+    var allocated = 0.0;
+    if (voucher.partyType?.toUpperCase() == 'SUPPLIER') {
+      final settlementRows = await txn.query(
+        'invoice_settlements',
+        columns: const ['invoice_id', 'amount_applied'],
+        where: 'voucher_id=?',
+        whereArgs: [voucher.id],
+      );
+      for (final row in settlementRows) {
+        final amount = (row['amount_applied'] as num?)?.toDouble() ?? 0;
+        if (amount <= 0.005) continue;
+        await ChequeAccountingService.allocateChequeOnTxn(
+          txn: txn,
+          chequeId: chequeId,
+          voucherType: 'PAYMENT',
+          voucherId: voucher.id,
+          allocationType: 'PURCHASE_INVOICE',
+          targetId: row['invoice_id']?.toString(),
+          amount: amount,
+        );
+        allocated += amount;
+      }
+      final remainder = voucher.amount - allocated;
+      if (remainder > 0.005) {
+        await ChequeAccountingService.allocateChequeOnTxn(
+          txn: txn,
+          chequeId: chequeId,
+          voucherType: 'PAYMENT',
+          voucherId: voucher.id,
+          allocationType: 'PARTY_ACCOUNT',
+          targetId: voucher.partyId,
+          amount: remainder,
+        );
+      }
+      return;
+    }
+
+    final source = (voucher.source ?? '').trim().toUpperCase();
+    if (source == 'PAYROLL_ENTITLEMENT' &&
+        (voucher.sourceId ?? '').trim().isNotEmpty) {
+      await ChequeAccountingService.allocateChequeOnTxn(
+        txn: txn,
+        chequeId: chequeId,
+        voucherType: 'PAYMENT',
+        voucherId: voucher.id,
+        allocationType: 'PAYROLL',
+        targetId: voucher.sourceId,
+        amount: voucher.amount,
+      );
+      return;
+    }
+
+    await ChequeAccountingService.allocateChequeOnTxn(
+      txn: txn,
+      chequeId: chequeId,
+      voucherType: 'PAYMENT',
+      voucherId: voucher.id,
+      allocationType: voucher.partyType?.toUpperCase() == 'EMPLOYEE'
+          ? 'EMPLOYEE'
+          : 'EXPENSE',
+      targetId: (voucher.sourceId ?? voucher.partyId ?? voucher.id).trim(),
+      amount: voucher.amount,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // INSERT + POST GL + (AUTO SETTLEMENT FIFO)
   // ---------------------------------------------------------------------------
@@ -131,6 +306,13 @@ class VoucherPaymentService {
     Map<String, dynamic>? chequeDraft,
     Database? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.paymentCreate);
+    if (ChequeAccountingService.isChequeMethod(voucher.method)) {
+      await AuthorizationGuard.require(PermissionKeys.chequeCreate);
+      if (chequeDraft?['allow_number_override'] == true) {
+        await AuthorizationGuard.require(PermissionKeys.chequeBookManage);
+      }
+    }
     if (!voucher.amount.isFinite || voucher.amount <= 0) {
       throw ArgumentError('Amount must be > 0');
     }
@@ -175,21 +357,12 @@ class VoucherPaymentService {
             );
           }
 
-          final chequeId =
-              await ChequeAccountingService.createLinkedChequeOnTxn(
+          final chequeId = await _createIssuedChequeOnTxn(
             txn: txn,
             draft: chequeDraft,
-            type: ChequeType.outgoing,
-            amount: postingVoucher.amount,
-            currency: postingVoucher.currency,
-            sourceType: 'VOUCHER',
-            sourceId: id,
-            supplierPid: postingVoucher.partyType?.toUpperCase() == 'SUPPLIER'
-                ? postingVoucher.partyId
-                : null,
-            recipientType: postingVoucher.partyType,
-            recipientId: postingVoucher.partyId,
-            recipientName: partyName,
+            voucher: postingVoucher,
+            voucherId: id,
+            partyName: partyName,
           );
 
           postingVoucher = postingVoucher.copyWith(
@@ -247,21 +420,12 @@ class VoucherPaymentService {
             );
           }
 
-          final chequeId =
-              await ChequeAccountingService.createLinkedChequeOnTxn(
+          final chequeId = await _createIssuedChequeOnTxn(
             txn: txn,
             draft: chequeDraft,
-            type: ChequeType.outgoing,
-            amount: postingVoucher.amount,
-            currency: postingVoucher.currency,
-            sourceType: 'VOUCHER',
-            sourceId: id,
-            supplierPid: postingVoucher.partyType?.toUpperCase() == 'SUPPLIER'
-                ? postingVoucher.partyId
-                : null,
-            recipientType: postingVoucher.partyType,
-            recipientId: postingVoucher.partyId,
-            recipientName: partyName,
+            voucher: postingVoucher,
+            voucherId: id,
+            partyName: partyName,
           );
 
           await txn.update(
@@ -275,6 +439,11 @@ class VoucherPaymentService {
           );
         }
       }
+
+      await _ensureIssuedChequeVoucherLinkOnTxn(
+        txn: txn,
+        voucher: postingVoucher,
+      );
 
       final glRowsBefore = await txn.query(
         'gl_entries',
@@ -323,6 +492,11 @@ class VoucherPaymentService {
           },
           where: 'id = ?',
           whereArgs: [id],
+        );
+
+        await _syncIssuedChequeAllocationsOnTxn(
+          txn: txn,
+          voucher: postingVoucher,
         );
 
         // Retry of an already-posted voucher stops here.
@@ -441,6 +615,12 @@ class VoucherPaymentService {
           preferredInvoiceId: postingVoucher.reference!.trim(),
         );
       }
+
+      await _syncIssuedChequeAllocationsOnTxn(
+        txn: txn,
+        voucher: postingVoucher,
+      );
+
       await AuditTrailService.log(
         executor: txn,
         action: 'PAYMENT_VOUCHER_POSTED',
@@ -742,6 +922,21 @@ class VoucherPaymentService {
     return v is int ? v : int.tryParse("$v");
   }
 
+  static Future<void> _ensureSalaryPeriodsSchema(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS salary_periods(
+        month TEXT PRIMARY KEY,
+        is_locked INTEGER NOT NULL DEFAULT 0,
+        locked_at TEXT,
+        note TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_salary_periods_locked '
+      'ON salary_periods(is_locked)',
+    );
+  }
+
   static Future<void> _ensureVoucherColumn(
     DatabaseExecutor db,
     String column,
@@ -850,13 +1045,15 @@ class VoucherPaymentService {
         }
         final run = runs.first;
         final month = (run['period_start'] ?? '').toString().substring(0, 7);
+        await _ensureSalaryPeriodsSchema(txn);
         final locked = await txn.query('salary_periods',
             columns: ['is_locked'],
             where: 'month=? AND is_locked=1',
             whereArgs: [month],
             limit: 1);
-        if (locked.isNotEmpty)
+        if (locked.isNotEmpty) {
           throw StateError('فترة الرواتب مقفلة؛ افتحها قبل الصرف.');
+        }
         if ((run['employee_id'] ?? '').toString() != partyId) {
           throw StateError(
             'Payroll entitlement belongs to a different employee.',

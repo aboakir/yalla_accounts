@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/employees/providers/employee_form_provid
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class StepEmployeeBasicData extends ConsumerStatefulWidget {
   final void Function()? onNext;
@@ -93,7 +94,7 @@ class _StepEmployeeBasicDataState extends ConsumerState<StepEmployeeBasicData> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: AppColors.lightGreen,
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
               BoxShadow(

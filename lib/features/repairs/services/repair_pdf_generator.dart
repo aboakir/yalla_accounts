@@ -376,7 +376,7 @@ class RepairPdfGenerator {
                   style: pw.TextStyle(
                     fontSize: 18,
                     fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.green700,
+                    color: const PdfColor.fromInt(0xFF67BC1F),
                   ),
                 ),
                 pw.SizedBox(height: 4),

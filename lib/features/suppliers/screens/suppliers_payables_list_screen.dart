@@ -221,7 +221,7 @@ class _SupplierPayablesListScreenState
       child: AdaptiveRow(
         children: [
           _kpiBox("إجمالي المشتريات", totalAll, Colors.blue),
-          _kpiBox("إجمالي المدفوع", totalPaid, Colors.green),
+          _kpiBox("إجمالي المدفوع", totalPaid, AppColors.primary),
           _kpiBox("المتبقي", totalRemaining, Colors.red),
         ],
       ),
@@ -301,7 +301,7 @@ class _SupplierPayablesListScreenState
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: r.remain > 0 ? Colors.red : Colors.green.shade700,
+                    color: r.remain > 0 ? Colors.red : AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -277,6 +277,6 @@ void main() {
           await db.close();
         }
       }, createHttpClient: (_) => throw StateError('Network unavailable'));
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
   }
 }

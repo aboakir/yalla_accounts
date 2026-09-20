@@ -213,7 +213,7 @@ ORDER BY pi.date DESC;
           border: Border.all(color: Colors.grey.shade200)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         cell('الإجمالي', total, Colors.black87),
-        cell('المدفوع', paid, Colors.green.shade700),
+        cell('المدفوع', paid, AppColors.primary),
         cell('المتبقي', total - paid, Colors.red.shade700),
       ]),
     );
@@ -285,7 +285,7 @@ ORDER BY pi.date DESC;
                 ? 'مسدد جزئيًا'
                 : 'غير مسدد';
     final color = remaining <= 0.0001
-        ? Colors.green.shade700
+        ? AppColors.primary
         : paid > 0.0001
             ? Colors.orange.shade800
             : Colors.red.shade700;

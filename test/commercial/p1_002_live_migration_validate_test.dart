@@ -213,17 +213,18 @@ void main() {
           );
         }
 
-        print('P1.002 live migration validation PASS.');
-        print('Database version: 58 -> 59');
-        print('Existing users preserved: ${afterUsers.length}');
-        print('Existing password bytes preserved by migration: PASS');
-        print('Legacy credential mandatory-change flag: PASS');
-        print('Fresh auth sessions created by migration: 0');
-        print('Fresh password-reset grants created by migration: 0');
-        print('Legacy activation rows preserved: $activationCodesAfter');
-        print('Historical GL totals unchanged: PASS');
-        print('Foreign-key validation: PASS');
-        print('DB integrity: PASS');
+        stdout.writeln('P1.002 live migration validation PASS.');
+        stdout.writeln('Database version: 58 -> 59');
+        stdout.writeln('Existing users preserved: ${afterUsers.length}');
+        stdout.writeln('Existing password bytes preserved by migration: PASS');
+        stdout.writeln('Legacy credential mandatory-change flag: PASS');
+        stdout.writeln('Fresh auth sessions created by migration: 0');
+        stdout.writeln('Fresh password-reset grants created by migration: 0');
+        stdout
+            .writeln('Legacy activation rows preserved: $activationCodesAfter');
+        stdout.writeln('Historical GL totals unchanged: PASS');
+        stdout.writeln('Foreign-key validation: PASS');
+        stdout.writeln('DB integrity: PASS');
       } finally {
         await migrated.close();
       }

@@ -50,7 +50,7 @@ class CategorySelector extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              selected?.description ?? 'اختر فئة لعرض شرح مختصر هنا.',
+              selected.description,
               style: const TextStyle(
                 color: AppColors.secondary,
                 fontSize: 13,

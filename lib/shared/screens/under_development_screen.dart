@@ -13,11 +13,12 @@ class UnderDevelopmentScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // توجيه مباشر إلى لوحة التحكم
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/dashboard',
-              (route) => false,
-            );
+            final navigator = Navigator.of(context);
+            if (navigator.canPop()) {
+              navigator.pop();
+            } else {
+              navigator.pushReplacementNamed('/dashboard');
+            }
           },
         ),
       ),
@@ -45,11 +46,7 @@ class UnderDevelopmentScreen extends StatelessWidget {
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: () {
-                  // توجيه مباشر إلى لوحة التحكم
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/dashboard',
-                    (route) => false,
-                  );
+                  Navigator.of(context).pushReplacementNamed('/dashboard');
                 },
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('العودة إلى لوحة التحكم'),

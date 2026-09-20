@@ -460,11 +460,11 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
           _stat('حقوق الملكية (E)', _sumEquity, Colors.teal),
           Chip(
             backgroundColor:
-                (balanced ? Colors.green : Colors.orange).withOpacity(.08),
+                (balanced ? AppColors.primary : Colors.orange).withOpacity(.08),
             label: Text(
               balanced ? '✅ A = L + E' : '⚠️ فرق: ${_money.format(diff)}',
               style: TextStyle(
-                color: balanced ? Colors.green : Colors.orange,
+                color: balanced ? AppColors.primary : Colors.orange,
                 fontWeight: FontWeight.w600,
               ),
             ),

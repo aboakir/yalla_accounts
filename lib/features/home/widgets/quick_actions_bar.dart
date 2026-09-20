@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/home/widgets/quick_actions_bar.dart
 // QuickActionsBar — شريط العمليات السريعة (هاردنيد)
 
@@ -104,15 +105,16 @@ class _ActionButton extends StatefulWidget {
 class _ActionButtonState extends State<_ActionButton> {
   bool _busy = false;
 
-  Future<void> _safeTap(BuildContext context) async {
+  Future<void> _safeTap() async {
     if (_busy || widget.onTap == null) return;
     setState(() => _busy = true);
     try {
       await widget.onTap!.call();
     } catch (e) {
+      if (!mounted) return;
       // حارس هادئ بدون Scaffold.of
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ: $e')),
+        SnackBar(content: Text('حدث خطأ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -129,7 +131,7 @@ class _ActionButtonState extends State<_ActionButton> {
         // ضروري لرِبل InkWell
         type: MaterialType.transparency,
         child: InkWell(
-          onTap: _busy ? null : () => _safeTap(context),
+          onTap: _busy ? null : _safeTap,
           borderRadius: BorderRadius.circular(widget.size),
           child: Column(
             mainAxisSize: MainAxisSize.min,

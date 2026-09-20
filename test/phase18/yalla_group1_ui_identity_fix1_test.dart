@@ -14,7 +14,10 @@ void main() {
     expect(colors, contains('Color(0xFF67BC1F)'));
     expect(tokens, contains('static const Color brand = AppColors.primary;'));
     expect(tokens, isNot(contains('59C414')));
-    expect(main, contains('seedColor: AppColors.primary'));
+    expect(main, contains('colorScheme: const ColorScheme.light('));
+    expect(main, contains('primary: AppColors.primary'));
+    expect(main, contains('primaryContainer: AppColors.lightGreen'));
+    expect(main, isNot(contains('ColorScheme.fromSeed')));
     expect(main, isNot(contains('22C55E')));
   });
 
@@ -52,8 +55,9 @@ void main() {
     for (final entity in Directory('lib').listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final normalized = entity.path.replaceAll('\\', '/');
-      if (normalized.endsWith('lib/shared/widgets/adaptive_layout.dart'))
+      if (normalized.endsWith('lib/shared/widgets/adaptive_layout.dart')) {
         continue;
+      }
       final source = entity.readAsStringSync();
       if (rawDialog.hasMatch(source) || rawTable.hasMatch(source)) {
         offenders.add(entity.path);

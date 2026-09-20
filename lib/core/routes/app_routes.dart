@@ -5,6 +5,7 @@ import 'package:yalla_accounts/features/parties/screens/parties_screen.dart';
 // - يمرّر RouteSettings لكل MaterialPageRoute للحفاظ على اسم المسار.
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
@@ -76,7 +77,6 @@ import 'package:yalla_accounts/features/finance/purchases/screens/supplier_payme
 // ===== Cheques =====
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_dashboard_screen.dart';
-import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheque_add_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_list_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_incoming_screen.dart';
@@ -87,6 +87,7 @@ import 'package:yalla_accounts/features/cheques/screens/cheques_returned_screen.
 import 'package:yalla_accounts/features/cheques/screens/cheques_cancelled_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_postdated_screen.dart';
 import 'package:yalla_accounts/features/cheques/screens/cheques_report_screen.dart';
+import 'package:yalla_accounts/features/cheques/screens/cheque_books_screen.dart';
 import 'package:yalla_accounts/features/suppliers/screens/supplier_cheques_screen.dart';
 
 // ===== Repairs =====
@@ -138,7 +139,6 @@ import 'package:yalla_accounts/features/support/screens/technical_support_screen
 // ===== Models =====
 import 'package:yalla_accounts/features/employees/models/employee.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
-import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 
 // ===== Suppliers =====
 import 'package:yalla_accounts/features/suppliers/screens/suppliers_list_screen.dart';
@@ -258,6 +258,7 @@ class AppRoutes {
   static const chequesCancelled = '/cheques/cancelled';
   static const chequesPostdated = '/cheques/postdated';
   static const chequesReport = '/cheques/report';
+  static const chequeBooks = '/cheques/books';
 
   // ===== Purchases extra =====
   static const purchasesSuppliersAging = '/purchases/suppliers-aging';
@@ -409,6 +410,7 @@ class AppRoutes {
     chequesCancelled,
     chequesPostdated,
     chequesReport,
+    chequeBooks,
     purchasesSuppliersAging,
     purchasesSupplierLedger,
     purchasesGLAudit,
@@ -557,6 +559,19 @@ class AppRoutes {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
+
+    if (OwnerLocalAccess.enabled &&
+        (name == login ||
+            name == register ||
+            name == logout ||
+            name == forgotAccess ||
+            name == activation ||
+            name == trialExpired)) {
+      return _page(
+        const RouteSettings(name: startup),
+        const StartupScreen(),
+      );
+    }
 
     if (isInsuranceAgentFrozenRoute(name)) {
       return _page(
@@ -915,6 +930,9 @@ class AppRoutes {
     }
     if (name == chequesReport) {
       return _page(settings, const ChequesReportScreen());
+    }
+    if (name == chequeBooks) {
+      return _page(settings, const ChequeBooksScreen());
     }
 
     // Purchases → Suppliers GL reports

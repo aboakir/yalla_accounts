@@ -18,6 +18,7 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/features/documents/services/p15_document_service.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class InvoiceViewScreen extends StatefulWidget {
   final String invoiceId;
@@ -576,14 +577,15 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
                               label: Text(balanced ? 'متوازن' : 'غير متوازن',
                                   style: TextStyle(
                                       color: balanced
-                                          ? Colors.green[900]
+                                          ? AppColors.primary
                                           : Colors.red[900],
                                       fontWeight: FontWeight.w700)),
-                              backgroundColor:
-                                  balanced ? Colors.green[50] : Colors.red[50],
+                              backgroundColor: balanced
+                                  ? AppColors.lightGreen
+                                  : Colors.red[50],
                               side: BorderSide(
                                   color: balanced
-                                      ? Colors.green[200]!
+                                      ? AppColors.lightGreen
                                       : Colors.red[200]!),
                             ),
                             const SizedBox(width: 12),

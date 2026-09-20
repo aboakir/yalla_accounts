@@ -9,9 +9,9 @@ import 'package:yalla_accounts/core/services/accounting_gl.dart';
 
 class AdvanceService {
   // أكواد من GL
-  static const String _ACC_EMP_ADV_CODE = GL.empAdvances; // 1120
-  static const String _ACC_CASH_CODE = GL.cash; // 1000
-  static const String _ACC_BANK_CODE = GL.bank; // 1010
+  static const String _accEmpAdvCode = GL.empAdvances; // 1120
+  static const String _accCashCode = GL.cash; // 1000
+  static const String _accBankCode = GL.bank; // 1010
 
   static Future<int?> _acc(DatabaseExecutor db, String code) async {
     final r = await db.query('accounts',
@@ -37,7 +37,7 @@ class AdvanceService {
 
     final db = await DBService.database;
 
-    final advanceCode = '$_ACC_EMP_ADV_CODE.E$employeeId';
+    final advanceCode = '$_accEmpAdvCode.E$employeeId';
     final accAdv = await DBService.getAccountIdByCode(advanceCode) ??
         await DBService.ensureAccount(
           code: advanceCode,
@@ -45,8 +45,8 @@ class AdvanceService {
           type: 'ASSET',
           normalBalance: 'DEBIT',
         );
-    final accCash = await _acc(db, _ACC_CASH_CODE);
-    final accBank = await _acc(db, _ACC_BANK_CODE);
+    final accCash = await _acc(db, _accCashCode);
+    final accBank = await _acc(db, _accBankCode);
     if (accCash == null || accBank == null) {
       throw StateError(
           'أكواد 1000/1010 غير موجودة. نفّذ GL.ensureCoreAccounts.');

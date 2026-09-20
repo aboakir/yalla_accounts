@@ -6,6 +6,7 @@ import 'package:yalla_accounts/features/employees/providers/employee_form_provid
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class StepEmployeeNotesPhoto extends ConsumerStatefulWidget {
   final VoidCallback? onSave;
@@ -62,7 +63,7 @@ class _StepEmployeeNotesPhotoState
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.shade50,
+            color: AppColors.lightGreen,
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
               BoxShadow(
@@ -132,7 +133,7 @@ class _StepEmployeeNotesPhotoState
                         icon: const Icon(Icons.photo),
                         label: const Text('اختر من المعرض'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -148,7 +149,7 @@ class _StepEmployeeNotesPhotoState
                         icon: const Icon(Icons.camera_alt),
                         label: const Text('التقاط صورة'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(

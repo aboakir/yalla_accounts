@@ -11,6 +11,7 @@ import 'package:yalla_accounts/features/repairs/widgets/repair_financial_summary
 import 'package:yalla_accounts/features/repairs/widgets/repair_summary_section.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class RepairsOverviewScreen extends ConsumerWidget {
   const RepairsOverviewScreen({super.key});
@@ -75,7 +76,8 @@ class RepairsOverviewScreen extends ConsumerWidget {
                   margin:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   child: ListTile(
-                    leading: const Icon(Icons.car_repair, color: Colors.green),
+                    leading:
+                        const Icon(Icons.car_repair, color: AppColors.primary),
                     title: Text('${r.vehicleType} — ${r.vehicleNumber}'),
                     subtitle: Text(
                       'قيمة: ${MoneyFormatter.format(r.totalFileValue)} • حالة: ${r.computedPaymentStatus}',

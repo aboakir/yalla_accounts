@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/widgets/view_image_screen.dart
 
 import 'dart:io';
@@ -61,6 +62,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
         final newName = const Uuid().v4() + p.extension(picked.path);
         final newPath = p.join(imagesDir.path, newName);
         final savedFile = await File(picked.path).copy(newPath);
+        if (!mounted) return;
         setState(() {
           _images.add(savedFile.path);
           _currentIndex = _images.length - 1;
@@ -75,7 +77,8 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ حدث خطأ أثناء إضافة الصورة: $e'),
+            content: Text(
+                '❌ حدث خطأ أثناء إضافة الصورة: ${UserFacingError.message(e)}'),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -105,7 +108,7 @@ class _ViewImageScreenState extends State<ViewImageScreen> {
         ) ??
         false;
 
-    if (!confirmed) return;
+    if (!mounted || !confirmed) return;
 
     setState(() {
       _lastRemovedPath = _images.removeAt(index);

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/widgets/repair_export_buttons.dart
 
 import 'dart:async';
@@ -28,7 +29,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
   int _exportTotal = 0;
 
   /// يعرض حوار تقدم التصدير مع شريط تقدّم (Progress Indicator).
-  Future<void> _showProgressDialog(BuildContext context, String title) async {
+  Future<void> _showProgressDialog(String title) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -54,7 +55,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
   }
 
   /// دالة تصدير جميع الملفات PDF واحدة تلو الأخرى مع تحديث شريط التقدم.
-  Future<void> _exportAllPdf(List<Repair> repairs, BuildContext context) async {
+  Future<void> _exportAllPdf(List<Repair> repairs) async {
     setState(() {
       _isExportingPdf = true;
       _exportProgress = 0;
@@ -62,7 +63,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
     });
 
     // عرض حوار التقدم
-    unawaited(_showProgressDialog(context, 'تصدير ملفات PDF'));
+    unawaited(_showProgressDialog('تصدير ملفات PDF'));
 
     try {
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
@@ -76,6 +77,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
         final fileName = 'كشف_${repair.vehicleNumber}_$timestamp';
 
         await PdfFileSaver.saveToDownloads(pdfBytes, fileName);
+        if (!mounted) return;
 
         setState(() {
           _exportProgress = i + 1;
@@ -102,7 +104,8 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ حدث خطأ أثناء تصدير PDF: $e'),
+            content: Text(
+                '❌ حدث خطأ أثناء تصدير PDF: ${UserFacingError.message(e)}'),
             backgroundColor: AppColors.danger,
             duration: const Duration(seconds: 4),
           ),
@@ -120,7 +123,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
   }
 
   /// دالة تصدير ملف Excel واحد يحتوي كل البيانات دفعة واحدة.
-  Future<void> _exportExcel(List<Repair> repairs, BuildContext context) async {
+  Future<void> _exportExcel(List<Repair> repairs) async {
     setState(() {
       _isExportingExcel = true;
     });
@@ -147,7 +150,8 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ حدث خطأ أثناء تصدير Excel: $e'),
+            content: Text(
+                '❌ حدث خطأ أثناء تصدير Excel: ${UserFacingError.message(e)}'),
             backgroundColor: AppColors.danger,
             duration: const Duration(seconds: 4),
           ),
@@ -173,7 +177,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
         ElevatedButton.icon(
           onPressed: (repairs.isEmpty || _isExportingPdf || _isExportingExcel)
               ? null
-              : () => _exportAllPdf(repairs, context),
+              : () => _exportAllPdf(repairs),
           icon: const Icon(Icons.picture_as_pdf, size: 20),
           label: Text(
             _isExportingPdf ? 'جاري التصدير...' : 'تصدير PDF',
@@ -195,7 +199,7 @@ class _RepairExportButtonsState extends ConsumerState<RepairExportButtons> {
         ElevatedButton.icon(
           onPressed: (repairs.isEmpty || _isExportingPdf || _isExportingExcel)
               ? null
-              : () => _exportExcel(repairs, context),
+              : () => _exportExcel(repairs),
           icon: const Icon(Icons.table_chart, size: 20),
           label: Text(
             _isExportingExcel ? 'جاري الإنشاء...' : 'تصدير Excel',

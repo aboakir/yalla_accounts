@@ -48,3 +48,31 @@ app.*.map.json
 /deploy/production_defines.json
 /output/
 /dist/
+# Production/realtime build inputs (real values stay outside source control)
+/deploy/*.local.json
+
+# Unified release hygiene: private data and generated artifacts stay outside source.
+/release_evidence/
+/.vscode/
+/_audit_index/
+/.m*_backup/
+/.yalla*backup/
+/.yalla_phase_history/
+.env
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.yab
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+**/key.properties
+
+# Local handoff output; never include runtime bundles or evidence in source.
+/RELEASES/
+/EVIDENCE/

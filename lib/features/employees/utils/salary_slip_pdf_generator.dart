@@ -10,7 +10,6 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 class SalarySlipPdfGenerator {
   static Future<void> generateAndPrint(Employee employee) async {
     final pdf = pw.Document();
-    final formatter = NumberFormat('#,##0.00', 'ar');
     final netSalary = employee.baseSalary +
         employee.allowances -
         employee.deductions -
@@ -70,19 +69,16 @@ class SalarySlipPdfGenerator {
                   ),
                   pw.SizedBox(height: 8),
                   _row('الراتب الأساسي:',
-                      '${MoneyFormatter.format(employee.baseSalary)}'),
-                  _row('البدلات:',
-                      '${MoneyFormatter.format(employee.allowances)}'),
-                  _row('الخصومات:',
-                      '${MoneyFormatter.format(employee.deductions)}'),
-                  _row(
-                      'السلفة:', '${MoneyFormatter.format(employee.advances)}'),
+                      MoneyFormatter.format(employee.baseSalary)),
+                  _row('البدلات:', MoneyFormatter.format(employee.allowances)),
+                  _row('الخصومات:', MoneyFormatter.format(employee.deductions)),
+                  _row('السلفة:', MoneyFormatter.format(employee.advances)),
                   pw.SizedBox(height: 8),
                   _row(
                     'صافي الراتب:',
-                    '${MoneyFormatter.format(netSalary)}',
+                    MoneyFormatter.format(netSalary),
                     bold: true,
-                    color: PdfColors.green800,
+                    color: const PdfColor.fromInt(0xFF67BC1F),
                   ),
                   pw.Divider(),
 

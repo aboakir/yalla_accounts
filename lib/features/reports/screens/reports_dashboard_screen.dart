@@ -20,6 +20,7 @@ class ReportsDashboardScreen extends StatelessWidget {
     required Color color,
     required String route,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => AppRoutes.pushNamedSafe(context, route),
@@ -27,14 +28,14 @@ class ReportsDashboardScreen extends StatelessWidget {
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: SizedBox(
-          width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 210,
+          width: double.infinity,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(compact ? 10 : 16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 34, color: color),
-                const SizedBox(height: 10),
+                Icon(icon, size: compact ? 28 : 34, color: color),
+                SizedBox(height: compact ? 6 : 10),
                 Text(
                   title,
                   textAlign: TextAlign.center,
@@ -90,7 +91,7 @@ class ReportsDashboardScreen extends StatelessWidget {
         Icons.account_balance_wallet_outlined,
         'قائمة الدخل',
         'الإيرادات والمصروفات من GL',
-        Colors.green,
+        AppColors.primary,
         AppRoutes.incomeStatement
       ),
       (
@@ -155,19 +156,33 @@ class ReportsDashboardScreen extends StatelessWidget {
             style: TextStyle(color: Colors.black54),
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 14,
-            runSpacing: 14,
-            children: cards
-                .map((c) => _buildReportCard(
-                      context: context,
-                      icon: c.$1,
-                      title: c.$2,
-                      subtitle: c.$3,
-                      color: c.$4,
-                      route: c.$5,
-                    ))
-                .toList(),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final columns = width < 600
+                  ? 2
+                  : width < 1000
+                      ? 3
+                      : 4;
+              return GridView.count(
+                crossAxisCount: columns,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: width < 600 ? 1.15 : 1.35,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: cards
+                    .map((c) => _buildReportCard(
+                          context: context,
+                          icon: c.$1,
+                          title: c.$2,
+                          subtitle: c.$3,
+                          color: c.$4,
+                          route: c.$5,
+                        ))
+                    .toList(),
+              );
+            },
           ),
         ],
       ),

@@ -10,6 +10,7 @@ import 'package:yalla_accounts/features/auth/services/auth_session_service.dart'
 import 'package:yalla_accounts/features/finance/payments/screens/payment_list_screen.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class UserDashboardScreen extends ConsumerStatefulWidget {
   final AppUser user;
@@ -141,7 +142,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
         children: [
           Container(
             height: 140,
-            color: Colors.green.shade400,
+            color: AppColors.primary,
             alignment: Alignment.center,
             child: Text(
               user.name,
@@ -204,7 +205,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
       appBar: isDesktop
           ? null
           : AppBar(
-              backgroundColor: Colors.green.shade400,
+              backgroundColor: AppColors.primary,
               title: const Text('لوحة تحكم المستخدم'),
               leading: Builder(
                 builder: (context) => IconButton(
@@ -234,7 +235,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
                         TextSpan(
                           text: user.name,
                           style: const TextStyle(
-                            color: Colors.green,
+                            color: AppColors.primary,
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
                           ),
@@ -276,12 +277,12 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isSubscriptionActive
-                          ? Colors.green.shade50
+                          ? AppColors.lightGreen
                           : Colors.red.shade50,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: isSubscriptionActive
-                            ? Colors.green
+                            ? AppColors.primary
                             : Colors.redAccent,
                       ),
                     ),
@@ -292,7 +293,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         color: isSubscriptionActive
-                            ? Colors.green.shade700
+                            ? AppColors.primary
                             : Colors.red.shade700,
                         fontWeight: FontWeight.bold,
                       ),
@@ -343,7 +344,7 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
           fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
         ),
       ),
-      tileColor: isActive ? Colors.green.shade50 : null,
+      tileColor: isActive ? AppColors.lightGreen : null,
       onTap: onTap,
     );
   }

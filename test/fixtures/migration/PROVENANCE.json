@@ -1,0 +1,19 @@
+{
+  "synthetic": true,
+  "containsCustomerData": false,
+  "fixtures": [
+    {
+      "name": "commercial83",
+      "sourceCommit": "c7692421c1ab253805c6308db33ce01d20334684",
+      "schema": 83,
+      "sha256": "f9bce688978328def417795347b6a4ff378fc51bf5fceb5eb7be1fddfc9533d8"
+    },
+    {
+      "name": "owner78",
+      "sourceCommit": "5a586fcf7e99bebc46a66c2602c31a0f48ee7acb",
+      "schema": 78,
+      "sha256": "20890781853f5107b30af1a78f52a5bb6c50ed4cc2bcdb3588679f917883e3ad"
+    }
+  ],
+  "generatedWith": "Original branch DatabaseMigration, canonical AccountingTables and OwnerBootstrapTables; synthetic client/cheque/balanced GL entry."
+}

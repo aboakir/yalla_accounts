@@ -1,2 +1,0 @@
-﻿backup=C:\Users\luay\Downloads\Yalla_Backups\C02_P07_LINE_PERSISTENCE_20260903_132634
-bridge_existed=False

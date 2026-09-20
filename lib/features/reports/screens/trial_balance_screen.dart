@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // 📁 lib/features/reports/screens/trial_balance_screen.dart
 //
@@ -17,7 +18,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -145,8 +146,8 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       await Share.shareXFiles([XFile(file.path)], text: 'Trial Balance Export');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل تصدير CSV: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')));
     }
   }
 
@@ -236,8 +237,9 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
         _loading = false;
       });
     } catch (e) {
+      debugPrint('Trial balance load failed: $e');
       setState(() {
-        _error = e.toString();
+        _error = 'تعذر تحميل ميزان المراجعة. أعد المحاولة.';
         _loading = false;
       });
     }
@@ -277,9 +279,11 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+            Builder(
+              builder: (menuContext) => IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () => Scaffold.of(menuContext).openDrawer(),
+              ),
             ),
           const Text(
             'ميزان المراجعة',
@@ -402,18 +406,18 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
         alignment: WrapAlignment.end,
         children: [
           _stat('إجمالي مدين', _showNetSide ? _sumNetDebit() : _sumDebit,
-              Colors.green),
+              AppColors.primary),
           _stat('إجمالي دائن', _showNetSide ? _sumNetCredit() : _sumCredit,
               Colors.red),
           Chip(
             backgroundColor:
-                (balanced ? Colors.green : Colors.orange).withOpacity(.08),
+                (balanced ? AppColors.primary : Colors.orange).withOpacity(.08),
             label: Text(
               balanced
                   ? '✅ الميزان متوازن'
                   : '⚠️ فرق: ${_money.format((_sumDebit - _sumCredit).abs())} (قبل وضع الصافي)',
               style: TextStyle(
-                color: balanced ? Colors.green : Colors.orange,
+                color: balanced ? AppColors.primary : Colors.orange,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -517,14 +521,14 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
                 onDoubleTap: () => _openGLForAccount(r),
               ),
               DataCell(Text(_money.format(debit),
-                  style: const TextStyle(color: Colors.green))),
+                  style: const TextStyle(color: AppColors.primary))),
               DataCell(Text(_money.format(credit),
                   style: const TextStyle(color: Colors.red))),
               if (!_showNetSide)
                 DataCell(Text(
                   _money.format(net),
                   style: TextStyle(
-                    color: net >= 0 ? Colors.green : Colors.red,
+                    color: net >= 0 ? AppColors.primary : Colors.red,
                     fontWeight: FontWeight.bold,
                   ),
                 )),
@@ -572,7 +576,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
                 ? Text(
                     _money.format(net),
                     style: TextStyle(
-                      color: net >= 0 ? Colors.green : Colors.red,
+                      color: net >= 0 ? AppColors.primary : Colors.red,
                       fontWeight: FontWeight.bold,
                     ),
                   )

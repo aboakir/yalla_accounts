@@ -25,17 +25,18 @@ void main() {
       reason: 'Phone widths must not directly render the desktop sidebar.',
     );
 
-    final featureRoutesStart =
+    final ownedRoutesStart =
         frame.indexOf('static const _featureOwnedPhoneRoutes');
-    expect(featureRoutesStart, greaterThanOrEqualTo(0));
-    final frameOwnNavStart = frame.indexOf(
-        'bool get _screenAlreadyOwnsPhoneNav', featureRoutesStart);
-    expect(frameOwnNavStart, greaterThan(featureRoutesStart));
-    final ownNavBlock = frame.substring(featureRoutesStart, frameOwnNavStart);
+    expect(ownedRoutesStart, greaterThanOrEqualTo(0));
+    final ownNavGetterStart =
+        frame.indexOf('bool get _screenAlreadyOwnsPhoneNav', ownedRoutesStart);
+    expect(ownNavGetterStart, greaterThan(ownedRoutesStart));
+    final ownedRoutesBlock =
+        frame.substring(ownedRoutesStart, ownNavGetterStart);
 
-    expect(ownNavBlock, contains('AppRoutes.repairsDashboard'));
+    expect(ownedRoutesBlock, contains('AppRoutes.repairsDashboard'));
     expect(
-      ownNavBlock,
+      ownedRoutesBlock,
       isNot(contains('AppRoutes.vehiclesList')),
       reason:
           'Vehicles list must remain wrapped by the global phone route frame.',
@@ -43,7 +44,8 @@ void main() {
 
     expect(
       frame,
-      contains('if (MediaQuery.sizeOf(context).width >= 600) return widget.child;'),
+      contains(
+          'if (MediaQuery.sizeOf(context).width >= 600) return widget.child;'),
     );
     expect(frame, contains('drawer: Drawer('));
     expect(frame, contains('YallaMobileBottomNav('));

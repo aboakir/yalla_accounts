@@ -565,8 +565,9 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                     onChanged: (v) => item.amount = _parseMoney(v),
                     validator: (v) {
                       final s = (v ?? '').trim();
-                      if (_needsCheques && s.isEmpty)
+                      if (_needsCheques && s.isEmpty) {
                         return 'قيمة الشيك مطلوبة';
+                      }
                       if (s.isEmpty) return null;
                       final n = _parseMoney(s);
                       if (n == null || n <= 0) return 'قيمة غير صحيحة';
@@ -724,8 +725,9 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                     onChanged: (v) => item.amount = _parseMoney(v),
                     validator: (v) {
                       final s = (v ?? '').trim();
-                      if (_needsInstallments && s.isEmpty)
+                      if (_needsInstallments && s.isEmpty) {
                         return 'قيمة القسط مطلوبة';
+                      }
                       if (s.isEmpty) return null;
                       final n = _parseMoney(s);
                       if (n == null || n <= 0) return 'قيمة غير صحيحة';
@@ -816,8 +818,9 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
                     onChanged: (v) => item.amount = _parseMoney(v),
                     validator: (v) {
                       final s = (v ?? '').trim();
-                      if (_needsPromissories && s.isEmpty)
+                      if (_needsPromissories && s.isEmpty) {
                         return 'قيمة الكمبيالة مطلوبة';
+                      }
                       if (s.isEmpty) return null;
                       final n = _parseMoney(s);
                       if (n == null || n <= 0) return 'قيمة غير صحيحة';

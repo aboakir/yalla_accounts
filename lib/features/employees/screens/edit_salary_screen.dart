@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/employees/screens/edit_salary_screen.dart
 
 import 'package:flutter/material.dart';
@@ -98,7 +99,7 @@ class _EditSalaryScreenState extends ConsumerState<EditSalaryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ فشل الحفظ: $e')),
+        SnackBar(content: Text('❌ فشل الحفظ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -137,7 +138,7 @@ class _EditSalaryScreenState extends ConsumerState<EditSalaryScreen> {
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ فشل الحذف: $e')),
+          SnackBar(content: Text('❌ فشل الحذف: ${UserFacingError.message(e)}')),
         );
       }
     }
@@ -247,16 +248,16 @@ class _EditSalaryScreenState extends ConsumerState<EditSalaryScreen> {
                         padding: const EdgeInsets.all(16),
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.08),
+                          color: AppColors.primary.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green),
+                          border: Border.all(color: AppColors.primary),
                         ),
                         child: Text(
                           '💵 الصافي: ${MoneyFormatter.format(_netSalary)}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                            color: AppColors.primary,
                           ),
                           textAlign: TextAlign.center,
                         ),

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/repairs/widgets/steps/step_work_data.dart
 
 import 'dart:io';
@@ -80,7 +81,9 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ أثناء إضافة الصورة: $e')),
+        SnackBar(
+            content:
+                Text('خطأ أثناء إضافة الصورة: ${UserFacingError.message(e)}')),
       );
     }
   }
@@ -111,15 +114,6 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
     final nameCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
-
-    String? priceSanitizer(String? s) {
-      final raw = (s ?? '').trim();
-      if (raw.isEmpty) return null;
-      final sanitized = raw.replaceAll(',', '');
-      final dotCount = '.'.allMatches(sanitized).length;
-      if (dotCount > 1) return null;
-      return sanitized;
-    }
 
     await showDialog(
       context: context,
@@ -328,7 +322,7 @@ class _StepWorkDataState extends ConsumerState<StepWorkData> {
                 ),
                 const Spacer(),
                 Text(
-                  '${MoneyFormatter.format(fileTotal)}',
+                  MoneyFormatter.format(fileTotal),
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

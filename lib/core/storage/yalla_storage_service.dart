@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as im;
@@ -258,13 +257,12 @@ class YallaStorageService {
     if (!await dir.exists()) await dir.create(recursive: true);
 
     final stamp = DateTime.now().microsecondsSinceEpoch;
-    final fileName = [
-          _safe(vehicleType, fallback: 'vehicle'),
-          _safe(vehicleNumber, fallback: 'no_number'),
-          _safe(beneficiaryName, fallback: 'client'),
-          stamp.toString(),
-        ].join('_') +
-        '.${_safe(optimized.extension, fallback: 'jpg')}';
+    final fileName = '${[
+      _safe(vehicleType, fallback: 'vehicle'),
+      _safe(vehicleNumber, fallback: 'no_number'),
+      _safe(beneficiaryName, fallback: 'client'),
+      stamp.toString(),
+    ].join('_')}.${_safe(optimized.extension, fallback: 'jpg')}';
 
     final file = File(p.join(dir.path, fileName));
     await file.writeAsBytes(optimized.bytes, flush: true);

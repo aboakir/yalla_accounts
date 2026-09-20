@@ -4,6 +4,7 @@ import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/widgets/y_glass.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class WeeklySummary extends StatelessWidget {
   const WeeklySummary({super.key});
@@ -155,7 +156,7 @@ class WeeklySummary extends StatelessWidget {
           final m = snap.data!;
 
           final profitColor =
-              (m['profit'] ?? 0) >= 0 ? Colors.green : Colors.red;
+              (m['profit'] ?? 0) >= 0 ? AppColors.primary : Colors.red;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +179,7 @@ class WeeklySummary extends StatelessWidget {
                       title: 'الإيراد',
                       icon: Icons.trending_up,
                       value: m['revenue'] ?? 0,
-                      color: Colors.green,
+                      color: AppColors.primary,
                       route: '/finance/pnl?range=7d',
                       isMoney: true),
                   const SizedBox(width: 10),

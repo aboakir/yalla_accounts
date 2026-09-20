@@ -173,6 +173,7 @@ class _StepVehicleDataState extends ConsumerState<StepVehicleData> {
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                     locale: const Locale('ar'),
                   );
+                  if (!context.mounted) return;
                   if (picked != null) {
                     // منع تاريخ مستقبلي مبالغ فيه (سنة واحدة للأمام كحد أعلى)
                     final max = DateTime.now().add(const Duration(days: 365));

@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -57,7 +58,9 @@ class _AddUserDialogState extends ConsumerState<AddUserDialog> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر إضافة المستخدم: $e')),
+        SnackBar(
+            content:
+                Text('تعذر إضافة المستخدم: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) {

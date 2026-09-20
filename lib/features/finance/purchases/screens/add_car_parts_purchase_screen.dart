@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/purchases/screens/add_car_parts_purchase_screen.dart
 //
 // AddCarPartsPurchaseScreen — إنشاء فاتورة شراء "قطع سيارات" (بدون فرض RTL)
@@ -180,7 +181,7 @@ class _AddCarPartsPurchaseScreenState extends State<AddCarPartsPurchaseScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل الحفظ: $e')),
+        SnackBar(content: Text('فشل الحفظ: ${UserFacingError.message(e)}')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

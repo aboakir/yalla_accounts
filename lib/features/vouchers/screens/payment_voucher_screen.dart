@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_database_service.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_balance_sql.dart';
 // -----------------------------------------------------------------------------
@@ -26,6 +27,7 @@ import 'package:yalla_accounts/core/services/db/db_service.dart';
 import '../models/voucher_payment_model.dart';
 import '../dialogs/voucher_selection_dialog.dart';
 import '../services/voucher_payment_service.dart';
+import '../services/payment_voucher_read_service.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -76,6 +78,8 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
 
   int? supplierId;
   String? supplierName;
+  double _supplierDebt = 0.0;
+  bool _supplierBalanceLoading = false;
   String paymentTarget = "INVOICE";
   bool _isSaving = false;
   final String _operationId = const Uuid().v4();
@@ -88,6 +92,7 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
   @override
   void initState() {
     super.initState();
+    amountCtrl.addListener(_onAmountChanged);
     _loadEmployees();
     if (widget.employeeId != null) {
       expenseType = 'موظف';
@@ -108,7 +113,32 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
     if (widget.supplierPid != null) {
       supplierId = int.tryParse(widget.supplierPid!);
       supplierName = widget.supplierName;
+      _refreshSupplierBalance();
     }
+  }
+
+  void _onAmountChanged() {
+    if (mounted) setState(() {});
+  }
+
+  double get _enteredAmount =>
+      double.tryParse(amountCtrl.text.trim().replaceAll(',', '')) ?? 0.0;
+
+  double get _supplierBalanceAfterPayment => _supplierDebt - _enteredAmount;
+
+  Future<void> _refreshSupplierBalance() async {
+    final id = supplierId;
+    if (id == null) {
+      if (mounted) setState(() => _supplierDebt = 0.0);
+      return;
+    }
+    if (mounted) setState(() => _supplierBalanceLoading = true);
+    final summary = await PaymentVoucherReadService.supplierBalance(id);
+    if (!mounted || supplierId != id) return;
+    setState(() {
+      _supplierDebt = summary?.payableBalance ?? 0.0;
+      _supplierBalanceLoading = false;
+    });
   }
 
   Future<void> _loadPresetInvoice() async {
@@ -127,24 +157,17 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
       supplierId = (rows.first['supplier_id'] as num?)?.toInt();
       supplierName = rows.first['supplier_name']?.toString();
     });
+    await _refreshSupplierBalance();
   }
 
   Future<void> _loadEmployees() async {
-    final db = await DBService.database;
-
-    _employees = await db.rawQuery("""
-    SELECT 
-      id, 
-      full_name AS name 
-    FROM employees 
-    ORDER BY full_name ASC
-  """);
-
+    _employees = await PaymentVoucherReadService.activeEmployees();
     if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    amountCtrl.removeListener(_onAmountChanged);
     amountCtrl.dispose();
     notesCtrl.dispose();
     super.dispose();
@@ -154,22 +177,15 @@ class _PaymentVoucherScreenState extends ConsumerState<PaymentVoucherScreen> {
 // اختيار فاتورة مشتريات (Dialog + بحث)
 // ============================================================================
   Future<void> _chooseInvoice() async {
-    final db = await DBService.database;
+    final id = supplierId;
+    if (id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('اختر المورد أولاً ثم اختر الفاتورة.')),
+      );
+      return;
+    }
 
-    final data = await db.rawQuery("""
-    SELECT 
-      pi.id,
-      pi.date,
-      pi.amount_total,
-      ${PurchaseBalanceSql.paid('pi.id')} AS paid_total,
-      pi.supplier_id,
-      (SELECT name FROM suppliers s WHERE s.id = pi.supplier_id LIMIT 1) 
-        AS supplier_name
-FROM purchase_invoices pi
-WHERE (pi.amount_total - IFNULL(${PurchaseBalanceSql.paid('pi.id')} AS paid_total,0)) > 0
-ORDER BY pi.date DESC
-  """);
-
+    final data = await PaymentVoucherReadService.openInvoicesForSupplier(id);
     if (!mounted) return;
     List<Map<String, dynamic>> filtered = List.from(data);
 
@@ -179,10 +195,13 @@ ORDER BY pi.date DESC
         return StatefulBuilder(
           builder: (ctx, setD) {
             return VoucherSelectionDialog(
-              title: const Text("اختر فاتورة", textAlign: TextAlign.center),
+              title: Text(
+                'فواتير ${supplierName ?? 'المورد'} المفتوحة',
+                textAlign: TextAlign.center,
+              ),
               content: SizedBox(
                 width:
-                    MediaQuery.sizeOf(ctx).width < 600 ? double.infinity : 600,
+                    MediaQuery.sizeOf(ctx).width < 600 ? double.infinity : 640,
                 height: MediaQuery.sizeOf(ctx).width < 600
                     ? (MediaQuery.sizeOf(ctx).height * 0.62)
                         .clamp(320.0, 520.0)
@@ -192,56 +211,56 @@ ORDER BY pi.date DESC
                   children: [
                     TextField(
                       inputFormatters: const [YallaDigitNormalizer()],
-                      decoration: InputDecoration(
-                        hintText: "ابحث باسم المورد أو رقم الفاتورة",
+                      decoration: const InputDecoration(
+                        hintText: 'ابحث برقم الفاتورة',
                         prefixIcon: Icon(Icons.search),
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (v) {
                         setD(() {
-                          filtered = data.where((row) {
-                            final supplier =
-                                (row['supplier_name'] ?? '').toString();
-                            final invoiceId = row['id'].toString();
-                            return supplier.contains(v) ||
-                                invoiceId.contains(v);
-                          }).toList();
+                          final q = v.trim().toLowerCase();
+                          filtered = data
+                              .where((row) => row['id']
+                                  .toString()
+                                  .toLowerCase()
+                                  .contains(q))
+                              .toList();
                         });
                       },
                     ),
                     const SizedBox(height: 12),
                     Expanded(
                       child: filtered.isEmpty
-                          ? const Center(child: Text('لا توجد نتائج مطابقة'))
+                          ? const Center(
+                              child: Text('لا توجد فواتير مفتوحة لهذا المورد'),
+                            )
                           : ListView.builder(
                               itemCount: filtered.length,
                               itemBuilder: (_, i) {
                                 final row = filtered[i];
-
-                                final total = double.tryParse(
-                                        row['amount_total']?.toString() ??
-                                            '0') ??
-                                    0;
-                                final paid = double.tryParse(
-                                        row['paid_total']?.toString() ?? '0') ??
-                                    0;
-                                final remain = total - paid;
+                                final total =
+                                    (row['amount_total'] as num?)?.toDouble() ??
+                                        0.0;
+                                final paid =
+                                    (row['paid_total'] as num?)?.toDouble() ??
+                                        0.0;
+                                final remain =
+                                    (row['remaining'] as num?)?.toDouble() ??
+                                        (total - paid);
 
                                 return Card(
                                   child: ListTile(
-                                    title: Text(
-                                      "المورد: ${row['supplier_name'] ?? 'غير معروف'} | المتبقي: ${remain.toStringAsFixed(2)}",
+                                    title: Text('فاتورة رقم ${row['id']}'),
+                                    subtitle: Text(
+                                      'التاريخ: ${row['date']}\n'
+                                      'الإجمالي: ${MoneyFormatter.format(total)} • '
+                                      'المدفوع: ${MoneyFormatter.format(paid)} • '
+                                      'المتبقي: ${MoneyFormatter.format(remain)}',
                                     ),
-                                    subtitle: Text("التاريخ: ${row['date']}"),
+                                    isThreeLine: true,
                                     trailing: const Icon(Icons.arrow_forward),
                                     onTap: () {
-                                      setState(() {
-                                        selectedInvoice = row;
-                                        supplierId = row['supplier_id'] as int;
-                                        supplierName =
-                                            row['supplier_name']?.toString() ??
-                                                "مورد";
-                                      });
+                                      setState(() => selectedInvoice = row);
                                       Navigator.pop(ctx);
                                     },
                                   ),
@@ -255,7 +274,7 @@ ORDER BY pi.date DESC
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text("إلغاء"),
+                  child: const Text('إلغاء'),
                 ),
               ],
             );
@@ -271,7 +290,7 @@ ORDER BY pi.date DESC
   Future<void> _chooseEmployee() async {
     if (_employees.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("لا يوجد موظفون في النظام")),
+        const SnackBar(content: Text("لا يوجد موظفون فعالون في النظام")),
       );
       return;
     }
@@ -293,6 +312,7 @@ ORDER BY pi.date DESC
                       setState(() {
                         selectedEmployee = e;
                         _employeePayroll = null;
+                        _employeePaymentKind = 'advance';
                       });
                       Navigator.pop(context);
                     },
@@ -350,10 +370,11 @@ ORDER BY pi.date DESC
                 const SizedBox(height: 20),
                 _expenseTypeCard(),
                 if (expenseType == "مشتريات") _paymentTargetSelector(),
+                if (expenseType == "مشتريات") _supplierSelector(),
                 if (expenseType == "مشتريات" && paymentTarget == "INVOICE")
                   _invoiceSelector(),
                 if (expenseType == "مشتريات" && paymentTarget == "SUPPLIER")
-                  _supplierSelector(),
+                  _supplierBalancePreview(),
                 if (expenseType == "موظف") _employeeSelector(),
                 _amountCard(),
                 _methodCard(),
@@ -405,8 +426,7 @@ ORDER BY pi.date DESC
             onChanged: (v) {
               setState(() {
                 paymentTarget = v!;
-                supplierId = null;
-                supplierName = null;
+                selectedInvoice = null;
               });
             },
           ),
@@ -427,21 +447,41 @@ ORDER BY pi.date DESC
   }
 
   Widget _invoiceSelector() {
+    final invoice = selectedInvoice;
+    final total = (invoice?['amount_total'] as num?)?.toDouble() ?? 0.0;
+    final paid = (invoice?['paid_total'] as num?)?.toDouble() ?? 0.0;
+    final remaining =
+        (invoice?['remaining'] as num?)?.toDouble() ?? (total - paid);
+
     return _card(
-      title: "اختيار فاتورة (اختياري – للتسوية فقط)",
+      title: "اختيار فاتورة مستحقة",
       child: InkWell(
-        onTap: _chooseInvoice,
+        onTap: supplierId == null ? null : _chooseInvoice,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.primary),
+            border: Border.all(
+              color: supplierId == null ? Colors.grey : AppColors.primary,
+            ),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text(
-            selectedInvoice == null
-                ? "اضغط لاختيار الفاتورة"
-                : "فاتورة رقم: ${selectedInvoice!['id']}",
-          ),
+          child: invoice == null
+              ? Text(
+                  supplierId == null
+                      ? "اختر المورد أولاً"
+                      : "اضغط لاختيار فاتورة مفتوحة",
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("فاتورة رقم: ${invoice['id']}"),
+                    const SizedBox(height: 4),
+                    Text("التاريخ: ${invoice['date']}"),
+                    Text("الإجمالي: ${MoneyFormatter.format(total)}"),
+                    Text("المدفوع: ${MoneyFormatter.format(paid)}"),
+                    Text("المتبقي: ${MoneyFormatter.format(remaining)}"),
+                  ],
+                ),
         ),
       ),
     );
@@ -449,7 +489,7 @@ ORDER BY pi.date DESC
 
   Widget _supplierSelector() {
     return _card(
-      title: "اختيار مورد للتسديد على حسابه",
+      title: "اختيار المورد",
       child: InkWell(
         onTap: _chooseSupplier,
         child: Container(
@@ -464,6 +504,56 @@ ORDER BY pi.date DESC
                 : "المورد: ${supplierName ?? ''}",
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _supplierBalancePreview() {
+    if (supplierId == null) {
+      return const SizedBox.shrink();
+    }
+    return _card(
+      title: 'ملخص ذمة المورد قبل الحفظ',
+      child: _supplierBalanceLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _balanceLine('إجمالي الرصيد المستحق', _supplierDebt),
+                _balanceLine('المبلغ المدفوع بهذا السند', _enteredAmount),
+                const Divider(),
+                _balanceLine(
+                  'الرصيد بعد الدفعة',
+                  _supplierBalanceAfterPayment,
+                  emphasize: true,
+                ),
+                if (_enteredAmount - _supplierDebt > 0.005)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text(
+                      'المبلغ أكبر من رصيد المورد الحالي.',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+
+  Widget _balanceLine(String label, double value, {bool emphasize = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Text(
+            MoneyFormatter.format(value),
+            style: TextStyle(
+              fontWeight: emphasize ? FontWeight.bold : FontWeight.w500,
+              color: emphasize ? AppColors.primary : null,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -525,12 +615,18 @@ ORDER BY pi.date DESC
                                 final s = filtered[i];
                                 return ListTile(
                                   title: Text(s['name'].toString()),
-                                  onTap: () {
+                                  onTap: () async {
+                                    final rawId = s['id'];
+                                    final id = rawId is int
+                                        ? rawId
+                                        : int.parse(rawId.toString());
                                     setState(() {
-                                      supplierId = s['id'] as int;
+                                      supplierId = id;
                                       supplierName = s['name'].toString();
+                                      selectedInvoice = null;
                                     });
                                     Navigator.pop(ctx);
+                                    await _refreshSupplierBalance();
                                   },
                                 );
                               },
@@ -554,8 +650,9 @@ ORDER BY pi.date DESC
 
   Future<void> _choosePayroll() async {
     if (selectedEmployee == null) return;
-    final runs = await PayrollDatabaseService.listByEmployee(
-        selectedEmployee!['id'].toString());
+    final runs = await PaymentVoucherReadService.openPayrollForEmployee(
+      selectedEmployee!['id'].toString(),
+    );
     if (!mounted) return;
     final selected = await showDialog<PayrollRun>(
         context: context,
@@ -583,8 +680,15 @@ ORDER BY pi.date DESC
                       onPressed: () => Navigator.pop(ctx),
                       child: const Text('إلغاء'))
                 ]));
-    if (selected != null && mounted)
-      setState(() => _employeePayroll = selected);
+    if (selected != null && mounted) {
+      final remaining = (selected.net - selected.amountPaid)
+          .clamp(0.0, double.infinity)
+          .toDouble();
+      setState(() {
+        _employeePayroll = selected;
+        amountCtrl.text = remaining.toStringAsFixed(2);
+      });
+    }
   }
 
   Widget _employeeSelector() {
@@ -604,15 +708,24 @@ ORDER BY pi.date DESC
                 DropdownMenuItem(value: 'bonus', child: Text('مكافأة')),
                 DropdownMenuItem(value: 'salary', child: Text('راتب مستحق'))
               ],
-              onChanged: (v) {
-                if (v != null) setState(() => _employeePaymentKind = v);
-              }),
+              onChanged: selectedEmployee == null
+                  ? null
+                  : (v) async {
+                      if (v == null) return;
+                      setState(() {
+                        _employeePaymentKind = v;
+                        if (v != 'salary') _employeePayroll = null;
+                      });
+                      if (v == 'salary') {
+                        await _choosePayroll();
+                      }
+                    }),
           if (_employeePaymentKind == 'salary')
             TextButton(
                 onPressed: selectedEmployee == null ? null : _choosePayroll,
                 child: Text(_employeePayroll == null
                     ? 'اختر استحقاق الراتب'
-                    : 'الاستحقاق: ${_employeePayroll!.net.toStringAsFixed(2)}')),
+                    : 'المتبقي من الاستحقاق: ${(_employeePayroll!.net - _employeePayroll!.amountPaid).toStringAsFixed(2)}')),
         ]));
   }
 
@@ -759,21 +872,6 @@ ORDER BY pi.date DESC
       return;
     }
 
-    if (selectedMethod == 'CHEQUE' && _pendingCheque == null) {
-      final draft = await showDialog<Map<String, dynamic>>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => ChequeStepEntry(
-          amount: amount,
-          onSubmit: (_) {},
-        ),
-      );
-
-      if (draft == null) return;
-      if (!mounted) return;
-      setState(() => _pendingCheque = draft);
-    }
-
     String partyType = "OTHER";
     String? partyId;
     String partyName = "";
@@ -834,6 +932,23 @@ ORDER BY pi.date DESC
       partyName = "مصاريف تشغيلية";
     }
 
+    if (selectedMethod == 'CHEQUE' && _pendingCheque == null) {
+      final draft = await showDialog<Map<String, dynamic>>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => ChequeStepEntry(
+          amount: amount,
+          issued: true,
+          payeeName: partyName,
+          onSubmit: (_) {},
+        ),
+      );
+
+      if (draft == null) return;
+      if (!mounted) return;
+      setState(() => _pendingCheque = draft);
+    }
+
     final voucher = VoucherPayment(
       id: _operationId,
       voucherType: "PAYMENT",
@@ -886,7 +1001,7 @@ ORDER BY pi.date DESC
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("تم حفظ سند الصرف بنجاح"),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.primary,
           duration: Duration(seconds: 2),
         ),
       );
@@ -897,7 +1012,7 @@ ORDER BY pi.date DESC
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("خطأ: $e"),
+          content: Text("خطأ: ${UserFacingError.message(e)}"),
           backgroundColor: Colors.red,
         ),
       );

@@ -2,8 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-
 import 'package:yalla_accounts/core/constants/colors.dart';
 import '../providers/insurance_calculator_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
@@ -15,8 +13,6 @@ class ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final result = context.watch<InsuranceCalculatorProvider>().result;
-
-    final nf = NumberFormat('#,##0', 'en_US');
 
     return Card(
       elevation: 2,

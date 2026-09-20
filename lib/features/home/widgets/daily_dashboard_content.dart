@@ -4,6 +4,7 @@ import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/design/yalla_design_tokens.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import '../services/daily_dashboard_service.dart';
 
 class DailyDashboardContent extends StatelessWidget {
@@ -36,8 +37,15 @@ class DailyDashboardContent extends StatelessWidget {
               data.money(data.today.receipts - data.today.payments),
               'المقبوضات − المدفوعات',
               YallaColors.brand),
-          _amount('جاهز للتحصيل', data.money(data.readyAmount),
-              'متبقي الملفات الجاهزة', YallaColors.brandDark),
+          _amount(
+            'جاهز للتحصيل',
+            data.money(data.readyAmount),
+            'التزامات مالية معتمدة ومقيدة ولها رصيد قائم',
+            YallaColors.brandDark,
+            onTap: data.collectionItems.isEmpty
+                ? null
+                : () => _showCollectionDetails(context),
+          ),
         ];
         final summary = box.maxWidth < 300 ||
                 MediaQuery.textScalerOf(context).scale(1) > 1.4
@@ -312,6 +320,16 @@ class DailyDashboardContent extends StatelessWidget {
                         }),
                 ]))
               ]))));
+  void _showCollectionDetails(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => DashboardCollectionDetailsDialog(
+        data: data,
+        onOpen: onOpen,
+      ),
+    );
+  }
+
   static Widget _card({required Widget child}) => Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -330,18 +348,39 @@ class DailyDashboardContent extends StatelessWidget {
                   const TextStyle(color: YallaColors.textMuted, fontSize: 12))
       ]));
   static Widget _amount(
-          String title, String amount, String note, Color color) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    String title,
+    String amount,
+    String note,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Text(amount,
-            textDirection: TextDirection.ltr,
-            style: TextStyle(
-                fontSize: 24, color: color, fontWeight: FontWeight.w900)),
+        Text(
+          amount,
+          textDirection: TextDirection.ltr,
+          style: TextStyle(
+              fontSize: 24, color: color, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 4),
         Text(note,
             style: const TextStyle(fontSize: 11, color: YallaColors.textMuted)),
-      ]);
+      ],
+    );
+    if (onTap == null) return content;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(YallaRadii.control),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: content,
+      ),
+    );
+  }
+
   static Widget _line(String label, String amount, Color color) =>
       Row(children: [
         Expanded(child: Text(label)),
@@ -351,6 +390,77 @@ class DailyDashboardContent extends StatelessWidget {
                 textDirection: TextDirection.ltr,
                 style: TextStyle(color: color, fontWeight: FontWeight.w700)))
       ]);
+}
+
+class DashboardCollectionDetailsDialog extends StatelessWidget {
+  const DashboardCollectionDetailsDialog({
+    super.key,
+    required this.data,
+    required this.onOpen,
+  });
+
+  final DailyDashboardData data;
+  final void Function(String route, String? repairId) onOpen;
+
+  @override
+  Widget build(BuildContext context) => AdaptiveAlertDialog(
+        title: const Text('تفاصيل الجاهز للتحصيل'),
+        content: SizedBox(
+          width: 520,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: data.collectionItems.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) {
+                      final item = data.collectionItems[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(item.name),
+                        subtitle: Text('فاتورة ${item.invoiceId}'),
+                        trailing: Text(
+                          data.money(item.amount),
+                          textDirection: TextDirection.ltr,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          onOpen(AppRoutes.repairs, item.repairId);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const Divider(),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('الإجمالي',
+                          style: TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                    Text(
+                      data.money(data.readyAmount),
+                      textDirection: TextDirection.ltr,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.maybePop(context),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      );
 }
 
 class BestStepCard extends StatefulWidget {

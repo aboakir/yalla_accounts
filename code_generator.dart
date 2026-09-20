@@ -58,6 +58,6 @@ void main() async {
 
   await sink.close();
 
-  print("✔ تمت عملية توليد 2000 كود تفعيل بنجاح");
-  print("✔ الملف جاهز: activation_codes.csv");
+  stdout.writeln("✔ تمت عملية توليد 2000 كود تفعيل بنجاح");
+  stdout.writeln("✔ الملف جاهز: activation_codes.csv");
 }

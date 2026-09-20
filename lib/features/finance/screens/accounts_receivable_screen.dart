@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/finance/screens/accounts_receivable_screen.dart
 //
 // Accounts Receivable (Individuals / Insurance) — v19 Unified (Pro UI)
@@ -20,13 +21,16 @@ import 'package:yalla_accounts/features/settings/services/workshop_settings_serv
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/parties/services/party_financial_service.dart';
+import 'package:yalla_accounts/features/finance/services/accounts_receivable_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -209,56 +213,192 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
       await Share.shareXFiles([XFile(file.path)], text: 'AR Export');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل تصدير CSV: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')));
     }
+  }
+
+  Future<bool> _recordRepairPayment(
+    _ClientRow customer,
+    _RepairAgg detail,
+  ) async {
+    final remaining =
+        (detail.invoiceTotal - detail.paid).clamp(0.0, double.infinity);
+    if (remaining <= 0.005) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('هذا الملف مسدد بالكامل.')),
+        );
+      }
+      return false;
+    }
+
+    final amountController =
+        TextEditingController(text: remaining.toStringAsFixed(2));
+    var method = 'cash';
+    var submitting = false;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AdaptiveAlertDialog(
+          title: Text('سداد ذمة — ${detail.label}'),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: amountController,
+                  inputFormatters: const [YallaDigitNormalizer()],
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'مبلغ السداد',
+                    helperText: 'المتبقي: ${_money.format(remaining)}',
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: method,
+                  decoration: const InputDecoration(
+                    labelText: 'طريقة الدفع',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('نقداً')),
+                    DropdownMenuItem(
+                        value: 'bank_transfer', child: Text('تحويل بنكي')),
+                    DropdownMenuItem(value: 'card', child: Text('بطاقة')),
+                  ],
+                  onChanged: submitting
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setDialogState(() => method = value);
+                          }
+                        },
+                ),
+                const SizedBox(height: 8),
+                const Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    'الشيكات تُسجّل من دورة الشيكات حتى تُربط بالمستند وحالة التحصيل.',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting
+                  ? null
+                  : () => Navigator.of(dialogContext).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton.icon(
+              onPressed: submitting
+                  ? null
+                  : () async {
+                      final amount =
+                          double.tryParse(amountController.text.trim()) ?? 0;
+                      if (amount <= 0 || amount - remaining > 0.005) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'أدخل مبلغاً صالحاً ضمن الرصيد المتبقي.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => submitting = true);
+                      try {
+                        final repair =
+                            await RepairDatabaseService.getRepairById(
+                                detail.id);
+                        if (repair == null) {
+                          throw StateError('repair_not_found');
+                        }
+
+                        await AccountsReceivableService.instance.recordPayment(
+                          repair: repair,
+                          amount: amount,
+                          method: method,
+                          descriptionOverride: 'سداد ذمة من شاشة ذمم العملاء',
+                        );
+
+                        if (!dialogContext.mounted) return;
+                        Navigator.of(dialogContext).pop(true);
+                      } catch (e) {
+                        debugPrint('AR receipt posting failed: $e');
+                        if (!dialogContext.mounted) return;
+                        setDialogState(() => submitting = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'تعذر تسجيل السداد. لم يتم تعديل الذمة.',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+              icon: submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.receipt_long),
+              label: Text(submitting ? 'جارٍ التسجيل…' : 'إنشاء سند قبض'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    amountController.dispose();
+    if (saved == true) {
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل سند القبض وتحديث الذمة.')),
+        );
+      }
+      return true;
+    }
+    return false;
   }
 
   Future<void> _openClientDetails(_ClientRow row) async {
     // تفاصيل ملفات العميل: إجمالي/مدفوع/متبقي لكل repair_id
     final db = await _db();
 
-    // إجمالي الفواتير لكل ملف
-    final invRows = await db.rawQuery('''
-      SELECT l.repair_id AS rid, COALESCE(SUM(l.debit-l.credit),0) AS tot
-      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
-      JOIN gl_entries e ON e.id=l.entry_id
-      LEFT JOIN gl_entries original ON original.id=e.reversal_of
-      WHERE l.party_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
-        AND UPPER(COALESCE(original.source,e.source)) NOT IN
-          ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE','VOUCHER')
-      GROUP BY l.repair_id
-    ''', [row.clientId]);
-    final payRows = await db.rawQuery('''
-      SELECT l.repair_id AS rid, COALESCE(SUM(l.credit-l.debit),0) AS tot
-      FROM gl_lines l JOIN accounts a ON a.id=l.account_id
-      JOIN gl_entries e ON e.id=l.entry_id
-      LEFT JOIN gl_entries original ON original.id=e.reversal_of
-      WHERE l.party_id=? AND (a.code='1200' OR a.code LIKE '1200.%')
-        AND UPPER(COALESCE(original.source,e.source)) IN
-          ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE','VOUCHER')
-      GROUP BY l.repair_id
-    ''', [row.clientId]);
-
-    final invByRid = <String, double>{};
-    for (final m in invRows) {
-      final rid = (m['rid'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      invByRid[rid] = (m['tot'] as num?)?.toDouble() ?? 0.0;
-    }
-
-    final paidByRid = <String, double>{};
-    for (final m in payRows) {
-      final rid = (m['rid'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      paidByRid[rid] = (m['tot'] as num?)?.toDouble() ?? 0.0;
-    }
+    // P10/HUMAN-007/008 — تفاصيل الملف لا تعيد اختراع المجاميع من
+    // استعلام GL مستقل. RepairFinancialTruthService هو المصدر الوحيد
+    // لقيمة الملف والمدفوع والمتبقي في كل شاشة مرتبطة بملف الإصلاح.
 
     // بطاقة الملف من repairs
     final metaRows = await db.rawQuery('''
-      SELECT id, vehicleType, vehicleModel, vehicleNumber, receivedDate
-      FROM repairs
-      WHERE client_id = ?
+      SELECT r.id, r.vehicleType, r.vehicleModel, r.vehicleNumber,
+        r.receivedDate
+      FROM repairs r
+      WHERE r.client_id = ?
+        AND (
+          EXISTS (
+            SELECT 1 FROM invoices i WHERE i.repair_id = r.id
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM gl_lines l
+            JOIN accounts a ON a.id = l.account_id
+            WHERE l.repair_id = r.id
+              AND (a.code = '1200' OR a.code LIKE '1200.%')
+          )
+        )
     ''', [row.clientId]);
 
     final details = <_RepairAgg>[];
@@ -273,16 +413,21 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
       if (vm.isNotEmpty) labelParts.add(vm);
       if (vn.isNotEmpty) labelParts.add(vn);
       final label = labelParts.isEmpty ? rid : labelParts.join(' – ');
+      final truth = await RepairFinancialTruthService.load(
+        rid,
+        executor: db,
+      );
 
       details.add(_RepairAgg(
         id: rid,
         label: label,
-        invoiceTotal: invByRid[rid] ?? 0.0,
-        paid: paidByRid[rid] ?? 0.0,
+        invoiceTotal: truth.fileValue,
+        paid: truth.paid,
         receivedDate: DateTime.tryParse((m['receivedDate'] ?? '').toString()),
       ));
     }
 
+    if (!mounted) return;
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -311,7 +456,7 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                           Colors.blueGrey),
                       const SizedBox(width: 6),
                       _statChip('مدفوع', _money.format(row.paymentsTotal),
-                          Colors.green),
+                          AppColors.primary),
                       const SizedBox(width: 6),
                       _statChip(
                           'متبقي', _money.format(row.balance), Colors.red),
@@ -402,21 +547,28 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
                                           Text(_money.format(a.invoiceTotal))),
                                       DataCell(Text(_money.format(a.paid),
                                           style: const TextStyle(
-                                              color: Colors.green))),
+                                              color: AppColors.primary))),
                                       DataCell(Text(_money.format(remain),
                                           style: const TextStyle(
                                               color: Colors.red))),
                                       DataCell(
                                         ElevatedButton.icon(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                            Navigator.of(context)
-                                                .pushNamed(AppRoutes.payments);
-                                          },
-                                          icon: const Icon(Icons.add),
+                                          onPressed: remain <= 0.005
+                                              ? null
+                                              : () async {
+                                                  final saved =
+                                                      await _recordRepairPayment(
+                                                    row,
+                                                    a,
+                                                  );
+                                                  if (saved && ctx.mounted) {
+                                                    Navigator.of(ctx).pop();
+                                                  }
+                                                },
+                                          icon: const Icon(Icons.receipt_long),
                                           label: const Text('سداد'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
+                                            backgroundColor: AppColors.primary,
                                             foregroundColor: Colors.white,
                                           ),
                                         ),
@@ -440,8 +592,6 @@ class _AccountsReceivableScreenState extends State<AccountsReceivableScreen>
   // ===== واجهة =====
   @override
   Widget build(BuildContext context) {
-    final isDesktop = Responsive.isDesktop(context);
-
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       drawer: Responsive.isDesktop(context)
@@ -942,7 +1092,7 @@ class _ClientCard extends StatelessWidget {
         ? 'مسدد'
         : (row.paymentsTotal > 0.0001 ? 'مسدد جزئي' : 'غير مسدد');
     final statusColor = row.balance <= 0.0001
-        ? Colors.green.shade100
+        ? AppColors.lightGreen
         : (row.paymentsTotal > 0.0001
             ? Colors.orange.shade100
             : Colors.red.shade100);
@@ -1038,7 +1188,7 @@ class _AmountSummary extends StatelessWidget {
           color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12)),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         amount('الإجمالي', total, Colors.black87),
-        amount('المدفوع', paid, Colors.green.shade700),
+        amount('المدفوع', paid, AppColors.primary),
         amount('المتبقي', remaining, Colors.red.shade700),
       ]),
     );
@@ -1079,7 +1229,7 @@ class _DesktopTable extends StatelessWidget {
                 ? 'مسدد'
                 : (r.paymentsTotal > 0.0001 ? 'مسدد جزئي' : 'غير مسدد');
             final statusColor = r.balance <= 0.0001
-                ? Colors.green
+                ? AppColors.primary
                 : (r.paymentsTotal > 0.0001 ? Colors.orange : Colors.red);
 
             return DataRow(cells: [
@@ -1087,7 +1237,7 @@ class _DesktopTable extends StatelessWidget {
               DataCell(Text(r.type)),
               DataCell(Text(money.format(r.invoicesTotal))),
               DataCell(Text(money.format(r.paymentsTotal),
-                  style: const TextStyle(color: Colors.green))),
+                  style: const TextStyle(color: AppColors.primary))),
               DataCell(Text(money.format(r.balance),
                   style: const TextStyle(color: Colors.red))),
               DataCell(AdaptiveRow(
@@ -1106,50 +1256,6 @@ class _DesktopTable extends StatelessWidget {
               ),
             ]);
           }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 76, color: AppColors.primary),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.right,
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                subtitle!,
-                style: const TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ],
         ),
       ),
     );

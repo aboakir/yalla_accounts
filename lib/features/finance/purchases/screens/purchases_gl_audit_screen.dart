@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/shared/widgets/error_widget.dart';
 // 📁 lib/features/finance/purchases/screens/purchases_gl_audit_screen.dart
 //
@@ -239,12 +240,13 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
       await _load();
     } on DatabaseException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('DB: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذر تنفيذ العملية: ${UserFacingError.message(e)}')));
       setState(() => _loading = false);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(UserFacingError.message(e))));
       setState(() => _loading = false);
     }
   }
@@ -265,7 +267,8 @@ class _PurchasesGLAuditScreenState extends State<PurchasesGLAuditScreen> {
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(UserFacingError.message(e))));
       setState(() => _loading = false);
     }
   }

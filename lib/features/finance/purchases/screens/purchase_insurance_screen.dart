@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // -----------------------------------------------------------------------------
 // 📁 lib/features/finance/purchases/screens/purchase_insurance_screen.dart
 //
@@ -102,20 +103,6 @@ class _PurchaseInsuranceScreenState
           _noteCtrl.text.trim().isEmpty ? 'تأمين' : _noteCtrl.text.trim();
 
       // ------------------------------------------------------------------
-      // أهم نقطة: تجهيز Purchase Lines وفق نظام v51
-      // ------------------------------------------------------------------
-      final List<Map<String, dynamic>> lines = [
-        {
-          "item": "تأمين",
-          "qty": 1.0,
-          "unit_price": amount,
-          "total": amount,
-          "category": "OTHER",
-          "note": note,
-        }
-      ];
-
-      // ------------------------------------------------------------------
       // استدعاء PurchaseProvider.notifier.add() بصيغته المتوافقة v51
       // ------------------------------------------------------------------
       await ref.read(purchaseProvider.notifier).add(
@@ -153,8 +140,8 @@ class _PurchaseInsuranceScreenState
       await _reload();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('فشل: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل: ${UserFacingError.message(e)}')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -322,7 +309,7 @@ class _PurchaseInsuranceScreenState
                 title: Text(
                   '${df.format(p.date)}  •  ${MoneyFormatter.format(p.total)}',
                 ),
-                subtitle: Text('Supplier ID: ${p.supplierId ?? '-'}'),
+                subtitle: Text('Supplier ID: ${p.supplierId}'),
               );
             },
           ),

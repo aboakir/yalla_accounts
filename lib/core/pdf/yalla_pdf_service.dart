@@ -8,8 +8,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:open_file/open_file.dart';
 import 'package:pdf/pdf.dart';
@@ -411,8 +409,6 @@ class YallaPdfService {
     String? notes,
   }) async {
     await ensureFontsLoaded();
-    final ws = await WorkshopSettingsService.instance.getOrDefaults();
-
     final doc = await createDocument();
 
     final header = await buildHeader();
@@ -502,18 +498,6 @@ class YallaPdfService {
     );
 
     return doc.save();
-  }
-
-  static Future<pw.ImageProvider?> _tryLoadLogo(String? path) async {
-    if (path == null || path.trim().isEmpty) return null;
-
-    final file = File(path);
-    if (!await file.exists()) return null;
-
-    final bytes = await file.readAsBytes();
-    if (bytes.isEmpty) return null;
-
-    return pw.MemoryImage(bytes);
   }
 
 // =====================================================================
@@ -622,11 +606,11 @@ class YallaPdfService {
       ),
     );
 
-    // حفظ
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/accounts_receivable.pdf");
-    await file.writeAsBytes(await doc.save());
-    await OpenFile.open(file.path);
+    await saveAndOpen(
+      bytes: await doc.save(),
+      fileName: 'accounts_receivable.pdf',
+      module: 'exports',
+    );
   }
 
 // -----------------------------------------------------------------------------
@@ -638,8 +622,6 @@ class YallaPdfService {
 
     final settings = await WorkshopSettingsService.instance.getOrDefaults();
     final doc = await createDocument();
-    final header = await buildHeader();
-    final footer = await buildFooter();
 
     final tableRows = rows.map<List<String>>((r) {
       return [
@@ -770,10 +752,11 @@ class YallaPdfService {
       ),
     );
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/supplier_payables.pdf");
-    await file.writeAsBytes(await doc.save());
-    await OpenFile.open(file.path);
+    await saveAndOpen(
+      bytes: await doc.save(),
+      fileName: 'supplier_payables.pdf',
+      module: 'exports',
+    );
   }
 
 // -----------------------------------------------------------------------------
@@ -833,7 +816,7 @@ class YallaPdfService {
               _pdfTableRow("التاريخ", _pdfFormat(date)),
               _pdfTableRow("الطرف", partyName),
               _pdfTableRow("طريقة الدفع", method.toUpperCase()),
-              _pdfTableRow("قيمة السند", "${MoneyFormatter.format(amount)}"),
+              _pdfTableRow("قيمة السند", MoneyFormatter.format(amount)),
               _pdfTableRow("رقم القيد المحاسبي", glEntryId?.toString() ?? "-"),
             ],
           ),
@@ -932,30 +915,6 @@ class YallaPdfService {
 // -----------------------------------------------------------------------------
 // عناصر مساعدة لسند الصرف
 // -----------------------------------------------------------------------------
-  static pw.Widget _pdfRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 6),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Expanded(
-            child: pw.Text(
-              value,
-              textDirection: pw.TextDirection.ltr,
-              style: pw.TextStyle(font: _fonts.base, fontSize: 13),
-            ),
-          ),
-          pw.SizedBox(width: 10),
-          pw.Text(
-            label,
-            textDirection: pw.TextDirection.rtl,
-            style: pw.TextStyle(font: _fonts.bold, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
   static String _pdfFormat(DateTime d) {
     return "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
   }
@@ -1060,19 +1019,6 @@ class YallaPdfService {
         'attendance_${employeeName}_${month.year}_${month.month}.pdf';
 
     await saveAndOpen(bytes: bytes, fileName: fileName);
-  }
-
-  static Future<void> generateClientDetailsPdf({
-    required String clientName,
-    required String clientType,
-    required double total,
-    required double paid,
-    required double remain,
-    required List repairs,
-    required String workshopName,
-    String? logoPath,
-  }) async {
-    print('PDF CLICKED FOR $clientName');
   }
 
   static Future<void> generateClientArDetailsPdf({

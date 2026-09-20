@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -174,7 +175,7 @@ class _SupplierPaymentButtonState extends State<SupplierPaymentButton> {
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
+          SnackBar(content: Text('خطأ: ${UserFacingError.message(e)}')),
         );
       } finally {
         if (mounted) setState(() => _loading = false);

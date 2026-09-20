@@ -338,15 +338,11 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
                               Icons.folder),
                           _summaryBox(
                               'قيمة الملفات',
-                              '${MoneyFormatter.format(totalValue)}',
+                              MoneyFormatter.format(totalValue),
                               Icons.monetization_on),
-                          _summaryBox(
-                              'مدفوع',
-                              '${MoneyFormatter.format(totalPaid)}',
+                          _summaryBox('مدفوع', MoneyFormatter.format(totalPaid),
                               Icons.paid),
-                          _summaryBox(
-                              'متبقي',
-                              '${MoneyFormatter.format(remaining)}',
+                          _summaryBox('متبقي', MoneyFormatter.format(remaining),
                               Icons.hourglass_bottom),
                         ],
                       ),
@@ -358,7 +354,7 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
                             PieChartSectionData(
                                 value: totalPaid,
                                 title: 'مدفوع',
-                                color: Colors.green),
+                                color: AppColors.primary),
                             PieChartSectionData(
                                 value: remaining,
                                 title: 'متبقي',

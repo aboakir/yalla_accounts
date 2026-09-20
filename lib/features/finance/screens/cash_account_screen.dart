@@ -292,7 +292,7 @@ class _CashAccountScreenState extends State<CashAccountScreen> {
           _Stat(
               label: 'إجمالي مدين',
               value: _money.format(_sumDebit),
-              color: Colors.green),
+              color: AppColors.primary),
           _Stat(
               label: 'إجمالي دائن',
               value: _money.format(_sumCredit),
@@ -301,7 +301,7 @@ class _CashAccountScreenState extends State<CashAccountScreen> {
             label: 'الرصيد الختامي',
             value: _money.format(_openingBalance + _sumDebit - _sumCredit),
             color: (_openingBalance + _sumDebit - _sumCredit) >= 0
-                ? Colors.green
+                ? AppColors.primary
                 : Colors.red,
             bold: true,
           ),
@@ -426,13 +426,13 @@ class _DesktopTable extends StatelessWidget {
                 ),
               ),
               DataCell(Text(money.format(e.debit),
-                  style: const TextStyle(color: Colors.green))),
+                  style: const TextStyle(color: AppColors.primary))),
               DataCell(Text(money.format(e.credit),
                   style: const TextStyle(color: Colors.red))),
               DataCell(Text(
                 money.format(e.runningBalance),
                 style: TextStyle(
-                  color: e.runningBalance >= 0 ? Colors.green : Colors.red,
+                  color: e.runningBalance >= 0 ? AppColors.primary : Colors.red,
                   fontWeight: FontWeight.bold,
                 ),
               )),
@@ -490,7 +490,8 @@ class _MobileList extends StatelessWidget {
                 Text(
                   money.format(e.runningBalance),
                   style: TextStyle(
-                    color: e.runningBalance >= 0 ? Colors.green : Colors.red,
+                    color:
+                        e.runningBalance >= 0 ? AppColors.primary : Colors.red,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -499,7 +500,7 @@ class _MobileList extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(money.format(e.debit),
-                        style: const TextStyle(color: Colors.green)),
+                        style: const TextStyle(color: AppColors.primary)),
                     const SizedBox(width: 8),
                     Text(money.format(e.credit),
                         style: const TextStyle(color: Colors.red)),

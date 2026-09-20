@@ -104,8 +104,9 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
                   firstDate: DateTime(2020),
                   lastDate: DateTime.now(),
                 );
-                if (picked != null && mounted)
+                if (picked != null && mounted) {
                   setState(() => _purchaseDate = picked);
+                }
               },
               icon: const Icon(Icons.calendar_today_outlined),
               label: Text(DateFormat('yyyy-MM-dd').format(_purchaseDate)),
@@ -117,7 +118,9 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
                   minimumSize: const Size.fromHeight(50)),
               onPressed: () async {
                 if (_partController.text.trim().isEmpty ||
-                    _costController.text.trim().isEmpty) return;
+                    _costController.text.trim().isEmpty) {
+                  return;
+                }
                 await _addPurchase();
                 if (sheetContext.mounted) Navigator.pop(sheetContext);
               },
@@ -227,7 +230,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
           ? null
           : const Drawer(child: YallaSidebar(currentRoute: currentRoute)),
       appBar: AppBar(
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.primary,
         title:
             const Text('🧩 قطع الغيار', style: TextStyle(color: Colors.white)),
         leading: IconButton(
@@ -304,7 +307,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
                           trailing: AdaptiveRow(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text('${MoneyFormatter.format(p.cost)}'),
+                              Text(MoneyFormatter.format(p.cost)),
                               IconButton(
                                 icon:
                                     const Icon(Icons.delete, color: Colors.red),

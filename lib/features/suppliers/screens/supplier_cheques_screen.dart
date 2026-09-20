@@ -19,7 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -193,7 +193,7 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
         if (todayCount > 0)
           _chip("اليوم: $todayCount — ${f(todaySum)}", Colors.orange),
         if (soonCount > 0)
-          _chip("خلال 3 أيام: $soonCount — ${f(soonSum)}", Colors.green),
+          _chip("خلال 3 أيام: $soonCount — ${f(soonSum)}", AppColors.primary),
       ],
     );
   }
@@ -554,17 +554,29 @@ class _SupplierChequesScreenState extends ConsumerState<SupplierChequesScreen> {
   String _statusLabel(ChequeStatus s) {
     switch (s) {
       case ChequeStatus.pending:
-        return "معلّق";
+        return "قديم/معلّق";
+      case ChequeStatus.received:
+        return "مستلم";
+      case ChequeStatus.held:
+        return "محتفظ به";
+      case ChequeStatus.deposited:
+        return "مودع";
       case ChequeStatus.collected:
         return "مُحصّل";
+      case ChequeStatus.endorsed:
+        return "مظهّر";
+      case ChequeStatus.issued:
+        return "صادر";
+      case ChequeStatus.delivered:
+        return "مُسلّم";
+      case ChequeStatus.presented:
+        return "مقدم/مستحق";
+      case ChequeStatus.cleared:
+        return "مصروف من البنك";
       case ChequeStatus.returned:
         return "راجع";
       case ChequeStatus.cancelled:
         return "ملغى";
-      case ChequeStatus.delivered:
-        return "مُسلّم";
-      case ChequeStatus.deposited:
-        return "مودع";
     }
   }
 

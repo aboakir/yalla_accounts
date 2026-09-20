@@ -729,7 +729,12 @@ class DataHealthService {
       FROM repairs r
       LEFT JOIN paid p ON p.repair_id=r.id
       LEFT JOIN ar ON ar.repair_id=r.id
-      WHERE ABS(
+      WHERE (
+        EXISTS(SELECT 1 FROM invoices i WHERE i.repair_id=r.id)
+        OR COALESCE(p.payment_count,0) > 0
+        OR ar.repair_id IS NOT NULL
+      )
+      AND ABS(
         (COALESCE(r.fileValue,0)-COALESCE(p.paid,0))
         - COALESCE(ar.balance,0)
       ) > 0.01
@@ -753,6 +758,38 @@ class DataHealthService {
             : DataHealthStatus.error,
         affected: repairArMismatchCount,
         amount: repairArMismatchCount == 0 ? null : repairArMismatchAmount,
+      ),
+    );
+
+    final nonFinancialRepairHistory = await _firstInt(
+      db,
+      '''
+      SELECT COUNT(*)
+      FROM repairs r
+      WHERE COALESCE(r.fileValue,0) > 0.01
+        AND NOT EXISTS(SELECT 1 FROM invoices i WHERE i.repair_id=r.id)
+        AND NOT EXISTS(
+          SELECT 1
+          FROM gl_lines l
+          JOIN accounts a ON a.id=l.account_id
+          WHERE l.repair_id=r.id
+            AND (a.code='1200' OR a.code LIKE '1200.%')
+        )
+      ''',
+    );
+
+    items.add(
+      DataHealthItem(
+        id: 'legacy_nonfinancial_repairs',
+        title: 'ملفات Repair تاريخية بلا مستند مالي',
+        message: nonFinancialRepairHistory == 0
+            ? 'كل Repair ذي قيمة مالية له مستند أو قيد ذمة.'
+            : 'يوجد $nonFinancialRepairHistory Repair تاريخي بقيمة تشغيلية '
+                'دون Invoice أو GL. لا تُنشأ له ذمة تلقائيًا دون مستند مالي.',
+        status: nonFinancialRepairHistory == 0
+            ? DataHealthStatus.pass
+            : DataHealthStatus.warning,
+        affected: nonFinancialRepairHistory,
       ),
     );
 

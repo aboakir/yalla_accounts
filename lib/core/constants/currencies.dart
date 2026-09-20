@@ -11,6 +11,10 @@ class SupportedCurrency {
 }
 
 class Currencies {
+  /// Historical documents without a currency predate configurable currency.
+  /// Keep their original base currency independent of the display settings.
+  static const String legacyDocumentCurrencyCode = 'ILS';
+
   static const List<SupportedCurrency> list = [
     SupportedCurrency(code: 'ILS', name: 'شيكل', symbol: '₪'),
     SupportedCurrency(code: 'USD', name: 'دولار أمريكي', symbol: '\$'),

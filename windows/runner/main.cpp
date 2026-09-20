@@ -25,8 +25,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
-  Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
+  constexpr int kLoginWidth = 620;
+  constexpr int kLoginHeight = 700;
+  const int screen_width = ::GetSystemMetrics(SM_CXSCREEN);
+  const int screen_height = ::GetSystemMetrics(SM_CYSCREEN);
+  Win32Window::Point origin(
+      (screen_width - kLoginWidth) / 2,
+      (screen_height - kLoginHeight) / 2);
+  Win32Window::Size size(kLoginWidth, kLoginHeight);
   if (!window.Create(L"Yallah Accounts", origin, size)) {
     return EXIT_FAILURE;
   }

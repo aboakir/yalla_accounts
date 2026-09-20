@@ -117,10 +117,14 @@ void main() {
         .readAsStringSync();
 
     expect(mobileTheme.drawerTheme.width, 300);
+    expect(YallaMobileTheme.drawerWidthFor(320), closeTo(262.4, .01));
+    expect(YallaMobileTheme.drawerWidthFor(390), 300);
+    expect(YallaMobileTheme.drawerWidthFor(430), 300);
     expect(mobileTheme.drawerTheme.shape, isA<RoundedRectangleBorder>());
     expect(sidebar, contains('child: SafeArea('));
-    expect(sidebar,
-        contains('width: context.isDesktopWidth ? _widthAnim.value : 300'));
+    expect(sidebar, contains('YallaMobileTheme.drawerWidthFor(viewportWidth)'));
+    expect(sidebar, contains('YallaSidebar.compactDrawerWidth('));
+    expect(sidebar, isNot(contains('double.infinity')));
     expect(appBar, contains('YallaMobileRouteScope.maybeOf(context)'));
     expect(appBar, contains('mobileRouteScope.openDrawer'));
     expect(salary, isNot(contains('_openSidebarPanel')));

@@ -8,7 +8,6 @@ import 'package:yalla_accounts/core/utils/money_formatter.dart';
 
 Future<Uint8List> generateSalarySlipPdf(Employee employee) async {
   final pdf = pw.Document();
-  final formatter = NumberFormat('#,##0.00', 'ar');
   final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
   final netSalary = employee.baseSalary +
@@ -56,14 +55,13 @@ Future<Uint8List> generateSalarySlipPdf(Employee employee) async {
               _sectionTitle('تفاصيل الراتب'),
               pw.SizedBox(height: 8),
               _row('الراتب الأساسي:',
-                  '${MoneyFormatter.format(employee.baseSalary)}'),
-              _row('البدلات:', '${MoneyFormatter.format(employee.allowances)}'),
-              _row(
-                  'الخصومات:', '${MoneyFormatter.format(employee.deductions)}'),
-              _row('السلف:', '${MoneyFormatter.format(employee.advances)}'),
+                  MoneyFormatter.format(employee.baseSalary)),
+              _row('البدلات:', MoneyFormatter.format(employee.allowances)),
+              _row('الخصومات:', MoneyFormatter.format(employee.deductions)),
+              _row('السلف:', MoneyFormatter.format(employee.advances)),
               pw.SizedBox(height: 8),
-              _row('صافي الراتب:', '${MoneyFormatter.format(netSalary)}',
-                  bold: true, color: PdfColors.green800),
+              _row('صافي الراتب:', MoneyFormatter.format(netSalary),
+                  bold: true, color: const PdfColor.fromInt(0xFF67BC1F)),
               pw.SizedBox(height: 16),
               pw.Divider(),
               pw.SizedBox(height: 8),

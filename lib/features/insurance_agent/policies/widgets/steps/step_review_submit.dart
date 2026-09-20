@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // 📁 lib/features/insurance_agent/policies/widgets/steps/step_review_submit.dart
 //
 // Step 5 — مراجعة وحفظ (FINAL — No Conflicts)
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
+import 'package:yalla_accounts/core/constants/colors.dart';
 
 class StepReviewSubmit extends StatelessWidget {
   final PolicyDraft draft;
@@ -211,6 +213,7 @@ class StepReviewSubmit extends StatelessWidget {
                 : () async {
                     try {
                       await onSave();
+                      if (!context.mounted) return;
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -220,9 +223,11 @@ class StepReviewSubmit extends StatelessWidget {
 
                       onSaved();
                     } catch (e) {
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('❌ فشل حفظ البوليصة: $e'),
+                          content: Text(
+                              '❌ فشل حفظ البوليصة: ${UserFacingError.message(e)}'),
                         ),
                       );
                     }
@@ -396,7 +401,8 @@ class StepReviewSubmit extends StatelessWidget {
           ...issues.map(
             (e) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
-              child: Text('• $e', textAlign: TextAlign.right),
+              child: Text('• ${UserFacingError.message(e)}',
+                  textAlign: TextAlign.right),
             ),
           ),
         ],
@@ -409,7 +415,7 @@ class StepReviewSubmit extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.green.withOpacity(0.5)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.5)),
       ),
       child: const Text(
         'كل شيء جاهز ✅ يمكنك حفظ البوليصة.',

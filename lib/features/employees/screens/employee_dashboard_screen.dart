@@ -108,7 +108,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                               _infoCard('إجمالي الموظفين', total, Icons.groups,
                                   Colors.indigo),
                               _infoCard('النشطون', active, Icons.check_circle,
-                                  Colors.green),
+                                  AppColors.primary),
                               _infoCard('المجمّدون', frozen, Icons.ac_unit,
                                   Colors.orange),
                               _infoCard('الموقوفون', suspended, Icons.block,
@@ -144,6 +144,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                             label: const Text('قائمة الموظفين'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 22, vertical: 14),
                             ),
@@ -158,6 +159,7 @@ class EmployeeDashboardScreen extends ConsumerWidget {
                             label: const Text('إضافة موظف'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryGreen,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 22, vertical: 14),
                             ),

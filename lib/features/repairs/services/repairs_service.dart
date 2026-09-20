@@ -84,12 +84,14 @@ class RepairsService {
     await SyncFoundationService.transaction(db, (txn) async {
       int? vehicleId;
       if (repair.vehicleNumber.trim().isNotEmpty) {
-        vehicleId = await VehicleService.upsertFromRepairOn(
-          txn, number: repair.vehicleNumber, type: repair.vehicleType,
-          model: repair.vehicleModel, clientId: repair.clientId);
+        vehicleId = await VehicleService.upsertFromRepairOn(txn,
+            number: repair.vehicleNumber,
+            type: repair.vehicleType,
+            model: repair.vehicleModel,
+            clientId: repair.clientId);
       }
-      final syncRefs = await RepairSyncReferenceService.resolve(
-        txn, clientId: repair.clientId, vehicleId: vehicleId);
+      final syncRefs = await RepairSyncReferenceService.resolve(txn,
+          clientId: repair.clientId, vehicleId: vehicleId);
       final data = repair.copyWith(id: id).toMap()
         ..['customer_party_uuid'] = syncRefs.customerPartyUuid
         ..['vehicle_entity_uuid'] = syncRefs.vehicleEntityUuid
@@ -118,12 +120,14 @@ class RepairsService {
     return await SyncFoundationService.transaction<int>(db, (txn) async {
       int? vehicleId;
       if (repair.vehicleNumber.trim().isNotEmpty) {
-        vehicleId = await VehicleService.upsertFromRepairOn(
-          txn, number: repair.vehicleNumber, type: repair.vehicleType,
-          model: repair.vehicleModel, clientId: repair.clientId);
+        vehicleId = await VehicleService.upsertFromRepairOn(txn,
+            number: repair.vehicleNumber,
+            type: repair.vehicleType,
+            model: repair.vehicleModel,
+            clientId: repair.clientId);
       }
-      final syncRefs = await RepairSyncReferenceService.resolve(
-        txn, clientId: repair.clientId, vehicleId: vehicleId);
+      final syncRefs = await RepairSyncReferenceService.resolve(txn,
+          clientId: repair.clientId, vehicleId: vehicleId);
       final data = repair.toMap()
         ..remove('invoice_id')
         ..['customer_party_uuid'] = syncRefs.customerPartyUuid
@@ -426,35 +430,7 @@ class RepairsService {
     return bestPath;
   }
 
-  Future<String> _makeThumbnail(String srcPath,
-      {required String repairId}) async {
-    final bytes = File(srcPath).readAsBytesSync();
-    final decoded = im.decodeImage(bytes);
-
-    if (decoded == null) throw StateError('decode failed');
-
-    final square = im.copyResizeCropSquare(decoded, size: 160);
-
-    final dir =
-        Directory(p.join(File(srcPath).parent.parent.path, 'repairs_thumbs'));
-
-    if (!dir.existsSync()) dir.createSync(recursive: true);
-
-    final out = p.join(dir.path, 'thumb_rep_$repairId.jpg');
-
-    File(out).writeAsBytesSync(im.encodeJpg(square, quality: 85));
-
-    return out;
-  }
-
   // ============================== Helpers ====================================
-  void _deletePhysicalFile(String path) {
-    try {
-      final f = File(path);
-      if (f.existsSync()) f.deleteSync();
-    } catch (_) {}
-  }
-
   Future<void> _enableLedgerFlags(DatabaseExecutor txn, String repairId) async {
     try {
       final info = await txn.rawQuery("PRAGMA table_info(repairs)");
