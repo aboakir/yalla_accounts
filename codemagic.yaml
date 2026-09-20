@@ -88,19 +88,58 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
 
   ios_unified_owner:
-    name: Yallah Accounts Unified Owner 2026-09-20
+    name: Yallah Accounts Owner iPhone 1.0.2+21 DB84
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'codemagic/owner-unified-db84-20260920'
+          include: true
+          source: true
+      cancel_previous_builds: false
     environment:
       flutter: 3.44.8
+      node: 24
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Validate and build unified owner iPhone package
+      - name: Verify exact unified source and version
         script: |
           set -euo pipefail
-          bash tools/release/build_unified_ios_owner.sh
+          node tools/release/verify_unified_ios_source.mjs
+          flutter --version
+          xcodebuild -version
+      - name: Resolve locked dependencies
+        script: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile 2>&1 | tee build/ios/unified_evidence/dependencies.log
+      - name: Analyze unified source
+        script: |
+          set -euo pipefail
+          flutter analyze --no-pub 2>&1 | tee build/ios/unified_evidence/analyze.log
+      - name: Full regression including both migration lineages
+        script: |
+          set -euo pipefail
+          flutter test --no-pub --concurrency=4 --timeout=90s --reporter=json 2>&1 | tee build/ios/unified_evidence/tests.jsonl
+      - name: Prepare iOS dependencies
+        script: |
+          set -euo pipefail
+          cp ci/Podfile ios/Podfile
+          (cd ios && pod install --repo-update) 2>&1 | tee build/ios/unified_evidence/pods.log
+      - name: Build owner iPhone application
+        script: |
+          set -euo pipefail
+          git diff --exit-code -- lib assets pubspec.yaml pubspec.lock
+          flutter build ios --release --no-pub --no-codesign --dart-define=YALLA_OWNER_LOCAL_FULL_ACCESS=true 2>&1 | tee build/ios/unified_evidence/ios_build.log
+      - name: Verify package identity and create IPA
+        script: |
+          set -euo pipefail
+          bash tools/release/package_unified_owner_ios.sh
     artifacts:
       - build/ios/unified_owner_ipa/**/*.ipa
+      - build/ios/unified_owner_ipa/**/BUILD_MANIFEST.json
       - build/ios/unified_owner_ipa/**/SHA256.txt
+      - build/ios/unified_evidence/*
       - /tmp/xcodebuild_logs/*.log

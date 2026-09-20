@@ -2,6 +2,8 @@ name: Yalla Accounts CI
 
 on:
   push:
+    branches-ignore:
+      - 'codemagic/owner-unified-db84-20260920'
   pull_request:
   workflow_dispatch:
 
