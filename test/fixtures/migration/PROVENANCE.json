@@ -6,14 +6,29 @@
       "name": "commercial83",
       "sourceCommit": "c7692421c1ab253805c6308db33ce01d20334684",
       "schema": 83,
-      "sha256": "f9bce688978328def417795347b6a4ff378fc51bf5fceb5eb7be1fddfc9533d8"
+      "sha256": "bf51c18f01d7abb3480c59ef31813e8716412e83c4dc50f89b06e524835a7830",
+      "originalWalSha256": "f9bce688978328def417795347b6a4ff378fc51bf5fceb5eb7be1fddfc9533d8",
+      "packaging": {
+        "journalMode": "DELETE",
+        "logicalSchemaAndRowsUnchanged": true,
+        "logicalSha256": "f168ed3c47e7fbb22cb9049c815275809b83602bf4a658cbeeaf9d00210b396e",
+        "tablesVerified": 85
+      }
     },
     {
       "name": "owner78",
       "sourceCommit": "5a586fcf7e99bebc46a66c2602c31a0f48ee7acb",
       "schema": 78,
-      "sha256": "20890781853f5107b30af1a78f52a5bb6c50ed4cc2bcdb3588679f917883e3ad"
+      "sha256": "b530abcb1d070fa660757bae2fcf9c10b2ec18883f9ed900071835672016f533",
+      "originalWalSha256": "20890781853f5107b30af1a78f52a5bb6c50ed4cc2bcdb3588679f917883e3ad",
+      "packaging": {
+        "journalMode": "DELETE",
+        "logicalSchemaAndRowsUnchanged": true,
+        "logicalSha256": "221b5b657167e59dd0a07f4c258fe24e042b86af02a51d2ce9145287e97ec6f6",
+        "tablesVerified": 84
+      }
     }
   ],
-  "generatedWith": "Original branch DatabaseMigration, canonical AccountingTables and OwnerBootstrapTables; synthetic client/cheque/balanced GL entry."
+  "generatedWith": "Original branch DatabaseMigration, canonical AccountingTables and OwnerBootstrapTables; synthetic client/cheque/balanced GL entry.",
+  "portablePackagingReference": "https://sqlite.org/wal.html#read_only_databases"
 }

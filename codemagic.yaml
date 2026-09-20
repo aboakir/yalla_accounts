@@ -119,6 +119,10 @@ workflows:
         script: |
           set -euo pipefail
           flutter analyze --no-pub 2>&1 | tee build/ios/unified_evidence/analyze.log
+      - name: Verify historical fixtures on macOS
+        script: |
+          set -euo pipefail
+          flutter test --no-pub --concurrency=1 --timeout=90s --reporter=json test/release/parallel_lineage_migration_v84_test.dart 2>&1 | tee build/ios/unified_evidence/migration_tests.jsonl
       - name: Full regression including both migration lineages
         script: |
           set -euo pipefail
