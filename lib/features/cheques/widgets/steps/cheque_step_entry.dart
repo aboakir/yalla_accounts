@@ -59,6 +59,17 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
     }
   }
 
+  @override
+  void dispose() {
+    chequeNoCtrl.dispose();
+    drawerCtrl.dispose();
+    bankCtrl.dispose();
+    branchCtrl.dispose();
+    lastEndorserCtrl.dispose();
+    notesCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadBankAccounts() async {
     final db = await DBService.database;
     final rows = await db.query(
@@ -127,231 +138,249 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep only the action bar fixed; title and fields share the bounded
+    // viewport so landscape keyboards still leave editable content visible.
     return Dialog(
+      clipBehavior: Clip.antiAlias,
       insetPadding: EdgeInsets.symmetric(
-        horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 120,
-        vertical: MediaQuery.sizeOf(context).width < 600 ? 16 : 40,
+        horizontal: MediaQuery.sizeOf(context).shortestSide < 600 ? 12 : 120,
+        vertical: MediaQuery.sizeOf(context).shortestSide < 600 ? 16 : 40,
       ),
       child: Container(
-        width: MediaQuery.sizeOf(context).width < 600 ? double.infinity : 700,
-        padding:
-            EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 14 : 30),
+        width: MediaQuery.sizeOf(context).shortestSide < 600
+            ? double.infinity
+            : 700,
+        padding: EdgeInsets.all(
+            MediaQuery.sizeOf(context).shortestSide < 600 ? 14 : 30),
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "بيانات الشيك",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              if (widget.issued) ...[
-                if (widget.payeeName?.trim().isNotEmpty == true)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: Text(
-                        'المستفيد: ${widget.payeeName}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+              Flexible(
+                child: SingleChildScrollView(
+                  key: const ValueKey('cheque_entry_fields'),
+                  primary: false,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "بيانات الشيك",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
                         ),
                       ),
-                    ),
-                  ),
-                DropdownButtonFormField<int>(
-                  value: _bankAccountId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'الحساب البنكي',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _bankAccounts
-                      .map(
-                        (row) => DropdownMenuItem<int>(
-                          value: (row['id'] as num).toInt(),
-                          child: Text(
-                            '${row['code']} — ${row['name']}',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(growable: false),
-                  validator: (value) =>
-                      value == null ? 'اختر الحساب البنكي' : null,
-                  onChanged: (value) async {
-                    if (value == null) return;
-                    final row = _bankAccounts.firstWhere(
-                      (item) => (item['id'] as num).toInt() == value,
-                    );
-                    setState(() {
-                      _bankAccountId = value;
-                      bankCtrl.text = row['name']?.toString() ?? 'Bank';
-                    });
-                    await _loadBooks(value);
-                  },
-                ),
-                const SizedBox(height: 14),
-                if (_loadingBooks)
-                  const LinearProgressIndicator()
-                else
-                  DropdownButtonFormField<String>(
-                    value: _chequeBookId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'دفتر الشيكات',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _chequeBooks
-                        .map(
-                          (row) => DropdownMenuItem<String>(
-                            value: row['id'].toString(),
-                            child: Text(
-                              '${row['book_number']} '
-                              '(${row['first_cheque_number']}–'
-                              '${row['last_cheque_number']})',
-                              overflow: TextOverflow.ellipsis,
+                      const SizedBox(height: 25),
+
+                      if (widget.issued) ...[
+                        if (widget.payeeName?.trim().isNotEmpty == true)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 14),
+                              child: Text(
+                                'المستفيد: ${widget.payeeName}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
-                        )
-                        .toList(growable: false),
-                    validator: (value) =>
-                        value == null ? 'اختر دفتر الشيكات' : null,
-                    onChanged: (value) async {
-                      if (value == null) return;
-                      await _selectBook(value);
-                    },
-                  ),
-                if (_bankAccountId != null &&
-                    !_loadingBooks &&
-                    _chequeBooks.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Text(
-                      'لا يوجد دفتر شيكات مفتوح لهذا الحساب. '
-                      'أنشئ دفترًا من مركز الشيكات أولًا.',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-                const SizedBox(height: 14),
-              ],
+                        DropdownButtonFormField<int>(
+                          value: _bankAccountId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'الحساب البنكي',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _bankAccounts
+                              .map(
+                                (row) => DropdownMenuItem<int>(
+                                  value: (row['id'] as num).toInt(),
+                                  child: Text(
+                                    '${row['code']} — ${row['name']}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                          validator: (value) =>
+                              value == null ? 'اختر الحساب البنكي' : null,
+                          onChanged: (value) async {
+                            if (value == null) return;
+                            final row = _bankAccounts.firstWhere(
+                              (item) => (item['id'] as num).toInt() == value,
+                            );
+                            setState(() {
+                              _bankAccountId = value;
+                              bankCtrl.text = row['name']?.toString() ?? 'Bank';
+                            });
+                            await _loadBooks(value);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        if (_loadingBooks)
+                          const LinearProgressIndicator()
+                        else
+                          DropdownButtonFormField<String>(
+                            value: _chequeBookId,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'دفتر الشيكات',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _chequeBooks
+                                .map(
+                                  (row) => DropdownMenuItem<String>(
+                                    value: row['id'].toString(),
+                                    child: Text(
+                                      '${row['book_number']} '
+                                      '(${row['first_cheque_number']}–'
+                                      '${row['last_cheque_number']})',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            validator: (value) =>
+                                value == null ? 'اختر دفتر الشيكات' : null,
+                            onChanged: (value) async {
+                              if (value == null) return;
+                              await _selectBook(value);
+                            },
+                          ),
+                        if (_bankAccountId != null &&
+                            !_loadingBooks &&
+                            _chequeBooks.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'لا يوجد دفتر شيكات مفتوح لهذا الحساب. '
+                              'أنشئ دفترًا من مركز الشيكات أولًا.',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        const SizedBox(height: 14),
+                      ],
 
-              // رقم الشيك
-              _input(
-                label: "رقم الشيك",
-                controller: chequeNoCtrl,
-                required: true,
-                readOnly: widget.issued,
-              ),
-
-              if (!widget.issued) ...[
-                AdaptiveRow(
-                  children: [
-                    Expanded(
-                      child: _input(
-                        label: "اسم الساحب",
-                        controller: drawerCtrl,
+                      // رقم الشيك
+                      _input(
+                        label: "رقم الشيك",
+                        controller: chequeNoCtrl,
                         required: true,
+                        readOnly: widget.issued,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _input(
-                        label: "البنك",
-                        controller: bankCtrl,
-                        required: true,
-                      ),
-                    ),
-                  ],
-                ),
-                AdaptiveRow(
-                  children: [
-                    Expanded(
-                      child: _input(
-                        label: "الفرع",
-                        controller: branchCtrl,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _input(
-                        label: "المظهر الأخير (اختياري)",
-                        controller: lastEndorserCtrl,
-                      ),
-                    ),
-                  ],
-                ),
-              ] else
-                _input(
-                  label: 'الفرع (اختياري)',
-                  controller: branchCtrl,
-                ),
 
-              // التواريخ
-              AdaptiveRow(
-                children: [
-                  Expanded(
-                    child: _dateBox(
-                      title: "تاريخ الإصدار",
-                      date: issueDate,
-                      onTap: () => _pickDate(isIssue: true),
-                    ),
+                      if (!widget.issued) ...[
+                        AdaptiveRow(
+                          children: [
+                            Expanded(
+                              child: _input(
+                                label: "اسم الساحب",
+                                controller: drawerCtrl,
+                                required: true,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _input(
+                                label: "البنك",
+                                controller: bankCtrl,
+                                required: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                        AdaptiveRow(
+                          children: [
+                            Expanded(
+                              child: _input(
+                                label: "الفرع",
+                                controller: branchCtrl,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _input(
+                                label: "المظهر الأخير (اختياري)",
+                                controller: lastEndorserCtrl,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        _input(
+                          label: 'الفرع (اختياري)',
+                          controller: branchCtrl,
+                        ),
+
+                      // التواريخ
+                      AdaptiveRow(
+                        children: [
+                          Expanded(
+                            child: _dateBox(
+                              title: "تاريخ الإصدار",
+                              date: issueDate,
+                              onTap: () => _pickDate(isIssue: true),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _dateBox(
+                              title: "تاريخ الاستحقاق",
+                              date: dueDate,
+                              onTap: () => _pickDate(isIssue: false),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // القيمة
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.grey.shade100,
+                        ),
+                        child: Text(
+                          "القيمة: ${MoneyFormatter.format(widget.amount)}",
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Notes
+                      _input(
+                        label: "ملاحظات للشيك (اختياري)",
+                        controller: notesCtrl,
+                        maxLines: 3,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _dateBox(
-                      title: "تاريخ الاستحقاق",
-                      date: dueDate,
-                      onTap: () => _pickDate(isIssue: false),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 14),
-
-              // القيمة
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey.shade100,
-                ),
-                child: Text(
-                  "القيمة: ${MoneyFormatter.format(widget.amount)}",
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
                 ),
               ),
-
-              const SizedBox(height: 14),
-
-              // Notes
-              _input(
-                label: "ملاحظات للشيك (اختياري)",
-                controller: notesCtrl,
-                maxLines: 3,
-              ),
-
-              const SizedBox(height: 25),
+              const SizedBox(height: 12),
 
               // زر الحفظ
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
+                  key: const ValueKey('cheque_entry_save'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(16),
                     backgroundColor: AppColors.primary,
@@ -380,6 +409,7 @@ class _ChequeStepEntryState extends State<ChequeStepEntry> {
                       "notes": notesCtrl.text.trim(),
                     };
 
+                    FocusScope.of(context).unfocus();
                     Navigator.pop(context, data);
                   },
                   child: const Text(
