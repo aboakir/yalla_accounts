@@ -56,6 +56,7 @@ void main() {
     test(
         '$status projects identical local/server policy and enforces SQL writes',
         () async {
+      final now = DateTime.now().toUtc();
       final dir = await Directory.systemTemp.createTemp('stage46_');
       final db = await DatabaseMigration.initDatabase(
           pathOverride: '${dir.path}/test.db');
