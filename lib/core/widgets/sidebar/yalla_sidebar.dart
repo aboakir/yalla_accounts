@@ -651,7 +651,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                       if (insuranceAgentItems.isNotEmpty || !hasSearch)
                         _group(
                           icon: Icons.verified_user,
-                          title: 'وكيل التأمين',
+                          title: 'التأمين',
                           isInitiallyExpanded:
                               widget.currentRoute?.startsWith(rInsuranceRoot) ??
                                   false,

@@ -551,10 +551,11 @@ class AppRoutes {
   }
 
   // ===== Router =====
-  // Keep the calculator available while the other agent sections are paused.
+  // Keep the insurance home and calculator available while the other agent sections are paused.
   static bool isInsuranceAgentFrozenRoute(String route) =>
       (route == insuranceAgentRoot ||
           route.startsWith('$insuranceAgentRoot/')) &&
+      route != insuranceAgentHome &&
       route != insuranceAgentCalculator;
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
