@@ -249,6 +249,57 @@ void main() {
     await expectBalanced();
   });
 
+  test('settlement heals legacy duplicate invoice posting without auto marker',
+      () async {
+    // Reproduce the live legacy state: the repair/invoice says 2,400,
+    // while historical GL still carries a duplicated 4,800 gross posting.
+    await seedRepair('R-LEGACY-DUP', value: 4800);
+    await db.update(
+      'repairs',
+      {
+        'fileValue': 2400.0,
+        'incomeAmount': 2400.0,
+        'finalApprovedAmount': 2400.0,
+        'notes': '',
+      },
+      where: 'id=?',
+      whereArgs: ['R-LEGACY-DUP'],
+    );
+    await pay('R-LEGACY-DUP', 2300);
+
+    final broken = await RepairFinancialTruthService.load(
+      'R-LEGACY-DUP',
+      executor: db,
+    );
+    expect(broken.fileValue, 2400);
+    expect(broken.paid, 2300);
+    expect(broken.ledgerGrossTotal, 4800);
+    expect(broken.customerArBalance, 2500);
+    expect(broken.recognizedRevenue, 4800);
+    expect(broken.isLedgerConsistent, isFalse);
+
+    final result = await RepairSettlementService.apply(
+      repairId: 'R-LEGACY-DUP',
+      adjustment: -100,
+      reason: 'خصم / سداد مبكر',
+      database: db,
+    );
+
+    expect(result.newValue, 2300);
+    expect(result.paid, 2300);
+    expect(result.remaining, 0);
+    expect(result.customerArBalance, 0);
+    expect(result.recognizedRevenue, 2300);
+    expect(result.adjustment, -100);
+    final healed = await RepairFinancialTruthService.load(
+      'R-LEGACY-DUP',
+      executor: db,
+    );
+    expect(healed.ledgerGrossTotal, 2300);
+    expect(healed.isLedgerConsistent, isTrue);
+    await expectBalanced();
+  });
+
   test('settlement that would make file value negative is rejected atomically',
       () async {
     await seedRepair('R-INVALID');

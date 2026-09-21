@@ -524,6 +524,7 @@ class RepairAutoAccountingService {
     required String paymentType,
     String reason = 'تعديل قيمة ملف الإصلاح',
     bool preserveOperationalStatus = false,
+    bool reconcilePostedLedger = false,
     String adjustmentSource = 'REPAIR_VALUE_ADJ',
     String? adjustmentId,
   }) async {
@@ -553,7 +554,11 @@ class RepairAutoAccountingService {
     int? adjustmentGlId;
     if (postedBefore && invoiceId != null) {
       final recognized = await _recognizedRevenueOn(tx, repairId);
-      final diff = wasAutoManaged
+      // Settlement flows must reconcile against the ledger actually posted,
+      // not only against the old repair scalar. Legacy repairs can have a
+      // valid posted invoice but no historical auto-accounting marker; using
+      // oldValue there preserves an existing GL mismatch and blocks settlement.
+      final diff = (reconcilePostedLedger || wasAutoManaged)
           ? _round2(newValue - recognized)
           : _round2(newValue - oldValue);
       adjustmentGlId = await _postValueAdjustmentOn(

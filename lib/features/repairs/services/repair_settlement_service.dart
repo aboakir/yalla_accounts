@@ -245,6 +245,7 @@ class RepairSettlementService {
           paymentType: rawPaymentType,
           reason: accountingReason,
           preserveOperationalStatus: true,
+          reconcilePostedLedger: true,
           adjustmentSource: 'REPAIR_SETTLEMENT',
           adjustmentId: settlementId,
         );
