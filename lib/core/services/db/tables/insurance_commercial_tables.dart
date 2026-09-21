@@ -473,6 +473,7 @@ class InsuranceCommercialTables {
         responsible_user_id TEXT,
         current_company TEXT,
         current_policy_expiry TEXT,
+        vehicle_summary TEXT,
         last_contact_at TEXT,
         next_contact_at TEXT,
         contact_result TEXT,
@@ -483,6 +484,12 @@ class InsuranceCommercialTables {
         UNIQUE(party_id)
       )
     ''');
+    await _ensureColumn(
+      db,
+      'insurance_prospects',
+      'vehicle_summary',
+      'TEXT',
+    );
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS insurance_driver_licenses(

@@ -6,11 +6,10 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // ✅ سهم رجوع في AppBar
 // ✅ باقي الميزات كما هي: Tabs 13 + Add/Edit Dialog + SharedPrefs + PDF + Filters
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:yalla_accounts/features/insurance_agent/contacts/services/insurance_crm_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -33,8 +32,6 @@ class InsuranceContactsListScreen extends StatefulWidget {
 class _InsuranceContactsListScreenState
     extends State<InsuranceContactsListScreen>
     with SingleTickerProviderStateMixin {
-  static const _prefsKey = 'insurance_contact_leads_v1';
-
   final _nfDate = DateFormat('yyyy-MM-dd', 'en_US');
 
   bool _busy = false;
@@ -118,36 +115,23 @@ class _InsuranceContactsListScreenState
   Future<void> _load() async {
     setState(() => _busy = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_prefsKey);
-
-      if (raw == null || raw.trim().isEmpty) {
-        _items = [];
-      } else {
-        final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
-        _items = list.map(_LeadContact.fromJson).toList();
-      }
-
-      // ✅ ترتيب عام:
-      // 1) اللي عنده endDate الأقرب أولًا
-      // 2) اللي بدون endDate يجي آخر
-      _items.sort((a, b) {
-        final ad = a.endDate;
-        final bd = b.endDate;
-        if (ad == null && bd == null) return 0;
-        if (ad == null) return 1;
-        if (bd == null) return -1;
-        return ad.compareTo(bd);
-      });
+      final records = await InsuranceCrmService.listProspects();
+      _items = records
+          .map(
+            (row) => _LeadContact(
+              id: row.id,
+              name: row.name,
+              phone: row.phone,
+              vehicleMake: row.vehicleSummary,
+              endDate: row.currentPolicyExpiry,
+              createdAt: row.createdAt,
+              updatedAt: row.updatedAt,
+            ),
+          )
+          .toList();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(_items.map((e) => e.toJson()).toList());
-    await prefs.setString(_prefsKey, encoded);
   }
 
   // ============================================================
@@ -242,8 +226,13 @@ class _InsuranceContactsListScreenState
 
     if (result == null) return;
 
-    setState(() => _items.insert(0, result));
-    await _save();
+    await InsuranceCrmService.createProspect(
+      name: result.name ?? '',
+      phone: result.phone ?? '',
+      vehicleSummary: result.vehicleMake,
+      currentPolicyExpiry: result.endDate,
+    );
+    await _load();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -262,22 +251,14 @@ class _InsuranceContactsListScreenState
 
     if (edited == null) return;
 
-    setState(() {
-      final idx = _items.indexWhere((e) => e.id == lead.id);
-      if (idx >= 0) _items[idx] = edited;
-    });
-
-    // إعادة ترتيب عام
-    _items.sort((a, b) {
-      final ad = a.endDate;
-      final bd = b.endDate;
-      if (ad == null && bd == null) return 0;
-      if (ad == null) return 1;
-      if (bd == null) return -1;
-      return ad.compareTo(bd);
-    });
-
-    await _save();
+    await InsuranceCrmService.updateProspect(
+      id: lead.id,
+      name: edited.name ?? '',
+      phone: edited.phone ?? '',
+      vehicleSummary: edited.vehicleMake,
+      currentPolicyExpiry: edited.endDate,
+    );
+    await _load();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -309,8 +290,8 @@ class _InsuranceContactsListScreenState
 
     if (ok != true) return;
 
-    setState(() => _items.removeWhere((e) => e.id == lead.id));
-    await _save();
+    await InsuranceCrmService.archiveProspect(lead.id);
+    await _load();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1319,28 +1300,4 @@ class _LeadContact {
     required this.updatedAt,
   });
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'phone': phone,
-        'vehicleMake': vehicleMake,
-        'endDate': endDate?.toIso8601String(),
-        'createdAt': createdAt?.toIso8601String(),
-        'updatedAt': updatedAt?.toIso8601String(),
-      };
-
-  static _LeadContact fromJson(Map<String, dynamic> j) {
-    DateTime? dt(String? s) =>
-        (s == null || s.isEmpty) ? null : DateTime.tryParse(s);
-
-    return _LeadContact(
-      id: (j['id'] ?? '').toString(),
-      name: (j['name'] ?? '').toString(),
-      phone: (j['phone'] ?? '').toString(),
-      vehicleMake: (j['vehicleMake'] ?? '').toString(),
-      endDate: dt(j['endDate']?.toString()),
-      createdAt: dt(j['createdAt']?.toString()),
-      updatedAt: dt(j['updatedAt']?.toString()),
-    );
-  }
 }
