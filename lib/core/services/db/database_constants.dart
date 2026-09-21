@@ -10,7 +10,7 @@ class DatabaseConstants {
     dbName,
     'yalla_accounts.db',
   ];
-  static const int dbVersion = 84;
+  static const int dbVersion = 85;
   static const String supplierPidPrefix = 'S';
 
   static final Uuid _uuid = const Uuid();
@@ -38,10 +38,7 @@ class DatabaseConstants {
       const preferred = 'D:/Yallah Accounts';
       const legacy = 'D:/YallaAccounts';
 
-      final existing = _firstExistingDatabase(<String>[
-        preferred,
-        legacy,
-      ]);
+      final existing = _firstExistingDatabase(<String>[preferred, legacy]);
       if (existing != null) return existing;
 
       if (_canUseWindowsDirectory(preferred)) {
@@ -138,46 +135,46 @@ class DatabaseConstants {
   }
 
   static Map<String, String> get columnTypes => {
-        'text': 'TEXT',
-        'integer': 'INTEGER',
-        'real': 'REAL',
-        'blob': 'BLOB',
-      };
+    'text': 'TEXT',
+    'integer': 'INTEGER',
+    'real': 'REAL',
+    'blob': 'BLOB',
+  };
 
   static List<String> get coreTables => [
-        'organizations',
-        'organization_identity',
-        'installation_identity',
-        'license_activation_state',
-        'license_runtime_state',
-        'license_validation_state',
-        'owner_bootstrap_state',
-        'auth_roles',
-        'auth_permissions',
-        'auth_role_permissions',
-        'users',
-        'workshop_settings',
-        'clients',
-        'vehicles',
-        'repairs',
-        'invoices',
-        'accounts',
-        'gl_entries',
-        'gl_lines',
-        'parties',
-        'party_roles',
-        'accounting_audit_events',
-        'payments',
-        'vouchers',
-        'suppliers',
-        'purchase_invoices',
-        'purchase_invoice_lines',
-        'purchase_payments',
-        'insurance_invoices',
-        'cheques',
-        'raw_materials',
-        'auth_sessions',
-        'password_reset_grants',
-        'document_sequences',
-      ];
+    'organizations',
+    'organization_identity',
+    'installation_identity',
+    'license_activation_state',
+    'license_runtime_state',
+    'license_validation_state',
+    'owner_bootstrap_state',
+    'auth_roles',
+    'auth_permissions',
+    'auth_role_permissions',
+    'users',
+    'workshop_settings',
+    'clients',
+    'vehicles',
+    'repairs',
+    'invoices',
+    'accounts',
+    'gl_entries',
+    'gl_lines',
+    'parties',
+    'party_roles',
+    'accounting_audit_events',
+    'payments',
+    'vouchers',
+    'suppliers',
+    'purchase_invoices',
+    'purchase_invoice_lines',
+    'purchase_payments',
+    'insurance_invoices',
+    'cheques',
+    'raw_materials',
+    'auth_sessions',
+    'password_reset_grants',
+    'document_sequences',
+  ];
 }

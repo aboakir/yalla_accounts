@@ -47,6 +47,7 @@ import 'tables/party_tables.dart';
 import 'tables/accounting_integrity_tables.dart';
 import 'tables/hr_tables.dart';
 import 'tables/insurance_tables.dart';
+import 'tables/insurance_commercial_tables.dart';
 import 'tables/supplier_tables.dart';
 import 'tables/cheque_tables.dart';
 import 'tables/report_tables.dart';
@@ -70,9 +71,9 @@ class DatabaseMigration {
     _opening = null;
   }
 
-// ---------------------------------------------------------------
-// Database migration compatibility note.
-// ---------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // Database migration compatibility note.
+  // ---------------------------------------------------------------
   static Future<void> _ensureGeneralSupplier(Database db) async {
     final res = await db.query(
       'suppliers',
@@ -84,7 +85,8 @@ class DatabaseMigration {
     if (res.isEmpty) {
       await db.insert('suppliers', {'name': 'المصاريف العامة'});
       ReleaseDiagnostics.debug(
-          "أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©");
+        "أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©",
+      );
     }
   }
 
@@ -107,7 +109,8 @@ class DatabaseMigration {
   }
 
   static Future<T> inTx<T>(
-      Future<T> Function(DatabaseExecutor db) action) async {
+    Future<T> Function(DatabaseExecutor db) action,
+  ) async {
     final db = await database;
     return SyncFoundationService.transaction<T>(db, action);
   }
@@ -144,7 +147,8 @@ class DatabaseMigration {
         for (var index = 0; index < sqliteHeader.length; index++) {
           if (header[index] != sqliteHeader[index]) {
             throw StateError(
-                'Recovered file is not a plaintext SQLite database.');
+              'Recovered file is not a plaintext SQLite database.',
+            );
           }
         }
         return (header[60] << 24) |
@@ -186,7 +190,8 @@ class DatabaseMigration {
         return await existing.getVersion();
       } catch (error) {
         final message = error.toString().toLowerCase();
-        final retryable = message.contains('unable to open database file') ||
+        final retryable =
+            message.contains('unable to open database file') ||
             message.contains('sqlite_error: 14') ||
             message.contains('code 14');
         final fileStillExists = await File(path).exists();
@@ -218,8 +223,9 @@ class DatabaseMigration {
       '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );
 
-    final recoveredInterruptedRestore =
-        await Directory('$path.restore-journal').exists();
+    final recoveredInterruptedRestore = await Directory(
+      '$path.restore-journal',
+    ).exists();
     await RestoreFileJournal.recover(path);
     ReleaseDiagnostics.markStartupPhase(StartupPhase.journalRecovery);
     await DatabaseEncryptionService.recoverInterruptedCanonicalWrite(path);
@@ -230,8 +236,10 @@ class DatabaseMigration {
         retryAfterRestore: recoveredInterruptedRestore,
       );
       if (version > DatabaseConstants.dbVersion) {
-        throw StateError('Database version $version is newer than supported '
-            '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.');
+        throw StateError(
+          'Database version $version is newer than supported '
+          '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.',
+        );
       }
     }
     ReleaseDiagnostics.markStartupPhase(StartupPhase.encryption);
@@ -344,6 +352,7 @@ class DatabaseMigration {
     await _upgradeV82(db);
     await _upgradeV83(db);
     await _upgradeV84(db, fromSchemaVersion: 0);
+    await _upgradeV85(db);
     ReleaseDiagnostics.debug('All tables created successfully');
   }
 
@@ -374,6 +383,7 @@ class DatabaseMigration {
       if (oldV < 82) await _upgradeV82(db);
       if (oldV < 83) await _upgradeV83(db);
       if (oldV < 84) await _upgradeV84(db, fromSchemaVersion: oldV);
+      if (oldV < 85) await _upgradeV85(db);
       return;
     }
 
@@ -404,19 +414,21 @@ class DatabaseMigration {
     // ------------------------------------------------------------
     if (oldV < 50) {
       final info = await db.rawQuery("PRAGMA table_info(purchases)");
-      final hasRemaining =
-          info.any((c) => (c['name'] as String) == 'remaining');
+      final hasRemaining = info.any(
+        (c) => (c['name'] as String) == 'remaining',
+      );
 
       if (!hasRemaining) {
         ReleaseDiagnostics.debug("Adding remaining column to purchases");
         await db.execute(
-            "ALTER TABLE purchases ADD COLUMN remaining REAL DEFAULT 0;");
+          "ALTER TABLE purchases ADD COLUMN remaining REAL DEFAULT 0;",
+        );
         ReleaseDiagnostics.debug("remaining added to purchases");
       } else {
         ReleaseDiagnostics.debug("remaining already exists -- skipping");
       }
     }
-// ------------------------------------------------------------
+    // ------------------------------------------------------------
     // Upgrade v51 -- finalize purchase & cheque schema
     // ------------------------------------------------------------
     if (oldV < 51) {
@@ -439,19 +451,22 @@ class DatabaseMigration {
 
       ReleaseDiagnostics.debug("Upgrade v51 applied successfully");
     }
-// ------------------------------------------------------------
+    // ------------------------------------------------------------
     // Upgrade V53 -- add remaining to purchase_invoices
-// ------------------------------------------------------------
+    // ------------------------------------------------------------
     if (oldV < 53) {
       final info = await db.rawQuery("PRAGMA table_info(purchase_invoices)");
-      final hasRemaining =
-          info.any((c) => (c['name'] as String) == 'remaining');
+      final hasRemaining = info.any(
+        (c) => (c['name'] as String) == 'remaining',
+      );
 
       if (!hasRemaining) {
         ReleaseDiagnostics.debug(
-            "ظ‹ع؛â€؛آ  Adding remaining column to purchase_invoicesأ¢â‚¬آ¦");
+          "ظ‹ع؛â€؛آ  Adding remaining column to purchase_invoicesأ¢â‚¬آ¦",
+        );
         await db.execute(
-            "ALTER TABLE purchase_invoices ADD COLUMN remaining REAL DEFAULT 0;");
+          "ALTER TABLE purchase_invoices ADD COLUMN remaining REAL DEFAULT 0;",
+        );
         ReleaseDiagnostics.debug("remaining added to purchase_invoices");
       } else {
         ReleaseDiagnostics.debug("remaining already exists -- skipping");
@@ -483,13 +498,15 @@ class DatabaseMigration {
       """);
 
       ReleaseDiagnostics.debug(
-          "Upgrade v59 authentication security schema applied");
+        "Upgrade v59 authentication security schema applied",
+      );
     }
 
     if (oldV < 60) {
       await _ensureCommercialConfigurationSchema(db);
       ReleaseDiagnostics.debug(
-          "Upgrade v60 commercial configuration schema applied");
+        "Upgrade v60 commercial configuration schema applied",
+      );
     }
 
     // SEC.001 must exist before SEC.005+ and First Owner bootstrap. Legacy
@@ -512,7 +529,8 @@ class DatabaseMigration {
     if (oldV < 66) {
       await OwnerBootstrapTables.ensure(db);
       ReleaseDiagnostics.debug(
-          "Upgrade v66 First Owner bootstrap schema applied");
+        "Upgrade v66 First Owner bootstrap schema applied",
+      );
     }
 
     // SEC.008 - canonical roles, permissions and enforcement catalog.
@@ -521,14 +539,16 @@ class DatabaseMigration {
       // P16 - roles/audit/backup guardian metadata. Additive and idempotent.
       await P16SecurityTables.ensure(db);
       ReleaseDiagnostics.debug(
-          "Upgrade v67 users/roles/permissions schema applied");
+        "Upgrade v67 users/roles/permissions schema applied",
+      );
     }
 
     // SEC.011 - runtime license projection + DB-level operational write guards.
     if (oldV < 68) {
       await LicenseRuntimeTables.ensure(db);
       ReleaseDiagnostics.debug(
-          "أ¢إ“â€¦ Upgrade v68 expiry/read-only lifecycle guards applied");
+        "أ¢إ“â€¦ Upgrade v68 expiry/read-only lifecycle guards applied",
+      );
     }
 
     // SEC.012 - periodic online validation + offline grace enforcement.
@@ -536,7 +556,8 @@ class DatabaseMigration {
       await LicenseValidationTables.ensure(db);
       await LicenseRuntimeTables.upgradeForSec012(db);
       ReleaseDiagnostics.debug(
-          "أ¢إ“â€¦ Upgrade v69 periodic validation/grace enforcement applied");
+        "أ¢إ“â€¦ Upgrade v69 periodic validation/grace enforcement applied",
+      );
     }
 
     await UserTables.createActivationCodesTable(db);
@@ -557,6 +578,7 @@ class DatabaseMigration {
     if (oldV < 82) await _upgradeV82(db);
     if (oldV < 83) await _upgradeV83(db);
     if (oldV < 84) await _upgradeV84(db, fromSchemaVersion: oldV);
+    if (oldV < 85) await _upgradeV85(db);
   }
 
   /// v77/v78 existed on two parallel branches. Check schema features, not only
@@ -574,6 +596,26 @@ class DatabaseMigration {
       await _upgradeV77(db);
       await _upgradeV78(db);
     });
+  }
+
+  /// v85 — commercial insurance architecture over the canonical financial core.
+  static Future<void> _upgradeV85(Database db) async {
+    await LicenseRuntimeTables.runTrustedMigrationBackfill(db, () async {
+      // The v84 sync trigger embeds SQL subqueries against party_roles.
+      // Drop/reinstall it around the party-role schema swap so SQLite never
+      // prepares an invalid dependency mid-migration.
+      await db.execute('DROP TRIGGER IF EXISTS trg_sync_v3_change_to_outbox');
+      await InsuranceCommercialTables.ensure(db);
+      await PartyTables.ensure(db);
+      await InsuranceCommercialTables.backfillLegacyCompanyParties(db);
+      await AccountingTables.ensureDefaultAccounts(db);
+      await UnifiedSyncTables.ensure(db);
+    });
+    await LicenseRuntimeTables.installOperationalTriggers(db);
+    await db.insert('schema_migrations', {
+      'version': 85,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   /// Joins commercial sync v83 with the independent insurance/cheque branch.
@@ -600,26 +642,20 @@ class DatabaseMigration {
         'commercial_sync_v3',
         'insurance_invoice_v77',
         'canonical_cheques_v78',
-        'parallel_lineages_unified_v84'
+        'parallel_lineages_unified_v84',
       ]) {
-        await db.insert(
-            'schema_feature_migrations',
-            {
-              'feature_key': feature,
-              'from_schema_version': fromSchemaVersion,
-              'applied_at': now,
-            },
-            conflictAlgorithm: ConflictAlgorithm.ignore);
+        await db.insert('schema_feature_migrations', {
+          'feature_key': feature,
+          'from_schema_version': fromSchemaVersion,
+          'applied_at': now,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert(
-        'schema_migrations',
-        {
-          'version': 84,
-          'applied_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('schema_migrations', {
+      'version': 84,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV83(Database db) async {
@@ -630,29 +666,28 @@ class DatabaseMigration {
     await UnifiedSyncTables.refreshFinancialPayloadsForMigration(db);
     await UnifiedSyncQueueService.resetInterruptedSending(db);
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert(
-      'schema_migrations',
-      {'version': 83, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 83,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV82(Database db) async {
     await InventoryTables.ensure(db);
     await SyncFoundationTables.ensure(db);
-    final oldContext = await db.query(SyncFoundationTables.context,
-        where: 'singleton_id=1', limit: 1);
-    await db.insert(
-        SyncFoundationTables.context,
-        {
-          'singleton_id': 1,
-          'user_id': null,
-          'origin': 'remote',
-          'remote_entity_type': '__migration__',
-          'remote_entity_uuid': '00000000-0000-4000-8000-000000000082',
-          'remote_revision': 1
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace);
+    final oldContext = await db.query(
+      SyncFoundationTables.context,
+      where: 'singleton_id=1',
+      limit: 1,
+    );
+    await db.insert(SyncFoundationTables.context, {
+      'singleton_id': 1,
+      'user_id': null,
+      'origin': 'remote',
+      'remote_entity_type': '__migration__',
+      'remote_entity_uuid': '00000000-0000-4000-8000-000000000082',
+      'remote_revision': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     try {
       await InventoryTables.backfillLegacyStock(db);
       await UnifiedSyncTables.ensure(db);
@@ -660,33 +695,35 @@ class DatabaseMigration {
       if (oldContext.isEmpty) {
         await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
       } else {
-        await db.insert(SyncFoundationTables.context,
-            Map<String, Object?>.from(oldContext.single),
-            conflictAlgorithm: ConflictAlgorithm.replace);
+        await db.insert(
+          SyncFoundationTables.context,
+          Map<String, Object?>.from(oldContext.single),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
     }
     await UnifiedSyncQueueService.resetInterruptedSending(db);
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert('schema_migrations',
-        {'version': 82, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('schema_migrations', {
+      'version': 82,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV81(Database db) async {
-    final oldContext = await db.query(SyncFoundationTables.context,
-        where: 'singleton_id=1', limit: 1);
-    await db.insert(
+    final oldContext = await db.query(
       SyncFoundationTables.context,
-      {
-        'singleton_id': 1,
-        'user_id': null,
-        'origin': 'remote',
-        'remote_entity_type': '__migration__',
-        'remote_entity_uuid': '00000000-0000-4000-8000-000000000081',
-        'remote_revision': 1,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'singleton_id=1',
+      limit: 1,
     );
+    await db.insert(SyncFoundationTables.context, {
+      'singleton_id': 1,
+      'user_id': null,
+      'origin': 'remote',
+      'remote_entity_type': '__migration__',
+      'remote_entity_uuid': '00000000-0000-4000-8000-000000000081',
+      'remote_revision': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     try {
       await PurchaseInvoicesTable.createAllTables(db);
       await PurchasePaymentsTable.createAllTables(db);
@@ -698,17 +735,18 @@ class DatabaseMigration {
       if (oldContext.isEmpty) {
         await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
       } else {
-        await db.insert(SyncFoundationTables.context,
-            Map<String, Object?>.from(oldContext.single),
-            conflictAlgorithm: ConflictAlgorithm.replace);
+        await db.insert(
+          SyncFoundationTables.context,
+          Map<String, Object?>.from(oldContext.single),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
     }
     await UnifiedSyncQueueService.resetInterruptedSending(db);
-    await db.insert(
-      'schema_migrations',
-      {'version': 81, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 81,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _backfillPurchaseSyncReferences(Database db) async {
@@ -741,20 +779,19 @@ class DatabaseMigration {
   }
 
   static Future<void> _upgradeV80(Database db) async {
-    final oldContext = await db.query(SyncFoundationTables.context,
-        where: 'singleton_id=1', limit: 1);
-    await db.insert(
+    final oldContext = await db.query(
       SyncFoundationTables.context,
-      {
-        'singleton_id': 1,
-        'user_id': null,
-        'origin': 'remote',
-        'remote_entity_type': '__migration__',
-        'remote_entity_uuid': '00000000-0000-4000-8000-000000000080',
-        'remote_revision': 1,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'singleton_id=1',
+      limit: 1,
     );
+    await db.insert(SyncFoundationTables.context, {
+      'singleton_id': 1,
+      'user_id': null,
+      'origin': 'remote',
+      'remote_entity_type': '__migration__',
+      'remote_entity_uuid': '00000000-0000-4000-8000-000000000080',
+      'remote_revision': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     try {
       await RepairTables.ensureRepairsSchema(db);
       await SyncFoundationTables.ensure(db);
@@ -773,11 +810,10 @@ class DatabaseMigration {
       }
     }
     await UnifiedSyncQueueService.resetInterruptedSending(db);
-    await db.insert(
-      'schema_migrations',
-      {'version': 80, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 80,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _backfillRepairSyncReferences(Database db) async {
@@ -788,7 +824,7 @@ class DatabaseMigration {
         'client_id',
         'vehicleNumber',
         'customer_party_uuid',
-        'vehicle_entity_uuid'
+        'vehicle_entity_uuid',
       ],
     );
     for (final row in rows) {
@@ -855,27 +891,30 @@ class DatabaseMigration {
         update['vehicle_entity_uuid'] = vehicleUuid;
       }
       if (update.isNotEmpty) {
-        await db
-            .update('repairs', update, where: 'id=?', whereArgs: [row['id']]);
+        await db.update(
+          'repairs',
+          update,
+          where: 'id=?',
+          whereArgs: [row['id']],
+        );
       }
     }
   }
 
   static Future<void> _upgradeV79(Database db) async {
-    final oldContext = await db.query(SyncFoundationTables.context,
-        where: 'singleton_id=1', limit: 1);
-    await db.insert(
+    final oldContext = await db.query(
       SyncFoundationTables.context,
-      {
-        'singleton_id': 1,
-        'user_id': null,
-        'origin': 'remote',
-        'remote_entity_type': '__migration__',
-        'remote_entity_uuid': '00000000-0000-4000-8000-000000000079',
-        'remote_revision': 1,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'singleton_id=1',
+      limit: 1,
     );
+    await db.insert(SyncFoundationTables.context, {
+      'singleton_id': 1,
+      'user_id': null,
+      'origin': 'remote',
+      'remote_entity_type': '__migration__',
+      'remote_entity_uuid': '00000000-0000-4000-8000-000000000079',
+      'remote_revision': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     try {
       await VehicleTables.ensure(db);
       await VehicleTables.backfillOwnerPartyUuid(db);
@@ -885,33 +924,30 @@ class DatabaseMigration {
       if (oldContext.isEmpty) {
         await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
       } else {
-        await db.insert(SyncFoundationTables.context,
-            Map<String, Object?>.from(oldContext.single),
-            conflictAlgorithm: ConflictAlgorithm.replace);
+        await db.insert(
+          SyncFoundationTables.context,
+          Map<String, Object?>.from(oldContext.single),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
     }
-    await db.insert(
-      'schema_migrations',
-      {'version': 79, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 79,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV78(Database db) async {
-    await LicenseRuntimeTables.runTrustedMigrationBackfill(
-      db,
-      () async {
-        await PartyTables.ensure(db);
-        await SyncFoundationTables.ensure(db);
-        await UnifiedSyncTables.ensure(db);
-      },
-    );
+    await LicenseRuntimeTables.runTrustedMigrationBackfill(db, () async {
+      await PartyTables.ensure(db);
+      await SyncFoundationTables.ensure(db);
+      await UnifiedSyncTables.ensure(db);
+    });
     await UnifiedSyncQueueService.resetInterruptedSending(db);
-    await db.insert(
-      'schema_migrations',
-      {'version': 78, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 78,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV77(Database db) async {
@@ -919,21 +955,19 @@ class DatabaseMigration {
     await UnifiedSyncTables.ensure(db);
     await UnifiedSyncQueueService.resetInterruptedSending(db);
     await InsuranceTables.createAllTables(db);
-    await db.insert(
-      'schema_migrations',
-      {'version': 77, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 77,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV76(Database db) async {
     await RawMaterialService.createTable(db);
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert(
-      'schema_migrations',
-      {'version': 76, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 76,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV75(Database db) async {
@@ -945,57 +979,48 @@ class DatabaseMigration {
     );
     await SyncFoundationTables.ensure(db);
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert(
-      'schema_migrations',
-      {'version': 75, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('schema_migrations', {
+      'version': 75,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV74(Database db) async {
     await CloudIdentityTables.ensure(db);
     await SyncFoundationTables.ensure(db);
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert('schema_migrations',
-        {'version': 74, 'applied_at': DateTime.now().toUtc().toIso8601String()},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('schema_migrations', {
+      'version': 74,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV73(Database db) async {
     await WorkshopOnboardingTables.ensure(db);
     await SyncFoundationTables.ensure(db);
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert(
-        'schema_migrations',
-        {
-          'version': 73,
-          'applied_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('schema_migrations', {
+      'version': 73,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV72(Database db) async {
     await IdentityAccountTables.ensure(db);
     await UserAuthorizationTables.refreshRoleCatalog(db);
     await LicenseRuntimeTables.installOperationalTriggers(db);
-    await db.insert(
-        'schema_migrations',
-        {
-          'version': 72,
-          'applied_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('schema_migrations', {
+      'version': 72,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   static Future<void> _upgradeV71(Database db) async {
     await LicenseRuntimeTables.upgradeBackupAvailability(db);
-    await db.insert(
-        'schema_migrations',
-        {
-          'version': 71,
-          'applied_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('schema_migrations', {
+      'version': 71,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   // Sqflite runs onCreate/onUpgrade in one transaction and advances
@@ -1010,15 +1035,14 @@ class DatabaseMigration {
     await PurchaseInvoicesTable.createAllTables(db);
     await PurchasePaymentsTable.createAllTables(db);
     await ensureStage1AccountingCoreCompatibilityBeforeValidation(db);
-    await db.execute('CREATE TABLE IF NOT EXISTS schema_migrations '
-        '(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
-    await db.insert(
-        'schema_migrations',
-        {
-          'version': 70,
-          'applied_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS schema_migrations '
+      '(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)',
+    );
+    await db.insert('schema_migrations', {
+      'version': 70,
+      'applied_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   // ============================================================
@@ -1119,21 +1143,53 @@ class DatabaseMigration {
 
   static Future<void> _ensureCommercialConfigurationSchema(Database db) async {
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'country_code', 'TEXT');
+      db,
+      'workshop_settings',
+      'country_code',
+      'TEXT',
+    );
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'base_currency_code', 'TEXT');
+      db,
+      'workshop_settings',
+      'base_currency_code',
+      'TEXT',
+    );
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'currency_symbol', 'TEXT');
+      db,
+      'workshop_settings',
+      'currency_symbol',
+      'TEXT',
+    );
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'currency_decimals', 'INTEGER');
+      db,
+      'workshop_settings',
+      'currency_decimals',
+      'INTEGER',
+    );
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'default_vat_rate', 'REAL');
+      db,
+      'workshop_settings',
+      'default_vat_rate',
+      'REAL',
+    );
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'prices_include_vat', 'INTEGER');
+      db,
+      'workshop_settings',
+      'prices_include_vat',
+      'INTEGER',
+    );
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'tax_registration_number', 'TEXT');
+      db,
+      'workshop_settings',
+      'tax_registration_number',
+      'TEXT',
+    );
     await _ensureCommercialColumn(
-        db, 'workshop_settings', 'document_locale', 'TEXT');
+      db,
+      'workshop_settings',
+      'document_locale',
+      'TEXT',
+    );
 
     await db.execute(r'''
       UPDATE workshop_settings
@@ -1159,7 +1215,11 @@ class DatabaseMigration {
     await _ensureCommercialColumn(db, 'purchase_invoices', 'vat_rate', 'REAL');
     await _ensureCommercialColumn(db, 'purchase_invoices', 'tax_mode', 'TEXT');
     await _ensureCommercialColumn(
-        db, 'vouchers', 'currency_decimals', 'INTEGER');
+      db,
+      'vouchers',
+      'currency_decimals',
+      'INTEGER',
+    );
 
     await db.execute(r'''
       UPDATE invoices
@@ -1218,18 +1278,14 @@ class DatabaseMigration {
     final now = DateTime.now().toIso8601String();
 
     Future<void> seed(String type, String prefix, int nextValue) async {
-      await db.insert(
-        'document_sequences',
-        {
-          'document_type': type,
-          'prefix': prefix,
-          'next_value': nextValue,
-          'pad_width': 4,
-          'reset_policy': 'NEVER',
-          'updated_at': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      await db.insert('document_sequences', {
+        'document_type': type,
+        'prefix': prefix,
+        'next_value': nextValue,
+        'pad_width': 4,
+        'reset_policy': 'NEVER',
+        'updated_at': now,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
 
     final p = await db.rawQuery(r'''
@@ -1464,10 +1520,8 @@ class DatabaseMigration {
 
   // ============================================================
   static Future<void> _validateDatabase(Database db) async {
-    final version = Sqflite.firstIntValue(
-          await db.rawQuery('PRAGMA user_version'),
-        ) ??
-        0;
+    final version =
+        Sqflite.firstIntValue(await db.rawQuery('PRAGMA user_version')) ?? 0;
 
     if (version != DatabaseConstants.dbVersion) {
       throw StateError(
@@ -1542,9 +1596,7 @@ class DatabaseMigration {
   // Destructive reset is developer-only. Backup/restore must never call it.
   static Future<void> resetDatabase() async {
     if (!kDebugMode) {
-      throw StateError(
-        'Database reset is disabled in production builds.',
-      );
+      throw StateError('Database reset is disabled in production builds.');
     }
 
     await closeDatabase();
@@ -1559,7 +1611,8 @@ class DatabaseMigration {
   // ============================================================
   static Future<void> _debugDump(Database db) async {
     final tables = await db.rawQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    );
     ReleaseDiagnostics.debug('DB Tables:');
     for (final t in tables) {
       final name = t['name'] as String;
@@ -1573,10 +1626,12 @@ class DatabaseMigration {
   // ============================================================
   static Future<void> _fixLinkedPaymentIds(Database db) async {
     final info = await db.rawQuery("PRAGMA table_info(cheques)");
-    final hasCorrect =
-        info.any((c) => (c['name'] as String) == 'linked_payment_ids');
-    final hasOld =
-        info.any((c) => (c['name'] as String) == 'linked_payment_id');
+    final hasCorrect = info.any(
+      (c) => (c['name'] as String) == 'linked_payment_ids',
+    );
+    final hasOld = info.any(
+      (c) => (c['name'] as String) == 'linked_payment_id',
+    );
 
     if (hasCorrect) return;
 
@@ -1584,9 +1639,11 @@ class DatabaseMigration {
 
     if (hasOld) {
       await db.execute(
-          "ALTER TABLE cheques RENAME COLUMN linked_payment_id TO linked_payment_ids;");
+        "ALTER TABLE cheques RENAME COLUMN linked_payment_id TO linked_payment_ids;",
+      );
       ReleaseDiagnostics.debug(
-          "أ¢إ“â€‌ ط·آ¥ط·آ¹ط·آ§ط·آ¯ط·آ© ط·ع¾ط·آ³ط¸â€¦ط¸ظ¹ط·آ© ط·آ§ط¸â€‍ط·آ¹ط¸â€¦ط¸ث†ط·آ¯ ط·ع¾ط¸â€¦ط·ع¾ ط·آ¨ط¸â€ ط·آ¬ط·آ§ط·آ­");
+        "أ¢إ“â€‌ ط·آ¥ط·آ¹ط·آ§ط·آ¯ط·آ© ط·ع¾ط·آ³ط¸â€¦ط¸ظ¹ط·آ© ط·آ§ط¸â€‍ط·آ¹ط¸â€¦ط¸ث†ط·آ¯ ط·ع¾ط¸â€¦ط·ع¾ ط·آ¨ط¸â€ ط·آ¬ط·آ§ط·آ­",
+      );
       return;
     }
 
@@ -1603,8 +1660,8 @@ class DatabaseMigration {
   }
 
   // ============================================================
-// Ensure voucher compatibility columns.
-// ============================================================
+  // Ensure voucher compatibility columns.
+  // ============================================================
   static Future<void> _ensureVoucherExtraColumns(Database db) async {
     final cols = await db.rawQuery("PRAGMA table_info(vouchers)");
 

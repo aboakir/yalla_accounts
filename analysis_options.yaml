@@ -11,6 +11,7 @@ analyzer:
   exclude:
     - _audit_index/**
     - build/**
+    - EVIDENCE/**
   errors:
     dead_code: ignore
     deprecated_member_use: ignore

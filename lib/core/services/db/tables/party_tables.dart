@@ -9,16 +9,9 @@ import 'package:sqflite/sqflite.dart';
 class PartyTables {
   PartyTables._();
 
-  static const supportedRoles = <String>{
-    'CUSTOMER',
-    'SUPPLIER',
-    'EMPLOYEE',
-  };
+  static const supportedRoles = <String>{'CUSTOMER', 'SUPPLIER', 'EMPLOYEE'};
 
-  static Future<bool> _tableExists(
-    DatabaseExecutor db,
-    String table,
-  ) async {
+  static Future<bool> _tableExists(DatabaseExecutor db, String table) async {
     final rows = await db.rawQuery(
       "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
       [table],
@@ -35,8 +28,12 @@ class PartyTables {
     return rows.any((row) => row['name']?.toString() == column);
   }
 
-  static Future<void> _ensureColumn(DatabaseExecutor db, String table,
-      String column, String definition) async {
+  static Future<void> _ensureColumn(
+    DatabaseExecutor db,
+    String table,
+    String column,
+    String definition,
+  ) async {
     if (!await _columnExists(db, table, column)) {
       await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
     }
@@ -85,20 +82,25 @@ class PartyTables {
     await _ensureColumn(db, 'parties', 'email', 'TEXT');
     await _ensureColumn(db, 'parties', 'address', 'TEXT');
     await _ensureColumn(db, 'parties', 'notes', 'TEXT');
-    await _ensureColumn(db, 'parties', 'role_codes',
-        "TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(role_codes))");
+    await _ensureColumn(
+      db,
+      'parties',
+      'role_codes',
+      "TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(role_codes))",
+    );
     await db.execute('''CREATE TABLE IF NOT EXISTS party_projection_guard(
       singleton_id INTEGER PRIMARY KEY CHECK(singleton_id=1),
       suppressed INTEGER NOT NULL DEFAULT 0 CHECK(suppressed IN (0,1))
     )''');
-    await db.insert(
-        'party_projection_guard', {'singleton_id': 1, 'suppressed': 0},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('party_projection_guard', {
+      'singleton_id': 1,
+      'suppressed': 0,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS party_roles(
         party_id TEXT NOT NULL REFERENCES parties(id),
-        role TEXT NOT NULL CHECK(role IN ('CUSTOMER','SUPPLIER','EMPLOYEE')),
+        role TEXT NOT NULL CHECK(role IN ('CUSTOMER','SUPPLIER','EMPLOYEE','INSURED','INSURANCE_COMPANY','PRODUCER','PROSPECT')),
         legacy_id TEXT NOT NULL,
         created_at TEXT NOT NULL,
         PRIMARY KEY(role, legacy_id),
@@ -165,26 +167,34 @@ class PartyTables {
   }
 
   static Future<void> setLegacyProjectionSuppressed(
-      DatabaseExecutor db, bool suppressed) async {
-    await db.update(
-        'party_projection_guard', {'suppressed': suppressed ? 1 : 0},
-        where: 'singleton_id=1');
+    DatabaseExecutor db,
+    bool suppressed,
+  ) async {
+    await db.update('party_projection_guard', {
+      'suppressed': suppressed ? 1 : 0,
+    }, where: 'singleton_id=1');
   }
 
-  static Future<void> _refreshRoleCodes(DatabaseExecutor db,
-      [String? partyId]) async {
-    await db.rawUpdate('''UPDATE parties SET role_codes=COALESCE((
+  static Future<void> _refreshRoleCodes(
+    DatabaseExecutor db, [
+    String? partyId,
+  ]) async {
+    await db.rawUpdate(
+      '''UPDATE parties SET role_codes=COALESCE((
       SELECT json_group_array(role) FROM (SELECT role FROM party_roles
         WHERE party_id=parties.id ORDER BY role)
     ),'[]'), updated_at=COALESCE(updated_at,datetime('now'))
     WHERE (? IS NULL OR id=?) AND role_codes IS NOT COALESCE((
       SELECT json_group_array(role) FROM (SELECT role FROM party_roles
         WHERE party_id=parties.id ORDER BY role)
-    ),'[]')''', [partyId, partyId]);
+    ),'[]')''',
+      [partyId, partyId],
+    );
   }
 
   static Future<void> _installRoleProjectionTriggers(
-      DatabaseExecutor db) async {
+    DatabaseExecutor db,
+  ) async {
     for (final name in [
       'trg_party_roles_projection_insert',
       'trg_party_roles_projection_update',
@@ -217,8 +227,10 @@ class PartyTables {
   static Future<void> _installMasterDataTriggers(DatabaseExecutor db) async {
     const guard =
         "(SELECT suppressed FROM party_projection_guard WHERE singleton_id=1)=0";
-    for (final entry
-        in {'clients': 'CUSTOMER', 'suppliers': 'SUPPLIER'}.entries) {
+    for (final entry in {
+      'clients': 'CUSTOMER',
+      'suppliers': 'SUPPLIER',
+    }.entries) {
       if (!await _tableExists(db, entry.key)) continue;
       await db.execute('DROP TRIGGER IF EXISTS trg_party_${entry.key}_rename');
       await db.execute('DROP TRIGGER IF EXISTS trg_party_${entry.key}_delete');
@@ -234,30 +246,36 @@ class PartyTables {
     }
     if (await _tableExists(db, 'clients')) {
       await db.execute('DROP TRIGGER IF EXISTS trg_party_customer_insert');
-      await db.execute('''CREATE TRIGGER trg_party_customer_insert
+      await db.execute(
+        '''CREATE TRIGGER trg_party_customer_insert
         AFTER INSERT ON clients WHEN $guard BEGIN
         INSERT OR IGNORE INTO parties(id,display_name,role_codes,created_at)
           VALUES('CUSTOMER:'||CAST(NEW.id AS TEXT),NEW.name,json_array('CUSTOMER'),datetime('now'));
         INSERT OR IGNORE INTO party_roles(party_id,role,legacy_id,created_at)
-          VALUES('CUSTOMER:'||CAST(NEW.id AS TEXT),'CUSTOMER',CAST(NEW.id AS TEXT),datetime('now')); END''');
+          VALUES('CUSTOMER:'||CAST(NEW.id AS TEXT),'CUSTOMER',CAST(NEW.id AS TEXT),datetime('now')); END''',
+      );
     }
     if (await _tableExists(db, 'suppliers')) {
       await db.execute('DROP TRIGGER IF EXISTS trg_party_supplier_insert');
-      await db.execute('''CREATE TRIGGER trg_party_supplier_insert
+      await db.execute(
+        '''CREATE TRIGGER trg_party_supplier_insert
         AFTER INSERT ON suppliers WHEN $guard BEGIN
         INSERT OR IGNORE INTO parties(id,display_name,role_codes,created_at)
           VALUES('SUPPLIER:'||CAST(NEW.id AS TEXT),NEW.name,json_array('SUPPLIER'),datetime('now'));
         INSERT OR IGNORE INTO party_roles(party_id,role,legacy_id,created_at)
-          VALUES('SUPPLIER:'||CAST(NEW.id AS TEXT),'SUPPLIER',CAST(NEW.id AS TEXT),datetime('now')); END''');
+          VALUES('SUPPLIER:'||CAST(NEW.id AS TEXT),'SUPPLIER',CAST(NEW.id AS TEXT),datetime('now')); END''',
+      );
     }
     if (await _tableExists(db, 'employees')) {
       await db.execute('DROP TRIGGER IF EXISTS trg_party_employee_insert');
-      await db.execute('''CREATE TRIGGER trg_party_employee_insert
+      await db.execute(
+        '''CREATE TRIGGER trg_party_employee_insert
         AFTER INSERT ON employees WHEN $guard BEGIN
         INSERT OR IGNORE INTO parties(id,display_name,role_codes,created_at)
           VALUES('EMPLOYEE:'||NEW.id,NEW.full_name,json_array('EMPLOYEE'),datetime('now'));
         INSERT OR IGNORE INTO party_roles(party_id,role,legacy_id,created_at)
-          VALUES('EMPLOYEE:'||NEW.id,'EMPLOYEE',NEW.id,datetime('now')); END''');
+          VALUES('EMPLOYEE:'||NEW.id,'EMPLOYEE',NEW.id,datetime('now')); END''',
+      );
     }
   }
 

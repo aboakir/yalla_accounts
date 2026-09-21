@@ -62,25 +62,31 @@ class AccountingTables {
 
   static Future<void> _ensureAccountsIndexes(DatabaseExecutor db) async {
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_accounts_type ON accounts(type);');
+      'CREATE INDEX IF NOT EXISTS idx_accounts_type ON accounts(type);',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_accounts_name ON accounts(LOWER(name));');
+      'CREATE INDEX IF NOT EXISTS idx_accounts_name ON accounts(LOWER(name));',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_accounts_code ON accounts(code);');
+      'CREATE INDEX IF NOT EXISTS idx_accounts_code ON accounts(code);',
+    );
     final info = await db.rawQuery('PRAGMA table_info(accounts)');
     final columns = info.map((row) => row['name']?.toString()).toSet();
     if (columns.contains('parent_id')) {
       await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_accounts_parent ON accounts(parent_id);');
+        'CREATE INDEX IF NOT EXISTS idx_accounts_parent ON accounts(parent_id);',
+      );
     }
     if (columns.contains('report_class')) {
       await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_accounts_report_class ON accounts(report_class);');
+        'CREATE INDEX IF NOT EXISTS idx_accounts_report_class ON accounts(report_class);',
+      );
     }
     if (columns.contains('is_active') && columns.contains('is_postable')) {
-      await db
-          .execute('CREATE INDEX IF NOT EXISTS idx_accounts_active_postable '
-              'ON accounts(is_active, is_postable);');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_accounts_active_postable '
+        'ON accounts(is_active, is_postable);',
+      );
     }
   }
 
@@ -160,20 +166,30 @@ class AccountingTables {
 
   static Future<void> _ensureGlEntriesIndexes(DatabaseExecutor db) async {
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_entries_date ON gl_entries(date);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_entries_date ON gl_entries(date);',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_entries_source ON gl_entries(source, source_id);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_entries_source ON gl_entries(source, source_id);',
+    );
     await db.execute(
-        'CREATE UNIQUE INDEX IF NOT EXISTS uq_gl_source ON gl_entries(source, source_id);');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_gl_entries_source_number '
-        'ON gl_entries(source_number);');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_gl_entries_reversal_of '
-        'ON gl_entries(reversal_of);');
-    await db.execute('CREATE INDEX IF NOT EXISTS idx_gl_entries_created_by '
-        'ON gl_entries(created_by);');
-    await db
-        .execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_gl_entries_reversal_of '
-            'ON gl_entries(reversal_of) WHERE reversal_of IS NOT NULL;');
+      'CREATE UNIQUE INDEX IF NOT EXISTS uq_gl_source ON gl_entries(source, source_id);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_gl_entries_source_number '
+      'ON gl_entries(source_number);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_gl_entries_reversal_of '
+      'ON gl_entries(reversal_of);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_gl_entries_created_by '
+      'ON gl_entries(created_by);',
+    );
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS uq_gl_entries_reversal_of '
+      'ON gl_entries(reversal_of) WHERE reversal_of IS NOT NULL;',
+    );
   }
 
   // 📋 جدول بنود القيود
@@ -201,17 +217,23 @@ class AccountingTables {
 
   static Future<void> _ensureGlLinesIndexes(DatabaseExecutor db) async {
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_lines_entry ON gl_lines(entry_id);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_lines_entry ON gl_lines(entry_id);',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_lines_account ON gl_lines(account_id);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_lines_account ON gl_lines(account_id);',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_lines_party ON gl_lines(party_type, party_id);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_lines_party ON gl_lines(party_type, party_id);',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_lines_invoice ON gl_lines(invoice_id);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_lines_invoice ON gl_lines(invoice_id);',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_lines_repair ON gl_lines(repair_id);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_lines_repair ON gl_lines(repair_id);',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_gl_lines_cheque ON gl_lines(cheque_id);');
+      'CREATE INDEX IF NOT EXISTS idx_gl_lines_cheque ON gl_lines(cheque_id);',
+    );
   }
 
   // 📔 الجداول القديمة (للتوافق)
@@ -373,14 +395,13 @@ class AccountingTables {
     }
   }
 
-  static Future<void> ensureChartOfAccountsSchema(
-    DatabaseExecutor db,
-  ) async {
+  static Future<void> ensureChartOfAccountsSchema(DatabaseExecutor db) async {
     await ensureColumnOn(
       db: db,
       table: 'accounts',
       column: 'report_class',
-      type: "TEXT CHECK(report_class IN "
+      type:
+          "TEXT CHECK(report_class IN "
           "('ASSET','LIABILITY','EQUITY','REVENUE',"
           "'COGS','EXPENSE','OTHER_INCOME','OTHER_EXPENSE'))",
     );
@@ -723,11 +744,12 @@ class AccountingTables {
         END;
       """);
     }
-    await db
-        .execute("""CREATE TRIGGER IF NOT EXISTS trg_accounts_child_type_update
+    await db.execute(
+      """CREATE TRIGGER IF NOT EXISTS trg_accounts_child_type_update
       BEFORE UPDATE OF type ON accounts WHEN EXISTS
         (SELECT 1 FROM accounts WHERE parent_id=OLD.id AND UPPER(type)<>UPPER(NEW.type))
-      BEGIN SELECT RAISE(ABORT,'ACCOUNT_CHILD_TYPE'); END;""");
+      BEGIN SELECT RAISE(ABORT,'ACCOUNT_CHILD_TYPE'); END;""",
+    );
     await db.execute("""CREATE TRIGGER IF NOT EXISTS trg_accounts_parent_delete
       BEFORE DELETE ON accounts WHEN EXISTS(SELECT 1 FROM accounts WHERE parent_id=OLD.id)
       BEGIN SELECT RAISE(ABORT,'ACCOUNT_HAS_CHILDREN'); END;""");
@@ -746,26 +768,44 @@ class AccountingTables {
   }
 
   static Future<void> _ensureGlLinesInvoiceRepairCols(
-      DatabaseExecutor db) async {
+    DatabaseExecutor db,
+  ) async {
     await ensureColumnOn(
-        db: db, table: 'gl_lines', column: 'invoice_id', type: 'TEXT');
+      db: db,
+      table: 'gl_lines',
+      column: 'invoice_id',
+      type: 'TEXT',
+    );
     await ensureColumnOn(
-        db: db, table: 'gl_lines', column: 'repair_id', type: 'TEXT');
+      db: db,
+      table: 'gl_lines',
+      column: 'repair_id',
+      type: 'TEXT',
+    );
     await ensureColumnOn(
-        db: db, table: 'gl_lines', column: 'reference_id', type: 'TEXT');
+      db: db,
+      table: 'gl_lines',
+      column: 'reference_id',
+      type: 'TEXT',
+    );
     await ensureColumnOn(
-        db: db, table: 'gl_lines', column: 'reference_type', type: 'TEXT');
+      db: db,
+      table: 'gl_lines',
+      column: 'reference_type',
+      type: 'TEXT',
+    );
     await ensureColumnOn(
-        db: db, table: 'gl_lines', column: 'created_at', type: 'TEXT');
+      db: db,
+      table: 'gl_lines',
+      column: 'created_at',
+      type: 'TEXT',
+    );
   }
 
   // ============================================================
   // P1.006 — GL metadata + immutable posted-ledger protection
   // ============================================================
-  static Future<bool> _tableExists(
-    DatabaseExecutor db,
-    String table,
-  ) async {
+  static Future<bool> _tableExists(DatabaseExecutor db, String table) async {
     final rows = await db.rawQuery(
       "SELECT 1 FROM sqlite_master "
       "WHERE type='table' AND name=? LIMIT 1",
@@ -774,9 +814,7 @@ class AccountingTables {
     return rows.isNotEmpty;
   }
 
-  static Future<void> ensureGlCoreMetadataSchema(
-    DatabaseExecutor db,
-  ) async {
+  static Future<void> ensureGlCoreMetadataSchema(DatabaseExecutor db) async {
     await ensureColumnOn(
       db: db,
       table: 'gl_entries',
@@ -935,109 +973,133 @@ class AccountingTables {
         'code': '1000',
         'name': 'الصندوق',
         'type': 'ASSET',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '1010',
         'name': 'البنك',
         'type': 'ASSET',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '1200',
         'name': 'ذمم العملاء',
         'type': 'ASSET',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '1120',
         'name': 'سلف الموظفين',
         'type': 'ASSET',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '1400',
         'name': 'مخزون/مشتريات',
         'type': 'ASSET',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '1410',
         'name': 'مخزون قطع سيارات',
         'type': 'ASSET',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '2100',
         'name': 'ذمم الموردين (عام)',
         'type': 'LIABILITY',
-        'normal_balance': 'CREDIT'
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '2200',
         'name': 'ذمم الموردين الفرعية',
         'type': 'LIABILITY',
-        'normal_balance': 'CREDIT'
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '2140',
         'name': 'مستحقات موظفين',
         'type': 'LIABILITY',
-        'normal_balance': 'CREDIT'
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '2145',
         'name': 'اقتطاعات مستحقة',
         'type': 'LIABILITY',
-        'normal_balance': 'CREDIT'
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '2105',
         'name': 'ضريبة قيمة مضافة مستحقة',
         'type': 'LIABILITY',
-        'normal_balance': 'CREDIT'
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '3100',
         'name': 'أرصدة افتتاحية',
         'type': 'EQUITY',
-        'normal_balance': 'CREDIT'
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '4000',
         'name': 'الإيرادات',
         'type': 'REVENUE',
-        'normal_balance': 'CREDIT'
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '5005',
         'name': 'مشتريات',
         'type': 'EXPENSE',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '5100',
         'name': 'مصروف رواتب',
         'type': 'EXPENSE',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '5310',
         'name': 'مصروف مواد خام مستهلكة',
         'type': 'EXPENSE',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
       {
         'code': '5350',
         'name': 'مصروف عدة كراج وأدوات',
         'type': 'EXPENSE',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
+      },
+      {
+        'code': '4010',
+        'name': 'إيرادات بوالص التأمين',
+        'type': 'REVENUE',
+        'normal_balance': 'CREDIT',
+      },
+      {
+        'code': '5010',
+        'name': 'تكلفة شراء بوالص التأمين',
+        'type': 'EXPENSE',
+        'normal_balance': 'DEBIT',
+      },
+      {
+        'code': '5030',
+        'name': 'تكاليف تأمين مباشرة',
+        'type': 'EXPENSE',
+        'normal_balance': 'DEBIT',
+      },
+      {
+        'code': '2190',
+        'name': 'تكاليف تأمين مستحقة',
+        'type': 'LIABILITY',
+        'normal_balance': 'CREDIT',
       },
       {
         'code': '5900',
         'name': 'مصروفات أخرى',
         'type': 'EXPENSE',
-        'normal_balance': 'DEBIT'
+        'normal_balance': 'DEBIT',
       },
     ];
 
@@ -1047,7 +1109,9 @@ class AccountingTables {
   }
 
   static Future<void> _ensureAccount(
-      DatabaseExecutor db, Map<String, String> account) async {
+    DatabaseExecutor db,
+    Map<String, String> account,
+  ) async {
     final existing = await db.query(
       'accounts',
       where: 'code = ?',
@@ -1068,13 +1132,14 @@ class AccountingTables {
     }
 
     await SyncFoundationService.writeOn(
-        db,
-        (syncTxn) => syncTxn.insert('accounts', {
-              ...account,
-              'report_class': _reportClassForType(account['type']!),
-              'is_system': 1,
-              'created_at': DateTime.now().toIso8601String(),
-            }));
+      db,
+      (syncTxn) => syncTxn.insert('accounts', {
+        ...account,
+        'report_class': _reportClassForType(account['type']!),
+        'is_system': 1,
+        'created_at': DateTime.now().toIso8601String(),
+      }),
+    );
   }
 
   // 🎯 واجهات المحاسبة الرئيسية
@@ -1265,14 +1330,13 @@ class AccountingTables {
       'cheque_id': chequeId,
       'reference_id': referenceId,
       'reference_type': referenceType,
-      'created_at':
-          (createdAt ?? DateTime.now().toUtc()).toUtc().toIso8601String(),
+      'created_at': (createdAt ?? DateTime.now().toUtc())
+          .toUtc()
+          .toIso8601String(),
     });
   }
 
-  static Future<bool> _accountsHaveCoaMetadata(
-    DatabaseExecutor db,
-  ) async {
+  static Future<bool> _accountsHaveCoaMetadata(DatabaseExecutor db) async {
     if (!await _tableExists(db, 'accounts')) return false;
 
     final info = await db.rawQuery('PRAGMA table_info(accounts)');
@@ -1333,9 +1397,9 @@ class AccountingTables {
     }
   }
 
-// ============================================================================
-// 🔥 النسخة النهائية — بدون أي DB جديدة — تعتمد فقط على نفس الـ txn
-// ============================================================================
+  // ============================================================================
+  // 🔥 النسخة النهائية — بدون أي DB جديدة — تعتمد فقط على نفس الـ txn
+  // ============================================================================
   static Future<int> _postEntryGLOn({
     required DatabaseExecutor db,
     required DateTime date,
@@ -1351,25 +1415,9 @@ class AccountingTables {
   }) async {
     if (db is Database) {
       return SyncFoundationService.transaction(
-          db,
-          (txn) => _writeEntryGLOn(
-              db: txn,
-              date: date,
-              ref: ref,
-              source: source,
-              sourceId: sourceId,
-              sourceNumber: sourceNumber,
-              postingVersion: postingVersion,
-              reversalOf: reversalOf,
-              createdBy: createdBy,
-              note: note,
-              lines: lines));
-    }
-    final savepoint = 'gl_post_${++_postingSavepoint}';
-    await db.execute('SAVEPOINT $savepoint');
-    try {
-      final id = await _writeEntryGLOn(
-          db: db,
+        db,
+        (txn) => _writeEntryGLOn(
+          db: txn,
           date: date,
           ref: ref,
           source: source,
@@ -1379,7 +1427,26 @@ class AccountingTables {
           reversalOf: reversalOf,
           createdBy: createdBy,
           note: note,
-          lines: lines);
+          lines: lines,
+        ),
+      );
+    }
+    final savepoint = 'gl_post_${++_postingSavepoint}';
+    await db.execute('SAVEPOINT $savepoint');
+    try {
+      final id = await _writeEntryGLOn(
+        db: db,
+        date: date,
+        ref: ref,
+        source: source,
+        sourceId: sourceId,
+        sourceNumber: sourceNumber,
+        postingVersion: postingVersion,
+        reversalOf: reversalOf,
+        createdBy: createdBy,
+        note: note,
+        lines: lines,
+      );
       await db.execute('RELEASE SAVEPOINT $savepoint');
       return id;
     } catch (_) {
@@ -1455,8 +1522,10 @@ class AccountingTables {
       final role = PartyTables.canonicalRole(line['party_type']);
       if (PartyTables.supportedRoles.contains(role)) {
         line['party_type'] = role;
-        line['party_id'] =
-            PartyTables.canonicalLegacyId(role, line['party_id']);
+        line['party_id'] = PartyTables.canonicalLegacyId(
+          role,
+          line['party_id'],
+        );
       }
       return <String>[
         nullableValue(line['account_id']),
@@ -1511,7 +1580,8 @@ class AccountingTables {
               note.trim().isNotEmpty &&
               existingHead['note'] != note.trim())) {
         throw StateError(
-            'Posting identity reused with different date/reference/description');
+          'Posting identity reused with different date/reference/description',
+        );
       }
 
       if (sourceNumber != null &&
@@ -1590,9 +1660,16 @@ class AccountingTables {
       throw StateError('يجب تسجيل الدخول قبل ترحيل قيد محاسبي');
     }
     final resolvedRef = GlPostingPolicy.reference(
-        canonicalSource, cleanSourceId, ref, sourceNumber);
-    final resolvedNote =
-        GlPostingPolicy.description(canonicalSource, resolvedRef, note);
+      canonicalSource,
+      cleanSourceId,
+      ref,
+      sourceNumber,
+    );
+    final resolvedNote = GlPostingPolicy.description(
+      canonicalSource,
+      resolvedRef,
+      note,
+    );
     final header = <String, Object?>{
       'date': date.toIso8601String(),
       'ref': resolvedRef,
@@ -1621,21 +1698,18 @@ class AccountingTables {
     }
 
     for (final line in normalizedLines) {
-      await db.insert(
-        'gl_lines',
-        {
-          'entry_id': entryId,
-          'account_id': line['account_id'],
-          'debit': (line['debit'] as num?)?.toDouble() ?? 0,
-          'credit': (line['credit'] as num?)?.toDouble() ?? 0,
-          'party_type': line['party_type'],
-          'party_id': line['party_id'],
-          'invoice_id': line['invoice_id'],
-          'repair_id': line['repair_id'],
-          'cheque_id': line['cheque_id'],
-          'created_at': DateTime.now().toIso8601String(),
-        },
-      );
+      await db.insert('gl_lines', {
+        'entry_id': entryId,
+        'account_id': line['account_id'],
+        'debit': (line['debit'] as num?)?.toDouble() ?? 0,
+        'credit': (line['credit'] as num?)?.toDouble() ?? 0,
+        'party_type': line['party_type'],
+        'party_id': line['party_id'],
+        'invoice_id': line['invoice_id'],
+        'repair_id': line['repair_id'],
+        'cheque_id': line['cheque_id'],
+        'created_at': DateTime.now().toIso8601String(),
+      });
     }
 
     await AccountingIntegrityTables.recordPostingEvent(
@@ -1661,7 +1735,9 @@ class AccountingTables {
       _ensureClientAccountOn(db, clientId);
 
   static Future<int> _ensureClientAccountOn(
-      DatabaseExecutor db, int clientId) async {
+    DatabaseExecutor db,
+    int clientId,
+  ) async {
     final client = await db.query(
       'clients',
       where: 'id = ?',
@@ -1699,8 +1775,9 @@ class AccountingTables {
 
     final linkedRaw = client.first['account_id'];
     if (linkedRaw != null) {
-      final linkedId =
-          linkedRaw is int ? linkedRaw : int.parse(linkedRaw.toString());
+      final linkedId = linkedRaw is int
+          ? linkedRaw
+          : int.parse(linkedRaw.toString());
       final linked = await db.query(
         'accounts',
         where: 'id = ?',
@@ -1747,7 +1824,9 @@ class AccountingTables {
       }
 
       accountId = await SyncFoundationService.writeOn(
-          db, (syncTxn) => syncTxn.insert('accounts', values));
+        db,
+        (syncTxn) => syncTxn.insert('accounts', values),
+      );
     }
 
     await db.update(
@@ -1765,8 +1844,15 @@ class AccountingTables {
     return await _ensureSupplierAccountOn(db, supplierId);
   }
 
+  static Future<int> ensureSupplierAccountOn(
+    DatabaseExecutor db,
+    String supplierId,
+  ) => _ensureSupplierAccountOn(db, supplierId);
+
   static Future<int> _ensureSupplierAccountOn(
-      DatabaseExecutor db, String supplierId) async {
+    DatabaseExecutor db,
+    String supplierId,
+  ) async {
     final raw = supplierId.trim().toUpperCase();
     final numeric = raw.startsWith('S') ? raw.substring(1) : raw;
     final parsed = int.tryParse(numeric);
@@ -1837,7 +1923,9 @@ class AccountingTables {
     }
 
     return SyncFoundationService.writeOn(
-        db, (syncTxn) => syncTxn.insert('accounts', values));
+      db,
+      (syncTxn) => syncTxn.insert('accounts', values),
+    );
   }
 
   // 🎯 فاتورة GL
@@ -1935,12 +2023,7 @@ class AccountingTables {
     final db = await DBService.database;
     return SyncFoundationService.transaction(
       db,
-      (txn) => reverseEntryGLOn(
-        txn,
-        entryId,
-        createdBy: createdBy,
-        note: note,
-      ),
+      (txn) => reverseEntryGLOn(txn, entryId, createdBy: createdBy, note: note),
     );
   }
 
@@ -2026,7 +2109,9 @@ class AccountingTables {
 
   // 🔧 أدوات مساعدة
   static Future<int?> _getAccountIdByCode(
-      DatabaseExecutor db, String code) async {
+    DatabaseExecutor db,
+    String code,
+  ) async {
     final result = await db.query(
       'accounts',
       columns: ['id'],
@@ -2052,7 +2137,9 @@ class AccountingTables {
 
   // 🎯 أضف هذه الدوال المفقودة للتوافق مع db_service.dart
   static Future<int?> getGlEntryIdBySource(
-      String source, String sourceId) async {
+    String source,
+    String sourceId,
+  ) async {
     final db = await DBService.database;
     final result = await db.query(
       'gl_entries',
@@ -2065,7 +2152,9 @@ class AccountingTables {
   }
 
   static Future<int?> getClientIdForRepair(
-      DatabaseExecutor txn, String repairId) async {
+    DatabaseExecutor txn,
+    String repairId,
+  ) async {
     final result = await txn.query(
       'repairs',
       columns: ['client_id'],
@@ -2125,15 +2214,16 @@ class AccountingTables {
     }
 
     return SyncFoundationService.writeOn(
-        db,
-        (syncTxn) => syncTxn.insert('accounts', {
-              'code': normalizedCode,
-              'name': name,
-              'type': normalizedType,
-              'normal_balance': normalizedBalance,
-              'report_class': _reportClassForType(normalizedType),
-              'created_at': DateTime.now().toIso8601String(),
-            }));
+      db,
+      (syncTxn) => syncTxn.insert('accounts', {
+        'code': normalizedCode,
+        'name': name,
+        'type': normalizedType,
+        'normal_balance': normalizedBalance,
+        'report_class': _reportClassForType(normalizedType),
+        'created_at': DateTime.now().toIso8601String(),
+      }),
+    );
   }
 
   static Future<void> ensureDefaultAccountsExist() async {
@@ -2296,8 +2386,10 @@ class AccountingTables {
   }) async {
     final db = await DBService.database;
     final advSubId = await ensureEmployeeAdvanceSubAccount(employeeId);
-    final cashOrBankId =
-        await _getAccountIdByCode(db, viaBank ? '1010' : '1000');
+    final cashOrBankId = await _getAccountIdByCode(
+      db,
+      viaBank ? '1010' : '1000',
+    );
 
     final lines = <Map<String, Object?>>[
       {
@@ -2335,23 +2427,28 @@ class AccountingTables {
     final db = await DBService.database;
     await _getAccountIdByCode(db, '1120');
     final code = '1120.E$employeeId';
-    final result = await db.query('accounts',
-        where: 'code=?', whereArgs: [code], limit: 1);
+    final result = await db.query(
+      'accounts',
+      where: 'code=?',
+      whereArgs: [code],
+      limit: 1,
+    );
     if (result.isNotEmpty) return result.first['id'] as int;
 
     return await SyncFoundationService.writeOn(
-        db,
-        (syncTxn) => syncTxn.insert('accounts', {
-              'code': code,
-              'name': 'سلف موظف - $employeeId',
-              'type': 'ASSET',
-              'normal_balance': 'DEBIT',
-            }));
+      db,
+      (syncTxn) => syncTxn.insert('accounts', {
+        'code': code,
+        'name': 'سلف موظف - $employeeId',
+        'type': 'ASSET',
+        'normal_balance': 'DEBIT',
+      }),
+    );
   }
 
-// ============================================================
-// 🎯 نشر قيد دفعة شراء PURCHASE_PAY
-// ============================================================
+  // ============================================================
+  // 🎯 نشر قيد دفعة شراء PURCHASE_PAY
+  // ============================================================
   static Future<int> postPurchasePaymentGL({
     required String paymentId,
     required DateTime date,
@@ -2408,8 +2505,8 @@ class AccountingTables {
   }
 
   // ======================================================================
-// 🔄 Reverse Repair GL (Replacement for DBService.reverseRepairGL)
-// ======================================================================
+  // 🔄 Reverse Repair GL (Replacement for DBService.reverseRepairGL)
+  // ======================================================================
   static Future<int> reverseRepairGL({
     required DatabaseExecutor txn,
     required String repairId,
@@ -2460,9 +2557,9 @@ class AccountingTables {
     );
   }
 
-// // ======================================================================
-// 🆙 Adjust Repair GL — النسخة الجديدة المعتمدة على "diff"
-// ======================================================================
+  // // ======================================================================
+  // 🆙 Adjust Repair GL — النسخة الجديدة المعتمدة على "diff"
+  // ======================================================================
   static Future<int> adjustRepairGL({
     required DatabaseExecutor txn,
     required String repairId,
@@ -2553,8 +2650,8 @@ class AccountingTables {
   }
 
   // ======================================================================
-// 🎯 A — postInvoiceGLFromId (Centralized Invoice Posting)
-// ======================================================================
+  // 🎯 A — postInvoiceGLFromId (Centralized Invoice Posting)
+  // ======================================================================
   static Future<int> postInvoiceGLFromId(
     String invoiceId, {
     String? createdBy,
@@ -2642,7 +2739,7 @@ class AccountingTables {
       note: 'فاتورة بيع',
       lines: lines,
     );
-// ربط قيد GL مع الفاتورة
+    // ربط قيد GL مع الفاتورة
     await db.update(
       'invoices',
       {

@@ -76,9 +76,11 @@ class VoucherPaymentService {
     await _ensureVoucherColumn(db, 'reversal_reason', 'TEXT');
 
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_vouchers_date ON vouchers(date)');
+      'CREATE INDEX IF NOT EXISTS idx_vouchers_date ON vouchers(date)',
+    );
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_vouchers_party ON vouchers(party_id)');
+      'CREATE INDEX IF NOT EXISTS idx_vouchers_party ON vouchers(party_id)',
+    );
 
     // === invoice_settlements (ربط فقط) ===
     await db.execute('''
@@ -118,7 +120,9 @@ class VoucherPaymentService {
   // توليد رقم السند الجديد (R-0001 / P-0001)
   // ---------------------------------------------------------------------------
   static Future<String> _generateVoucherNumber(
-      Transaction txn, String voucherType) async {
+    Transaction txn,
+    String voucherType,
+  ) async {
     final type = voucherType.toUpperCase() == 'RECEIPT'
         ? 'RECEIPT_VOUCHER'
         : 'PAYMENT_VOUCHER';
@@ -207,8 +211,9 @@ class VoucherPaymentService {
     if (chequeRows.isEmpty) {
       throw StateError('Issued cheque voucher points to a missing cheque.');
     }
-    final instrumentKey =
-        (chequeRows.first['instrument_key'] ?? '').toString().trim();
+    final instrumentKey = (chequeRows.first['instrument_key'] ?? '')
+        .toString()
+        .trim();
     if (instrumentKey.isEmpty) {
       throw StateError('Issued cheque has no canonical instrument key.');
     }
@@ -297,6 +302,104 @@ class VoucherPaymentService {
     );
   }
 
+  static Future<void> _linkInsurancePaymentOnTxn({
+    required Transaction txn,
+    required VoucherPayment voucher,
+    String? insurancePolicyId,
+    String? insuranceSettlementId,
+  }) async {
+    final policyId = insurancePolicyId?.trim();
+    final settlementId = insuranceSettlementId?.trim();
+    if ((policyId == null || policyId.isEmpty) &&
+        (settlementId == null || settlementId.isEmpty)) {
+      return;
+    }
+    if ((policyId?.isNotEmpty ?? false) &&
+        (settlementId?.isNotEmpty ?? false)) {
+      throw StateError(
+        'Insurance payment must target a policy or a settlement, not both.',
+      );
+    }
+
+    if (policyId?.isNotEmpty ?? false) {
+      final rows = await txn.query(
+        'insurance_policies',
+        columns: const ['id', 'insurer_supplier_id', 'net_insurer_payable'],
+        where: 'id=?',
+        whereArgs: [policyId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('Insurance policy not found.');
+      final expectedSupplier = (rows.single['insurer_supplier_id'] as num?)
+          ?.toInt();
+      final actualSupplier = int.tryParse(voucher.partyId ?? '');
+      if (expectedSupplier != null &&
+          expectedSupplier > 0 &&
+          expectedSupplier != actualSupplier) {
+        throw StateError('Insurance payment supplier does not match policy.');
+      }
+      final payable =
+          (rows.single['net_insurer_payable'] as num?)?.toDouble() ?? 0.0;
+      final paidRows = await txn.rawQuery(
+        '''SELECT COALESCE(SUM(amount),0) paid
+           FROM insurance_policy_payments
+           WHERE policy_id=? AND direction='INSURER_PAYMENT'
+             AND status='POSTED' ''',
+        [policyId],
+      );
+      final alreadyPaid = (paidRows.single['paid'] as num?)?.toDouble() ?? 0.0;
+      if (voucher.amount - (payable - alreadyPaid) > 0.005) {
+        throw StateError(
+          'Insurance payment exceeds company payable for this policy.',
+        );
+      }
+    } else {
+      final rows = await txn.query(
+        'insurance_settlements',
+        columns: const ['id'],
+        where: 'id=?',
+        whereArgs: [settlementId],
+        limit: 1,
+      );
+      if (rows.isEmpty) throw StateError('Insurance settlement not found.');
+    }
+
+    final targetId = policyId?.isNotEmpty == true ? policyId! : settlementId!;
+    final linkId = 'IPV:${voucher.id}:$targetId';
+    final existing = await txn.query(
+      'insurance_policy_payments',
+      where: 'id=?',
+      whereArgs: [linkId],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) {
+      final row = existing.single;
+      final same =
+          row['voucher_id']?.toString() == voucher.id &&
+          ((row['amount'] as num?)?.toDouble() ?? -1).toStringAsFixed(2) ==
+              voucher.amount.toStringAsFixed(2);
+      if (!same) {
+        throw StateError('Insurance voucher retry differs from original link.');
+      }
+      return;
+    }
+
+    await txn.insert('insurance_policy_payments', {
+      'id': linkId,
+      'policy_id': policyId?.isNotEmpty == true ? policyId : null,
+      'settlement_id': settlementId?.isNotEmpty == true ? settlementId : null,
+      'direction': 'INSURER_PAYMENT',
+      'receipt_number': null,
+      'payment_id': null,
+      'voucher_id': voucher.id,
+      'cheque_id': int.tryParse(voucher.chequeId ?? ''),
+      'amount': voucher.amount,
+      'currency': voucher.currency,
+      'status': 'POSTED',
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.abort);
+  }
+
   // ---------------------------------------------------------------------------
   // INSERT + POST GL + (AUTO SETTLEMENT FIFO)
   // ---------------------------------------------------------------------------
@@ -305,6 +408,8 @@ class VoucherPaymentService {
     required String partyName,
     Map<String, dynamic>? chequeDraft,
     Database? database,
+    String? insurancePolicyId,
+    String? insuranceSettlementId,
   }) async {
     await AuthorizationGuard.require(PermissionKeys.paymentCreate);
     if (ChequeAccountingService.isChequeMethod(voucher.method)) {
@@ -322,10 +427,7 @@ class VoucherPaymentService {
 
     await SyncFoundationService.transaction(db, (txn) async {
       await ensureSchema(txn);
-      await _validateVoucherOnTxn(
-        txn: txn,
-        voucher: voucher,
-      );
+      await _validateVoucherOnTxn(txn: txn, voucher: voucher);
 
       final existingRows = await txn.query(
         table,
@@ -352,9 +454,7 @@ class VoucherPaymentService {
 
         if (ChequeAccountingService.isChequeMethod(postingVoucher.method)) {
           if (chequeDraft == null) {
-            throw StateError(
-              'Cheque payment voucher requires cheque details.',
-            );
+            throw StateError('Cheque payment voucher requires cheque details.');
           }
 
           final chequeId = await _createIssuedChequeOnTxn(
@@ -376,8 +476,10 @@ class VoucherPaymentService {
           conflictAlgorithm: ConflictAlgorithm.abort,
         );
       } else {
-        if (['VOID', 'REVERSED']
-            .contains('${existingRows.first['status']}'.toUpperCase())) {
+        if ([
+          'VOID',
+          'REVERSED',
+        ].contains('${existingRows.first['status']}'.toUpperCase())) {
           throw StateError('Cancelled voucher cannot be reposted');
         }
         postingVoucher = VoucherPayment.fromMap(existingRows.first);
@@ -386,7 +488,8 @@ class VoucherPaymentService {
         bool sameText(String? a, String? b) =>
             (a ?? '').trim() == (b ?? '').trim();
 
-        final sameMaterialDocument = postingVoucher.voucherType.toUpperCase() ==
+        final sameMaterialDocument =
+            postingVoucher.voucherType.toUpperCase() ==
                 voucher.voucherType.toUpperCase() &&
             postingVoucher.partyType?.toUpperCase() ==
                 voucher.partyType?.toUpperCase() &&
@@ -471,7 +574,8 @@ class VoucherPaymentService {
           );
           if (chequeRows.isEmpty) {
             throw StateError(
-                'Posted cheque voucher points to a missing cheque.');
+              'Posted cheque voucher points to a missing cheque.',
+            );
           }
           await ChequeAccountingService.attachInitialGlOnTxn(
             txn: txn,
@@ -498,6 +602,12 @@ class VoucherPaymentService {
           txn: txn,
           voucher: postingVoucher,
         );
+        await _linkInsurancePaymentOnTxn(
+          txn: txn,
+          voucher: postingVoucher,
+          insurancePolicyId: insurancePolicyId,
+          insuranceSettlementId: insuranceSettlementId,
+        );
 
         // Retry of an already-posted voucher stops here.
         // Do not repeat logs or supplier invoice settlement side effects.
@@ -506,16 +616,19 @@ class VoucherPaymentService {
 
       final method = postingVoucher.method.trim().toUpperCase();
 
-      final cashAcc = await _getAccountIdByCode(txn, '1000') ??
+      final cashAcc =
+          await _getAccountIdByCode(txn, '1000') ??
           (throw StateError('Missing ACC 1000'));
-      final bankAcc = await _getAccountIdByCode(txn, '1010') ??
+      final bankAcc =
+          await _getAccountIdByCode(txn, '1010') ??
           (throw StateError('Missing ACC 1010'));
 
       late int creditAccId;
       if (method == 'BANK' || method == 'TRANSFER') {
         creditAccId = bankAcc;
       } else if (method == 'CHEQUE') {
-        creditAccId = await _getAccountIdByCode(txn, '1030') ??
+        creditAccId =
+            await _getAccountIdByCode(txn, '1030') ??
             (throw StateError('Missing outgoing cheque account 1030'));
       } else {
         creditAccId = cashAcc;
@@ -543,9 +656,9 @@ class VoucherPaymentService {
             // Operating expenses have an expense account, not a counterparty.
             'party_type':
                 postingVoucher.partyType?.toUpperCase() == 'EXPENSE' &&
-                        (postingVoucher.partyId?.trim().isEmpty ?? true)
-                    ? null
-                    : postingVoucher.partyType,
+                    (postingVoucher.partyId?.trim().isEmpty ?? true)
+                ? null
+                : postingVoucher.partyType,
             'party_id': postingVoucher.partyId,
             'invoice_id': postingVoucher.reference,
             'repair_id': null,
@@ -568,7 +681,8 @@ class VoucherPaymentService {
         final chequeId = int.tryParse(postingVoucher.chequeId ?? '');
         if (chequeId == null) {
           throw StateError(
-              'Cheque voucher lost its cheque link before posting.');
+            'Cheque voucher lost its cheque link before posting.',
+          );
         }
         await ChequeAccountingService.attachInitialGlOnTxn(
           txn: txn,
@@ -592,10 +706,7 @@ class VoucherPaymentService {
 
       await _applyNonSupplierPaymentLogs(
         txn,
-        postingVoucher.copyWith(
-          glEntryId: glId,
-          voucherNumber: voucherNumber,
-        ),
+        postingVoucher.copyWith(glEntryId: glId, voucherNumber: voucherNumber),
       );
 
       if ((postingVoucher.source ?? '').trim().toUpperCase() ==
@@ -619,6 +730,12 @@ class VoucherPaymentService {
       await _syncIssuedChequeAllocationsOnTxn(
         txn: txn,
         voucher: postingVoucher,
+      );
+      await _linkInsurancePaymentOnTxn(
+        txn: txn,
+        voucher: postingVoucher,
+        insurancePolicyId: insurancePolicyId,
+        insuranceSettlementId: insuranceSettlementId,
       );
 
       await AuditTrailService.log(
@@ -649,46 +766,42 @@ class VoucherPaymentService {
   // LOGS (غير المورد) — يبقى كما هو
   // =============================================================================
   static Future<void> _applyNonSupplierPaymentLogs(
-      Transaction txn, VoucherPayment voucher) async {
+    Transaction txn,
+    VoucherPayment voucher,
+  ) async {
     final type = voucher.partyType?.toUpperCase();
 
     if (type == "EMPLOYEE") {
-      await txn.insert(
-          "payments",
-          {
-            "id": "VOUCHER_LOG:${voucher.id}",
-            "invoice_id": null,
-            "amount": voucher.amount,
-            "date": voucher.date.toIso8601String(),
-            "method": voucher.method.toLowerCase(),
-            "status": "posted",
-            "notes": voucher.notes,
-            "gl_entry_id": voucher.glEntryId,
-            "cheque_id": int.tryParse(voucher.chequeId ?? ''),
-            "isIncome": 0,
-            "party_id": voucher.partyId,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore);
+      await txn.insert("payments", {
+        "id": "VOUCHER_LOG:${voucher.id}",
+        "invoice_id": null,
+        "amount": voucher.amount,
+        "date": voucher.date.toIso8601String(),
+        "method": voucher.method.toLowerCase(),
+        "status": "posted",
+        "notes": voucher.notes,
+        "gl_entry_id": voucher.glEntryId,
+        "cheque_id": int.tryParse(voucher.chequeId ?? ''),
+        "isIncome": 0,
+        "party_id": voucher.partyId,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
       return;
     }
 
     if (type == "EXPENSE") {
-      await txn.insert(
-          "payments",
-          {
-            "id": "VOUCHER_LOG:${voucher.id}",
-            "invoice_id": null,
-            "amount": voucher.amount,
-            "date": voucher.date.toIso8601String(),
-            "method": voucher.method.toLowerCase(),
-            "status": "posted",
-            "notes": voucher.notes,
-            "gl_entry_id": voucher.glEntryId,
-            "cheque_id": int.tryParse(voucher.chequeId ?? ''),
-            "isIncome": 0,
-            "party_id": voucher.partyId,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore);
+      await txn.insert("payments", {
+        "id": "VOUCHER_LOG:${voucher.id}",
+        "invoice_id": null,
+        "amount": voucher.amount,
+        "date": voucher.date.toIso8601String(),
+        "method": voucher.method.toLowerCase(),
+        "status": "posted",
+        "notes": voucher.notes,
+        "gl_entry_id": voucher.glEntryId,
+        "cheque_id": int.tryParse(voucher.chequeId ?? ''),
+        "isIncome": 0,
+        "party_id": voucher.partyId,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
       return;
     }
   }
@@ -732,12 +845,15 @@ class VoucherPaymentService {
   }) async {
     if (amountToApply <= 0 || invoiceId.trim().isEmpty) return 0.0;
 
-    final invRows = await txn.rawQuery('''
+    final invRows = await txn.rawQuery(
+      '''
       SELECT id, supplier_id, amount_total
       FROM purchase_invoices
       WHERE id = ? AND supplier_id = ?
       LIMIT 1
-    ''', [invoiceId, supplierId]);
+    ''',
+      [invoiceId, supplierId],
+    );
 
     if (invRows.isEmpty) {
       throw StateError(
@@ -761,18 +877,14 @@ class VoucherPaymentService {
 
     final applyNow = amountToApply <= outstanding ? amountToApply : outstanding;
 
-    await txn.insert(
-      'invoice_settlements',
-      {
-        'id': const Uuid().v4(),
-        'supplier_id': supplierId,
-        'invoice_id': invoiceId,
-        'voucher_id': voucherId,
-        'amount_applied': applyNow,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    await txn.insert('invoice_settlements', {
+      'id': const Uuid().v4(),
+      'supplier_id': supplierId,
+      'invoice_id': invoiceId,
+      'voucher_id': voucherId,
+      'amount_applied': applyNow,
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.abort);
 
     return applyNow;
   }
@@ -836,18 +948,20 @@ class VoucherPaymentService {
       var isBonus = (voucher.source ?? '').toUpperCase() == 'EMPLOYEE_BONUS';
       if ((voucher.source ?? '').toUpperCase() == 'EMP_ADV' &&
           voucher.sourceId != null) {
-        final legacy = await txn.query('employee_advances',
-            columns: ['type'],
-            where: 'id=?',
-            whereArgs: [voucher.sourceId],
-            limit: 1);
+        final legacy = await txn.query(
+          'employee_advances',
+          columns: ['type'],
+          where: 'id=?',
+          whereArgs: [voucher.sourceId],
+          limit: 1,
+        );
         isBonus = legacy.isNotEmpty && legacy.first['type'] == 'bonus';
       }
       final code = isPayroll
           ? "2140.E$empId"
           : isBonus
-              ? '5100'
-              : "1120.E$empId";
+          ? '5100'
+          : "1120.E$empId";
 
       final existing = await txn.query(
         "accounts",
@@ -863,13 +977,13 @@ class VoucherPaymentService {
         "name": isPayroll
             ? "مستحقات رواتب - $partyName"
             : isBonus
-                ? 'مصروف رواتب ومكافآت'
-                : "سلفة موظف: $partyName",
+            ? 'مصروف رواتب ومكافآت'
+            : "سلفة موظف: $partyName",
         "type": isPayroll
             ? "LIABILITY"
             : isBonus
-                ? 'EXPENSE'
-                : "ASSET",
+            ? 'EXPENSE'
+            : "ASSET",
         "normal_balance": isPayroll ? "CREDIT" : "DEBIT",
       });
     }
@@ -888,7 +1002,8 @@ class VoucherPaymentService {
   }
 
   static Future<int> _ensureOperatingExpenseAccount(
-      DatabaseExecutor txn) async {
+    DatabaseExecutor txn,
+  ) async {
     const code = "5000.OP";
 
     final r = await txn.query(
@@ -909,7 +1024,9 @@ class VoucherPaymentService {
   }
 
   static Future<int?> _getAccountIdByCode(
-      DatabaseExecutor txn, String code) async {
+    DatabaseExecutor txn,
+    String code,
+  ) async {
     final r = await txn.query(
       "accounts",
       columns: ["id"],
@@ -992,8 +1109,11 @@ class VoucherPaymentService {
           );
         }
 
-        if (['VOID', 'CANCELLED', 'REVERSED']
-            .contains('${invoices.first['status']}'.toUpperCase())) {
+        if ([
+          'VOID',
+          'CANCELLED',
+          'REVERSED',
+        ].contains('${invoices.first['status']}'.toUpperCase())) {
           throw StateError('Cannot pay a cancelled invoice');
         }
         final settledRows = await txn.rawQuery(
@@ -1046,11 +1166,13 @@ class VoucherPaymentService {
         final run = runs.first;
         final month = (run['period_start'] ?? '').toString().substring(0, 7);
         await _ensureSalaryPeriodsSchema(txn);
-        final locked = await txn.query('salary_periods',
-            columns: ['is_locked'],
-            where: 'month=? AND is_locked=1',
-            whereArgs: [month],
-            limit: 1);
+        final locked = await txn.query(
+          'salary_periods',
+          columns: ['is_locked'],
+          where: 'month=? AND is_locked=1',
+          whereArgs: [month],
+          limit: 1,
+        );
         if (locked.isNotEmpty) {
           throw StateError('فترة الرواتب مقفلة؛ افتحها قبل الصرف.');
         }
@@ -1062,7 +1184,8 @@ class VoucherPaymentService {
         if ((run['status'] ?? '').toString().toUpperCase() == 'REVERSED') {
           throw StateError('Cannot pay a reversed payroll entitlement.');
         }
-        final paidRows = await txn.rawQuery('''
+        final paidRows = await txn.rawQuery(
+          '''
           SELECT COALESCE(SUM(amount),0) AS paid
           FROM vouchers
           WHERE source='PAYROLL_ENTITLEMENT'
@@ -1070,7 +1193,9 @@ class VoucherPaymentService {
             AND id<>?
             AND UPPER(COALESCE(status,'POSTED')) <> 'REVERSED'
             AND gl_entry_id IS NOT NULL
-        ''', [runId, voucher.id]);
+        ''',
+          [runId, voucher.id],
+        );
         final paid = (paidRows.first['paid'] as num?)?.toDouble() ?? 0.0;
         final net = (run['net'] as num?)?.toDouble() ?? 0.0;
         final remaining = net - paid;
@@ -1118,14 +1243,17 @@ class VoucherPaymentService {
     );
     if (runRows.isEmpty) return;
     final net = (runRows.first['net'] as num?)?.toDouble() ?? 0.0;
-    final sums = await db.rawQuery('''
+    final sums = await db.rawQuery(
+      '''
       SELECT COALESCE(SUM(amount),0) AS paid
       FROM vouchers
       WHERE source='PAYROLL_ENTITLEMENT'
         AND source_id=?
         AND UPPER(COALESCE(status,'POSTED')) <> 'REVERSED'
         AND gl_entry_id IS NOT NULL
-    ''', [runId]);
+    ''',
+      [runId],
+    );
     final paid = (sums.first['paid'] as num?)?.toDouble() ?? 0.0;
     await db.update(
       'payroll_runs',
@@ -1195,13 +1323,14 @@ class VoucherPaymentService {
         };
         await txn.update(table, changes, where: 'id=?', whereArgs: [voucherId]);
         await AuditTrailService.log(
-            executor: txn,
-            action: 'PAYMENT_VOUCHER_VOIDED',
-            entityType: 'voucher',
-            entityId: voucherId,
-            before: row,
-            after: {...row, ...changes},
-            reason: trimmedReason);
+          executor: txn,
+          action: 'PAYMENT_VOUCHER_VOIDED',
+          entityType: 'voucher',
+          entityId: voucherId,
+          before: row,
+          after: {...row, ...changes},
+          reason: trimmedReason,
+        );
         return;
       }
 
@@ -1238,8 +1367,11 @@ class VoucherPaymentService {
         );
       }
 
-      final originalSettlements = await txn.query('invoice_settlements',
-          where: 'voucher_id=?', whereArgs: [voucherId]);
+      final originalSettlements = await txn.query(
+        'invoice_settlements',
+        where: 'voucher_id=?',
+        whereArgs: [voucherId],
+      );
       await txn.delete(
         'invoice_settlements',
         where: 'voucher_id=?',

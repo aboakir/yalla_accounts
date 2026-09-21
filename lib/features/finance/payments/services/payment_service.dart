@@ -102,7 +102,7 @@ class PaymentService {
       'بطاقة',
       'فيزا',
       'ماستر',
-      'pos'
+      'pos',
     };
 
     if (cash.any((e) => m.contains(e))) return 'الصندوق';
@@ -159,8 +159,9 @@ CREATE TABLE IF NOT EXISTS payments (
     final paymentColumns = await exec.rawQuery('PRAGMA table_info(payments)');
     final names = paymentColumns.map((row) => row['name']?.toString()).toSet();
     if (!names.contains('receipt_number')) {
-      await exec
-          .execute('ALTER TABLE payments ADD COLUMN receipt_number INTEGER');
+      await exec.execute(
+        'ALTER TABLE payments ADD COLUMN receipt_number INTEGER',
+      );
     }
     if (!names.contains('reversal_of_payment_id')) {
       await exec.execute(
@@ -175,15 +176,20 @@ CREATE TABLE IF NOT EXISTS payments (
     );
 
     await exec.execute(
-        'CREATE INDEX IF NOT EXISTS idx_payments_client ON $table(client_id)');
+      'CREATE INDEX IF NOT EXISTS idx_payments_client ON $table(client_id)',
+    );
     await exec.execute(
-        'CREATE INDEX IF NOT EXISTS idx_payments_repair ON $table(repair_id)');
+      'CREATE INDEX IF NOT EXISTS idx_payments_repair ON $table(repair_id)',
+    );
     await exec.execute(
-        'CREATE INDEX IF NOT EXISTS idx_payments_invoice ON $table(invoice_id)');
+      'CREATE INDEX IF NOT EXISTS idx_payments_invoice ON $table(invoice_id)',
+    );
     await exec.execute(
-        'CREATE INDEX IF NOT EXISTS idx_payments_date ON $table(date)');
+      'CREATE INDEX IF NOT EXISTS idx_payments_date ON $table(date)',
+    );
     await exec.execute(
-        'CREATE INDEX IF NOT EXISTS idx_payments_gl ON $table(gl_entry_id)');
+      'CREATE INDEX IF NOT EXISTS idx_payments_gl ON $table(gl_entry_id)',
+    );
   }
 
   // ─────────── Helpers on the SAME txn ───────────
@@ -207,12 +213,16 @@ CREATE TABLE IF NOT EXISTS payments (
   }
 
   static Future<int> _ensureClientAccountOnTxn(
-      Transaction txn, int clientId) async {
-    final cur = await txn.query('clients',
-        columns: ['name', 'account_id'],
-        where: 'id=?',
-        whereArgs: [clientId],
-        limit: 1);
+    Transaction txn,
+    int clientId,
+  ) async {
+    final cur = await txn.query(
+      'clients',
+      columns: ['name', 'account_id'],
+      where: 'id=?',
+      whereArgs: [clientId],
+      limit: 1,
+    );
     if (cur.isEmpty) throw StateError('client not found');
     final exist = cur.first['account_id'];
     if (exist != null) {
@@ -225,15 +235,26 @@ CREATE TABLE IF NOT EXISTS payments (
       'type': 'ASSET',
       'normal_balance': 'DEBIT',
     });
-    await txn.update('clients', {'account_id': accId},
-        where: 'id=?', whereArgs: [clientId]);
+    await txn.update(
+      'clients',
+      {'account_id': accId},
+      where: 'id=?',
+      whereArgs: [clientId],
+    );
     return accId;
   }
 
   static Future<int?> _getAccountIdByCode(
-      DatabaseExecutor db, String code) async {
-    final r = await db.query('accounts',
-        columns: ['id'], where: 'code=?', whereArgs: [code], limit: 1);
+    DatabaseExecutor db,
+    String code,
+  ) async {
+    final r = await db.query(
+      'accounts',
+      columns: ['id'],
+      where: 'code=?',
+      whereArgs: [code],
+      limit: 1,
+    );
     if (r.isEmpty) return null;
     final v = r.first['id'];
     if (v is int) return v;
@@ -292,11 +313,12 @@ CREATE TABLE IF NOT EXISTS payments (
       map['status'] = statusStr.isEmpty ? _kStatusConfirmed : statusStr;
       await txn.insert(table, map, conflictAlgorithm: ConflictAlgorithm.abort);
       await AuditTrailService.log(
-          executor: txn,
-          action: 'PAYMENT_CREATED',
-          entityType: 'PAYMENT',
-          entityId: '${map['id']}',
-          after: map);
+        executor: txn,
+        action: 'PAYMENT_CREATED',
+        entityType: 'PAYMENT',
+        entityId: '${map['id']}',
+        after: map,
+      );
     });
   }
 
@@ -306,16 +328,23 @@ CREATE TABLE IF NOT EXISTS payments (
     final updated = await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
 
-      final prevRows = await txn.query(table,
-          where: 'id=?', whereArgs: [payment.id], limit: 1);
+      final prevRows = await txn.query(
+        table,
+        where: 'id=?',
+        whereArgs: [payment.id],
+        limit: 1,
+      );
       if (prevRows.isEmpty) {
         // لا يوجد سجل سابق → أدخل كجديد ثم GL
         final map = payment.toMap();
         map['id'] ??= const Uuid().v4();
         final statusStr = '${map['status'] ?? ''}'.trim();
         map['status'] = statusStr.isEmpty ? _kStatusConfirmed : statusStr;
-        await txn.insert(table, map,
-            conflictAlgorithm: ConflictAlgorithm.abort);
+        await txn.insert(
+          table,
+          map,
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
 
         final rid = _pickRepairId(payment);
         if (rid.isNotEmpty) {
@@ -331,13 +360,16 @@ CREATE TABLE IF NOT EXISTS payments (
           await _refreshRepairSnapshot(txn, rid);
         }
         await AuditTrailService.log(
-            executor: txn,
-            action: 'PAYMENT_CREATED',
-            entityType: 'PAYMENT',
-            entityId: '${map['id']}',
-            after:
-                (await txn.query(table, where: 'id=?', whereArgs: [map['id']]))
-                    .single);
+          executor: txn,
+          action: 'PAYMENT_CREATED',
+          entityType: 'PAYMENT',
+          entityId: '${map['id']}',
+          after: (await txn.query(
+            table,
+            where: 'id=?',
+            whereArgs: [map['id']],
+          )).single,
+        );
         return 1;
       }
 
@@ -384,14 +416,17 @@ CREATE TABLE IF NOT EXISTS payments (
         await _refreshRepairSnapshot(txn, repairForPost!);
       }
       await AuditTrailService.log(
-          executor: txn,
-          action: 'PAYMENT_UPDATED',
-          entityType: 'PAYMENT',
-          entityId: payment.id,
-          before: prevRows.single,
-          after:
-              (await txn.query(table, where: 'id=?', whereArgs: [payment.id]))
-                  .single);
+        executor: txn,
+        action: 'PAYMENT_UPDATED',
+        entityType: 'PAYMENT',
+        entityId: payment.id,
+        before: prevRows.single,
+        after: (await txn.query(
+          table,
+          where: 'id=?',
+          whereArgs: [payment.id],
+        )).single,
+      );
       return count;
     });
 
@@ -404,8 +439,10 @@ CREATE TABLE IF NOT EXISTS payments (
     return updated;
   }
 
-  static Future<int> delete(String id,
-      {String reason = 'Payment cancelled'}) async {
+  static Future<int> delete(
+    String id, {
+    String reason = 'Payment cancelled',
+  }) async {
     if (reason.trim().isEmpty) {
       throw ArgumentError('Cancellation reason required');
     }
@@ -413,8 +450,11 @@ CREATE TABLE IF NOT EXISTS payments (
     final rows = await db.query(table, where: 'id=?', whereArgs: [id]);
     if (rows.isEmpty) return 0;
     final payment = Payment.fromMap(rows.single);
-    if (['void', 'reversed', 'reversal']
-        .contains(payment.status.toLowerCase())) {
+    if ([
+      'void',
+      'reversed',
+      'reversal',
+    ].contains(payment.status.toLowerCase())) {
       return 0;
     }
     if (payment.isIncome && await _glExists(db, id)) {
@@ -422,20 +462,28 @@ CREATE TABLE IF NOT EXISTS payments (
       return 1;
     }
     return SyncFoundationService.transaction(db, (txn) async {
-      final before =
-          (await txn.query(table, where: 'id=?', whereArgs: [id])).single;
+      final before = (await txn.query(
+        table,
+        where: 'id=?',
+        whereArgs: [id],
+      )).single;
       await _reverseIfExists(txn, id);
       await _reverseAdjustsIfAny(txn, id);
-      final count = await txn.update(table, {'status': 'void'},
-          where: 'id=?', whereArgs: [id]);
+      final count = await txn.update(
+        table,
+        {'status': 'void'},
+        where: 'id=?',
+        whereArgs: [id],
+      );
       await AuditTrailService.log(
-          executor: txn,
-          action: 'PAYMENT_VOIDED',
-          entityType: 'PAYMENT',
-          entityId: id,
-          before: before,
-          after: {...before, 'status': 'void'},
-          reason: reason);
+        executor: txn,
+        action: 'PAYMENT_VOIDED',
+        entityType: 'PAYMENT',
+        entityId: id,
+        before: before,
+        after: {...before, 'status': 'void'},
+        reason: reason,
+      );
       return count;
     });
   }
@@ -558,23 +606,19 @@ CREATE TABLE IF NOT EXISTS payments (
     String? notes,
   }) async {
     await ReceiptTables.createAllTables(txn);
-    await txn.insert(
-      'receipt_headers',
-      {
-        'receipt_number': receiptNumber,
-        'client_id': clientId,
-        'date': date.toIso8601String(),
-        'method': method,
-        'total_amount': double.parse(totalAmount.toStringAsFixed(2)),
-        'allocated_amount': double.parse(allocatedAmount.toStringAsFixed(2)),
-        'credit_amount': double.parse(creditAmount.toStringAsFixed(2)),
-        'status': status,
-        'reversal_of_receipt_number': reversalOfReceiptNumber,
-        'notes': notes,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    await txn.insert('receipt_headers', {
+      'receipt_number': receiptNumber,
+      'client_id': clientId,
+      'date': date.toIso8601String(),
+      'method': method,
+      'total_amount': double.parse(totalAmount.toStringAsFixed(2)),
+      'allocated_amount': double.parse(allocatedAmount.toStringAsFixed(2)),
+      'credit_amount': double.parse(creditAmount.toStringAsFixed(2)),
+      'status': status,
+      'reversal_of_receipt_number': reversalOfReceiptNumber,
+      'notes': notes,
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
   static Future<void> _insertReceiptAllocationOnTxn({
@@ -584,19 +628,16 @@ CREATE TABLE IF NOT EXISTS payments (
     required String allocationType,
   }) async {
     await ReceiptTables.createAllTables(txn);
-    await txn.insert(
-      'receipt_allocations',
-      {
-        'receipt_number': receiptNumber,
-        'payment_id': payment.id,
-        'repair_id':
-            _pickRepairId(payment).isEmpty ? null : _pickRepairId(payment),
-        'amount': payment.amount,
-        'allocation_type': allocationType,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    await txn.insert('receipt_allocations', {
+      'receipt_number': receiptNumber,
+      'payment_id': payment.id,
+      'repair_id': _pickRepairId(payment).isEmpty
+          ? null
+          : _pickRepairId(payment),
+      'amount': payment.amount,
+      'allocation_type': allocationType,
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
   static Future<Payment> _insertAndPostReceiptOnTxn({
@@ -636,15 +677,18 @@ CREATE TABLE IF NOT EXISTS payments (
     );
     if (existing.isNotEmpty) {
       final persisted = Payment.fromMap(existing.first);
-      if (['void', 'reversed', 'reversal']
-          .contains(persisted.status.toLowerCase())) {
+      if ([
+        'void',
+        'reversed',
+        'reversal',
+      ].contains(persisted.status.toLowerCase())) {
         throw StateError('Cancelled receipt cannot be posted.');
       }
       final sameMaterialDocument =
           (persisted.amount * 100).round() == (payment.amount * 100).round() &&
-              _canonicalReceiptMethod(persisted.method) == canonicalMethod &&
-              (persisted.clientId ?? 0) == (payment.clientId ?? 0) &&
-              _pickRepairId(persisted) == _pickRepairId(payment);
+          _canonicalReceiptMethod(persisted.method) == canonicalMethod &&
+          (persisted.clientId ?? 0) == (payment.clientId ?? 0) &&
+          _pickRepairId(persisted) == _pickRepairId(payment);
       if (!sameMaterialDocument) {
         throw StateError(
           'Receipt payment $paymentId already exists with different material fields.',
@@ -686,9 +730,9 @@ CREATE TABLE IF NOT EXISTS payments (
           draft: chequeDraft,
           type: ChequeType.incoming,
           amount: storedPayment.amount,
-          currency:
-              (await CommercialSettingsService.instance.get(executor: txn))
-                  .baseCurrencyCode,
+          currency: (await CommercialSettingsService.instance.get(
+            executor: txn,
+          )).baseCurrencyCode,
           sourceType: 'PAYMENT',
           sourceId: paymentId,
           instrumentKey: chequeDraft['instrument_key']?.toString(),
@@ -737,8 +781,9 @@ CREATE TABLE IF NOT EXISTS payments (
     String? notes,
     String? requestJsonOverride,
   }) async {
-    final p16Actor =
-        await AuthorizationGuard.require(PermissionKeys.receiptCreate);
+    final p16Actor = await AuthorizationGuard.require(
+      PermissionKeys.receiptCreate,
+    );
     if (instruments.any(
       (instrument) => ChequeAccountingService.isChequeMethod(instrument.method),
     )) {
@@ -758,7 +803,8 @@ CREATE TABLE IF NOT EXISTS payments (
       final key = instrument.instrumentKey.trim();
       if (key.isEmpty || !keys.add(key)) {
         throw StateError(
-            'Receipt instrument keys must be unique and non-empty.');
+          'Receipt instrument keys must be unique and non-empty.',
+        );
       }
       if (!instrument.amount.isFinite || instrument.amount <= 0.005) {
         throw StateError('Receipt instrument amount must be positive.');
@@ -778,7 +824,8 @@ CREATE TABLE IF NOT EXISTS payments (
           );
         }
       }
-      final detailTotal = instrument.allocations.fold<double>(
+      final detailTotal =
+          instrument.allocations.fold<double>(
             0,
             (sum, line) => sum + line.amount,
           ) +
@@ -799,7 +846,8 @@ CREATE TABLE IF NOT EXISTS payments (
       throw StateError('Receipt amount must be greater than zero.');
     }
 
-    final request = requestJsonOverride ??
+    final request =
+        requestJsonOverride ??
         jsonEncode({
           'client': clientId,
           'date': date.toIso8601String(),
@@ -812,14 +860,14 @@ CREATE TABLE IF NOT EXISTS payments (
                 'amount': instrument.amount,
                 'allocations': [
                   for (final a in instrument.allocations)
-                    [a.repairId, a.amount, a.paymentId]
+                    [a.repairId, a.amount, a.paymentId],
                 ],
                 'unallocated': instrument.unallocatedAmount,
                 'unallocated_payment_id': instrument.unallocatedPaymentId,
                 'cheque': instrument.chequeDraft,
                 'bank_account_id': instrument.bankAccountId,
                 'currency': instrument.currency,
-              }
+              },
           ],
         });
 
@@ -827,319 +875,327 @@ CREATE TABLE IF NOT EXISTS payments (
     final affectedRepairs = <String>{};
 
     final result =
-        await SyncFoundationService.transaction<CanonicalReceiptResult>(
-      db,
-      (txn) async {
-        await _ensureTableAndSchema(txn);
-        await ReceiptTables.createAllTables(txn);
+        await SyncFoundationService.transaction<CanonicalReceiptResult>(db, (
+          txn,
+        ) async {
+          await _ensureTableAndSchema(txn);
+          await ReceiptTables.createAllTables(txn);
 
-        final prior = await txn.query(
-          'receipt_requests',
-          where: 'operation_id=?',
-          whereArgs: [operationId],
-        );
-        if (prior.isNotEmpty) {
-          if (prior.single['request_json'] != request) {
-            throw StateError('Receipt retry differs from original request');
-          }
-          final number = (prior.single['receipt_number'] as num).toInt();
-          final headerRows = await txn.query(
-            'receipt_headers',
-            where: 'receipt_number=?',
-            whereArgs: [number],
-            limit: 1,
+          final prior = await txn.query(
+            'receipt_requests',
+            where: 'operation_id=?',
+            whereArgs: [operationId],
           );
-          if (headerRows.isEmpty || headerRows.single['status'] != 'posted') {
-            throw StateError('Receipt is no longer active');
-          }
-          final stored = await txn.query(
-            'receipt_allocations',
-            where: 'receipt_number=?',
-            whereArgs: [number],
-          );
-          final header = headerRows.single;
-          return CanonicalReceiptResult(
-            receiptNumber: number,
-            paymentIds: stored.map((r) => r['payment_id'].toString()).toList(),
-            allocatedAmount: (header['allocated_amount'] as num).toDouble(),
-            customerCredit: (header['credit_amount'] as num).toDouble(),
-          );
-        }
-
-        final receiptNumber = await _nextReceiptNumberOnTxn(txn);
-        final paymentIds = <String>[];
-        final instrumentRows = <Map<String, Object?>>[];
-        final chequeIds = <String, int>{};
-        var allocatedAmount = 0.0;
-        var creditAmount = 0.0;
-        final baseCurrency =
-            (await CommercialSettingsService.instance.get(executor: txn))
-                .baseCurrencyCode;
-
-        for (final instrument in instruments) {
-          final key = instrument.instrumentKey.trim();
-          final method = _canonicalReceiptMethod(instrument.method);
-          int? chequeId;
-
-          if (method == 'cheque') {
-            final draft = Map<String, dynamic>.from(instrument.chequeDraft!);
-            draft['instrument_key'] = key;
-            chequeId = await ChequeAccountingService.createLinkedChequeOnTxn(
-              txn: txn,
-              draft: draft,
-              type: ChequeType.incoming,
-              amount: instrument.amount,
-              currency: (instrument.currency ?? baseCurrency).trim(),
-              sourceType: 'RECEIPT',
-              sourceId: receiptNumber.toString(),
-              instrumentKey: key,
-              receiptVoucherId: receiptNumber,
-              sourcePartyType: 'CLIENT',
-              sourcePartyId: clientId.toString(),
-              clientId: clientId,
-              recipientType: 'WORKSHOP',
-              recipientName: 'Workshop',
-              bankAccountId: instrument.bankAccountId,
-              createdBy: p16Actor?.id,
-            );
-            chequeIds[key] = chequeId;
-          }
-
-          var instrumentAllocated = 0.0;
-          var instrumentCredit = instrument.unallocatedAmount;
-
-          for (final line in instrument.allocations) {
-            if (line.amount <= 0.005) continue;
-            final repairRows = await txn.query(
-              'repairs',
-              columns: const ['id', 'client_id', 'fileValue'],
-              where: 'id=?',
-              whereArgs: [line.repairId],
+          if (prior.isNotEmpty) {
+            if (prior.single['request_json'] != request) {
+              throw StateError('Receipt retry differs from original request');
+            }
+            final number = (prior.single['receipt_number'] as num).toInt();
+            final headerRows = await txn.query(
+              'receipt_headers',
+              where: 'receipt_number=?',
+              whereArgs: [number],
               limit: 1,
             );
-            if (repairRows.isEmpty) {
-              throw StateError('Repair ${line.repairId} not found.');
+            if (headerRows.isEmpty || headerRows.single['status'] != 'posted') {
+              throw StateError('Receipt is no longer active');
             }
-            final rawClient = repairRows.first['client_id'];
-            final repairClientId = rawClient is num
-                ? rawClient.toInt()
-                : int.tryParse(rawClient?.toString() ?? '');
-            if (repairClientId != clientId) {
-              throw StateError(
-                'All receipt allocations must belong to the same client.',
-              );
-            }
-            final fileValue =
-                (repairRows.first['fileValue'] as num?)?.toDouble() ??
-                    double.tryParse(
-                      repairRows.first['fileValue']?.toString() ?? '',
-                    ) ??
-                    0.0;
-            final alreadyPaid = await RepairFinancialTruthService.paidForRepair(
-              line.repairId,
-              executor: txn,
+            final stored = await txn.query(
+              'receipt_allocations',
+              where: 'receipt_number=?',
+              whereArgs: [number],
             );
-            final remaining =
-                (fileValue - alreadyPaid).clamp(0.0, double.infinity);
-            final accepted = line.amount > remaining ? remaining : line.amount;
-            final overflow = line.amount - accepted;
-            if (overflow > 0.005) instrumentCredit += overflow;
+            final header = headerRows.single;
+            return CanonicalReceiptResult(
+              receiptNumber: number,
+              paymentIds: stored
+                  .map((r) => r['payment_id'].toString())
+                  .toList(),
+              allocatedAmount: (header['allocated_amount'] as num).toDouble(),
+              customerCredit: (header['credit_amount'] as num).toDouble(),
+            );
+          }
 
-            if (accepted <= 0.005) continue;
-            final payment = Payment(
-              id: line.paymentId?.trim().isNotEmpty == true
-                  ? line.paymentId!.trim()
-                  : const Uuid().v4(),
-              receiptNumber: receiptNumber,
-              clientId: clientId,
-              repairId: line.repairId,
-              relatedRepairId: line.repairId,
-              invoiceId: null,
-              amount: double.parse(accepted.toStringAsFixed(2)),
-              date: date,
-              method: method,
-              accountName: null,
-              status: _kStatusConfirmed,
-              notes: notes,
-              attachments: null,
-              glEntryId: null,
-              chequeId: chequeId,
-              isIncome: true,
-            );
-            final stored = await _insertAndPostReceiptOnTxn(
-              txn: txn,
-              payment: payment,
-              customerName: customerName,
-              method: method,
-              receiptNumber: receiptNumber,
-              descriptionOverride: notes,
-              chequeIdOverride: chequeId,
-            );
-            paymentIds.add(stored.id);
-            instrumentAllocated += stored.amount;
-            allocatedAmount += stored.amount;
-            affectedRepairs.add(line.repairId);
-            await _insertReceiptAllocationOnTxn(
-              txn: txn,
-              receiptNumber: receiptNumber,
-              payment: stored,
-              allocationType: 'REPAIR',
-            );
-            if (chequeId != null) {
-              await ChequeAccountingService.allocateChequeOnTxn(
+          final receiptNumber = await _nextReceiptNumberOnTxn(txn);
+          final paymentIds = <String>[];
+          final instrumentRows = <Map<String, Object?>>[];
+          final chequeIds = <String, int>{};
+          var allocatedAmount = 0.0;
+          var creditAmount = 0.0;
+          final baseCurrency = (await CommercialSettingsService.instance.get(
+            executor: txn,
+          )).baseCurrencyCode;
+
+          for (final instrument in instruments) {
+            final key = instrument.instrumentKey.trim();
+            final method = _canonicalReceiptMethod(instrument.method);
+            int? chequeId;
+
+            if (method == 'cheque') {
+              final draft = Map<String, dynamic>.from(instrument.chequeDraft!);
+              draft['instrument_key'] = key;
+              chequeId = await ChequeAccountingService.createLinkedChequeOnTxn(
                 txn: txn,
+                draft: draft,
+                type: ChequeType.incoming,
+                amount: instrument.amount,
+                currency: (instrument.currency ?? baseCurrency).trim(),
+                sourceType: 'RECEIPT',
+                sourceId: receiptNumber.toString(),
+                instrumentKey: key,
+                receiptVoucherId: receiptNumber,
+                sourcePartyType: 'CLIENT',
+                sourcePartyId: clientId.toString(),
+                clientId: clientId,
+                recipientType: 'WORKSHOP',
+                recipientName: 'Workshop',
+                bankAccountId: instrument.bankAccountId,
+                createdBy: p16Actor?.id,
+              );
+              chequeIds[key] = chequeId;
+            }
+
+            var instrumentAllocated = 0.0;
+            var instrumentCredit = instrument.unallocatedAmount;
+
+            for (final line in instrument.allocations) {
+              if (line.amount <= 0.005) continue;
+              final repairRows = await txn.query(
+                'repairs',
+                columns: const ['id', 'client_id', 'fileValue'],
+                where: 'id=?',
+                whereArgs: [line.repairId],
+                limit: 1,
+              );
+              if (repairRows.isEmpty) {
+                throw StateError('Repair ${line.repairId} not found.');
+              }
+              final rawClient = repairRows.first['client_id'];
+              final repairClientId = rawClient is num
+                  ? rawClient.toInt()
+                  : int.tryParse(rawClient?.toString() ?? '');
+              if (repairClientId != clientId) {
+                throw StateError(
+                  'All receipt allocations must belong to the same client.',
+                );
+              }
+              final fileValue =
+                  (repairRows.first['fileValue'] as num?)?.toDouble() ??
+                  double.tryParse(
+                    repairRows.first['fileValue']?.toString() ?? '',
+                  ) ??
+                  0.0;
+              final alreadyPaid =
+                  await RepairFinancialTruthService.paidForRepair(
+                    line.repairId,
+                    executor: txn,
+                  );
+              final remaining = (fileValue - alreadyPaid).clamp(
+                0.0,
+                double.infinity,
+              );
+              final accepted = line.amount > remaining
+                  ? remaining
+                  : line.amount;
+              final overflow = line.amount - accepted;
+              if (overflow > 0.005) instrumentCredit += overflow;
+
+              if (accepted <= 0.005) continue;
+              final payment = Payment(
+                id: line.paymentId?.trim().isNotEmpty == true
+                    ? line.paymentId!.trim()
+                    : const Uuid().v4(),
+                receiptNumber: receiptNumber,
+                clientId: clientId,
+                repairId: line.repairId,
+                relatedRepairId: line.repairId,
+                invoiceId: null,
+                amount: double.parse(accepted.toStringAsFixed(2)),
+                date: date,
+                method: method,
+                accountName: null,
+                status: _kStatusConfirmed,
+                notes: notes,
+                attachments: null,
+                glEntryId: null,
                 chequeId: chequeId,
-                voucherType: 'RECEIPT',
-                voucherId: receiptNumber.toString(),
+                isIncome: true,
+              );
+              final stored = await _insertAndPostReceiptOnTxn(
+                txn: txn,
+                payment: payment,
+                customerName: customerName,
+                method: method,
+                receiptNumber: receiptNumber,
+                descriptionOverride: notes,
+                chequeIdOverride: chequeId,
+              );
+              paymentIds.add(stored.id);
+              instrumentAllocated += stored.amount;
+              allocatedAmount += stored.amount;
+              affectedRepairs.add(line.repairId);
+              await _insertReceiptAllocationOnTxn(
+                txn: txn,
+                receiptNumber: receiptNumber,
+                payment: stored,
                 allocationType: 'REPAIR',
-                targetId: line.repairId,
-                amount: stored.amount,
               );
+              if (chequeId != null) {
+                await ChequeAccountingService.allocateChequeOnTxn(
+                  txn: txn,
+                  chequeId: chequeId,
+                  voucherType: 'RECEIPT',
+                  voucherId: receiptNumber.toString(),
+                  allocationType: 'REPAIR',
+                  targetId: line.repairId,
+                  amount: stored.amount,
+                );
+              }
             }
-          }
 
-          if (instrumentCredit > 0.005) {
-            final credit = Payment(
-              id: instrument.unallocatedPaymentId?.trim().isNotEmpty == true
-                  ? instrument.unallocatedPaymentId!.trim()
-                  : const Uuid().v4(),
-              receiptNumber: receiptNumber,
-              clientId: clientId,
-              repairId: null,
-              relatedRepairId: null,
-              invoiceId: null,
-              amount: double.parse(instrumentCredit.toStringAsFixed(2)),
-              date: date,
-              method: method,
-              accountName: null,
-              status: _kStatusConfirmed,
-              notes: [
-                if (notes?.trim().isNotEmpty == true) notes!.trim(),
-                'رصيد دائن غير مخصص للعميل',
-              ].join(' — '),
-              attachments: null,
-              glEntryId: null,
-              chequeId: chequeId,
-              isIncome: true,
-            );
-            final stored = await _insertAndPostReceiptOnTxn(
-              txn: txn,
-              payment: credit,
-              customerName: customerName,
-              method: method,
-              receiptNumber: receiptNumber,
-              descriptionOverride: credit.notes,
-              chequeIdOverride: chequeId,
-            );
-            paymentIds.add(stored.id);
-            creditAmount += stored.amount;
-            await _insertReceiptAllocationOnTxn(
-              txn: txn,
-              receiptNumber: receiptNumber,
-              payment: stored,
-              allocationType: 'CREDIT',
-            );
-            if (chequeId != null) {
-              await ChequeAccountingService.allocateChequeOnTxn(
-                txn: txn,
+            if (instrumentCredit > 0.005) {
+              final credit = Payment(
+                id: instrument.unallocatedPaymentId?.trim().isNotEmpty == true
+                    ? instrument.unallocatedPaymentId!.trim()
+                    : const Uuid().v4(),
+                receiptNumber: receiptNumber,
+                clientId: clientId,
+                repairId: null,
+                relatedRepairId: null,
+                invoiceId: null,
+                amount: double.parse(instrumentCredit.toStringAsFixed(2)),
+                date: date,
+                method: method,
+                accountName: null,
+                status: _kStatusConfirmed,
+                notes: [
+                  if (notes?.trim().isNotEmpty == true) notes!.trim(),
+                  'رصيد دائن غير مخصص للعميل',
+                ].join(' — '),
+                attachments: null,
+                glEntryId: null,
                 chequeId: chequeId,
-                voucherType: 'RECEIPT',
-                voucherId: receiptNumber.toString(),
+                isIncome: true,
+              );
+              final stored = await _insertAndPostReceiptOnTxn(
+                txn: txn,
+                payment: credit,
+                customerName: customerName,
+                method: method,
+                receiptNumber: receiptNumber,
+                descriptionOverride: credit.notes,
+                chequeIdOverride: chequeId,
+              );
+              paymentIds.add(stored.id);
+              creditAmount += stored.amount;
+              await _insertReceiptAllocationOnTxn(
+                txn: txn,
+                receiptNumber: receiptNumber,
+                payment: stored,
                 allocationType: 'CREDIT',
-                targetId: null,
-                amount: stored.amount,
+              );
+              if (chequeId != null) {
+                await ChequeAccountingService.allocateChequeOnTxn(
+                  txn: txn,
+                  chequeId: chequeId,
+                  voucherType: 'RECEIPT',
+                  voucherId: receiptNumber.toString(),
+                  allocationType: 'CREDIT',
+                  targetId: null,
+                  amount: stored.amount,
+                );
+              }
+            }
+
+            final postedForInstrument = instrumentAllocated + instrumentCredit;
+            if ((postedForInstrument - instrument.amount).abs() > 0.01) {
+              throw StateError(
+                'Instrument posting total does not match instrument amount.',
               );
             }
+
+            instrumentRows.add({
+              'id': '$operationId:$key',
+              'receipt_number': receiptNumber,
+              'instrument_key': key,
+              'method': method,
+              'amount': instrument.amount,
+              'currency': (instrument.currency ?? baseCurrency).trim(),
+              'cheque_id': chequeId,
+              'bank_account_id': instrument.bankAccountId,
+              'created_at': DateTime.now().toIso8601String(),
+            });
           }
 
-          final postedForInstrument = instrumentAllocated + instrumentCredit;
-          if ((postedForInstrument - instrument.amount).abs() > 0.01) {
-            throw StateError(
-              'Instrument posting total does not match instrument amount.',
+          final methodNames = {
+            for (final instrument in instruments)
+              _canonicalReceiptMethod(instrument.method),
+          };
+          final receiptMethod = methodNames.length == 1
+              ? methodNames.single
+              : 'mixed';
+
+          await _insertReceiptHeaderOnTxn(
+            txn: txn,
+            receiptNumber: receiptNumber,
+            clientId: clientId,
+            date: date,
+            method: receiptMethod,
+            totalAmount: requestedTotal,
+            allocatedAmount: allocatedAmount,
+            creditAmount: creditAmount,
+            notes: notes,
+          );
+
+          for (final row in instrumentRows) {
+            await txn.insert(
+              'receipt_instruments',
+              row,
+              conflictAlgorithm: ConflictAlgorithm.abort,
             );
           }
 
-          instrumentRows.add({
-            'id': '$operationId:$key',
+          for (final entry in chequeIds.entries) {
+            final instrument = instruments.firstWhere(
+              (item) => item.instrumentKey == entry.key,
+            );
+            await ChequeAccountingService.linkChequeToVoucherOnTxn(
+              txn: txn,
+              chequeId: entry.value,
+              voucherType: 'RECEIPT',
+              voucherId: receiptNumber.toString(),
+              instrumentKey: entry.key,
+              amount: instrument.amount,
+            );
+          }
+
+          await txn.insert('receipt_requests', {
+            'operation_id': operationId,
+            'request_json': request,
             'receipt_number': receiptNumber,
-            'instrument_key': key,
-            'method': method,
-            'amount': instrument.amount,
-            'currency': (instrument.currency ?? baseCurrency).trim(),
-            'cheque_id': chequeId,
-            'bank_account_id': instrument.bankAccountId,
-            'created_at': DateTime.now().toIso8601String(),
           });
-        }
 
-        final methodNames = {
-          for (final instrument in instruments)
-            _canonicalReceiptMethod(instrument.method)
-        };
-        final receiptMethod =
-            methodNames.length == 1 ? methodNames.single : 'mixed';
-
-        await _insertReceiptHeaderOnTxn(
-          txn: txn,
-          receiptNumber: receiptNumber,
-          clientId: clientId,
-          date: date,
-          method: receiptMethod,
-          totalAmount: requestedTotal,
-          allocatedAmount: allocatedAmount,
-          creditAmount: creditAmount,
-          notes: notes,
-        );
-
-        for (final row in instrumentRows) {
-          await txn.insert(
-            'receipt_instruments',
-            row,
-            conflictAlgorithm: ConflictAlgorithm.abort,
+          await AuditTrailService.log(
+            executor: txn,
+            actorUserId: p16Actor?.id,
+            actorRole: p16Actor?.role,
+            action: 'RECEIPT_POSTED',
+            entityType: 'RECEIPT',
+            entityId: 'RC-${receiptNumber.toString().padLeft(6, '0')}',
+            after: await _receiptSnapshot(txn, receiptNumber),
+            metadata: {
+              'instrument_count': instruments.length,
+              'cheque_count': chequeIds.length,
+            },
           );
-        }
 
-        for (final entry in chequeIds.entries) {
-          final instrument =
-              instruments.firstWhere((item) => item.instrumentKey == entry.key);
-          await ChequeAccountingService.linkChequeToVoucherOnTxn(
-            txn: txn,
-            chequeId: entry.value,
-            voucherType: 'RECEIPT',
-            voucherId: receiptNumber.toString(),
-            instrumentKey: entry.key,
-            amount: instrument.amount,
+          return CanonicalReceiptResult(
+            receiptNumber: receiptNumber,
+            paymentIds: paymentIds,
+            allocatedAmount: double.parse(allocatedAmount.toStringAsFixed(2)),
+            customerCredit: double.parse(creditAmount.toStringAsFixed(2)),
           );
-        }
-
-        await txn.insert('receipt_requests', {
-          'operation_id': operationId,
-          'request_json': request,
-          'receipt_number': receiptNumber,
         });
-
-        await AuditTrailService.log(
-          executor: txn,
-          actorUserId: p16Actor?.id,
-          actorRole: p16Actor?.role,
-          action: 'RECEIPT_POSTED',
-          entityType: 'RECEIPT',
-          entityId: 'RC-${receiptNumber.toString().padLeft(6, '0')}',
-          after: await _receiptSnapshot(txn, receiptNumber),
-          metadata: {
-            'instrument_count': instruments.length,
-            'cheque_count': chequeIds.length,
-          },
-        );
-
-        return CanonicalReceiptResult(
-          receiptNumber: receiptNumber,
-          paymentIds: paymentIds,
-          allocatedAmount: double.parse(allocatedAmount.toStringAsFixed(2)),
-          customerCredit: double.parse(creditAmount.toStringAsFixed(2)),
-        );
-      },
-    );
 
     for (final repairId in database == null ? affectedRepairs : <String>{}) {
       try {
@@ -1147,6 +1203,353 @@ CREATE TABLE IF NOT EXISTS payments (
       } catch (_) {}
     }
     return result;
+  }
+
+  /// Canonical insurance-policy receipt.
+  ///
+  /// The receipt document, payment rows, GL, cheque instrument and insurance
+  /// allocation are committed in one SQLite transaction. A retry with the same
+  /// operationId is idempotent and returns the original receipt.
+  static Future<CanonicalReceiptResult> insertCanonicalInsuranceReceipt({
+    required String operationId,
+    Database? database,
+    required String policyId,
+    required DateTime date,
+    required List<ReceiptInstrumentInput> instruments,
+    String? notes,
+  }) async {
+    final actor = await AuthorizationGuard.require(
+      PermissionKeys.receiptCreate,
+    );
+    if (operationId.trim().isEmpty || policyId.trim().isEmpty) {
+      throw ArgumentError(
+        'Insurance receipt operationId and policyId required.',
+      );
+    }
+    if (instruments.isEmpty) {
+      throw StateError('Insurance receipt requires at least one instrument.');
+    }
+    if (instruments.any(
+      (item) =>
+          item.allocations.isNotEmpty || item.unallocatedAmount.abs() > 0.005,
+    )) {
+      throw StateError(
+        'Insurance receipt instruments cannot contain repair allocations.',
+      );
+    }
+    if (instruments.any(
+      (item) => ChequeAccountingService.isChequeMethod(item.method),
+    )) {
+      await AuthorizationGuard.require(PermissionKeys.chequeCreate);
+    }
+
+    final keys = <String>{};
+    var requestedTotal = 0.0;
+    for (final instrument in instruments) {
+      final key = instrument.instrumentKey.trim();
+      if (key.isEmpty || !keys.add(key)) {
+        throw StateError('Receipt instrument keys must be unique.');
+      }
+      if (!instrument.amount.isFinite || instrument.amount <= 0.005) {
+        throw StateError('Receipt instrument amount must be positive.');
+      }
+      if (_canonicalReceiptMethod(instrument.method) == 'cheque' &&
+          instrument.chequeDraft == null) {
+        throw StateError('Cheque instrument requires cheque details.');
+      }
+      requestedTotal += instrument.amount;
+    }
+
+    final request = jsonEncode({
+      'type': 'INSURANCE_POLICY',
+      'policy_id': policyId,
+      'date': date.toIso8601String(),
+      'notes': notes,
+      'instruments': [
+        for (final item in instruments)
+          {
+            'key': item.instrumentKey,
+            'method': _canonicalReceiptMethod(item.method),
+            'amount': item.amount,
+            'cheque': item.chequeDraft,
+            'bank_account_id': item.bankAccountId,
+            'currency': item.currency,
+          },
+      ],
+    });
+
+    final db = database ?? await DBService.database;
+    return SyncFoundationService.transaction<CanonicalReceiptResult>(db, (
+      txn,
+    ) async {
+      await _ensureTableAndSchema(txn);
+      await ReceiptTables.createAllTables(txn);
+
+      final policyRows = await txn.query(
+        'insurance_policies',
+        columns: const [
+          'id',
+          'client_id',
+          'net_sale_amount',
+          'sell_price',
+          'posting_status',
+        ],
+        where: 'id=?',
+        whereArgs: [policyId],
+        limit: 1,
+      );
+      if (policyRows.isEmpty) {
+        throw StateError('Insurance policy not found: $policyId');
+      }
+      final policy = policyRows.single;
+      final clientId =
+          (policy['client_id'] as num?)?.toInt() ??
+          int.tryParse(policy['client_id']?.toString() ?? '');
+      if (clientId == null || clientId <= 0) {
+        throw StateError('Posted insurance policy requires a valid client.');
+      }
+      if ((policy['posting_status'] ?? '').toString().toUpperCase() !=
+          'POSTED') {
+        throw StateError('Insurance receipt requires a posted policy.');
+      }
+
+      final priorRequest = await txn.query(
+        'receipt_requests',
+        where: 'operation_id=?',
+        whereArgs: [operationId],
+        limit: 1,
+      );
+      if (priorRequest.isNotEmpty) {
+        if (priorRequest.single['request_json'] != request) {
+          throw StateError('Receipt retry differs from original request.');
+        }
+        final receiptNumber = (priorRequest.single['receipt_number'] as num)
+            .toInt();
+        final header = await txn.query(
+          'receipt_headers',
+          where: 'receipt_number=? AND status=?',
+          whereArgs: [receiptNumber, 'posted'],
+          limit: 1,
+        );
+        if (header.isEmpty) {
+          throw StateError('Original insurance receipt is no longer active.');
+        }
+        final links = await txn.query(
+          'insurance_policy_payments',
+          columns: const ['payment_id'],
+          where: 'direction=? AND receipt_number=?',
+          whereArgs: ['CUSTOMER_RECEIPT', receiptNumber],
+        );
+        return CanonicalReceiptResult(
+          receiptNumber: receiptNumber,
+          paymentIds: links
+              .map((row) => row['payment_id']?.toString() ?? '')
+              .where((value) => value.isNotEmpty)
+              .toList(),
+          allocatedAmount: (header.single['allocated_amount'] as num)
+              .toDouble(),
+          customerCredit: 0,
+        );
+      }
+
+      final clientRows = await txn.query(
+        'clients',
+        columns: const ['name'],
+        where: 'id=?',
+        whereArgs: [clientId],
+        limit: 1,
+      );
+      if (clientRows.isEmpty) {
+        throw StateError('Insurance policy client does not exist.');
+      }
+      final customerName = (clientRows.single['name'] ?? 'العميل')
+          .toString()
+          .trim();
+
+      final sale = ((policy['net_sale_amount'] as num?)?.toDouble() ?? 0) > 0
+          ? (policy['net_sale_amount'] as num).toDouble()
+          : (policy['sell_price'] as num?)?.toDouble() ?? 0;
+      final paidRows = await txn.rawQuery(
+        '''SELECT COALESCE(SUM(amount),0) paid
+             FROM insurance_policy_payments
+             WHERE policy_id=? AND direction='CUSTOMER_RECEIPT'
+               AND status='POSTED' ''',
+        [policyId],
+      );
+      final alreadyPaid = (paidRows.single['paid'] as num?)?.toDouble() ?? 0.0;
+      final outstanding = sale - alreadyPaid;
+      if (requestedTotal - outstanding > 0.005) {
+        throw StateError(
+          'Insurance receipt exceeds policy outstanding balance.',
+        );
+      }
+
+      final receiptNumber = await _nextReceiptNumberOnTxn(txn);
+      final paymentIds = <String>[];
+      final instrumentRows = <Map<String, Object?>>[];
+      final chequeIds = <String, int>{};
+      final baseCurrency = (await CommercialSettingsService.instance.get(
+        executor: txn,
+      )).baseCurrencyCode;
+
+      for (final instrument in instruments) {
+        final key = instrument.instrumentKey.trim();
+        final method = _canonicalReceiptMethod(instrument.method);
+        int? chequeId;
+        if (method == 'cheque') {
+          final draft = Map<String, dynamic>.from(instrument.chequeDraft!);
+          draft['instrument_key'] = key;
+          chequeId = await ChequeAccountingService.createLinkedChequeOnTxn(
+            txn: txn,
+            draft: draft,
+            type: ChequeType.incoming,
+            amount: instrument.amount,
+            currency: (instrument.currency ?? baseCurrency).trim(),
+            sourceType: 'RECEIPT',
+            sourceId: receiptNumber.toString(),
+            instrumentKey: key,
+            receiptVoucherId: receiptNumber,
+            sourcePartyType: 'CLIENT',
+            sourcePartyId: clientId.toString(),
+            clientId: clientId,
+            recipientType: 'WORKSHOP',
+            recipientName: 'Workshop',
+            bankAccountId: instrument.bankAccountId,
+            createdBy: actor?.id,
+          );
+          chequeIds[key] = chequeId;
+        }
+
+        final payment = Payment(
+          id: '$operationId:$key',
+          receiptNumber: receiptNumber,
+          clientId: clientId,
+          repairId: null,
+          invoiceId: null,
+          relatedRepairId: null,
+          amount: double.parse(instrument.amount.toStringAsFixed(2)),
+          date: date,
+          method: method,
+          accountName: null,
+          status: _kStatusConfirmed,
+          notes: notes,
+          attachments: null,
+          glEntryId: null,
+          chequeId: chequeId,
+          isIncome: true,
+        );
+        final stored = await _insertAndPostReceiptOnTxn(
+          txn: txn,
+          payment: payment,
+          customerName: customerName,
+          method: method,
+          receiptNumber: receiptNumber,
+          descriptionOverride: notes ?? 'تحصيل بوليصة تأمين $policyId',
+          chequeIdOverride: chequeId,
+        );
+        paymentIds.add(stored.id);
+
+        await txn.insert('insurance_policy_payments', {
+          'id': 'IPR:$operationId:$key',
+          'policy_id': policyId,
+          'settlement_id': null,
+          'direction': 'CUSTOMER_RECEIPT',
+          'receipt_number': receiptNumber,
+          'payment_id': stored.id,
+          'voucher_id': null,
+          'cheque_id': chequeId,
+          'amount': stored.amount,
+          'currency': (instrument.currency ?? baseCurrency).trim(),
+          'status': 'POSTED',
+          'created_at': DateTime.now().toIso8601String(),
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
+
+        if (chequeId != null) {
+          await ChequeAccountingService.allocateChequeOnTxn(
+            txn: txn,
+            chequeId: chequeId,
+            voucherType: 'RECEIPT',
+            voucherId: receiptNumber.toString(),
+            allocationType: 'INSURANCE_POLICY',
+            targetId: policyId,
+            amount: stored.amount,
+          );
+        }
+
+        instrumentRows.add({
+          'id': '$operationId:$key',
+          'receipt_number': receiptNumber,
+          'instrument_key': key,
+          'method': method,
+          'amount': stored.amount,
+          'currency': (instrument.currency ?? baseCurrency).trim(),
+          'cheque_id': chequeId,
+          'bank_account_id': instrument.bankAccountId,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      }
+
+      final methods = {
+        for (final item in instruments) _canonicalReceiptMethod(item.method),
+      };
+      await _insertReceiptHeaderOnTxn(
+        txn: txn,
+        receiptNumber: receiptNumber,
+        clientId: clientId,
+        date: date,
+        method: methods.length == 1 ? methods.single : 'mixed',
+        totalAmount: requestedTotal,
+        allocatedAmount: requestedTotal,
+        creditAmount: 0,
+        notes: notes,
+      );
+      for (final row in instrumentRows) {
+        await txn.insert(
+          'receipt_instruments',
+          row,
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
+      for (final entry in chequeIds.entries) {
+        final instrument = instruments.firstWhere(
+          (item) => item.instrumentKey == entry.key,
+        );
+        await ChequeAccountingService.linkChequeToVoucherOnTxn(
+          txn: txn,
+          chequeId: entry.value,
+          voucherType: 'RECEIPT',
+          voucherId: receiptNumber.toString(),
+          instrumentKey: entry.key,
+          amount: instrument.amount,
+        );
+      }
+      await txn.insert('receipt_requests', {
+        'operation_id': operationId,
+        'request_json': request,
+        'receipt_number': receiptNumber,
+      });
+
+      await AuditTrailService.log(
+        executor: txn,
+        actorUserId: actor?.id,
+        actorRole: actor?.role,
+        action: 'INSURANCE_RECEIPT_POSTED',
+        entityType: 'INSURANCE_POLICY',
+        entityId: policyId,
+        metadata: {
+          'receipt_number': receiptNumber,
+          'amount': requestedTotal,
+          'instrument_count': instruments.length,
+        },
+      );
+
+      return CanonicalReceiptResult(
+        receiptNumber: receiptNumber,
+        paymentIds: paymentIds,
+        allocatedAmount: double.parse(requestedTotal.toStringAsFixed(2)),
+        customerCredit: 0,
+      );
+    });
   }
 
   /// One source document, one SQLite transaction, N repair allocations.
@@ -1167,10 +1570,8 @@ CREATE TABLE IF NOT EXISTS payments (
     Map<String, dynamic>? chequeDraft,
   }) async {
     final canonicalMethod = _canonicalReceiptMethod(method);
-    final requestedTotal = allocations.fold<double>(
-          0,
-          (sum, line) => sum + line.amount,
-        ) +
+    final requestedTotal =
+        allocations.fold<double>(0, (sum, line) => sum + line.amount) +
         unallocatedAmount;
 
     final legacyRequest = jsonEncode({
@@ -1178,7 +1579,7 @@ CREATE TABLE IF NOT EXISTS payments (
       'method': canonicalMethod,
       'date': date.toIso8601String(),
       'allocations': [
-        for (final a in allocations) [a.repairId, a.amount]
+        for (final a in allocations) [a.repairId, a.amount],
       ],
       'unallocated': unallocatedAmount,
       'notes': notes,
@@ -1190,8 +1591,8 @@ CREATE TABLE IF NOT EXISTS payments (
     final instrumentKey = (rawKey != null && rawKey.isNotEmpty)
         ? rawKey
         : (rawUuid != null && rawUuid.isNotEmpty)
-            ? rawUuid
-            : 'legacy-$operationId';
+        ? rawUuid
+        : 'legacy-$operationId';
 
     return insertCanonicalReceiptWithInstruments(
       operationId: operationId,
@@ -1255,7 +1656,8 @@ CREATE TABLE IF NOT EXISTS payments (
                 _canonicalReceiptMethod(method) ||
             !previous.isIncome) {
           throw StateError(
-              'Payment identifier already belongs to a different receipt.');
+            'Payment identifier already belongs to a different receipt.',
+          );
         }
         await postPaymentFromDbId(payment.id.trim());
         return;
@@ -1281,8 +1683,9 @@ CREATE TABLE IF NOT EXISTS payments (
               ),
             ],
       unallocatedAmount: repairId.isEmpty ? payment.amount : 0,
-      unallocatedPaymentId:
-          repairId.isEmpty && payment.id.isNotEmpty ? payment.id : null,
+      unallocatedPaymentId: repairId.isEmpty && payment.id.isNotEmpty
+          ? payment.id
+          : null,
       notes: descriptionOverride ?? payment.notes,
       chequeDraft: chequeDraft,
     );
@@ -1296,7 +1699,8 @@ CREATE TABLE IF NOT EXISTS payments (
   }) async {
     final db = executor ?? await DBService.database;
     await _ensureTableAndSchema(db);
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT COALESCE(SUM(l.credit-l.debit),0) AS available
       FROM gl_lines l JOIN gl_entries e ON e.id=l.entry_id
       JOIN accounts a ON a.id=l.account_id
@@ -1305,7 +1709,9 @@ CREATE TABLE IF NOT EXISTS payments (
         AND COALESCE(l.repair_id,'')=''
         AND COALESCE(original.source,e.source) IN
           ('PAYMENT','CREDIT_ALLOCATION','PAYMENT-ADJUST','CHEQUE_STATUS','CHEQUE_ENDORSE')
-    ''', [clientId]);
+    ''',
+      [clientId],
+    );
     final raw = rows.first['available'];
     final value = raw is num ? raw.toDouble() : double.tryParse('$raw') ?? 0.0;
     return value <= 0.005 ? 0.0 : double.parse(value.toStringAsFixed(2));
@@ -1320,8 +1726,9 @@ CREATE TABLE IF NOT EXISTS payments (
     required double amount,
     String? notes,
   }) async {
-    final p16Actor =
-        await AuthorizationGuard.require(PermissionKeys.receiptCreate);
+    final p16Actor = await AuthorizationGuard.require(
+      PermissionKeys.receiptCreate,
+    );
     if (clientId <= 0 || repairId.trim().isEmpty || amount <= 0.005) {
       throw ArgumentError('Valid client, repair and amount are required.');
     }
@@ -1345,12 +1752,14 @@ CREATE TABLE IF NOT EXISTS payments (
           : int.tryParse('$repairClientRaw');
       if (repairClientId != clientId) {
         throw StateError(
-            'Customer credit can only be applied to the same client.');
+          'Customer credit can only be applied to the same client.',
+        );
       }
 
       final available = await customerCreditForClient(clientId, executor: txn);
       if (available <= 0.005) throw StateError('No available customer credit.');
-      final fileValue = (repairs.first['fileValue'] as num?)?.toDouble() ??
+      final fileValue =
+          (repairs.first['fileValue'] as num?)?.toDouble() ??
           double.tryParse('${repairs.first['fileValue']}') ??
           0.0;
       final paid = await RepairFinancialTruthService.paidForRepair(
@@ -1423,21 +1832,17 @@ CREATE TABLE IF NOT EXISTS payments (
         payment.toMap(),
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
-      await txn.insert(
-        'customer_credit_allocations',
-        {
-          'id': const Uuid().v4(),
-          'client_id': clientId,
-          'repair_id': repairId,
-          'payment_id': paymentId,
-          'amount': applied,
-          'gl_entry_id': glId,
-          'date': payment.date.toIso8601String(),
-          'notes': notes,
-          'created_at': DateTime.now().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.abort,
-      );
+      await txn.insert('customer_credit_allocations', {
+        'id': const Uuid().v4(),
+        'client_id': clientId,
+        'repair_id': repairId,
+        'payment_id': paymentId,
+        'amount': applied,
+        'gl_entry_id': glId,
+        'date': payment.date.toIso8601String(),
+        'notes': notes,
+        'created_at': DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.abort);
       await _refreshRepairSnapshot(txn, repairId);
       await AuditTrailService.log(
         executor: txn,
@@ -1451,7 +1856,7 @@ CREATE TABLE IF NOT EXISTS payments (
           'available_credit': available - applied,
           'paid': paid + applied,
           'payment': payment.toMap(),
-          'gl_entry_id': glId
+          'gl_entry_id': glId,
         },
         reason: notes,
       );
@@ -1464,15 +1869,25 @@ CREATE TABLE IF NOT EXISTS payments (
   }
 
   static Future<Map<String, Object?>> _receiptSnapshot(
-          DatabaseExecutor db, int number) async =>
-      {
-        'header': await db.query('receipt_headers',
-            where: 'receipt_number=?', whereArgs: [number]),
-        'payments': await db
-            .query(table, where: 'receipt_number=?', whereArgs: [number]),
-        'allocations': await db.query('receipt_allocations',
-            where: 'receipt_number=?', whereArgs: [number]),
-      };
+    DatabaseExecutor db,
+    int number,
+  ) async => {
+    'header': await db.query(
+      'receipt_headers',
+      where: 'receipt_number=?',
+      whereArgs: [number],
+    ),
+    'payments': await db.query(
+      table,
+      where: 'receipt_number=?',
+      whereArgs: [number],
+    ),
+    'allocations': await db.query(
+      'receipt_allocations',
+      where: 'receipt_number=?',
+      whereArgs: [number],
+    ),
+  };
 
   static Future<void> reverseReceiptByPaymentId(
     String paymentId, {
@@ -1520,8 +1935,9 @@ CREATE TABLE IF NOT EXISTS payments (
     String paymentId, {
     String? reason,
   }) async {
-    final p16Actor =
-        await AuthorizationGuard.require(PermissionKeys.receiptReverse);
+    final p16Actor = await AuthorizationGuard.require(
+      PermissionKeys.receiptReverse,
+    );
     final db = await DBService.database;
     final affectedRepairs = <String>{};
     await SyncFoundationService.transaction(db, (txn) async {
@@ -1575,10 +1991,12 @@ CREATE TABLE IF NOT EXISTS payments (
         executor: txn,
         before: rows.first,
         after: {
-          'original':
-              (await txn.query(table, where: 'id=?', whereArgs: [paymentId]))
-                  .single,
-          'reversal': reversal.toMap()
+          'original': (await txn.query(
+            table,
+            where: 'id=?',
+            whereArgs: [paymentId],
+          )).single,
+          'reversal': reversal.toMap(),
         },
         actorUserId: p16Actor?.id,
         actorRole: p16Actor?.role,
@@ -1600,8 +2018,9 @@ CREATE TABLE IF NOT EXISTS payments (
     String? reason,
     Database? database,
   }) async {
-    final p16Actor =
-        await AuthorizationGuard.require(PermissionKeys.receiptReverse);
+    final p16Actor = await AuthorizationGuard.require(
+      PermissionKeys.receiptReverse,
+    );
     final db = database ?? await DBService.database;
     final affectedRepairs = <String>{};
     await SyncFoundationService.transaction(db, (txn) async {
@@ -1690,7 +2109,8 @@ CREATE TABLE IF NOT EXISTS payments (
         allocatedAmount: reversalAllocated,
         creditAmount: reversalCredit,
         reversalOfReceiptNumber: receiptNumber,
-        notes: reason ??
+        notes:
+            reason ??
             'عكس رسمي للسند RC-${receiptNumber.toString().padLeft(6, '0')}',
       );
       if (header.isNotEmpty) {
@@ -1706,7 +2126,7 @@ CREATE TABLE IF NOT EXISTS payments (
         before: beforeSnapshot,
         after: {
           'original': await _receiptSnapshot(txn, receiptNumber),
-          'reversal': await _receiptSnapshot(txn, reversalReceiptNumber)
+          'reversal': await _receiptSnapshot(txn, reversalReceiptNumber),
         },
         actorUserId: p16Actor?.id,
         actorRole: p16Actor?.role,
@@ -1827,15 +2247,22 @@ CREATE TABLE IF NOT EXISTS payments (
   }
 
   // ───── postPaymentFromDbId (Idempotent) ─────
-// يستبدل الدالة كاملة
+  // يستبدل الدالة كاملة
   static Future<int> postPaymentFromDbId(String paymentId) async {
     final db = await DBService.database;
 
-    final document =
-        await db.query(table, where: 'id=?', whereArgs: [paymentId], limit: 1);
+    final document = await db.query(
+      table,
+      where: 'id=?',
+      whereArgs: [paymentId],
+      limit: 1,
+    );
     if (document.isEmpty) throw StateError('Payment not found.');
-    if (['void', 'reversed', 'reversal']
-        .contains('${document.first['status']}'.toLowerCase())) {
+    if ([
+      'void',
+      'reversed',
+      'reversal',
+    ].contains('${document.first['status']}'.toLowerCase())) {
       throw StateError('A cancelled payment cannot be posted again.');
     }
 
@@ -1850,9 +2277,14 @@ CREATE TABLE IF NOT EXISTS payments (
     if (existed.isNotEmpty) {
       final glId = (existed.first['id'] as num).toInt();
       await SyncFoundationService.writeOn(
-          db,
-          (txn) => txn.update(table, {'gl_entry_id': glId},
-              where: 'id=?', whereArgs: [paymentId]));
+        db,
+        (txn) => txn.update(
+          table,
+          {'gl_entry_id': glId},
+          where: 'id=?',
+          whereArgs: [paymentId],
+        ),
+      );
       return glId;
     }
 
@@ -1861,8 +2293,12 @@ CREATE TABLE IF NOT EXISTS payments (
     final glId = await SyncFoundationService.transaction(db, (txn) async {
       await _ensureTableAndSchema(txn);
 
-      final row = await txn.query(table,
-          where: 'id=?', whereArgs: [paymentId], limit: 1);
+      final row = await txn.query(
+        table,
+        where: 'id=?',
+        whereArgs: [paymentId],
+        limit: 1,
+      );
       if (row.isEmpty) throw StateError('payment not found: $paymentId');
 
       final payment = Payment.fromMap(row.first);
@@ -1902,8 +2338,12 @@ CREATE TABLE IF NOT EXISTS payments (
       if (r.isEmpty) throw StateError('GL not created for payment $paymentId');
 
       final id = (r.first['id'] as num).toInt();
-      await txn.update('payments', {'gl_entry_id': id},
-          where: 'id=?', whereArgs: [paymentId]);
+      await txn.update(
+        'payments',
+        {'gl_entry_id': id},
+        where: 'id=?',
+        whereArgs: [paymentId],
+      );
       return id; // ← يرجّع glId من داخل txn
     });
 
@@ -1920,21 +2360,31 @@ CREATE TABLE IF NOT EXISTS payments (
   // ───── internal on-txn ops ─────
 
   static Future<void> _reverseIfExists(
-      Transaction txn, String paymentId) async {
-    final rows = await txn.rawQuery('''
+    Transaction txn,
+    String paymentId,
+  ) async {
+    final rows = await txn.rawQuery(
+      '''
       SELECT e.id FROM gl_entries e
       WHERE e.source IN ('PAYMENT','PAYMENT_OUT','CREDIT_ALLOCATION')
         AND e.source_id=? AND e.reversal_of IS NULL
         AND NOT EXISTS (SELECT 1 FROM gl_entries r WHERE r.reversal_of=e.id)
-    ''', [paymentId]);
+    ''',
+      [paymentId],
+    );
     for (final row in rows) {
-      await DBService.reverseEntryGLOn(txn, (row['id'] as num).toInt(),
-          note: 'Payment cancelled');
+      await DBService.reverseEntryGLOn(
+        txn,
+        (row['id'] as num).toInt(),
+        note: 'Payment cancelled',
+      );
     }
   }
 
   static Future<void> _reverseAdjustsIfAny(
-      Transaction txn, String paymentId) async {
+    Transaction txn,
+    String paymentId,
+  ) async {
     final rows = await txn.query(
       'gl_entries',
       columns: ['id'],
@@ -1943,8 +2393,11 @@ CREATE TABLE IF NOT EXISTS payments (
     );
     for (final r in rows) {
       final gid = (r['id'] as num).toInt();
-      await DBService.reverseEntryGLOn(txn, gid,
-          note: 'Reverse on payment adjust/delete');
+      await DBService.reverseEntryGLOn(
+        txn,
+        gid,
+        note: 'Reverse on payment adjust/delete',
+      );
     }
   }
 
@@ -1957,10 +2410,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
     String? invoiceId = payment.invoiceId?.trim();
     if (invoiceId == null || invoiceId.isEmpty) {
-      invoiceId = await _findInvoiceIdOnTxn(
-        txn: txn,
-        repairId: repairId,
-      );
+      invoiceId = await _findInvoiceIdOnTxn(txn: txn, repairId: repairId);
     }
 
     await txn.update(
@@ -2001,9 +2451,7 @@ CREATE TABLE IF NOT EXISTS payments (
         : _resolveAccountFromMethod(payment.method);
 
     if (accountName == 'شيكات') {
-      throw StateError(
-        'Cheque receipt adjustment is blocked until P0.008.',
-      );
+      throw StateError('Cheque receipt adjustment is blocked until P0.008.');
     }
 
     final fp = _fingerprint(
@@ -2069,8 +2517,9 @@ CREATE TABLE IF NOT EXISTS payments (
     String? repairId,
     String? descriptionOverride,
   }) async {
-    final normalizedRepairId =
-        repairId?.trim().isNotEmpty == true ? repairId!.trim() : null;
+    final normalizedRepairId = repairId?.trim().isNotEmpty == true
+        ? repairId!.trim()
+        : null;
 
     String? invoiceId = payment.invoiceId?.trim();
     if (invoiceId == null || invoiceId.isEmpty) {
@@ -2138,9 +2587,7 @@ CREATE TABLE IF NOT EXISTS payments (
         if (accountName == 'شيكات') {
           final chequeId = payment.chequeId;
           if (chequeId == null) {
-            throw StateError(
-              'Posted cheque receipt has no valid cheque link.',
-            );
+            throw StateError('Posted cheque receipt has no valid cheque link.');
           }
           await ChequeAccountingService.attachInitialGlOnTxn(
             txn: txn,
@@ -2192,12 +2639,15 @@ CREATE TABLE IF NOT EXISTS payments (
         throw StateError('Cheque receipt points to a missing cheque.');
       }
       final chequeRow = chequeRows.first;
-      final sourceType =
-          (chequeRow['source_type'] ?? '').toString().toUpperCase();
-      final legacyPaymentLink = sourceType == 'PAYMENT' &&
+      final sourceType = (chequeRow['source_type'] ?? '')
+          .toString()
+          .toUpperCase();
+      final legacyPaymentLink =
+          sourceType == 'PAYMENT' &&
           chequeRow['source_id']?.toString() == paymentId;
       final receiptNumber = payment.receiptNumber;
-      final canonicalReceiptLink = receiptNumber != null &&
+      final canonicalReceiptLink =
+          receiptNumber != null &&
           (sourceType == 'RECEIPT' ||
               chequeRow['receipt_voucher_id'] != null) &&
           (chequeRow['receipt_voucher_id']?.toString() ==
@@ -2205,23 +2655,28 @@ CREATE TABLE IF NOT EXISTS payments (
               chequeRow['source_id']?.toString() == receiptNumber.toString());
       final receivedDirection =
           (chequeRow['direction'] ?? 'RECEIVED').toString().toUpperCase() ==
-              'RECEIVED';
+          'RECEIVED';
       if ((!legacyPaymentLink && !canonicalReceiptLink) || !receivedDirection) {
         throw StateError(
           'Cheque receipt link does not match the receipt document.',
         );
       }
 
-      debitAccId = await _getAccountIdByCode(txn, '1020') ??
+      debitAccId =
+          await _getAccountIdByCode(txn, '1020') ??
           (throw StateError('Missing incoming cheque account 1020'));
     } else {
       debitAccId = accountName == 'البنك' ? bankId : cashId;
     }
     final who = customerName.trim().isNotEmpty ? customerName.trim() : 'العميل';
-    final note = descriptionOverride != null &&
-            descriptionOverride.trim().isNotEmpty
+    final note =
+        descriptionOverride != null && descriptionOverride.trim().isNotEmpty
         ? descriptionOverride.trim()
-        : 'دفعة قبض ${accountName == "الصندوق" ? "نقدية" : accountName == "شيكات" ? "بشيك" : "بنكية"} — $who';
+        : 'دفعة قبض ${accountName == "الصندوق"
+              ? "نقدية"
+              : accountName == "شيكات"
+              ? "بشيك"
+              : "بنكية"} — $who';
 
     final glId = await DBService.postEntryGLOn(
       ex: txn,
@@ -2271,24 +2726,26 @@ CREATE TABLE IF NOT EXISTS payments (
   }
 
   static Future<void> _refreshRepairSnapshot(
-      Transaction txn, String repairId) async {
+    Transaction txn,
+    String repairId,
+  ) async {
     await RepairFinancialTruthService.refreshRepairPaymentCache(txn, repairId);
   }
   // ---------------------------------------------------------------------------
-// 🧾 insertAndPostPayment — نظام سند صرف كامل (OUTFLOW)
-// - partyType: SUPPLIER / EMPLOYEE / EXPENSE / PURCHASE / OTHER
-// - GL Posting:
-//      Dr Expense/Supplier/Employee/...
-//      Cr Cash/Bank/Cheque
-// - No interference with receipt logic
-// - Idempotent: يمنع التكرار
-// ---------------------------------------------------------------------------
+  // 🧾 insertAndPostPayment — نظام سند صرف كامل (OUTFLOW)
+  // - partyType: SUPPLIER / EMPLOYEE / EXPENSE / PURCHASE / OTHER
+  // - GL Posting:
+  //      Dr Expense/Supplier/Employee/...
+  //      Cr Cash/Bank/Cheque
+  // - No interference with receipt logic
+  // - Idempotent: يمنع التكرار
+  // ---------------------------------------------------------------------------
 
   static Future<Payment> insertAndPostPayment({
     required Payment payment,
     required String method,
     required String
-        partyType, // SUPPLIER / EMPLOYEE / EXPENSE / PURCHASE / OTHER
+    partyType, // SUPPLIER / EMPLOYEE / EXPENSE / PURCHASE / OTHER
     required String partyName,
     String? descriptionOverride,
   }) async {
@@ -2353,8 +2810,12 @@ CREATE TABLE IF NOT EXISTS payments (
       );
       if (glRow.isNotEmpty) {
         final glId = (glRow.first['id'] as num).toInt();
-        await txn.update(table, {'gl_entry_id': glId},
-            where: 'id=?', whereArgs: [paymentId]);
+        await txn.update(
+          table,
+          {'gl_entry_id': glId},
+          where: 'id=?',
+          whereArgs: [paymentId],
+        );
         return;
       }
 
@@ -2429,8 +2890,12 @@ CREATE TABLE IF NOT EXISTS payments (
             'normal_balance': 'DEBIT',
           });
 
-          await txn.update('expense_categories', {'account_id': debitAccId},
-              where: 'id=?', whereArgs: [pid]);
+          await txn.update(
+            'expense_categories',
+            {'account_id': debitAccId},
+            where: 'id=?',
+            whereArgs: [pid],
+          );
         } else {
           debitAccId = acc is int ? acc : int.parse(acc.toString());
         }
@@ -2469,7 +2934,8 @@ CREATE TABLE IF NOT EXISTS payments (
       //-----------------------------------------------------------------------
       // GL Posting
       //-----------------------------------------------------------------------
-      final note = descriptionOverride ??
+      final note =
+          descriptionOverride ??
           'سند صرف — ${accountName == "الصندوق" ? "نقدي" : "بنكي"} — $partyName';
 
       final glId = await DBService.postEntryGLOn(
@@ -2497,12 +2963,16 @@ CREATE TABLE IF NOT EXISTS payments (
             'party_id': null,
             'invoice_id': null,
             'repair_id': null,
-          }
+          },
         ],
       );
 
-      await txn.update(table, {'gl_entry_id': glId},
-          where: 'id=?', whereArgs: [paymentId]);
+      await txn.update(
+        table,
+        {'gl_entry_id': glId},
+        where: 'id=?',
+        whereArgs: [paymentId],
+      );
     });
 
     return payment.copyWith(id: paymentId);
