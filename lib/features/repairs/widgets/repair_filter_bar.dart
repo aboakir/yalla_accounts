@@ -62,12 +62,9 @@ class RepairFilterBar extends StatelessWidget {
               children: [
                 SizedBox(
                   width: narrow ? constraints.maxWidth : fieldWidth * 2 + 12,
-                  child: TextFormField(
-                    inputFormatters: const [YallaDigitNormalizer()],
-                    key: ValueKey('repair-search-$searchQuery'),
-                    initialValue: searchQuery,
+                  child: _PersistentSearchField(
+                    value: searchQuery,
                     onChanged: onSearchChanged,
-                    textAlign: TextAlign.right,
                     decoration: _decoration(
                       context,
                       label: 'بحث',
@@ -225,6 +222,64 @@ class RepairFilterBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
+    );
+  }
+}
+
+class _PersistentSearchField extends StatefulWidget {
+  const _PersistentSearchField({
+    required this.value,
+    required this.onChanged,
+    required this.decoration,
+  });
+
+  final String value;
+  final ValueChanged<String> onChanged;
+  final InputDecoration decoration;
+
+  @override
+  State<_PersistentSearchField> createState() => _PersistentSearchFieldState();
+}
+
+class _PersistentSearchFieldState extends State<_PersistentSearchField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PersistentSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text) {
+      _controller.value = _controller.value.copyWith(
+        text: widget.value,
+        selection: TextSelection.collapsed(offset: widget.value.length),
+        composing: TextRange.empty,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      focusNode: _focusNode,
+      inputFormatters: const [YallaDigitNormalizer()],
+      onChanged: widget.onChanged,
+      textAlign: TextAlign.right,
+      decoration: widget.decoration,
     );
   }
 }
