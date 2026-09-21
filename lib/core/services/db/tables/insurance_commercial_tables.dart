@@ -194,7 +194,7 @@ class InsuranceCommercialTables {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS insurance_products(
         id TEXT PRIMARY KEY,
-        company_id TEXT NOT NULL REFERENCES insurance_companies(id),
+        company_id INTEGER NOT NULL REFERENCES insurance_companies(id),
         code TEXT NOT NULL,
         name TEXT NOT NULL,
         product_type TEXT NOT NULL,
@@ -550,6 +550,7 @@ class InsuranceCommercialTables {
         status TEXT NOT NULL DEFAULT 'DRAFT',
         requested_at TEXT NOT NULL,
         accepted_item_id TEXT,
+        issued_policy_id TEXT REFERENCES insurance_policies(id),
         notes TEXT,
         created_by TEXT,
         created_at TEXT NOT NULL,
@@ -562,12 +563,18 @@ class InsuranceCommercialTables {
       CREATE TABLE IF NOT EXISTS insurance_quote_items(
         id TEXT PRIMARY KEY,
         quote_id TEXT NOT NULL REFERENCES insurance_quotes(id) ON DELETE CASCADE,
-        company_id TEXT NOT NULL REFERENCES insurance_companies(id),
+        company_id INTEGER NOT NULL REFERENCES insurance_companies(id),
         product_id TEXT REFERENCES insurance_products(id),
         premium REAL NOT NULL DEFAULT 0,
+        purchase_price REAL NOT NULL DEFAULT 0,
+        sale_price REAL NOT NULL DEFAULT 0,
+        discount REAL NOT NULL DEFAULT 0,
         deductible REAL NOT NULL DEFAULT 0,
         commission_rate REAL NOT NULL DEFAULT 0,
         commission_amount REAL NOT NULL DEFAULT 0,
+        fees REAL NOT NULL DEFAULT 0,
+        tax REAL NOT NULL DEFAULT 0,
+        direct_cost REAL NOT NULL DEFAULT 0,
         final_price REAL NOT NULL DEFAULT 0,
         coverage_json TEXT,
         status TEXT NOT NULL DEFAULT 'OFFERED',
@@ -613,7 +620,7 @@ class InsuranceCommercialTables {
       CREATE TABLE IF NOT EXISTS insurance_commissions(
         id TEXT PRIMARY KEY,
         policy_id TEXT NOT NULL REFERENCES insurance_policies(id),
-        company_id TEXT REFERENCES insurance_companies(id),
+        company_id INTEGER REFERENCES insurance_companies(id),
         producer_party_id TEXT REFERENCES parties(id),
         commission_rate REAL NOT NULL DEFAULT 0,
         commission_amount REAL NOT NULL DEFAULT 0,
@@ -632,7 +639,7 @@ class InsuranceCommercialTables {
         policy_id TEXT NOT NULL REFERENCES insurance_policies(id),
         insured_party_id TEXT REFERENCES parties(id),
         vehicle_id INTEGER REFERENCES vehicles(id),
-        company_id TEXT REFERENCES insurance_companies(id),
+        company_id INTEGER REFERENCES insurance_companies(id),
         status TEXT NOT NULL DEFAULT 'NEW',
         loss_date TEXT,
         reported_at TEXT NOT NULL,
@@ -695,7 +702,7 @@ class InsuranceCommercialTables {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS insurance_settlements(
         id TEXT PRIMARY KEY,
-        company_id TEXT NOT NULL REFERENCES insurance_companies(id),
+        company_id INTEGER NOT NULL REFERENCES insurance_companies(id),
         period_start TEXT NOT NULL,
         period_end TEXT NOT NULL,
         gross_policies REAL NOT NULL DEFAULT 0,
