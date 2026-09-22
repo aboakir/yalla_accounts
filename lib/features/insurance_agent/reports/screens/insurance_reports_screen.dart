@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
@@ -16,7 +17,7 @@ class _InsuranceReportsScreenState extends State<InsuranceReportsScreen> {
   List<InsurancePolicyOverview> _policies = const [];
   bool _busy = true;
   String? _error;
-  final _money = NumberFormat('#,##0.00', 'en_US');
+
   final _date = DateFormat('yyyy-MM-dd', 'en_US');
 
   @override
@@ -68,7 +69,7 @@ class _InsuranceReportsScreenState extends State<InsuranceReportsScreen> {
                   policy.vehicle,
                   policy.company,
                   _date.format(policy.endDate),
-                  _money.format(policy.sale),
+                  MoneyFormatter.format(policy.sale),
                   policy.status,
                 ])
             .toList(),
@@ -131,9 +132,9 @@ class _InsuranceReportsScreenState extends State<InsuranceReportsScreen> {
                           _ReportValue('المطالبات المفتوحة',
                               summary.openClaims.toString()),
                           _ReportValue('إجمالي المبيعات',
-                              '${_money.format(summary.totalSales)} ₪'),
+                              MoneyFormatter.format(summary.totalSales)),
                           _ReportValue('الربح الإجمالي',
-                              '${_money.format(summary.grossProfit)} ₪'),
+                              MoneyFormatter.format(summary.grossProfit)),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -155,8 +156,8 @@ class _InsuranceReportsScreenState extends State<InsuranceReportsScreen> {
                                     '${policy.number} — ${policy.insuredName}'),
                                 subtitle: Text(
                                     '${policy.company} • ${policy.vehicle} • تنتهي ${_date.format(policy.endDate)}'),
-                                trailing:
-                                    Text('${_money.format(policy.sale)} ₪'),
+                                trailing: Text(
+                                    MoneyFormatter.format(policy.sale)),
                               ),
                             )),
                     ],

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../core/constants/insurance_companies.dart';
 import '../../core/services/db/db_service.dart';
 import '../../core/services/db/tables/organization_identity_tables.dart';
 import '../../core/services/db/tables/owner_bootstrap_tables.dart';
@@ -223,6 +224,11 @@ class ApprovedOnboardingActivationService {
       '2105',
       '3100',
       '4000',
+      // Shipped v85 insurance ledger accounts, never customer-created data.
+      '4010',
+      '5010',
+      '5030',
+      '2190',
       '5005',
       '5100',
       '5310',
@@ -234,21 +240,91 @@ class ApprovedOnboardingActivationService {
     final parties = await db.query('parties');
     final roles = await db.query('party_roles');
     final sequences = await db.query('document_sequences');
+    final companies = await db.query(
+      'insurance_companies',
+      columns: const ['id', 'name', 'party_id', 'supplier_id'],
+    );
+    final allowedSupplierNames = <String>{
+      'المصاريف العامة',
+      ...insuranceCompanies,
+    };
+
+    void rejectCatalog() => throw const ApprovedOnboardingActivationException(
+          'LOCAL_CATALOG_NOT_PRISTINE',
+        );
+
     if (accounts.any((row) => !seedCodes.contains(row['code'])) ||
-        suppliers.length != 1 ||
-        suppliers.single['name'] != 'المصاريف العامة' ||
-        ['phone', 'address', 'account_id']
-            .any((k) => suppliers.single[k] != null) ||
-        parties.length != 1 ||
-        parties.single['display_name'] != 'المصاريف العامة' ||
-        roles.length != 1 ||
-        roles.single['role'] != 'SUPPLIER' ||
-        roles.single['party_id'] != parties.single['id'] ||
-        roles.single['legacy_id'] != suppliers.single['id'].toString() ||
+        suppliers.length != allowedSupplierNames.length ||
+        suppliers.any((row) =>
+            !allowedSupplierNames.contains(row['name']) ||
+            ['phone', 'address', 'account_id'].any((k) => row[k] != null)) ||
+        parties.length != allowedSupplierNames.length ||
+        parties.any((row) =>
+            !allowedSupplierNames.contains(row['display_name']) ||
+            row['merged_into_id'] != null) ||
+        companies.length != insuranceCompanies.length ||
+        companies.any(
+          (row) =>
+              !insuranceCompanies.contains(row['name']) ||
+              row['party_id'] == null ||
+              row['supplier_id'] == null,
+        ) ||
+        roles.length != 1 + (companies.length * 2) ||
         sequences.any((row) => row['next_value'] != 1) ||
         (await db.query('organizations')).length != 1) {
-      throw const ApprovedOnboardingActivationException(
-          'LOCAL_CATALOG_NOT_PRISTINE');
+      rejectCatalog();
+    }
+
+    final generalSupplier =
+        suppliers.where((row) => row['name'] == 'المصاريف العامة').toList();
+    final generalParty = parties
+        .where((row) => row['display_name'] == 'المصاريف العامة')
+        .toList();
+    if (generalSupplier.length != 1 || generalParty.length != 1) {
+      rejectCatalog();
+    }
+    final generalRole = roles.where(
+      (row) =>
+          row['role'] == 'SUPPLIER' &&
+          row['party_id'] == generalParty.single['id'] &&
+          row['legacy_id'].toString() ==
+              generalSupplier.single['id'].toString(),
+    );
+    if (generalRole.length != 1) rejectCatalog();
+
+    for (final company in companies) {
+      final companyName = company['name']?.toString() ?? '';
+      final supplierId = company['supplier_id']?.toString() ?? '';
+      final partyId = company['party_id']?.toString() ?? '';
+      final companyId = company['id']?.toString() ?? '';
+      final mappedSupplier = suppliers.where(
+        (row) =>
+            row['id'].toString() == supplierId &&
+            row['name']?.toString() == companyName,
+      );
+      final mappedParty = parties.where(
+        (row) =>
+            row['id']?.toString() == partyId &&
+            row['display_name']?.toString() == companyName,
+      );
+      final supplierRole = roles.where(
+        (row) =>
+            row['party_id']?.toString() == partyId &&
+            row['role'] == 'SUPPLIER' &&
+            row['legacy_id'].toString() == supplierId,
+      );
+      final companyRole = roles.where(
+        (row) =>
+            row['party_id']?.toString() == partyId &&
+            row['role'] == 'INSURANCE_COMPANY' &&
+            row['legacy_id'].toString() == companyId,
+      );
+      if (mappedSupplier.length != 1 ||
+          mappedParty.length != 1 ||
+          supplierRole.length != 1 ||
+          companyRole.length != 1) {
+        rejectCatalog();
+      }
     }
   }
 

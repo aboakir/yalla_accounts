@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/constants/currencies.dart';
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
@@ -81,7 +82,7 @@ class InsurancePolicyPostingCommand {
     this.tax = 0,
     this.commissionRate = 0,
     this.directCost = 0,
-    this.currency = 'ILS',
+    this.currency = Currencies.legacyDocumentCurrencyCode,
     this.notes,
     this.createdBy,
   });
@@ -445,7 +446,10 @@ class InsuranceFinancialService {
         _sameMoney(row['direct_cost'], pricing.directCost) &&
         _sameMoney(row['net_sale_amount'], pricing.netSaleAmount) &&
         _sameMoney(row['net_insurer_payable'], pricing.netInsurerPayable) &&
-        (row['currency'] ?? 'ILS').toString().trim().toUpperCase() ==
+        (row['currency'] ?? Currencies.legacyDocumentCurrencyCode)
+                .toString()
+                .trim()
+                .toUpperCase() ==
             command.currency.trim().toUpperCase() &&
         _sameOptionalText(row['notes'], command.notes);
   }
@@ -1136,7 +1140,7 @@ class InsuranceFinancialService {
     required DateTime date,
     required String method,
     Map<String, dynamic>? chequeDraft,
-    String currency = 'ILS',
+    String currency = Currencies.legacyDocumentCurrencyCode,
     String? notes,
     Database? database,
   }) async {

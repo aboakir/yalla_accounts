@@ -6,5 +6,5 @@
   "server_version": "0.1.0",
   "commercial_contract_version": 2,
   "sync_contract_version": 3,
-  "accounts_db_schema_version": 84
+  "accounts_db_schema_version": 85
 }

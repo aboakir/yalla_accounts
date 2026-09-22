@@ -139,8 +139,28 @@ void main() {
               await captureAuditScreen(t, screen.runtimeType.toString());
             }
             if (screen is SuppliersScreen) {
-              await t.tap(find.textContaining('مورد مواد دهان').first);
+              // v85 adds shipped insurer suppliers. Locate the fixture through
+              // the real search UI instead of assuming it is in the first viewport.
+              final supplierSearch = find.descendant(
+                  of: find.byType(SuppliersScreen),
+                  matching: find.byType(TextField));
+              expect(supplierSearch, findsOneWidget);
+              await t.enterText(supplierSearch, 'مورد مواد دهان');
               await flush(t);
+              final supplierLabel = find.byWidgetPredicate(
+                (widget) =>
+                    widget is Text &&
+                    (widget.data ?? '').contains('مورد مواد دهان'),
+              );
+              expect(supplierLabel, findsWidgets);
+              final supplierInk = find.ancestor(
+                of: supplierLabel.first,
+                matching: find.byType(InkWell),
+              );
+              expect(supplierInk, findsOneWidget);
+              await t.tap(supplierInk);
+              await t.pump();
+              await t.pump(const Duration(milliseconds: 500));
               expect(find.text('كشف حساب المورد'), findsOneWidget);
               t.view.viewInsets = const FakeViewPadding(bottom: 120);
               await t.pump();

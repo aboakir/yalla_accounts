@@ -624,21 +624,23 @@ class DatabaseMigration {
 
   /// v85 — commercial insurance architecture over the canonical financial core.
   static Future<void> _upgradeV85(Database db) async {
-    await LicenseRuntimeTables.runTrustedMigrationBackfill(db, () async {
-      // The v84 sync trigger embeds SQL subqueries against party_roles.
-      // Drop/reinstall it around the party-role schema swap so SQLite never
-      // prepares an invalid dependency mid-migration.
-      await db.execute('DROP TRIGGER IF EXISTS trg_sync_v3_change_to_outbox');
-      await InsuranceCommercialTables.ensure(db);
-      await PartyTables.ensure(db);
-      await InsuranceCommercialTables.backfillLegacyCompanyParties(db);
-      await AccountingTables.ensureDefaultAccounts(db);
-      await UnifiedSyncTables.ensure(db);
-      await _recordFeatureMigration(
-        db,
-        _phase10FeatureKey,
-        fromSchemaVersion: 84,
-      );
+    await _withSchemaMutationContext(db, () async {
+      await LicenseRuntimeTables.runTrustedMigrationBackfill(db, () async {
+        // The v84 sync trigger embeds SQL subqueries against party_roles.
+        // Drop/reinstall it around the party-role schema swap so SQLite never
+        // prepares an invalid dependency mid-migration.
+        await db.execute('DROP TRIGGER IF EXISTS trg_sync_v3_change_to_outbox');
+        await InsuranceCommercialTables.ensure(db);
+        await PartyTables.ensure(db);
+        await InsuranceCommercialTables.backfillLegacyCompanyParties(db);
+        await AccountingTables.ensureDefaultAccounts(db);
+        await UnifiedSyncTables.ensure(db);
+        await _recordFeatureMigration(
+          db,
+          _phase10FeatureKey,
+          fromSchemaVersion: 84,
+        );
+      });
     });
     await LicenseRuntimeTables.installOperationalTriggers(db);
     await db.insert(
@@ -648,6 +650,37 @@ class DatabaseMigration {
           'applied_at': DateTime.now().toUtc().toIso8601String(),
         },
         conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  /// Schema backfills are not user business events and must not produce new
+  /// outbound mutations. Preserve the full previous context even on failure.
+  static Future<T> _withSchemaMutationContext<T>(
+      DatabaseExecutor db, Future<T> Function() action) async {
+    if (!await SyncFoundationTables.isInstalled(db)) return action();
+    final before = await db.query(SyncFoundationTables.context,
+        where: 'singleton_id=1', limit: 1);
+    await db.insert(
+        SyncFoundationTables.context,
+        {
+          'singleton_id': 1,
+          'user_id': null,
+          'origin': 'remote',
+          'remote_entity_type': '__migration__',
+          'remote_entity_uuid': '00000000-0000-4000-8000-000000000085',
+          'remote_revision': 1,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    try {
+      return await action();
+    } finally {
+      if (before.isEmpty) {
+        await db.delete(SyncFoundationTables.context, where: 'singleton_id=1');
+      } else {
+        await db.insert(SyncFoundationTables.context,
+            Map<String, Object?>.from(before.single),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
   }
 
   static Future<bool> _hasFeatureMigration(

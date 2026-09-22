@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -111,7 +112,7 @@ class _InsuranceClaimsScreenState extends State<InsuranceClaimsScreen> {
     final created = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) => AdaptiveAlertDialog(
           title: const Text('فتح مطالبة تأمين'),
           content: SizedBox(
             width: 520,
@@ -275,7 +276,7 @@ class _InsuranceClaimsScreenState extends State<InsuranceClaimsScreen> {
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: Text(title),
         content: TextField(
           controller: controller,

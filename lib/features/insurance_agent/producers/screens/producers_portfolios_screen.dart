@@ -1,5 +1,5 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' hide TextDirection;
 import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/insurance_agent/dashboard/services/insurance_dashboard_service.dart';
 
@@ -15,7 +15,6 @@ class _ProducersPortfoliosScreenState extends State<ProducersPortfoliosScreen> {
   List<InsuranceProducerPortfolio> _items = const [];
   bool _busy = true;
   String? _error;
-  final _money = NumberFormat('#,##0.00', 'en_US');
 
   @override
   void initState() {
@@ -72,14 +71,14 @@ class _ProducersPortfoliosScreenState extends State<ProducersPortfoliosScreen> {
                                   child: Icon(Icons.badge_outlined)),
                               title: Text(item.name),
                               subtitle: Text(
-                                  '${item.policyCount} وثيقة • مبيعات ${_money.format(item.sales)} ₪'),
+                                  '${item.policyCount} وثيقة • مبيعات ${MoneyFormatter.format(item.sales)}'),
                               trailing: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   const Text('العمولة'),
                                   Text(
-                                    '${_money.format(item.commission)} ₪',
+                                    MoneyFormatter.format(item.commission),
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold),
                                   ),

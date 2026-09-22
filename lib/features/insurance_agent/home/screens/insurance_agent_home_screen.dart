@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/design/yalla_breakpoints.dart';
@@ -221,13 +222,12 @@ class _Metrics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat('#,##0.00', 'en_US');
     final items = [
       ('الوثائق السارية', '${summary.activePolicies}', Icons.shield_outlined),
       ('تنتهي خلال 30 يوم', '${summary.expiringSoon}', Icons.event_repeat),
       (
         'ذمم العملاء',
-        '${money.format(summary.customerReceivable)} ₪',
+        MoneyFormatter.format(summary.customerReceivable),
         Icons.account_balance_wallet_outlined
       ),
       ('مطالبات مفتوحة', '${summary.openClaims}', Icons.car_crash_outlined),
@@ -381,7 +381,7 @@ class _TabContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = DateFormat('yyyy-MM-dd', 'en_US');
-    final money = NumberFormat('#,##0.00', 'en_US');
+
     Widget content;
     if (index == 0) {
       final q = query.text.trim().toLowerCase();
@@ -415,7 +415,7 @@ class _TabContent extends StatelessWidget {
                   title: Text('${policy.number} — ${policy.insuredName}'),
                   subtitle: Text(
                       '${policy.company} • ${policy.vehicle} • ${date.format(policy.endDate)}'),
-                  trailing: Text('${money.format(policy.sale)} ₪'),
+                  trailing: Text(MoneyFormatter.format(policy.sale)),
                   onTap: () => open(AppRoutes.insurancePoliciesList),
                 )),
         ],
@@ -460,7 +460,7 @@ class _TabContent extends StatelessWidget {
                         title: Text(company.name),
                         subtitle: Text('${company.policyCount} وثيقة'),
                         trailing: Text(
-                            '${money.format(company.outstanding)} ₪ مستحق'),
+                            '${MoneyFormatter.format(company.outstanding)} مستحق'),
                         onTap: () => open(AppRoutes.insuranceAgentFinance),
                       ))
                   .toList(),

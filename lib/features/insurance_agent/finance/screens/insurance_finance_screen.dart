@@ -1,5 +1,5 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' hide TextDirection;
 import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/insurance_agent/dashboard/services/insurance_dashboard_service.dart';
 
@@ -15,7 +15,6 @@ class _InsuranceFinanceScreenState extends State<InsuranceFinanceScreen> {
   List<InsuranceCompanyBalance> _companies = const [];
   bool _busy = true;
   String? _error;
-  final _money = NumberFormat('#,##0.00', 'en_US');
 
   @override
   void initState() {
@@ -125,12 +124,12 @@ class _InsuranceFinanceScreenState extends State<InsuranceFinanceScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        '${_money.format(company.outstanding)} ₪',
+                                        MoneyFormatter.format(company.outstanding),
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold),
                                       ),
                                       Text(
-                                        'مستحق ${_money.format(company.payable)} • مدفوع ${_money.format(company.paid)}',
+                                        'مستحق ${MoneyFormatter.format(company.payable)} • مدفوع ${MoneyFormatter.format(company.paid)}',
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall,
@@ -159,7 +158,6 @@ class _AmountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final money = NumberFormat('#,##0.00', 'en_US');
     return SizedBox(
       width: 240,
       child: Card(
@@ -176,7 +174,7 @@ class _AmountCard extends StatelessWidget {
                     Text(title),
                     const SizedBox(height: 6),
                     Text(
-                      '${money.format(value)} ₪',
+                      MoneyFormatter.format(value),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),

@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/features/insurance_agent/master_data/services/insurance_master_data_service.dart';
 
@@ -33,7 +35,10 @@ class _InsuranceProductsScreenState extends State<InsuranceProductsScreen> {
       });
       await _loadProducts();
     } catch (error) {
-      if (mounted) _showError('تعذر تحميل شركات ومنتجات التأمين: $error');
+      if (mounted) {
+        _showError(
+            'تعذر تحميل شركات ومنتجات التأمين: ${UserFacingError.message(error)}');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -80,7 +85,7 @@ class _InsuranceProductsScreenState extends State<InsuranceProductsScreen> {
     final created = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) => AdaptiveAlertDialog(
           title: const Text('إضافة منتج تأمين'),
           content: Form(
             key: formKey,
@@ -129,7 +134,9 @@ class _InsuranceProductsScreenState extends State<InsuranceProductsScreen> {
                       DropdownMenuItem(value: 'OTHER', child: Text('أخرى')),
                     ],
                     onChanged: (value) {
-                      if (value != null) setDialogState(() => type = value);
+                      if (value != null) {
+                        setDialogState(() => type = value);
+                      }
                     },
                   ),
                   const SizedBox(height: 12),
@@ -179,7 +186,9 @@ class _InsuranceProductsScreenState extends State<InsuranceProductsScreen> {
                       } catch (error) {
                         if (dialogContext.mounted) {
                           ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            SnackBar(content: Text('تعذر حفظ المنتج: $error')),
+                            SnackBar(
+                                content: Text(
+                                    'تعذر حفظ المنتج: ${UserFacingError.message(error)}')),
                           );
                         }
                       } finally {

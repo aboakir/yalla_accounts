@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/constants/currencies.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/document_number_service.dart';
 
@@ -161,7 +162,8 @@ class InsuranceCommercialTables {
       'gross_profit': 'REAL NOT NULL DEFAULT 0',
       'markup_percent': 'REAL NOT NULL DEFAULT 0',
       'margin_percent': 'REAL NOT NULL DEFAULT 0',
-      'currency': "TEXT NOT NULL DEFAULT 'ILS'",
+      'currency':
+          "TEXT NOT NULL DEFAULT '${Currencies.legacyDocumentCurrencyCode}'",
       'posting_key': 'TEXT',
       'gl_entry_id': 'INTEGER',
       'posting_status': "TEXT NOT NULL DEFAULT 'DRAFT'",
@@ -866,7 +868,7 @@ class InsuranceCommercialTables {
         voucher_id TEXT,
         cheque_id INTEGER,
         amount REAL NOT NULL,
-        currency TEXT NOT NULL DEFAULT 'ILS',
+        currency TEXT NOT NULL DEFAULT '${Currencies.legacyDocumentCurrencyCode}',
         status TEXT NOT NULL DEFAULT 'POSTED',
         reversal_payment_id TEXT,
         reversal_gl_entry_id INTEGER,
