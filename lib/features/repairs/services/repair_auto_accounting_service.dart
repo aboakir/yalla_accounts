@@ -551,30 +551,21 @@ class RepairAutoAccountingService {
     // If this edit created/posted the first invoice, that invoice already posts
     // the full current value. An adjustment is needed only when accounting was
     // already posted before this edit.
-    int? adjustmentGlId;
+    double? adjustmentDiff;
     if (postedBefore && invoiceId != null) {
       final recognized = await _recognizedRevenueOn(tx, repairId);
       // Settlement flows must reconcile against the ledger actually posted,
       // not only against the old repair scalar. Legacy repairs can have a
       // valid posted invoice but no historical auto-accounting marker; using
       // oldValue there preserves an existing GL mismatch and blocks settlement.
-      final diff = (reconcilePostedLedger || wasAutoManaged)
+      adjustmentDiff = (reconcilePostedLedger || wasAutoManaged)
           ? _round2(newValue - recognized)
           : _round2(newValue - oldValue);
-      adjustmentGlId = await _postValueAdjustmentOn(
-        tx: tx,
-        repairId: repairId,
-        clientId: clientId,
-        invoiceId: invoiceId,
-        oldValue: oldValue,
-        newValue: newValue,
-        difference: diff,
-        reason: reason,
-        source: adjustmentSource,
-        eventId: adjustmentId,
-      );
     }
 
+    // Persist the operational scalar first inside the same SQL transaction.
+    // If the ledger adjustment fails afterwards, the transaction must roll
+    // this mutation back so callers observe ALL COMMITTED or ZERO COMMITTED.
     final paid = await _sumPaymentsOn(tx, repairId);
     final now = DateTime.now().toUtc().toIso8601String();
     await tx.update(
@@ -596,6 +587,25 @@ class RepairAutoAccountingService {
       where: 'id = ?',
       whereArgs: [repairId],
     );
+
+    int? adjustmentGlId;
+    if (postedBefore &&
+        invoiceId != null &&
+        adjustmentDiff != null &&
+        adjustmentDiff.abs() >= 0.01) {
+      adjustmentGlId = await _postValueAdjustmentOn(
+        tx: tx,
+        repairId: repairId,
+        clientId: clientId,
+        invoiceId: invoiceId,
+        oldValue: oldValue,
+        newValue: newValue,
+        difference: adjustmentDiff,
+        reason: reason,
+        source: adjustmentSource,
+        eventId: adjustmentId,
+      );
+    }
     await AuditTrailService.log(
         executor: tx,
         action: 'REPAIR_FINANCIAL_UPDATED',

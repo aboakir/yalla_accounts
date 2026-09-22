@@ -137,4 +137,33 @@ void main() {
     expect(rect.bottom, lessThanOrEqualTo(568 - 216));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('desktop RTL keeps settlement actions visible without overflow',
+      (tester) async {
+    RepairSettlementDraft? result;
+    await _open(
+      tester,
+      size: const Size(1280, 800),
+      onResult: (value) => result = value,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('settlement_amount')),
+      '250',
+    );
+    await _selectReason(tester, 'خصم / سداد مبكر');
+
+    final save = find.byKey(const ValueKey('settlement_save'));
+    final cancel = find.byKey(const ValueKey('settlement_cancel'));
+    expect(save.hitTestable(), findsOneWidget);
+    expect(cancel.hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('settlement_preview')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(result, isNotNull);
+    expect(result!.operationId, isNotEmpty);
+    expect(result!.adjustment, -250);
+    expect(tester.takeException(), isNull);
+  });
 }

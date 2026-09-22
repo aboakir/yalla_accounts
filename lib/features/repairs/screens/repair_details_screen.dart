@@ -337,6 +337,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
         adjustment: draft.adjustment,
         reason: draft.reason,
         note: draft.note,
+        operationId: draft.operationId,
       );
       await _reloadRepair();
       if (!mounted) return;

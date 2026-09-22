@@ -66,9 +66,13 @@ void main() {
     );
   }
 
-  Future<void> pay(String id, double amount) =>
+  Future<void> pay(
+    String id,
+    double amount, {
+    String? operationId,
+  }) =>
       PaymentService.insertCanonicalReceipt(
-        operationId: '$id-PAY-${amount.toStringAsFixed(0)}',
+        operationId: operationId ?? '$id-PAY-${amount.toStringAsFixed(0)}',
         database: db,
         clientId: clientId,
         customerName: 'Settlement Customer',
@@ -78,7 +82,8 @@ void main() {
           ReceiptAllocationInput(
             repairId: id,
             amount: amount,
-            paymentId: '$id-P-${amount.toStringAsFixed(0)}',
+            paymentId:
+                '${operationId ?? '$id-P-${amount.toStringAsFixed(0)}'}-ALLOC',
           ),
         ],
       );
@@ -342,6 +347,151 @@ void main() {
       ),
       isEmpty,
     );
+    await expectBalanced();
+  });
+
+  test('10000 then 3000 receipt then -4000 settlement then final receipt',
+      () async {
+    await seedRepair('R-10K', value: 10000);
+    await pay('R-10K', 3000, operationId: 'R-10K-PAY-1');
+
+    final settled = await RepairSettlementService.apply(
+      repairId: 'R-10K',
+      adjustment: -4000,
+      reason: 'اتفاق نهائي مع العميل',
+      operationId: 'R-10K-SETTLE-1',
+      database: db,
+    );
+
+    expect(settled.newValue, 6000);
+    expect(settled.paid, 3000);
+    expect(settled.remaining, 3000);
+    expect(settled.customerArBalance, 3000);
+    expect(settled.recognizedRevenue, 6000);
+
+    await pay('R-10K', 3000, operationId: 'R-10K-PAY-2');
+    final finalTruth =
+        await RepairFinancialTruthService.load('R-10K', executor: db);
+    expect(finalTruth.fileValue, 6000);
+    expect(finalTruth.paid, 6000);
+    expect(finalTruth.remaining, 0);
+    expect(finalTruth.credit, 0);
+    expect(finalTruth.customerArBalance, 0);
+    expect(finalTruth.recognizedRevenue, 6000);
+    expect(finalTruth.isLedgerConsistent, isTrue);
+    await expectBalanced();
+  });
+
+  test('failure after repair update before GL posting rolls back everything',
+      () async {
+    await seedRepair('R-ROLLBACK', value: 7000);
+    final repairBefore = (await db.query(
+      'repairs',
+      where: 'id=?',
+      whereArgs: ['R-ROLLBACK'],
+    ))
+        .single;
+    final glCountBefore =
+        (await db.rawQuery('SELECT COUNT(*) c FROM gl_entries')).single['c'];
+
+    await db.execute('''
+      CREATE TRIGGER qa_fail_repair_settlement_gl
+      BEFORE INSERT ON gl_entries
+      WHEN NEW.source='REPAIR_SETTLEMENT'
+      BEGIN
+        SELECT RAISE(ABORT, 'TEST_FORCED_GL_FAILURE');
+      END
+    ''');
+
+    await expectLater(
+      RepairSettlementService.apply(
+        repairId: 'R-ROLLBACK',
+        adjustment: -500,
+        reason: 'اختبار rollback',
+        operationId: 'R-ROLLBACK-SETTLE-1',
+        database: db,
+      ),
+      throwsA(isA<DatabaseException>()),
+    );
+
+    final repairAfter = (await db.query(
+      'repairs',
+      where: 'id=?',
+      whereArgs: ['R-ROLLBACK'],
+    ))
+        .single;
+    expect(repairAfter['fileValue'], repairBefore['fileValue']);
+    expect(repairAfter['incomeAmount'], repairBefore['incomeAmount']);
+    expect(repairAfter['finalApprovedAmount'],
+        repairBefore['finalApprovedAmount']);
+    expect(
+      (await db.rawQuery('SELECT COUNT(*) c FROM gl_entries')).single['c'],
+      glCountBefore,
+    );
+    expect(
+      await RepairSettlementService.historyForRepair(
+        'R-ROLLBACK',
+        executor: db,
+      ),
+      isEmpty,
+    );
+  });
+
+  test(
+      'same settlement operation id is idempotent and changed retry is rejected',
+      () async {
+    await seedRepair('R-IDEMPOTENT', value: 7000);
+    const operationId = 'R-IDEMPOTENT-SETTLE-1';
+
+    final first = await RepairSettlementService.apply(
+      repairId: 'R-IDEMPOTENT',
+      adjustment: -500,
+      reason: 'خصم / سداد مبكر',
+      operationId: operationId,
+      database: db,
+    );
+    final second = await RepairSettlementService.apply(
+      repairId: 'R-IDEMPOTENT',
+      adjustment: -500,
+      reason: 'خصم / سداد مبكر',
+      operationId: operationId,
+      database: db,
+    );
+
+    expect(second.id, first.id);
+    expect(second.newValue, first.newValue);
+    expect(
+      await db.query(
+        'repair_settlements',
+        where: 'operation_id=?',
+        whereArgs: [operationId],
+      ),
+      hasLength(1),
+    );
+    expect(
+      await db.query(
+        'gl_entries',
+        where: 'source=? AND source_id=?',
+        whereArgs: ['REPAIR_SETTLEMENT', operationId],
+      ),
+      hasLength(1),
+    );
+
+    await expectLater(
+      RepairSettlementService.apply(
+        repairId: 'R-IDEMPOTENT',
+        adjustment: -600,
+        reason: 'خصم / سداد مبكر',
+        operationId: operationId,
+        database: db,
+      ),
+      throwsStateError,
+    );
+    final truth =
+        await RepairFinancialTruthService.load('R-IDEMPOTENT', executor: db);
+    expect(truth.fileValue, 6500);
+    expect(truth.recognizedRevenue, 6500);
+    expect(truth.isLedgerConsistent, isTrue);
     await expectBalanced();
   });
 }

@@ -1,17 +1,20 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class RepairSettlementDraft {
   const RepairSettlementDraft({
+    required this.operationId,
     required this.adjustment,
     required this.reason,
     required this.note,
   });
 
+  final String operationId;
   final double adjustment;
   final String reason;
   final String note;
@@ -35,6 +38,7 @@ class _RepairSettlementDialogState extends State<RepairSettlementDialog> {
   final _formKey = GlobalKey<FormState>();
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
+  final _operationId = const Uuid().v4();
 
   bool _decrease = true;
   String? _reason;
@@ -82,6 +86,7 @@ class _RepairSettlementDialogState extends State<RepairSettlementDialog> {
     }
     Navigator.of(context).pop(
       RepairSettlementDraft(
+        operationId: _operationId,
         adjustment: double.parse(_signedAmount.toStringAsFixed(2)),
         reason: _reason!,
         note: _noteCtrl.text.trim(),
