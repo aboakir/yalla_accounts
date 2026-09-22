@@ -141,6 +141,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rInsuranceAddNew = AppRoutes.insuranceAgentAddNew;
   static const rInsuranceProducers = AppRoutes.insuranceAgentProducers;
   static const rInsuranceRenewals = AppRoutes.insuranceAgentRenewals;
+  static const rInsuranceQuotes = AppRoutes.insuranceAgentQuotes;
   static const rInsuranceCalculator = AppRoutes.insuranceAgentCalculator;
   static const rInsuranceFinance = AppRoutes.insuranceAgentFinance;
   static const rInsuranceAlerts = AppRoutes.insuranceAgentAlerts;
@@ -556,6 +557,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         'فواتير التأمين',
         AppRoutes.insuranceInvoices
       ),
+      (Icons.request_quote_outlined, 'العروض', rInsuranceQuotes),
       (Icons.add_circle_outline, 'إضافة تأمين جديد', rInsuranceAddNew),
       (Icons.calculate, 'حاسبة التأمين', rInsuranceCalculator),
       (Icons.list_alt, 'قائمة التأمينات', rInsurancePoliciesList),

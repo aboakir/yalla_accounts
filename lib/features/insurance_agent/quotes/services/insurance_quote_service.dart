@@ -1,3 +1,4 @@
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -50,8 +51,121 @@ class InsuranceQuoteResult {
   final List<String> itemIds;
 }
 
+class InsuranceQuoteSummary {
+  const InsuranceQuoteSummary({
+    required this.id,
+    required this.quoteNumber,
+    required this.partyName,
+    required this.status,
+    required this.requestedAt,
+    required this.itemCount,
+    this.acceptedItemId,
+    this.issuedPolicyId,
+  });
+
+  final String id;
+  final String quoteNumber;
+  final String partyName;
+  final String status;
+  final DateTime requestedAt;
+  final int itemCount;
+  final String? acceptedItemId;
+  final String? issuedPolicyId;
+}
+
+class InsuranceQuoteItemRecord {
+  const InsuranceQuoteItemRecord({
+    required this.id,
+    required this.companyId,
+    required this.companyName,
+    required this.status,
+    required this.purchasePrice,
+    required this.salePrice,
+    required this.finalPrice,
+    required this.discount,
+    required this.commissionRate,
+    this.productId,
+    this.productName,
+  });
+
+  final String id;
+  final int companyId;
+  final String companyName;
+  final String? productId;
+  final String? productName;
+  final String status;
+  final double purchasePrice;
+  final double salePrice;
+  final double finalPrice;
+  final double discount;
+  final double commissionRate;
+}
+
 class InsuranceQuoteService {
   InsuranceQuoteService._();
+
+  static Future<List<InsuranceQuoteSummary>> listQuotes({
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? await DBService.database;
+    final rows = await db.rawQuery('''
+      SELECT q.id,q.quote_number,q.status,q.requested_at,
+             q.accepted_item_id,q.issued_policy_id,
+             p.display_name AS party_name,
+             COUNT(qi.id) AS item_count
+      FROM insurance_quotes q
+      JOIN parties p ON p.id=q.party_id
+      LEFT JOIN insurance_quote_items qi ON qi.quote_id=q.id
+      GROUP BY q.id
+      ORDER BY q.requested_at DESC,q.id DESC
+    ''');
+    return rows
+        .map((row) => InsuranceQuoteSummary(
+              id: row['id'].toString(),
+              quoteNumber: (row['quote_number'] ?? '').toString(),
+              partyName: (row['party_name'] ?? '').toString(),
+              status: (row['status'] ?? 'DRAFT').toString().toUpperCase(),
+              requestedAt: DateTime.parse(row['requested_at'].toString()),
+              itemCount: (row['item_count'] as num?)?.toInt() ?? 0,
+              acceptedItemId: row['accepted_item_id']?.toString(),
+              issuedPolicyId: row['issued_policy_id']?.toString(),
+            ))
+        .toList(growable: false);
+  }
+
+  static Future<List<InsuranceQuoteItemRecord>> listQuoteItems(
+    String quoteId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final id = quoteId.trim();
+    if (id.isEmpty) throw ArgumentError('Quote id is required.');
+    final db = executor ?? await DBService.database;
+    final rows = await db.rawQuery('''
+      SELECT qi.id,qi.company_id,qi.product_id,qi.status,
+             qi.purchase_price,qi.sale_price,qi.final_price,qi.discount,
+             qi.commission_rate,c.name AS company_name,pr.name AS product_name
+      FROM insurance_quote_items qi
+      JOIN insurance_companies c ON c.id=qi.company_id
+      LEFT JOIN insurance_products pr ON pr.id=qi.product_id
+      WHERE qi.quote_id=?
+      ORDER BY qi.created_at ASC,qi.id ASC
+    ''', [id]);
+    return rows
+        .map((row) => InsuranceQuoteItemRecord(
+              id: row['id'].toString(),
+              companyId: (row['company_id'] as num).toInt(),
+              companyName: (row['company_name'] ?? '').toString(),
+              productId: row['product_id']?.toString(),
+              productName: row['product_name']?.toString(),
+              status: (row['status'] ?? 'OFFERED').toString().toUpperCase(),
+              purchasePrice: (row['purchase_price'] as num).toDouble(),
+              salePrice: (row['sale_price'] as num).toDouble(),
+              finalPrice: (row['final_price'] as num).toDouble(),
+              discount: (row['discount'] as num).toDouble(),
+              commissionRate: (row['commission_rate'] as num).toDouble(),
+            ))
+        .toList(growable: false);
+  }
 
   static Future<InsuranceQuoteResult> createQuote({
     required String quoteNumber,

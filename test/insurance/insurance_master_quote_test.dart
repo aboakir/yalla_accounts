@@ -137,6 +137,21 @@ void main() {
       beforeGl,
       reason: 'creating a quote must never post accounting',
     );
+    final summaries = await InsuranceQuoteService.listQuotes(executor: db);
+    expect(summaries, hasLength(1));
+    expect(summaries.single.id, quote.quoteId);
+    expect(summaries.single.quoteNumber, 'Q-0001');
+    expect(summaries.single.itemCount, 1);
+    expect(summaries.single.status, 'DRAFT');
+
+    final offers = await InsuranceQuoteService.listQuoteItems(
+      quote.quoteId,
+      executor: db,
+    );
+    expect(offers, hasLength(1));
+    expect(offers.single.companyId, company.id);
+    expect(offers.single.productId, product.id);
+    expect(offers.single.finalPrice, 2400);
 
     await InsuranceQuoteService.acceptQuote(
       quoteId: quote.quoteId,
