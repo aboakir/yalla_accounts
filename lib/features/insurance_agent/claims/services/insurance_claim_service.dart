@@ -165,6 +165,9 @@ class InsuranceClaimService {
     'REJECTED': <String>{},
   };
 
+  static Set<String> allowedTransitions(String status) => Set.unmodifiable(
+        _transitions[status.trim().toUpperCase()] ?? const <String>{},
+      );
   static String? _clean(Object? value) {
     final text = value?.toString().trim();
     return text == null || text.isEmpty ? null : text;
