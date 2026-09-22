@@ -2,6 +2,7 @@ import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
+import 'package:yalla_accounts/core/services/accounting_gl.dart';
 import 'package:yalla_accounts/core/services/db/tables/purchase_invoices_table.dart';
 import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_sync_reference_service.dart';
@@ -21,10 +22,20 @@ class PurchaseInvoiceService {
   static const _tableHeader = 'purchase_invoices';
   static const _tableLines = 'purchase_invoice_lines';
 
-  static const _accExpensePurchase = '5900';
-  static const _accCash = '1000';
-  static const _accBank = '1010';
-  static const _accApRoot = '2200';
+  static String _debitAccountCodeForType(String purchaseType) {
+    switch (purchaseType.trim().toUpperCase()) {
+      case 'PARTS':
+        return GL.purchasesExpense;
+      case 'RAW':
+      case 'RAW_MATERIAL':
+      case 'PAINT':
+        return GL.rawMaterialsExpense;
+      case 'TOOLS':
+        return GL.toolsExpense;
+      default:
+        return GL.otherExpense;
+    }
+  }
 
   static double _number(Object? value, {double fallback = 0}) {
     if (value is num) return value.toDouble();
@@ -126,16 +137,17 @@ class PurchaseInvoiceService {
     }
 
     final m = _normalizeMethod(method);
-    final cashAcc = await _accId(db, _accCash);
-    final bankAcc = await _accId(db, _accBank);
-    final expenseAcc = await _accId(db, _accExpensePurchase);
-    final apRootAcc = await _accId(db, _accApRoot);
+    final debitAccountCode = _debitAccountCodeForType(type);
+    final cashAcc = await _accId(db, GL.cash);
+    final bankAcc = await _accId(db, GL.bank);
+    final expenseAcc = await _accId(db, debitAccountCode);
+    final apRootAcc = await _accId(db, GL.apMaster);
     if (cashAcc == null ||
         bankAcc == null ||
         expenseAcc == null ||
         apRootAcc == null) {
       throw StateError(
-        'Missing essential accounts: 1000 / 1010 / 5900 / 2200',
+        'Missing essential accounts: ${GL.cash} / ${GL.bank} / $debitAccountCode / ${GL.apMaster}',
       );
     }
 
