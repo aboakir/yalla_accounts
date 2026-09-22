@@ -37,6 +37,12 @@ class _InsuranceFinanceScreenState extends State<InsuranceFinanceScreen> {
           title: const Text('مالية التأمين'),
           actions: [
             IconButton(
+              tooltip: 'تسويات شركات التأمين',
+              onPressed: () => Navigator.of(context)
+                  .pushNamed('/insurance-agent/settlements'),
+              icon: const Icon(Icons.account_balance_outlined),
+            ),
+            IconButton(
               tooltip: 'تحديث',
               onPressed: _refresh,
               icon: const Icon(Icons.refresh_rounded),
