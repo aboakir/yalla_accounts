@@ -75,7 +75,12 @@ class _ARAgingPageState extends State<ARAgingPage> {
                     return ListTile(
                       title: Text(r.clientName),
                       subtitle: Text(
-                          '0-30: ${r.b0_30.toStringAsFixed(2)} • 31-60: ${r.b31_60.toStringAsFixed(2)} • 61-90: ${r.b61_90.toStringAsFixed(2)} • 90+: ${r.b90p.toStringAsFixed(2)}'),
+                        '0-30: ${r.b0_30.toStringAsFixed(2)} • '
+                        '31-60: ${r.b31_60.toStringAsFixed(2)} • '
+                        '61-90: ${r.b61_90.toStringAsFixed(2)} • '
+                        '90+: ${r.b90p.toStringAsFixed(2)}'
+                        '${r.creditBalance > 0.005 ? ' • رصيد دائن: ${r.creditBalance.toStringAsFixed(2)}' : ''}',
+                      ),
                       trailing: Text(r.balance.toStringAsFixed(2)),
                     );
                   },

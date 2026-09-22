@@ -23,6 +23,7 @@ class ARAgingRow {
   final double b31_60;
   final double b61_90;
   final double b90p;
+  final double creditBalance;
 
   ARAgingRow({
     required this.clientId,
@@ -32,12 +33,16 @@ class ARAgingRow {
     required this.b31_60,
     required this.b61_90,
     required this.b90p,
+    this.creditBalance = 0.0,
   });
 }
 
 class ARAgingProvider {
-  static Future<List<ARAgingRow>> fetch({DateTime? asOf}) async {
-    final Database db = await DBService.database;
+  static Future<List<ARAgingRow>> fetch({
+    DateTime? asOf,
+    DatabaseExecutor? executor,
+  }) async {
+    final DatabaseExecutor db = executor ?? await DBService.database;
     final DateTime end = asOf == null
         ? DateTime.now()
         : DateTime(asOf.year, asOf.month, asOf.day, 23, 59, 59);
@@ -118,6 +123,8 @@ class ARAgingProvider {
         inv.remaining = _round(inv.remaining - take);
         creditPool = _round(creditPool - take);
       }
+      // An overpayment is still AR truth: it is a customer credit, not zero AR.
+      rec.creditBalance = _round(creditPool);
 
       // 5) وزّع المتبقي حسب عمر الفاتورة حتى asOf
       for (final inv in rec.invoices) {
@@ -175,11 +182,14 @@ class _ClientBucket {
   double b31_60 = 0.0;
   double b61_90 = 0.0;
   double b90p = 0.0;
+  double creditBalance = 0.0;
 
   _ClientBucket(this.id, this.name);
 
   ARAgingRow toRow() {
-    final bal = ARAgingProvider._round(b0_30 + b31_60 + b61_90 + b90p);
+    final bal = ARAgingProvider._round(
+      b0_30 + b31_60 + b61_90 + b90p - creditBalance,
+    );
     return ARAgingRow(
       clientId: id,
       clientName: name,
@@ -188,6 +198,7 @@ class _ClientBucket {
       b31_60: ARAgingProvider._round(b31_60),
       b61_90: ARAgingProvider._round(b61_90),
       b90p: ARAgingProvider._round(b90p),
+      creditBalance: ARAgingProvider._round(creditBalance),
     );
   }
 }
