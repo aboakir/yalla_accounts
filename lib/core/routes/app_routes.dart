@@ -557,7 +557,9 @@ class AppRoutes {
           route.startsWith('$insuranceAgentRoot/')) &&
       route != insuranceAgentHome &&
       route != insuranceAgentCalculator &&
-      route != insuranceAgentContacts;
+      route != insuranceAgentContacts &&
+      route != insurancePoliciesList &&
+      route != insuranceAgentAddNew;
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
