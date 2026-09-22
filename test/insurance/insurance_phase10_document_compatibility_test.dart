@@ -17,6 +17,15 @@ const _phase10FeatureKey = 'insurance_phase10_financial_bridge_v85';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('document sequence uses a portable SQLite empty-string literal', () {
+    final source = File(
+      'lib/core/services/db/tables/insurance_commercial_tables.dart',
+    ).readAsStringSync();
+    expect(source, contains("TRIM(document_number)<>''"));
+    expect(source, contains("TRIM(posting_key)<>''"));
+    expect(source, isNot(contains('<>""')));
+  });
+
   late Directory temp;
   late String path;
   Database? db;

@@ -956,7 +956,7 @@ class InsuranceCommercialTables {
       final documents = await db.query(
         'insurance_policies',
         columns: const ['document_number'],
-        where: 'document_number IS NOT NULL AND TRIM(document_number)<>""',
+        where: "document_number IS NOT NULL AND TRIM(document_number)<>''",
       );
       for (final row in documents) {
         final match = pattern.firstMatch(
@@ -1107,7 +1107,7 @@ class InsuranceCommercialTables {
     await db.execute(
       'CREATE UNIQUE INDEX IF NOT EXISTS uq_insurance_policy_posting '
       'ON insurance_policies(posting_key) '
-      'WHERE posting_key IS NOT NULL AND TRIM(posting_key)<>""',
+      "WHERE posting_key IS NOT NULL AND TRIM(posting_key)<>''",
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_insurance_policy_client '
