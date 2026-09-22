@@ -8,24 +8,27 @@ import 'package:yalla_accounts/core/services/db/database_migration.dart';
 
 String? _resolveLiveV55Fixture() {
   final configured = Platform.environment['YALLA_V55_FIXTURE_DB']?.trim();
-  if (configured != null &&
-      configured.isNotEmpty &&
-      File(configured).existsSync()) {
-    return configured;
-  }
+  if (configured == null || configured.isEmpty) return null;
 
-  if (!Platform.isWindows) return null;
-
-  const candidates = <String>[
-    r'D:\Yallah Accounts\yallah_accounts.db',
-    r'D:\Yallah Accounts\yalla_accounts.db',
-    r'D:\YallaAccounts\yallah_accounts.db',
-    r'D:\YallaAccounts\yalla_accounts.db',
+  final normalized = File(
+    configured,
+  ).absolute.path.replaceAll('/', r'\').toLowerCase();
+  const drive = 'D:';
+  const spacedRoot = 'Yallah Accounts';
+  const legacyRoot = 'YallaAccounts';
+  final blockedRoots = <String>[
+    '$drive\\$spacedRoot'.toLowerCase(),
+    '$drive\\$legacyRoot'.toLowerCase(),
   ];
-  for (final candidate in candidates) {
-    if (File(candidate).existsSync()) return candidate;
+  if (blockedRoots.any(
+    (root) => normalized == root || normalized.startsWith('$root\\'),
+  )) {
+    throw StateError(
+      'Tests must use a backup fixture outside the live Yallah Accounts directories.',
+    );
   }
-  return null;
+
+  return File(configured).existsSync() ? configured : null;
 }
 
 Future<int> _count(Database db, String table) async {
@@ -37,13 +40,16 @@ Future<int> _count(Database db, String table) async {
 
 void main() {
   test('legacy migration orders organization scope before owner bootstrap', () {
-    final source =
-        File('lib/core/services/db/database_migration.dart').readAsStringSync();
+    final source = File(
+      'lib/core/services/db/database_migration.dart',
+    ).readAsStringSync();
 
-    final organizationScope =
-        source.indexOf('await OrganizationIdentityTables.ensure(db);');
-    final ownerBootstrap =
-        source.indexOf('await OwnerBootstrapTables.ensure(db);');
+    final organizationScope = source.indexOf(
+      'await OrganizationIdentityTables.ensure(db);',
+    );
+    final ownerBootstrap = source.indexOf(
+      'await OwnerBootstrapTables.ensure(db);',
+    );
 
     expect(organizationScope, greaterThanOrEqualTo(0));
     expect(ownerBootstrap, greaterThan(organizationScope));
@@ -59,8 +65,9 @@ void main() {
       databaseFactory = databaseFactoryFfi;
       DatabaseMigration.useDatabaseForTesting(null);
 
-      final temp =
-          await Directory.systemTemp.createTemp('yallah_live_v55_probe_');
+      final temp = await Directory.systemTemp.createTemp(
+        'yallah_live_v55_probe_',
+      );
       final dbPath = '${temp.path}/yallah_accounts.db';
       await File(fixturePath!).copy(dbPath);
 
@@ -88,11 +95,13 @@ void main() {
           (await db.rawQuery('PRAGMA integrity_check')).first.values.first,
           'ok',
         );
-        final guards = Sqflite.firstIntValue(await db.rawQuery(
-          "SELECT COUNT(*) FROM sqlite_master "
-          "WHERE type='trigger' "
-          "AND name='trg_vouchers_posted_material_update'",
-        ));
+        final guards = Sqflite.firstIntValue(
+          await db.rawQuery(
+            "SELECT COUNT(*) FROM sqlite_master "
+            "WHERE type='trigger' "
+            "AND name='trg_vouchers_posted_material_update'",
+          ),
+        );
         expect(guards, 1);
         await db.close();
       } finally {

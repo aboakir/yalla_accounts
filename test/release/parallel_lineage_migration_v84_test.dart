@@ -57,7 +57,7 @@ void main() {
 
   for (final lineage in ['commercial83', 'owner78']) {
     test(
-      'v84 upgrades authentic $lineage without changing financial facts',
+      'current schema upgrades authentic $lineage without changing financial facts',
       () async {
         final directory = await Directory.systemTemp.createTemp(
           'yallah_lineage_',
@@ -67,17 +67,16 @@ void main() {
         await File(
           dbPath,
         ).writeAsBytes(gzip.decode(await File('$fixture.db.gz').readAsBytes()));
-        final before =
-            jsonDecode(await File('$fixture.json').readAsString())
-                as Map<String, dynamic>;
+        final before = jsonDecode(await File('$fixture.json').readAsString())
+            as Map<String, dynamic>;
         Database? db;
         try {
           db = await DatabaseMigration.initDatabase(pathOverride: dbPath);
-          expect(await db.getVersion(), 84);
-          expect(DatabaseConstants.dbVersion, 84);
+          expect(await db.getVersion(), DatabaseConstants.dbVersion);
+          expect(DatabaseConstants.dbVersion, 85);
           for (final table in ['clients', 'gl_entries', 'gl_lines']) {
-            final expected = (before[table] as List)
-                .cast<Map<String, dynamic>>();
+            final expected =
+                (before[table] as List).cast<Map<String, dynamic>>();
             final actual = await db.query(table, orderBy: 'id');
             expect(
               actual.length,
@@ -117,7 +116,9 @@ void main() {
           }
           final names = (await db.rawQuery(
             "SELECT name FROM sqlite_master WHERE type='table'",
-          )).map((r) => r['name']).toSet();
+          ))
+              .map((r) => r['name'])
+              .toSet();
           for (final name in [
             'sync_outbox',
             'sync_inbox',
@@ -135,11 +136,26 @@ void main() {
           );
           expect(context.any((c) => c['name'] == 'remote_revision'), isTrue);
           final features = await db.query('schema_feature_migrations');
-          expect(features.length, 4);
+          expect(features.length, 5);
+          final unifiedLineageFeatures = features
+              .where(
+                (row) =>
+                    row['feature_key'] !=
+                    'insurance_phase10_financial_bridge_v85',
+              )
+              .toList();
+          expect(unifiedLineageFeatures, hasLength(4));
           expect(
-            features.every((r) => r['from_schema_version'] == before['schema']),
+            unifiedLineageFeatures.every(
+              (row) => row['from_schema_version'] == before['schema'],
+            ),
             isTrue,
           );
+          final v85Feature = features.singleWhere(
+            (row) =>
+                row['feature_key'] == 'insurance_phase10_financial_bridge_v85',
+          );
+          expect(v85Feature['from_schema_version'], 84);
           expect(
             (await db.rawQuery('PRAGMA integrity_check')).single.values.single,
             'ok',
@@ -166,7 +182,7 @@ void main() {
     );
   }
   test(
-    'v84 refuses a future schema without downgrading or resetting data',
+    'current schema refuses a future schema without downgrading or resetting data',
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'yallah_future_schema_',
@@ -181,7 +197,7 @@ void main() {
       );
       try {
         var db = await databaseFactoryFfi.openDatabase(dbPath);
-        await db.setVersion(85);
+        await db.setVersion(DatabaseConstants.dbVersion + 1);
         final before = await db.query('gl_lines', orderBy: 'id');
         await db.close();
         await expectLater(
@@ -189,7 +205,7 @@ void main() {
           throwsA(isA<StateError>()),
         );
         db = await databaseFactoryFfi.openDatabase(dbPath);
-        expect(await db.getVersion(), 85);
+        expect(await db.getVersion(), DatabaseConstants.dbVersion + 1);
         expect(await db.query('gl_lines', orderBy: 'id'), before);
         await db.close();
       } finally {
