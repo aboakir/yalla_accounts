@@ -61,6 +61,7 @@ class InsurancePolicyPostingCommand {
     required this.purchasePrice,
     required this.salePrice,
     this.policyId,
+    this.previousPolicyId,
     this.vehicleId,
     this.vehiclePlate,
     this.vehicleMake,
@@ -87,6 +88,7 @@ class InsurancePolicyPostingCommand {
 
   final String operationId;
   final String? policyId;
+  final String? previousPolicyId;
   final String policyNumber;
   final String? documentNumber;
   final int clientId;
@@ -236,6 +238,7 @@ class InsuranceFinancialService {
       'operation_id': command.operationId.trim(),
       'document_number': documentNumber,
       'policy_number': command.policyNumber.trim(),
+      'previous_policy_id': _clean(command.previousPolicyId),
       'client_id': command.clientId,
       'insured_party_id': command.insuredPartyId.trim(),
       'vehicle_id': command.vehicleId,
@@ -406,6 +409,8 @@ class InsuranceFinancialService {
     }
 
     return row['policy_number']?.toString() == command.policyNumber.trim() &&
+        _sameOptionalText(
+            row['previous_policy_id'], command.previousPolicyId) &&
         (row['client_id'] as num?)?.toInt() == command.clientId &&
         row['insured_party_id']?.toString() == command.insuredPartyId.trim() &&
         _sameOptionalInt(row['vehicle_id'], command.vehicleId) &&
@@ -681,6 +686,39 @@ class InsuranceFinancialService {
           throw StateError('Insurance vehicle belongs to another customer.');
         }
       }
+      final previousPolicyId = _clean(command.previousPolicyId);
+      if (previousPolicyId != null) {
+        final previousRows = await txn.query(
+          'insurance_policies',
+          columns: const ['id', 'client_id', 'insured_party_id'],
+          where: 'id=?',
+          whereArgs: [previousPolicyId],
+          limit: 1,
+        );
+        if (previousRows.isEmpty) {
+          throw StateError('Previous insurance policy not found.');
+        }
+        final previous = previousRows.single;
+        if ((previous['client_id'] as num?)?.toInt() != command.clientId ||
+            previous['insured_party_id']?.toString() !=
+                command.insuredPartyId.trim()) {
+          throw StateError('Renewal must keep the canonical insured/customer.');
+        }
+        final priorRenewal = await txn.query(
+          'insurance_renewals',
+          columns: const ['new_policy_id'],
+          where: 'policy_id=?',
+          whereArgs: [previousPolicyId],
+          limit: 1,
+        );
+        if (priorRenewal.isEmpty) {
+          throw StateError('Previous policy has no renewal candidate.');
+        }
+        final linked = _clean(priorRenewal.single['new_policy_id']?.toString());
+        if (linked != null && linked != _clean(command.policyId)) {
+          throw StateError('Previous policy is already linked to a renewal.');
+        }
+      }
       Map<String, Object?>? productRow;
       if (command.productId?.trim().isNotEmpty == true) {
         final product = await txn.query(
@@ -788,6 +826,7 @@ class InsuranceFinancialService {
         'coverage_ids_json': jsonEncode([...coverageIds]..sort()),
         'posting_request_json': postingRequest,
         'status': 'ACTIVE',
+        'previous_policy_id': _clean(command.previousPolicyId),
         'client_id': command.clientId,
         'insured_party_id': command.insuredPartyId.trim(),
         'vehicle_id': command.vehicleId,
@@ -992,12 +1031,30 @@ class InsuranceFinancialService {
           },
           conflictAlgorithm: ConflictAlgorithm.abort);
 
+      if (previousPolicyId != null) {
+        final changed = await txn.update(
+          'insurance_renewals',
+          {
+            'status': 'RENEWED',
+            'outcome': 'RENEWED',
+            'new_policy_id': policyId,
+            'updated_at': now,
+          },
+          where: 'policy_id=? AND (new_policy_id IS NULL OR new_policy_id=?)',
+          whereArgs: [previousPolicyId, policyId],
+        );
+        if (changed != 1) {
+          throw StateError(
+              'Previous policy renewal link could not be recorded.');
+        }
+      }
+
       await txn.insert(
           'insurance_renewals',
           {
             'id': 'REN:$policyId',
             'policy_id': policyId,
-            'previous_policy_id': null,
+            'previous_policy_id': _clean(command.previousPolicyId),
             'renewal_date': command.endDate.toIso8601String(),
             'status': 'PENDING',
             'created_at': now,

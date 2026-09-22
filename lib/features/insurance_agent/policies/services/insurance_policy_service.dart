@@ -455,6 +455,7 @@ class InsurancePolicyService {
       operationId: operationId,
       documentNumber: _clean(draft.documentNumber),
       policyNumber: draft.policyNumber!.trim(),
+      previousPolicyId: _clean(draft.previousPolicyId),
       clientId: clientId,
       insuredPartyId: insuredPartyId,
       vehicleId: vehicleId,

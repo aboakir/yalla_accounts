@@ -9,6 +9,7 @@ class PolicyDraft {
   String? operationId;
   String? documentNumber;
   String? policyNumber;
+  String? previousPolicyId;
   DateTime? postingDate;
 
   // ===== Vehicle (الحقول الجديدة) =====
@@ -54,6 +55,7 @@ class PolicyDraft {
     operationId = null;
     documentNumber = null;
     policyNumber = null;
+    previousPolicyId = null;
     postingDate = null;
 
     vehiclePlate = null;
