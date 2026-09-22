@@ -1232,11 +1232,12 @@ class InsuranceFinancialService {
     required String policyId,
     required String reason,
     String? createdBy,
+    Database? database,
   }) async {
     if (reason.trim().isEmpty) {
       throw ArgumentError('Cancellation reason is required.');
     }
-    final db = await DBService.database;
+    final db = database ?? await DBService.database;
     final actor = createdBy?.trim().isNotEmpty == true
         ? createdBy!.trim()
         : (await CurrentUserContext.userId()) ?? 'OWNER_LOCAL';
@@ -1275,6 +1276,18 @@ class InsuranceFinancialService {
       if (livePayments.isNotEmpty) {
         throw StateError(
           'Reverse all posted policy receipts and insurer payments before cancellation.',
+        );
+      }
+      final liveEndorsements = await txn.query(
+        'insurance_endorsements',
+        columns: const ['id'],
+        where: 'policy_id=? AND status=?',
+        whereArgs: [policyId, 'POSTED'],
+        limit: 1,
+      );
+      if (liveEndorsements.isNotEmpty) {
+        throw StateError(
+          'Reverse all posted policy endorsements before cancellation.',
         );
       }
 
