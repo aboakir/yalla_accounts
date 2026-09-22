@@ -1215,6 +1215,24 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             ),
             const SizedBox(width: 8),
             OutlinedButton.icon(
+              key: const Key('policyEndorsementsButton'),
+              icon: const Icon(Icons.note_add_outlined),
+              label: const Text(
+                  '\u0627\u0644\u0645\u0644\u062d\u0642\u0627\u062a'),
+              onPressed: _loading
+                  ? null
+                  : () {
+                      final pid = _effectivePolicyId();
+                      if (pid == null) return;
+                      AppRoutes.pushNamedSafe(
+                        context,
+                        AppRoutes.insurancePolicyEndorsements,
+                        arguments: {'policyId': pid.toString()},
+                      );
+                    },
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
               icon: const Icon(Icons.refresh),
               label: const Text('تحديث'),
               onPressed: (_loading || widget.policyId == null)
