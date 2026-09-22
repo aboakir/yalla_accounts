@@ -220,6 +220,7 @@ class DatabaseMigration {
   // ============================================================
   static Future<Database> initDatabase({String? pathOverride}) async {
     final path = pathOverride ?? await DatabaseConstants.dbFilePath();
+    DatabaseConstants.assertSafeTestPath(path);
     ReleaseDiagnostics.debug(
       '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );

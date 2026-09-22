@@ -2,6 +2,7 @@
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as paths;
 import 'package:uuid/uuid.dart';
 
 class DatabaseConstants {
@@ -28,8 +29,37 @@ class DatabaseConstants {
   ///
   /// Mobile platforms keep their own sandboxed database policy.
   /// YALLA_ACCOUNTS_DB_DIR is an explicit support/testing override.
+  static bool get isTestProcess =>
+      Platform.environment['FLUTTER_TEST'] == 'true' ||
+      Platform.environment['YALLAH_FINANCIAL_QA'] == '1';
+
+  /// Fail before any file/database access to a live installation during tests.
+  static void assertSafeTestPath(String value) {
+    if (!isTestProcess) return;
+    final normalized = paths.windows.normalize(value).toLowerCase();
+    final roots = <String>[
+      'D:/Yallah Accounts',
+      'D:/YallaAccounts',
+      for (final key in ['LOCALAPPDATA', 'APPDATA', 'USERPROFILE'])
+        if (Platform.environment[key]?.isNotEmpty == true)
+          '${Platform.environment[key]}/Yallah Accounts',
+    ];
+    for (final root in roots) {
+      final blocked = paths.windows.normalize(root).toLowerCase();
+      if (normalized == blocked || normalized.startsWith('$blocked\\')) {
+        throw StateError(
+            'TEST_DATABASE_SAFETY: live application data is forbidden.');
+      }
+    }
+  }
+
   static Future<String> dbFilePath() async {
     final override = Platform.environment['YALLA_ACCOUNTS_DB_DIR']?.trim();
+    if (isTestProcess && (override == null || override.isEmpty)) {
+      throw StateError(
+          'TEST_DATABASE_SAFETY: provide a temporary database directory.');
+    }
+    if (override != null && override.isNotEmpty) assertSafeTestPath(override);
     if (override != null && override.isNotEmpty) {
       return _existingOrCreate(override);
     }
@@ -135,46 +165,46 @@ class DatabaseConstants {
   }
 
   static Map<String, String> get columnTypes => {
-    'text': 'TEXT',
-    'integer': 'INTEGER',
-    'real': 'REAL',
-    'blob': 'BLOB',
-  };
+        'text': 'TEXT',
+        'integer': 'INTEGER',
+        'real': 'REAL',
+        'blob': 'BLOB',
+      };
 
   static List<String> get coreTables => [
-    'organizations',
-    'organization_identity',
-    'installation_identity',
-    'license_activation_state',
-    'license_runtime_state',
-    'license_validation_state',
-    'owner_bootstrap_state',
-    'auth_roles',
-    'auth_permissions',
-    'auth_role_permissions',
-    'users',
-    'workshop_settings',
-    'clients',
-    'vehicles',
-    'repairs',
-    'invoices',
-    'accounts',
-    'gl_entries',
-    'gl_lines',
-    'parties',
-    'party_roles',
-    'accounting_audit_events',
-    'payments',
-    'vouchers',
-    'suppliers',
-    'purchase_invoices',
-    'purchase_invoice_lines',
-    'purchase_payments',
-    'insurance_invoices',
-    'cheques',
-    'raw_materials',
-    'auth_sessions',
-    'password_reset_grants',
-    'document_sequences',
-  ];
+        'organizations',
+        'organization_identity',
+        'installation_identity',
+        'license_activation_state',
+        'license_runtime_state',
+        'license_validation_state',
+        'owner_bootstrap_state',
+        'auth_roles',
+        'auth_permissions',
+        'auth_role_permissions',
+        'users',
+        'workshop_settings',
+        'clients',
+        'vehicles',
+        'repairs',
+        'invoices',
+        'accounts',
+        'gl_entries',
+        'gl_lines',
+        'parties',
+        'party_roles',
+        'accounting_audit_events',
+        'payments',
+        'vouchers',
+        'suppliers',
+        'purchase_invoices',
+        'purchase_invoice_lines',
+        'purchase_payments',
+        'insurance_invoices',
+        'cheques',
+        'raw_materials',
+        'auth_sessions',
+        'password_reset_grants',
+        'document_sequences',
+      ];
 }
