@@ -28,6 +28,7 @@ class InsuranceFollowUpTask {
   const InsuranceFollowUpTask({
     required this.id,
     required this.partyId,
+    required this.partyName,
     required this.policyId,
     required this.taskType,
     required this.dueAt,
@@ -40,6 +41,7 @@ class InsuranceFollowUpTask {
 
   final String id;
   final String? partyId;
+  final String? partyName;
   final String? policyId;
   final String taskType;
   final DateTime? dueAt;
@@ -89,6 +91,7 @@ class InsuranceContactCenterService {
       InsuranceFollowUpTask(
         id: row['id'].toString(),
         partyId: _clean(row['party_id']),
+        partyName: _clean(row['party_name']),
         policyId: _clean(row['policy_id']),
         taskType: row['task_type'].toString(),
         dueAt: _parseOptionalDate(row['due_at']),
