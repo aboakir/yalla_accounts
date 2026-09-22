@@ -360,12 +360,13 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
             FormField<String>(
               key: ValueKey<int>(selectedCompanyId),
               initialValue: draft.productId,
-              validator: (_) => 'لا توجد منتجات تأمين فعّالة لهذه الشركة.',
+              validator: (_) =>
+                  'أضف منتج تأمين فعّالًا لهذه الشركة من «منتجات التأمين».',
               builder: (field) => Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'لا توجد منتجات تأمين فعّالة لهذه الشركة حالياً.',
+                    'لا يوجد لدى هذه الشركة نوع تأمين مُعرّف بعد. افتح «منتجات التأمين» من القائمة وأضف مثلًا إلزامي أو شامل، ثم عُد لإصدار البوليصة.',
                     textAlign: TextAlign.right,
                   ),
                   if (field.hasError) ...[

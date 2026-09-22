@@ -41,6 +41,8 @@ void main() {
 
     expect(company.id, greaterThan(0));
     expect(company.supplierId, greaterThan(0));
+    final companies = await InsuranceMasterDataService.listCompanies();
+    expect(companies.any((item) => item.id == company.id), isTrue);
 
     final supplierRole = await db.query(
       'party_roles',

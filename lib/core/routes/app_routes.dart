@@ -29,6 +29,8 @@ import 'package:yalla_accounts/features/insurance_agent/calculator/screens/insur
 import 'package:yalla_accounts/features/insurance_agent/alerts/screens/insurance_alerts_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/finance/screens/insurance_finance_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/reports/screens/insurance_reports_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/claims/screens/insurance_claims_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/master_data/screens/insurance_products_screen.dart';
 
 // ===== Employees =====
 import 'package:yalla_accounts/features/employees/screens/employee_dashboard_screen.dart';
@@ -306,6 +308,8 @@ class AppRoutes {
   static const insuranceAgentAlerts = '/insurance-agent/alerts';
   static const insuranceAgentReports = '/insurance-agent/reports';
   static const insuranceAgentContacts = '/insurance-agent/contacts';
+  static const insuranceAgentClaims = '/insurance-agent/claims';
+  static const insuranceAgentProducts = '/insurance-agent/products';
 
   // ===== Reports =====
   static const reportsDashboard = '/reports';
@@ -444,6 +448,8 @@ class AppRoutes {
     insuranceAgentAlerts,
     insuranceAgentReports,
     insuranceAgentContacts,
+    insuranceAgentClaims,
+    insuranceAgentProducts,
     reportsDashboard,
     reportsTrialBalance,
     reportsARAging,
@@ -551,15 +557,8 @@ class AppRoutes {
   }
 
   // ===== Router =====
-  // Keep the insurance home and calculator available while the other agent sections are paused.
-  static bool isInsuranceAgentFrozenRoute(String route) =>
-      (route == insuranceAgentRoot ||
-          route.startsWith('$insuranceAgentRoot/')) &&
-      route != insuranceAgentHome &&
-      route != insuranceAgentCalculator &&
-      route != insuranceAgentContacts &&
-      route != insurancePoliciesList &&
-      route != insuranceAgentAddNew;
+  // All validated insurance routes are available in the commercial module.
+  static bool isInsuranceAgentFrozenRoute(String route) => false;
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
@@ -1060,6 +1059,12 @@ class AppRoutes {
     }
     if (name == insuranceAgentContacts) {
       return _page(settings, const InsuranceContactsListScreen());
+    }
+    if (name == insuranceAgentClaims) {
+      return _page(settings, const InsuranceClaimsScreen());
+    }
+    if (name == insuranceAgentProducts) {
+      return _page(settings, const InsuranceProductsScreen());
     }
 
     // Inventory

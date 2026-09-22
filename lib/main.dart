@@ -368,7 +368,7 @@ class MyApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         navigatorKey: AppRoutes.navigatorKey,
 
-        /// 🔥 تشغيل مباشر بدون أي شرط
+        /// التشغيل الطبيعي يبدأ من startup.
         initialRoute: AppRoutes.startup,
         onGenerateRoute: AppRoutes.onGenerateRoute,
 

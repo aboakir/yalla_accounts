@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/design/yalla_breakpoints.dart';
 import 'package:yalla_accounts/core/design/yalla_components.dart';
 import 'package:yalla_accounts/core/design/yalla_design_tokens.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
+import 'package:yalla_accounts/features/insurance_agent/claims/services/insurance_claim_service.dart';
+import 'package:yalla_accounts/features/insurance_agent/dashboard/services/insurance_dashboard_service.dart';
+import 'package:yalla_accounts/features/insurance_agent/renewals/services/insurance_renewal_service.dart';
 
 class InsuranceAgentHomeScreen extends StatefulWidget {
   const InsuranceAgentHomeScreen({super.key});
@@ -14,214 +19,188 @@ class InsuranceAgentHomeScreen extends StatefulWidget {
 }
 
 class _InsuranceAgentHomeScreenState extends State<InsuranceAgentHomeScreen> {
+  final _search = TextEditingController();
+  InsuranceDashboardSummary? _summary;
+  List<InsurancePolicyOverview> _policies = const [];
+  List<InsuranceRenewalCandidate> _renewals = const [];
+  List<InsuranceClaimRecord> _claims = const [];
+  List<InsuranceCompanyBalance> _companies = const [];
   int _selectedTab = 0;
+  bool _busy = true;
+  String? _error;
 
-  static const _tabs = <String>[
-    'الوثائق',
-    'التجديدات',
-    'المطالبات',
-    'الشركات',
-  ];
+  static const _tabs = ['الوثائق', 'التجديدات', 'المطالبات', 'الشركات'];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final values = await Future.wait([
+        InsuranceDashboardService.summary(),
+        InsuranceDashboardService.policies(limit: 100),
+        InsuranceRenewalService.listCandidates(),
+        InsuranceClaimService.listClaims(),
+        InsuranceDashboardService.companyBalances(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _summary = values[0] as InsuranceDashboardSummary;
+        _policies = values[1] as List<InsurancePolicyOverview>;
+        _renewals = values[2] as List<InsuranceRenewalCandidate>;
+        _claims = values[3] as List<InsuranceClaimRecord>;
+        _companies = values[4] as List<InsuranceCompanyBalance>;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = UserFacingError.message(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   Future<void> _open(String route) async {
     await AppRoutes.pushNamedSafe(context, route);
-  }
-
-  PreferredSizeWidget _appBar(bool isDesktop) {
-    return AppBar(
-      automaticallyImplyLeading: !isDesktop,
-      leading: isDesktop
-          ? null
-          : Builder(
-              builder: (headerContext) => IconButton(
-                tooltip: 'القائمة',
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: () => Scaffold.of(headerContext).openDrawer(),
-              ),
-            ),
-      backgroundColor: YallaColors.brand,
-      foregroundColor: YallaColors.surface,
-      surfaceTintColor: Colors.transparent,
-      title: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'التأمين',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          Text(
-            'الوثائق والتجديدات والمطالبات',
-            style: TextStyle(fontSize: 11, color: Colors.white70),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          tooltip: 'حاسبة التأمين',
-          onPressed: () => _open(AppRoutes.insuranceAgentCalculator),
-          icon: const Icon(Icons.calculate_outlined),
-        ),
-        const SizedBox(width: 8),
-      ],
-    );
-  }
-
-  Widget _content(bool isDesktop) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _PageHeader(
-          onAddPolicy: () => _open(AppRoutes.insuranceAgentAddNew),
-          onCalculator: () => _open(AppRoutes.insuranceAgentCalculator),
-        ),
-        const SizedBox(height: YallaSpacing.lg),
-        const _MetricsGrid(),
-        const SizedBox(height: YallaSpacing.lg),
-        _QuickActions(
-          onAddPolicy: () => _open(AppRoutes.insuranceAgentAddNew),
-          onCalculator: () => _open(AppRoutes.insuranceAgentCalculator),
-          onPolicies: () => _open(AppRoutes.insurancePoliciesList),
-          onContacts: () => _open(AppRoutes.insuranceAgentContacts),
-        ),
-        const SizedBox(height: YallaSpacing.lg),
-        YallaSurfaceCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _TabsBar(
-                labels: _tabs,
-                selectedIndex: _selectedTab,
-                onSelected: (index) => setState(() => _selectedTab = index),
-              ),
-              const Divider(height: 1, color: YallaColors.border),
-              AnimatedSwitcher(
-                duration: YallaDurations.normal,
-                child: _TabBody(
-                  key: ValueKey(_selectedTab),
-                  index: _selectedTab,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+    if (mounted) await _load();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = YallaBreakpoints.isDesktop(context);
-
-    final page = Scaffold(
-      drawer: isDesktop
+    final desktop = YallaBreakpoints.isDesktop(context);
+    final scaffold = Scaffold(
+      drawer: desktop
           ? null
           : const Drawer(
               child: SafeArea(
-                child: YallaSidebar(
-                  currentRoute: AppRoutes.insuranceAgentHome,
-                ),
+                child: YallaSidebar(currentRoute: AppRoutes.insuranceAgentHome),
               ),
             ),
-      appBar: _appBar(isDesktop),
-      body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            isDesktop ? 28 : 16,
-            isDesktop ? 24 : 16,
-            isDesktop ? 28 : 16,
-            isDesktop ? 36 : 28,
-          ),
+      appBar: AppBar(
+        automaticallyImplyLeading: !desktop,
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: isDesktop ? 1360 : 760,
-                ),
-                child: _content(isDesktop),
-              ),
+            Text('التأمين'),
+            Text('الوثائق والتجديدات والمطالبات',
+                style: TextStyle(fontSize: 11)),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'تحديث',
+            onPressed: _busy ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
+          IconButton(
+            tooltip: 'حاسبة التأمين',
+            onPressed: () => _open(AppRoutes.insuranceAgentCalculator),
+            icon: const Icon(Icons.calculate_outlined),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.all(YallaSpacing.lg),
+          children: [
+            _Header(
+              onAdd: () => _open(AppRoutes.insuranceAgentAddNew),
+              onCalculator: () => _open(AppRoutes.insuranceAgentCalculator),
             ),
+            const SizedBox(height: YallaSpacing.lg),
+            if (_busy)
+              const Center(child: CircularProgressIndicator())
+            else if (_error != null)
+              _ErrorCard(message: _error!, retry: _load)
+            else ...[
+              _Metrics(summary: _summary!),
+              const SizedBox(height: YallaSpacing.lg),
+              _Actions(open: _open),
+              const SizedBox(height: YallaSpacing.lg),
+              YallaSurfaceCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    _Tabs(
+                      labels: _tabs,
+                      selected: _selectedTab,
+                      onSelected: (value) =>
+                          setState(() => _selectedTab = value),
+                    ),
+                    const Divider(height: 1),
+                    _TabContent(
+                      index: _selectedTab,
+                      query: _search,
+                      policies: _policies,
+                      renewals: _renewals,
+                      claims: _claims,
+                      companies: _companies,
+                      onChanged: () => setState(() {}),
+                      open: _open,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
-
-    final shell = isDesktop
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(
-                width: 300,
-                child: YallaSidebar(
-                  currentRoute: AppRoutes.insuranceAgentHome,
-                ),
-              ),
-              Expanded(child: page),
-            ],
-          )
-        : page;
-
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          brightness: Brightness.light,
-          scaffoldBackgroundColor: YallaColors.canvas,
-          textTheme: Theme.of(context).textTheme.apply(
-            fontFamily: 'Cairo',
-            fontFamilyFallback: const [
-              'DashboardArabic',
-              'DashboardSymbols',
-            ],
-          ),
+    if (!desktop) return scaffold;
+    return Row(
+      children: [
+        const SizedBox(
+          width: 280,
+          child: YallaSidebar(currentRoute: AppRoutes.insuranceAgentHome),
         ),
-        child: shell,
-      ),
+        Expanded(child: scaffold),
+      ],
     );
   }
 }
 
-class _PageHeader extends StatelessWidget {
-  const _PageHeader({
-    required this.onAddPolicy,
-    required this.onCalculator,
-  });
-
-  final VoidCallback onAddPolicy;
+class _Header extends StatelessWidget {
+  const _Header({required this.onAdd, required this.onCalculator});
+  final VoidCallback onAdd;
   final VoidCallback onCalculator;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 720;
-
-        final title = Column(
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 16,
+      runSpacing: 12,
+      children: [
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'مركز التأمين',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: YallaColors.text,
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'كل ما يحتاجه وكيل التأمين في شاشة واحدة مختصرة.',
-              style: TextStyle(color: YallaColors.textMuted),
-            ),
+            Text('مركز التأمين',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    )),
+            const Text('بيانات حقيقية ومتابعة مباشرة لكل أعمال التأمين'),
           ],
-        );
-
-        final actions = Wrap(
-          spacing: YallaSpacing.sm,
-          runSpacing: YallaSpacing.sm,
+        ),
+        Wrap(
+          spacing: 8,
           children: [
             FilledButton.icon(
-              onPressed: onAddPolicy,
-              icon: const Icon(Icons.add_rounded),
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
               label: const Text('إضافة تأمين'),
             ),
             OutlinedButton.icon(
@@ -230,449 +209,301 @@ class _PageHeader extends StatelessWidget {
               label: const Text('الحاسبة'),
             ),
           ],
-        );
-        if (compact) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              title,
-              const SizedBox(height: YallaSpacing.md),
-              actions,
-            ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: title),
-            actions,
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _MetricsGrid extends StatelessWidget {
-  const _MetricsGrid();
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1050
-            ? 4
-            : constraints.maxWidth >= 600
-                ? 2
-                : 1;
-        final gap = YallaSpacing.md;
-        final width = (constraints.maxWidth - ((columns - 1) * gap)) / columns;
-
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            _MetricCard(
-              width: width,
-              icon: Icons.verified_user_outlined,
-              title: 'الوثائق السارية',
-              value: '0',
-              tone: YallaColors.brand,
-            ),
-            _MetricCard(
-              width: width,
-              icon: Icons.event_repeat_outlined,
-              title: 'تنتهي خلال 30 يوم',
-              value: '0',
-              tone: YallaColors.warning,
-            ),
-            _MetricCard(
-              width: width,
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'أقساط غير محصلة',
-              value: '0',
-              tone: YallaColors.brand,
-            ),
-            _MetricCard(
-              width: width,
-              icon: Icons.car_crash_outlined,
-              title: 'مطالبات مفتوحة',
-              value: '0',
-              tone: YallaColors.danger,
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.width,
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.tone,
-  });
-
-  final double width;
-  final IconData icon;
-  final String title;
-  final String value;
-  final Color tone;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: YallaSurfaceCard(
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: tone.withOpacity(0.10),
-                borderRadius: BorderRadius.circular(YallaRadii.compact),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, color: tone, size: 24),
-            ),
-            const SizedBox(width: YallaSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: YallaColors.textMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      color: YallaColors.text,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.onAddPolicy,
-    required this.onCalculator,
-    required this.onPolicies,
-    required this.onContacts,
-  });
-
-  final VoidCallback onAddPolicy;
-  final VoidCallback onCalculator;
-  final VoidCallback onPolicies;
-  final VoidCallback onContacts;
-  @override
-  Widget build(BuildContext context) {
-    final actions = <({IconData icon, String label, VoidCallback onTap})>[
-      (
-        icon: Icons.add_circle_outline,
-        label: 'إضافة تأمين',
-        onTap: onAddPolicy,
-      ),
-      (
-        icon: Icons.calculate_outlined,
-        label: 'حاسبة التأمين',
-        onTap: onCalculator,
-      ),
-      (
-        icon: Icons.list_alt_outlined,
-        label: 'قائمة التأمينات',
-        onTap: onPolicies,
-      ),
-      (
-        icon: Icons.contacts_outlined,
-        label: 'جهات الاتصال',
-        onTap: onContacts,
-      ),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 820 ? 4 : 2;
-        final gap = YallaSpacing.sm;
-        final width = (constraints.maxWidth - ((columns - 1) * gap)) / columns;
-
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: actions
-              .map(
-                (action) => SizedBox(
-                  width: width,
-                  child: OutlinedButton.icon(
-                    onPressed: action.onTap,
-                    icon: Icon(action.icon),
-                    label: Text(action.label),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      backgroundColor: YallaColors.surface,
-                      foregroundColor: YallaColors.text,
-                      side: const BorderSide(color: YallaColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(YallaRadii.control),
-                      ),
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        );
-      },
-    );
-  }
-}
-
-class _TabsBar extends StatelessWidget {
-  const _TabsBar({
-    required this.labels,
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
-  final List<String> labels;
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(labels.length, (index) {
-          final selected = index == selectedIndex;
-          return InkWell(
-            onTap: () => onSelected(index),
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 132),
-              padding: const EdgeInsets.symmetric(
-                horizontal: YallaSpacing.lg,
-                vertical: 17,
-              ),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: selected ? YallaColors.brand : Colors.transparent,
-                    width: 3,
-                  ),
-                ),
-              ),
-              child: Text(
-                labels[index],
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: selected ? YallaColors.brand : YallaColors.textMuted,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _TabBody extends StatelessWidget {
-  const _TabBody({
-    super.key,
-    required this.index,
-  });
-
-  final int index;
-  @override
-  Widget build(BuildContext context) {
-    if (index == 0) {
-      return const _PoliciesPanel();
-    }
-    if (index == 1) {
-      return const _EmptyPanel(
-        icon: Icons.event_repeat_outlined,
-        title: 'التجديدات',
-        message: 'ستظهر هنا الوثائق القريبة من تاريخ الانتهاء.',
-      );
-    }
-    if (index == 2) {
-      return const _EmptyPanel(
-        icon: Icons.car_crash_outlined,
-        title: 'المطالبات',
-        message: 'ستظهر هنا المطالبات المفتوحة وحالة متابعتها.',
-      );
-    }
-    return const _EmptyPanel(
-      icon: Icons.apartment_outlined,
-      title: 'شركات التأمين',
-      message: 'ستظهر هنا الشركات والأرصدة والتسويات المرتبطة بها.',
-    );
-  }
-}
-
-class _PoliciesPanel extends StatelessWidget {
-  const _PoliciesPanel();
-
-  @override
-  Widget build(BuildContext context) {
-    const headers = <String>[
-      'العميل',
-      'المركبة',
-      'شركة التأمين',
-      'تاريخ الانتهاء',
-      'القسط',
-      'الحالة',
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.all(YallaSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            textAlign: TextAlign.right,
-            decoration: InputDecoration(
-              hintText: 'بحث باسم العميل، رقم المركبة أو الوثيقة',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: YallaColors.canvas,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(YallaRadii.control),
-                borderSide: const BorderSide(color: YallaColors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(YallaRadii.control),
-                borderSide: const BorderSide(color: YallaColors.border),
-              ),
-            ),
-          ),
-          const SizedBox(height: YallaSpacing.md),
-          Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: YallaSpacing.md,
-                  vertical: YallaSpacing.sm,
-                ),
-                decoration: const BoxDecoration(
-                  color: YallaColors.canvas,
-                  border: Border(
-                    bottom: BorderSide(color: YallaColors.border),
-                  ),
-                ),
-                child: Row(
-                  children: headers
-                      .map(
-                        (header) => Expanded(
-                          child: Text(
-                            header,
-                            textAlign: TextAlign.right,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: YallaColors.textMuted,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-              const SizedBox(
-                height: 150,
-                child: Center(
-                  child: _CompactEmptyState(),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CompactEmptyState extends StatelessWidget {
-  const _CompactEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.shield_outlined,
-          size: 34,
-          color: YallaColors.textMuted,
-        ),
-        SizedBox(height: 8),
-        Text(
-          'لا توجد وثائق معروضة حاليًا',
-          style: TextStyle(
-            color: YallaColors.text,
-            fontWeight: FontWeight.w700,
-          ),
         ),
       ],
     );
   }
 }
 
-class _EmptyPanel extends StatelessWidget {
-  const _EmptyPanel({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
+class _Metrics extends StatelessWidget {
+  const _Metrics({required this.summary});
+  final InsuranceDashboardSummary summary;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 230,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(YallaSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 38, color: YallaColors.brand),
-              const SizedBox(height: YallaSpacing.sm),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: YallaColors.text,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: YallaColors.textMuted),
-              ),
-            ],
+    final money = NumberFormat('#,##0.00', 'en_US');
+    final items = [
+      ('الوثائق السارية', '${summary.activePolicies}', Icons.shield_outlined),
+      ('تنتهي خلال 30 يوم', '${summary.expiringSoon}', Icons.event_repeat),
+      (
+        'ذمم العملاء',
+        '${money.format(summary.customerReceivable)} ₪',
+        Icons.account_balance_wallet_outlined
+      ),
+      ('مطالبات مفتوحة', '${summary.openClaims}', Icons.car_crash_outlined),
+    ];
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = constraints.maxWidth >= 1000
+          ? (constraints.maxWidth - 36) / 4
+          : constraints.maxWidth >= 600
+              ? (constraints.maxWidth - 12) / 2
+              : constraints.maxWidth;
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: items
+            .map((item) => SizedBox(
+                  width: width,
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Icon(item.$3, size: 30, color: YallaColors.brand),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(item.$1),
+                                Text(item.$2,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.copyWith(
+                                            fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ))
+            .toList(),
+      );
+    });
+  }
+}
+
+class _Actions extends StatelessWidget {
+  const _Actions({required this.open});
+  final Future<void> Function(String) open;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = [
+      ('الوثائق', Icons.list_alt, AppRoutes.insurancePoliciesList),
+      ('المطالبات', Icons.car_crash_outlined, AppRoutes.insuranceAgentClaims),
+      (
+        'جهات الاتصال',
+        Icons.contacts_outlined,
+        AppRoutes.insuranceAgentContacts
+      ),
+      (
+        'المالية',
+        Icons.account_balance_wallet_outlined,
+        AppRoutes.insuranceAgentFinance
+      ),
+      (
+        'التنبيهات',
+        Icons.notifications_active_outlined,
+        AppRoutes.insuranceAgentAlerts
+      ),
+      ('التقارير', Icons.assessment_outlined, AppRoutes.insuranceAgentReports),
+      ('المنتجون', Icons.badge_outlined, AppRoutes.insuranceAgentProducers),
+      ('الحاسبة', Icons.calculate_outlined, AppRoutes.insuranceAgentCalculator),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: actions
+          .map((action) => OutlinedButton.icon(
+                onPressed: () => open(action.$3),
+                icon: Icon(action.$2),
+                label: Text(action.$1),
+              ))
+          .toList(),
+    );
+  }
+}
+
+class _Tabs extends StatelessWidget {
+  const _Tabs({
+    required this.labels,
+    required this.selected,
+    required this.onSelected,
+  });
+  final List<String> labels;
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(
+            labels.length,
+            (index) => InkWell(
+                  onTap: () => onSelected(index),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          width: 3,
+                          color: index == selected
+                              ? YallaColors.brand
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    child: Text(labels[index]),
+                  ),
+                )),
+      ),
+    );
+  }
+}
+
+class _TabContent extends StatelessWidget {
+  const _TabContent({
+    required this.index,
+    required this.query,
+    required this.policies,
+    required this.renewals,
+    required this.claims,
+    required this.companies,
+    required this.onChanged,
+    required this.open,
+  });
+  final int index;
+  final TextEditingController query;
+  final List<InsurancePolicyOverview> policies;
+  final List<InsuranceRenewalCandidate> renewals;
+  final List<InsuranceClaimRecord> claims;
+  final List<InsuranceCompanyBalance> companies;
+  final VoidCallback onChanged;
+  final Future<void> Function(String) open;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = DateFormat('yyyy-MM-dd', 'en_US');
+    final money = NumberFormat('#,##0.00', 'en_US');
+    Widget content;
+    if (index == 0) {
+      final q = query.text.trim().toLowerCase();
+      final shown = policies
+          .where((policy) =>
+              q.isEmpty ||
+              [
+                policy.number,
+                policy.insuredName,
+                policy.vehicle,
+                policy.company
+              ].any((value) => value.toLowerCase().contains(q)))
+          .toList();
+      content = Column(
+        children: [
+          TextField(
+            controller: query,
+            onChanged: (_) => onChanged(),
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search),
+              hintText: 'بحث باسم العميل، المركبة، الشركة أو الوثيقة',
+              border: OutlineInputBorder(),
+            ),
           ),
+          const SizedBox(height: 12),
+          if (shown.isEmpty)
+            const _Empty(text: 'لا توجد وثائق مطابقة')
+          else
+            ...shown.take(30).map((policy) => ListTile(
+                  leading: const Icon(Icons.shield_outlined),
+                  title: Text('${policy.number} — ${policy.insuredName}'),
+                  subtitle: Text(
+                      '${policy.company} • ${policy.vehicle} • ${date.format(policy.endDate)}'),
+                  trailing: Text('${money.format(policy.sale)} ₪'),
+                  onTap: () => open(AppRoutes.insurancePoliciesList),
+                )),
+        ],
+      );
+    } else if (index == 1) {
+      content = renewals.isEmpty
+          ? const _Empty(text: 'لا توجد تجديدات مستحقة')
+          : Column(
+              children: renewals
+                  .take(30)
+                  .map((renewal) => ListTile(
+                        leading: const Icon(Icons.event_repeat_outlined),
+                        title:
+                            Text('استحقاق ${date.format(renewal.renewalDate)}'),
+                        subtitle: Text(
+                            'الحالة ${renewal.status} • متبقي ${renewal.daysRemaining} يوم'),
+                        onTap: () => open(AppRoutes.insuranceAgentAlerts),
+                      ))
+                  .toList(),
+            );
+    } else if (index == 2) {
+      content = claims.isEmpty
+          ? const _Empty(text: 'لا توجد مطالبات مسجلة')
+          : Column(
+              children: claims
+                  .take(30)
+                  .map((claim) => ListTile(
+                        leading: const Icon(Icons.car_crash_outlined),
+                        title: Text(claim.claimNumber),
+                        subtitle: Text(claim.status),
+                        onTap: () => open(AppRoutes.insuranceAgentClaims),
+                      ))
+                  .toList(),
+            );
+    } else {
+      content = companies.isEmpty
+          ? const _Empty(text: 'لا توجد شركات تأمين مسجلة')
+          : Column(
+              children: companies
+                  .map((company) => ListTile(
+                        leading: const Icon(Icons.apartment_outlined),
+                        title: Text(company.name),
+                        subtitle: Text('${company.policyCount} وثيقة'),
+                        trailing: Text(
+                            '${money.format(company.outstanding)} ₪ مستحق'),
+                        onTap: () => open(AppRoutes.insuranceAgentFinance),
+                      ))
+                  .toList(),
+            );
+    }
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: content,
+    );
+  }
+}
+
+class _Empty extends StatelessWidget {
+  const _Empty({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Center(child: Text(text)),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.message, required this.retry});
+  final String message;
+  final VoidCallback retry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, size: 44),
+            const SizedBox(height: 8),
+            Text(message),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: retry, child: const Text('إعادة المحاولة')),
+          ],
         ),
       ),
     );

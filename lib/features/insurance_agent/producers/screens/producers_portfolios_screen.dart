@@ -1,8 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:intl/intl.dart' hide TextDirection;
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
+import 'package:yalla_accounts/features/insurance_agent/dashboard/services/insurance_dashboard_service.dart';
 
-class ProducersPortfoliosScreen extends StatelessWidget {
+class ProducersPortfoliosScreen extends StatefulWidget {
   const ProducersPortfoliosScreen({super.key});
+
+  @override
+  State<ProducersPortfoliosScreen> createState() =>
+      _ProducersPortfoliosScreenState();
+}
+
+class _ProducersPortfoliosScreenState extends State<ProducersPortfoliosScreen> {
+  List<InsuranceProducerPortfolio> _items = const [];
+  bool _busy = true;
+  String? _error;
+  final _money = NumberFormat('#,##0.00', 'en_US');
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final items = await InsuranceDashboardService.producerPortfolios();
+      if (mounted) setState(() => _items = items);
+    } catch (error) {
+      if (mounted) setState(() => _error = UserFacingError.message(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,42 +44,51 @@ class ProducersPortfoliosScreen extends StatelessWidget {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: AppColors.primary,
-          title: const Text(
-            'محافظ المنتجين',
-            style: TextStyle(color: Colors.white),
-          ),
-          iconTheme: const IconThemeData(color: Colors.white),
-        ),
-        body: Center(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            constraints: const BoxConstraints(maxWidth: 700),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.folder_shared, size: 64),
-                const SizedBox(height: 16),
-                const Text(
-                  'محافظ المنتجين',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Placeholder.\n'
-                  'هنا سنضيف لاحقًا: قائمة المنتجين، إجمالي المبيعات، عمولة كل منتج، وحالات التحصيل.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade700,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+          title: const Text('محافظ المنتجين'),
+          actions: [
+            IconButton(
+              tooltip: 'تحديث',
+              onPressed: _busy ? null : _load,
+              icon: const Icon(Icons.refresh),
             ),
-          ),
+          ],
         ),
+        body: _busy
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : _items.isEmpty
+                    ? const Center(
+                        child: Text('لا توجد عمولات مرتبطة بمنتجين حتى الآن'))
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final item = _items[index];
+                          return Card(
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                  child: Icon(Icons.badge_outlined)),
+                              title: Text(item.name),
+                              subtitle: Text(
+                                  '${item.policyCount} وثيقة • مبيعات ${_money.format(item.sales)} ₪'),
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text('العمولة'),
+                                  Text(
+                                    '${_money.format(item.commission)} ₪',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
       ),
     );
   }

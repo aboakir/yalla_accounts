@@ -146,6 +146,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rInsuranceReports = AppRoutes.insuranceAgentReports;
   static const rInsurancePoliciesList = AppRoutes.insurancePoliciesList;
   static const rInsuranceContacts = AppRoutes.insuranceAgentContacts;
+  static const rInsuranceClaims = AppRoutes.insuranceAgentClaims;
+  static const rInsuranceProducts = AppRoutes.insuranceAgentProducts;
 
   // Logout
   static const rLogout = '/logout';
@@ -557,6 +559,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (Icons.calculate, 'حاسبة التأمين', rInsuranceCalculator),
       (Icons.list_alt, 'قائمة التأمينات', rInsurancePoliciesList),
       (Icons.contacts, 'جهات الاتصال', rInsuranceContacts),
+      (Icons.car_crash_outlined, 'مطالبات التأمين', rInsuranceClaims),
+      (Icons.inventory_2_outlined, 'منتجات التأمين', rInsuranceProducts),
       (Icons.folder_shared, 'محافظ المنتجين', rInsuranceProducers),
       (Icons.account_balance_wallet, 'المالية', rInsuranceFinance),
       (Icons.notifications_active, 'التنبيهات والمتابعة', rInsuranceAlerts),

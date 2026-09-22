@@ -2,36 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 void main() {
-  test('tested policy routes are open while later insurance routes stay frozen',
-      () {
-    expect(AppRoutes.isInsuranceAgentFrozenRoute(AppRoutes.insuranceAgentHome),
-        isFalse);
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(
-            AppRoutes.insuranceAgentCalculator),
-        isFalse);
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(AppRoutes.insuranceAgentContacts),
-        isFalse);
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(AppRoutes.insurancePoliciesList),
-        isFalse);
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(AppRoutes.insuranceAgentAddNew),
-        isFalse);
+  test('all validated insurance routes are registered and open', () {
+    final routes = [
+      AppRoutes.insuranceAgentHome,
+      AppRoutes.insuranceAgentCalculator,
+      AppRoutes.insuranceAgentContacts,
+      AppRoutes.insurancePoliciesList,
+      AppRoutes.insuranceAgentAddNew,
+      AppRoutes.insuranceAgentFinance,
+      AppRoutes.insuranceAgentAlerts,
+      AppRoutes.insuranceAgentReports,
+      AppRoutes.insuranceAgentProducers,
+      AppRoutes.insuranceAgentClaims,
+      AppRoutes.insuranceAgentProducts,
+    ];
 
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(AppRoutes.insuranceAgentFinance),
-        isTrue);
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(AppRoutes.insuranceAgentAlerts),
-        isTrue);
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(AppRoutes.insuranceAgentReports),
-        isTrue);
-    expect(
-        AppRoutes.isInsuranceAgentFrozenRoute(
-            AppRoutes.insuranceAgentProducers),
-        isTrue);
+    for (final route in routes) {
+      expect(AppRoutes.isRegisteredRoute(route), isTrue, reason: route);
+      expect(AppRoutes.isInsuranceAgentFrozenRoute(route), isFalse,
+          reason: route);
+    }
   });
 }

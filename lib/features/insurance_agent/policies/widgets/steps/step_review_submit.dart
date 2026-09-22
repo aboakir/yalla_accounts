@@ -6,7 +6,7 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // ✅ يعرض Company/Dates/VIP
 // ✅ يعرض خطة الدفع الجديدة (نقد/شيكات/نقد+شيكات/تقسيط بكمبيالة/تقسيط بدون كمبيالة)
 // ✅ تحقق صارم: مجموع الدفعات يساوي سعر البيع + تحقق التواريخ + الحقول الأساسية
-// ⚠️ زر الحفظ Placeholder (لربط DB لاحقاً)
+// ✅ الحفظ مربوط بالخدمة المالية الفعلية مع تحقق كامل قبل الترحيل.
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
