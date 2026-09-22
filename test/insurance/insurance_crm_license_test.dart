@@ -29,7 +29,8 @@ void main() {
     if (await temp.exists()) await temp.delete(recursive: true);
   });
 
-  test('prospect CRUD persists in Party Master and insurance_prospects', () async {
+  test('prospect CRUD persists in Party Master and insurance_prospects',
+      () async {
     final created = await InsuranceCrmService.createProspect(
       name: 'عميل مستهدف',
       phone: '0599000111',
@@ -69,7 +70,8 @@ void main() {
     );
   });
 
-  test('prospect converts to CUSTOMER + INSURED on same canonical party', () async {
+  test('prospect converts to CUSTOMER + INSURED on same canonical party',
+      () async {
     final prospect = await InsuranceCrmService.createProspect(
       name: 'مؤمن محتمل',
       phone: '0599000222',
@@ -108,7 +110,154 @@ void main() {
     expect(prospectRow['status'], 'CONVERTED');
   });
 
-  test('driving license produces independent 60/30/14/7/3/1/0 alerts', () async {
+  test(
+    'insured resolver reuses formatted Arabic-digit phone and canonicalizes both records',
+    () async {
+      final first = await InsuranceCrmService.ensureInsuredCustomer(
+        name: 'Canonical Insured',
+        phone: '\u0660\u0665\u0669\u0668-\u0661\u0662\u0663 \u0664\u0665\u0666',
+      );
+
+      var party = (await db.query(
+        'parties',
+        columns: const ['phone'],
+        where: 'id=?',
+        whereArgs: [first.partyId],
+      ))
+          .single;
+      var client = (await db.query(
+        'clients',
+        columns: const ['phone'],
+        where: 'id=?',
+        whereArgs: [first.clientId],
+      ))
+          .single;
+      expect(party['phone'], '0598123456');
+      expect(client['phone'], '0598123456');
+
+      await db.update(
+        'parties',
+        {'phone': null},
+        where: 'id=?',
+        whereArgs: [first.partyId],
+      );
+      await db.update(
+        'clients',
+        {
+          'phone':
+              '\u06F0\u06F5\u06F9\u06F8 \u06F1\u06F2\u06F3-\u06F4\u06F5\u06F6',
+        },
+        where: 'id=?',
+        whereArgs: [first.clientId],
+      );
+
+      final retried = await InsuranceCrmService.ensureInsuredCustomer(
+        name: '  canonical   insured  ',
+        phone: '(0598) 123-456',
+      );
+      expect(retried.partyId, first.partyId);
+      expect(retried.clientId, first.clientId);
+
+      party = (await db.query(
+        'parties',
+        columns: const ['phone'],
+        where: 'id=?',
+        whereArgs: [first.partyId],
+      ))
+          .single;
+      client = (await db.query(
+        'clients',
+        columns: const ['phone'],
+        where: 'id=?',
+        whereArgs: [first.clientId],
+      ))
+          .single;
+      expect(party['phone'], '0598123456');
+      expect(client['phone'], '0598123456');
+      expect(
+        await db.query(
+          'party_roles',
+          where: 'party_id=? AND role=?',
+          whereArgs: [first.partyId, 'CUSTOMER'],
+        ),
+        hasLength(1),
+      );
+    },
+  );
+
+  test('insured resolver rejects ambiguous normalized phone identities',
+      () async {
+    final first = await InsuranceCrmService.ensureInsuredCustomer(
+      name: 'Correct Insured',
+      phone: '0598-222-333',
+    );
+    final now = DateTime.now().toIso8601String();
+    await db.insert('parties', {
+      'id': 'AMBIGUOUS-PARTY',
+      'display_name': 'Different Person',
+      'phone': '(0598) 222333',
+      'role_codes': '[]',
+      'is_active': 1,
+      'created_at': now,
+      'updated_at': now,
+    });
+
+    await expectLater(
+      InsuranceCrmService.ensureInsuredCustomer(
+        name: 'Correct Insured',
+        phone: '0598222333',
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('Multiple Party identities'),
+        ),
+      ),
+    );
+    expect(
+      await db.query(
+        'party_roles',
+        where: 'party_id=? AND role=?',
+        whereArgs: [first.partyId, 'CUSTOMER'],
+      ),
+      hasLength(1),
+    );
+  });
+
+  test('insured resolver rejects a different name for one phone identity',
+      () async {
+    final first = await InsuranceCrmService.ensureInsuredCustomer(
+      name: 'Original Insured',
+      phone: '0598444555',
+    );
+
+    await expectLater(
+      InsuranceCrmService.ensureInsuredCustomer(
+        name: 'Another Insured',
+        phone: '0598 444 555',
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('different insured'),
+        ),
+      ),
+    );
+
+    expect(
+      await db.query('clients', where: 'id=?', whereArgs: [first.clientId]),
+      hasLength(1),
+    );
+    expect(
+      (await db.rawQuery('SELECT COUNT(*) AS n FROM clients')).single['n'],
+      1,
+    );
+  });
+
+  test('driving license produces independent 60/30/14/7/3/1/0 alerts',
+      () async {
     final prospect = await InsuranceCrmService.createProspect(
       name: 'صاحب رخصة',
       phone: '0599000333',

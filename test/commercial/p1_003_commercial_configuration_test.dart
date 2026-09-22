@@ -24,7 +24,23 @@ void main() {
           0;
       expect(v, DatabaseConstants.dbVersion);
       expect(DatabaseConstants.dbVersion, greaterThanOrEqualTo(69));
-      expect(await db.query('document_sequences'), hasLength(6));
+      final sequences = await db.query(
+        'document_sequences',
+        columns: const ['document_type'],
+      );
+      expect(
+        sequences.map((row) => row['document_type']).toSet(),
+        containsAll(<String>{
+          'SALES_INVOICE',
+          'PURCHASE_INVOICE',
+          'RECEIPT_VOUCHER',
+          'PAYMENT_VOUCHER',
+          'REPAIR_FILE',
+          'QUOTE',
+          'INSURANCE_POLICY',
+        }),
+      );
+      expect(sequences, hasLength(7));
       expect(
         await DocumentNumberService.nextOn(
           db,

@@ -211,9 +211,8 @@ class VoucherPaymentService {
     if (chequeRows.isEmpty) {
       throw StateError('Issued cheque voucher points to a missing cheque.');
     }
-    final instrumentKey = (chequeRows.first['instrument_key'] ?? '')
-        .toString()
-        .trim();
+    final instrumentKey =
+        (chequeRows.first['instrument_key'] ?? '').toString().trim();
     if (instrumentKey.isEmpty) {
       throw StateError('Issued cheque has no canonical instrument key.');
     }
@@ -330,8 +329,8 @@ class VoucherPaymentService {
         limit: 1,
       );
       if (rows.isEmpty) throw StateError('Insurance policy not found.');
-      final expectedSupplier = (rows.single['insurer_supplier_id'] as num?)
-          ?.toInt();
+      final expectedSupplier =
+          (rows.single['insurer_supplier_id'] as num?)?.toInt();
       final actualSupplier = int.tryParse(voucher.partyId ?? '');
       if (expectedSupplier != null &&
           expectedSupplier > 0 &&
@@ -374,8 +373,7 @@ class VoucherPaymentService {
     );
     if (existing.isNotEmpty) {
       final row = existing.single;
-      final same =
-          row['voucher_id']?.toString() == voucher.id &&
+      final same = row['voucher_id']?.toString() == voucher.id &&
           ((row['amount'] as num?)?.toDouble() ?? -1).toStringAsFixed(2) ==
               voucher.amount.toStringAsFixed(2);
       if (!same) {
@@ -384,20 +382,24 @@ class VoucherPaymentService {
       return;
     }
 
-    await txn.insert('insurance_policy_payments', {
-      'id': linkId,
-      'policy_id': policyId?.isNotEmpty == true ? policyId : null,
-      'settlement_id': settlementId?.isNotEmpty == true ? settlementId : null,
-      'direction': 'INSURER_PAYMENT',
-      'receipt_number': null,
-      'payment_id': null,
-      'voucher_id': voucher.id,
-      'cheque_id': int.tryParse(voucher.chequeId ?? ''),
-      'amount': voucher.amount,
-      'currency': voucher.currency,
-      'status': 'POSTED',
-      'created_at': DateTime.now().toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.abort);
+    await txn.insert(
+        'insurance_policy_payments',
+        {
+          'id': linkId,
+          'policy_id': policyId?.isNotEmpty == true ? policyId : null,
+          'settlement_id':
+              settlementId?.isNotEmpty == true ? settlementId : null,
+          'direction': 'INSURER_PAYMENT',
+          'receipt_number': null,
+          'payment_id': null,
+          'voucher_id': voucher.id,
+          'cheque_id': int.tryParse(voucher.chequeId ?? ''),
+          'amount': voucher.amount,
+          'currency': voucher.currency,
+          'status': 'POSTED',
+          'created_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
   // ---------------------------------------------------------------------------
@@ -488,8 +490,7 @@ class VoucherPaymentService {
         bool sameText(String? a, String? b) =>
             (a ?? '').trim() == (b ?? '').trim();
 
-        final sameMaterialDocument =
-            postingVoucher.voucherType.toUpperCase() ==
+        final sameMaterialDocument = postingVoucher.voucherType.toUpperCase() ==
                 voucher.voucherType.toUpperCase() &&
             postingVoucher.partyType?.toUpperCase() ==
                 voucher.partyType?.toUpperCase() &&
@@ -616,19 +617,16 @@ class VoucherPaymentService {
 
       final method = postingVoucher.method.trim().toUpperCase();
 
-      final cashAcc =
-          await _getAccountIdByCode(txn, '1000') ??
+      final cashAcc = await _getAccountIdByCode(txn, '1000') ??
           (throw StateError('Missing ACC 1000'));
-      final bankAcc =
-          await _getAccountIdByCode(txn, '1010') ??
+      final bankAcc = await _getAccountIdByCode(txn, '1010') ??
           (throw StateError('Missing ACC 1010'));
 
       late int creditAccId;
       if (method == 'BANK' || method == 'TRANSFER') {
         creditAccId = bankAcc;
       } else if (method == 'CHEQUE') {
-        creditAccId =
-            await _getAccountIdByCode(txn, '1030') ??
+        creditAccId = await _getAccountIdByCode(txn, '1030') ??
             (throw StateError('Missing outgoing cheque account 1030'));
       } else {
         creditAccId = cashAcc;
@@ -656,9 +654,9 @@ class VoucherPaymentService {
             // Operating expenses have an expense account, not a counterparty.
             'party_type':
                 postingVoucher.partyType?.toUpperCase() == 'EXPENSE' &&
-                    (postingVoucher.partyId?.trim().isEmpty ?? true)
-                ? null
-                : postingVoucher.partyType,
+                        (postingVoucher.partyId?.trim().isEmpty ?? true)
+                    ? null
+                    : postingVoucher.partyType,
             'party_id': postingVoucher.partyId,
             'invoice_id': postingVoucher.reference,
             'repair_id': null,
@@ -772,36 +770,42 @@ class VoucherPaymentService {
     final type = voucher.partyType?.toUpperCase();
 
     if (type == "EMPLOYEE") {
-      await txn.insert("payments", {
-        "id": "VOUCHER_LOG:${voucher.id}",
-        "invoice_id": null,
-        "amount": voucher.amount,
-        "date": voucher.date.toIso8601String(),
-        "method": voucher.method.toLowerCase(),
-        "status": "posted",
-        "notes": voucher.notes,
-        "gl_entry_id": voucher.glEntryId,
-        "cheque_id": int.tryParse(voucher.chequeId ?? ''),
-        "isIncome": 0,
-        "party_id": voucher.partyId,
-      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await txn.insert(
+          "payments",
+          {
+            "id": "VOUCHER_LOG:${voucher.id}",
+            "invoice_id": null,
+            "amount": voucher.amount,
+            "date": voucher.date.toIso8601String(),
+            "method": voucher.method.toLowerCase(),
+            "status": "posted",
+            "notes": voucher.notes,
+            "gl_entry_id": voucher.glEntryId,
+            "cheque_id": int.tryParse(voucher.chequeId ?? ''),
+            "isIncome": 0,
+            "party_id": voucher.partyId,
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore);
       return;
     }
 
     if (type == "EXPENSE") {
-      await txn.insert("payments", {
-        "id": "VOUCHER_LOG:${voucher.id}",
-        "invoice_id": null,
-        "amount": voucher.amount,
-        "date": voucher.date.toIso8601String(),
-        "method": voucher.method.toLowerCase(),
-        "status": "posted",
-        "notes": voucher.notes,
-        "gl_entry_id": voucher.glEntryId,
-        "cheque_id": int.tryParse(voucher.chequeId ?? ''),
-        "isIncome": 0,
-        "party_id": voucher.partyId,
-      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await txn.insert(
+          "payments",
+          {
+            "id": "VOUCHER_LOG:${voucher.id}",
+            "invoice_id": null,
+            "amount": voucher.amount,
+            "date": voucher.date.toIso8601String(),
+            "method": voucher.method.toLowerCase(),
+            "status": "posted",
+            "notes": voucher.notes,
+            "gl_entry_id": voucher.glEntryId,
+            "cheque_id": int.tryParse(voucher.chequeId ?? ''),
+            "isIncome": 0,
+            "party_id": voucher.partyId,
+          },
+          conflictAlgorithm: ConflictAlgorithm.ignore);
       return;
     }
   }
@@ -877,14 +881,17 @@ class VoucherPaymentService {
 
     final applyNow = amountToApply <= outstanding ? amountToApply : outstanding;
 
-    await txn.insert('invoice_settlements', {
-      'id': const Uuid().v4(),
-      'supplier_id': supplierId,
-      'invoice_id': invoiceId,
-      'voucher_id': voucherId,
-      'amount_applied': applyNow,
-      'created_at': DateTime.now().toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.abort);
+    await txn.insert(
+        'invoice_settlements',
+        {
+          'id': const Uuid().v4(),
+          'supplier_id': supplierId,
+          'invoice_id': invoiceId,
+          'voucher_id': voucherId,
+          'amount_applied': applyNow,
+          'created_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort);
 
     return applyNow;
   }
@@ -960,8 +967,8 @@ class VoucherPaymentService {
       final code = isPayroll
           ? "2140.E$empId"
           : isBonus
-          ? '5100'
-          : "1120.E$empId";
+              ? '5100'
+              : "1120.E$empId";
 
       final existing = await txn.query(
         "accounts",
@@ -977,13 +984,13 @@ class VoucherPaymentService {
         "name": isPayroll
             ? "مستحقات رواتب - $partyName"
             : isBonus
-            ? 'مصروف رواتب ومكافآت'
-            : "سلفة موظف: $partyName",
+                ? 'مصروف رواتب ومكافآت'
+                : "سلفة موظف: $partyName",
         "type": isPayroll
             ? "LIABILITY"
             : isBonus
-            ? 'EXPENSE'
-            : "ASSET",
+                ? 'EXPENSE'
+                : "ASSET",
         "normal_balance": isPayroll ? "CREDIT" : "DEBIT",
       });
     }
@@ -1296,6 +1303,12 @@ class VoucherPaymentService {
       if (status == 'REVERSED' || status == 'VOID') {
         throw StateError('Voucher is already reversed.');
       }
+      final insuranceLinksBefore = await txn.query(
+        'insurance_policy_payments',
+        where: 'direction=? AND voucher_id=?',
+        whereArgs: ['INSURER_PAYMENT', voucherId],
+        orderBy: 'id',
+      );
 
       int? glId = row['gl_entry_id'] is num
           ? (row['gl_entry_id'] as num).toInt()
@@ -1316,12 +1329,23 @@ class VoucherPaymentService {
       }
 
       if (glId == null) {
+        final reversedAt = DateTime.now().toUtc().toIso8601String();
         final changes = <String, Object?>{
           'status': 'VOID',
           'reversal_reason': trimmedReason,
-          'reversed_at': DateTime.now().toUtc().toIso8601String(),
+          'reversed_at': reversedAt,
         };
         await txn.update(table, changes, where: 'id=?', whereArgs: [voucherId]);
+        await txn.update(
+          'insurance_policy_payments',
+          {
+            'status': 'REVERSED',
+            'reversed_at': reversedAt,
+            'reversal_reason': trimmedReason,
+          },
+          where: 'direction=? AND voucher_id=? AND status=?',
+          whereArgs: ['INSURER_PAYMENT', voucherId, 'POSTED'],
+        );
         await AuditTrailService.log(
           executor: txn,
           action: 'PAYMENT_VOUCHER_VOIDED',
@@ -1330,6 +1354,15 @@ class VoucherPaymentService {
           before: row,
           after: {...row, ...changes},
           reason: trimmedReason,
+          metadata: {
+            'insurance_policy_payments_before': insuranceLinksBefore,
+            'insurance_policy_payments_after': await txn.query(
+              'insurance_policy_payments',
+              where: 'direction=? AND voucher_id=?',
+              whereArgs: ['INSURER_PAYMENT', voucherId],
+              orderBy: 'id',
+            ),
+          },
         );
         return;
       }
@@ -1391,6 +1424,17 @@ class VoucherPaymentService {
         where: 'id=?',
         whereArgs: [voucherId],
       );
+      await txn.update(
+        'insurance_policy_payments',
+        {
+          'status': 'REVERSED',
+          'reversal_gl_entry_id': reversalGlId,
+          'reversed_at': now,
+          'reversal_reason': trimmedReason,
+        },
+        where: 'direction=? AND voucher_id=? AND status=?',
+        whereArgs: ['INSURER_PAYMENT', voucherId, 'POSTED'],
+      );
 
       if ((row['source'] ?? '').toString().trim().toUpperCase() ==
               'PAYROLL_ENTITLEMENT' &&
@@ -1418,6 +1462,13 @@ class VoucherPaymentService {
           'original_gl_entry_id': glId,
           'reversed_settlements': originalSettlements,
           'method': method,
+          'insurance_policy_payments_before': insuranceLinksBefore,
+          'insurance_policy_payments_after': await txn.query(
+            'insurance_policy_payments',
+            where: 'direction=? AND voucher_id=?',
+            whereArgs: ['INSURER_PAYMENT', voucherId],
+            orderBy: 'id',
+          ),
         },
       );
     });

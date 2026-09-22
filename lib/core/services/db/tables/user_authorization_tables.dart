@@ -214,6 +214,9 @@ class UserAuthorizationTables {
     if (permission.startsWith('INVOICE_')) {
       return 'INVOICE';
     }
+    if (permission.startsWith('INSURANCE_')) {
+      return 'INSURANCE';
+    }
     if (permission.startsWith('RECEIPT_') ||
         permission.startsWith('PAYMENT_')) {
       return 'CASH';

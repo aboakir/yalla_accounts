@@ -5,11 +5,19 @@
 // ✅ جاهز لاحقًا للتحويل إلى DB عبر toMap()
 
 class PolicyDraft {
+  // ===== Canonical identity / idempotency =====
+  String? operationId;
+  String? documentNumber;
+  String? policyNumber;
+  DateTime? postingDate;
+
   // ===== Vehicle (الحقول الجديدة) =====
   String? vehiclePlate; // رقم اللوحة
   String? vehicleMake; // الشركة/النوع
   String? vehicleModelYear; // موديل السنة
   String? engineCc; // حجم المحرك CC (نص)
+  String? engineNumber;
+  String? chassisNumber;
 
   // ===== Legacy (للتوافق) =====
   String? vehicleType;
@@ -21,7 +29,11 @@ class PolicyDraft {
   String? insuredPhone;
 
   // ===== Company & Dates =====
+  int? insuranceCompanyId;
   String? companyName;
+  String? productId;
+  String? coverageType;
+  final List<String> coverageIds = [];
   DateTime? startDate;
   DateTime? endDate;
   bool isVip = false;
@@ -39,10 +51,17 @@ class PolicyDraft {
   PolicyDraft();
 
   void reset() {
+    operationId = null;
+    documentNumber = null;
+    policyNumber = null;
+    postingDate = null;
+
     vehiclePlate = null;
     vehicleMake = null;
     vehicleModelYear = null;
     engineCc = null;
+    engineNumber = null;
+    chassisNumber = null;
 
     vehicleType = null;
     vehicleNumber = null;
@@ -51,7 +70,11 @@ class PolicyDraft {
     insuredName = null;
     insuredPhone = null;
 
+    insuranceCompanyId = null;
     companyName = null;
+    productId = null;
+    coverageType = null;
+    coverageIds.clear();
     startDate = null;
     endDate = null;
     isVip = false;
@@ -74,8 +97,10 @@ class PolicyDraft {
   bool get isValidBasic {
     final plate = (vehiclePlate ?? vehicleNumber ?? '').trim();
     final company = (companyName ?? '').trim();
+    final insurerPolicyNumber = (policyNumber ?? '').trim();
     return plate.isNotEmpty &&
         company.isNotEmpty &&
+        insurerPolicyNumber.isNotEmpty &&
         startDate != null &&
         endDate != null;
   }
@@ -95,6 +120,10 @@ enum PolicyPaymentPlanType {
 
 class PolicyPaymentPlan {
   PolicyPaymentPlanType type = PolicyPaymentPlanType.cashOnly;
+
+  /// Canonical receipt method for the immediate part of the plan.
+  /// Supported values are CASH and BANK.
+  String immediatePaymentMethod = 'CASH';
 
   // Cash
   double? cashAmount;
@@ -206,6 +235,7 @@ class PolicyPaymentPlan {
 }
 
 class PolicyChequeItem {
+  DateTime? issueDate;
   DateTime? dueDate;
   double? amount;
   String? bankName;
@@ -215,7 +245,11 @@ class PolicyChequeItem {
 
   List<String> validate() {
     final issues = <String>[];
-    if (dueDate == null) issues.add('تاريخ الشيك مطلوب');
+    if (issueDate == null) issues.add('تاريخ إصدار الشيك مطلوب');
+    if (dueDate == null) issues.add('تاريخ استحقاق الشيك مطلوب');
+    if (issueDate != null && dueDate != null && dueDate!.isBefore(issueDate!)) {
+      issues.add('تاريخ استحقاق الشيك لا يجوز أن يسبق تاريخ الإصدار');
+    }
     if (amount == null || amount! <= 0) issues.add('قيمة الشيك مطلوبة');
     if ((bankName ?? '').trim().isEmpty) issues.add('اسم البنك مطلوب');
     if ((drawerName ?? '').trim().isEmpty) issues.add('اسم الساحب مطلوب');

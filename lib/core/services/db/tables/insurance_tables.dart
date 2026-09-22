@@ -70,6 +70,7 @@ class InsuranceTables {
         policy_id TEXT NOT NULL,
 
         amount REAL NOT NULL DEFAULT 0,
+        issue_date TEXT,
         due_date TEXT,
 
         bank_name TEXT,
@@ -120,6 +121,7 @@ class InsuranceTables {
 
         amount REAL NOT NULL DEFAULT 0,
         due_date TEXT,
+        image_path TEXT,
 
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -282,6 +284,7 @@ class InsuranceTables {
           policy_id TEXT NOT NULL,
 
           amount REAL NOT NULL DEFAULT 0,
+          issue_date TEXT,
           due_date TEXT,
 
           bank_name TEXT,

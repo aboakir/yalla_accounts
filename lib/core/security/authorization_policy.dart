@@ -116,6 +116,8 @@ class PermissionKeys {
   static const String invoicePost = 'INVOICE_POST';
   static const String invoiceReverse = 'INVOICE_REVERSE';
 
+  static const String insurancePolicyPost = 'INSURANCE_POLICY_POST';
+
   static const String receiptCreate = 'RECEIPT_CREATE';
   static const String receiptReverse = 'RECEIPT_REVERSE';
   static const String paymentCreate = 'PAYMENT_CREATE';
@@ -179,6 +181,7 @@ class PermissionKeys {
     invoiceApprove,
     invoicePost,
     invoiceReverse,
+    insurancePolicyPost,
     receiptCreate,
     receiptReverse,
     paymentCreate,
@@ -253,6 +256,7 @@ class AuthorizationPolicy {
     PermissionKeys.repairReopen,
     PermissionKeys.invoiceCreate,
     PermissionKeys.invoiceApprove,
+    PermissionKeys.insurancePolicyPost,
     PermissionKeys.receiptCreate,
     PermissionKeys.paymentCreate,
     PermissionKeys.chequeManage,
@@ -293,6 +297,7 @@ class AuthorizationPolicy {
       PermissionKeys.invoiceApprove,
       PermissionKeys.invoicePost,
       PermissionKeys.invoiceReverse,
+      PermissionKeys.insurancePolicyPost,
       PermissionKeys.receiptCreate,
       PermissionKeys.receiptReverse,
       PermissionKeys.paymentCreate,

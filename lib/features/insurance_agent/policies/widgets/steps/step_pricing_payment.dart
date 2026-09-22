@@ -68,11 +68,11 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   String _planLabel(PolicyPaymentPlanType t) {
     switch (t) {
       case PolicyPaymentPlanType.cashOnly:
-        return 'نقداً بالكامل';
+        return 'دفعة فورية بالكامل (نقد/بنك)';
       case PolicyPaymentPlanType.chequesOnly:
         return 'شيكات بالكامل';
       case PolicyPaymentPlanType.cashPlusCheques:
-        return 'دفعة نقدية + شيكات';
+        return 'دفعة فورية + شيكات';
       case PolicyPaymentPlanType.installmentsWithPromissory:
         return 'تقسيط بكمبيالة';
       case PolicyPaymentPlanType.installmentsNoPromissory:
@@ -121,14 +121,17 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   Future<void> _pickDate({
     required DateTime? current,
     required ValueChanged<DateTime> onPicked,
+    DateTime? firstDate,
   }) async {
     final now = DateTime.now();
-    final initial = current ?? now;
+    final earliest = firstDate ?? DateTime(now.year - 2);
+    var initial = current ?? now;
+    if (initial.isBefore(earliest)) initial = earliest;
 
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(now.year - 2),
+      firstDate: earliest,
       lastDate: DateTime(now.year + 10),
       locale: const Locale('ar'),
     );
@@ -193,10 +196,12 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   Widget build(BuildContext context) {
     final plan = widget.draft.payment;
 
-    final profit =
-        (widget.draft.sellPrice != null && widget.draft.buyPrice != null)
-            ? (widget.draft.sellPrice! - widget.draft.buyPrice!)
-            : null;
+    final purchase = widget.draft.buyPrice;
+    final sale = widget.draft.sellPrice;
+    final profit = (sale != null && purchase != null) ? sale - purchase : null;
+    final margin = profit == null || sale == null || sale == 0
+        ? null
+        : (profit / sale) * 100;
 
     return Form(
       key: widget.formKey,
@@ -234,7 +239,12 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
             ],
           ),
           const SizedBox(height: 10),
-          _profitBox(profit),
+          _pricingSummary(
+            purchase: purchase,
+            sale: sale,
+            profit: profit,
+            margin: margin,
+          ),
           const SizedBox(height: 18),
 
           // ----------------------------
@@ -295,10 +305,30 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
           // Cash amount
           // ----------------------------
           if (_needsCash) ...[
+            DropdownButtonFormField<String>(
+              value: const {'CASH', 'BANK'}
+                      .contains(plan.immediatePaymentMethod.toUpperCase())
+                  ? plan.immediatePaymentMethod.toUpperCase()
+                  : 'CASH',
+              decoration: const InputDecoration(
+                labelText: 'طريقة الدفعة الفورية',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: const [
+                DropdownMenuItem(value: 'CASH', child: Text('نقداً / الصندوق')),
+                DropdownMenuItem(value: 'BANK', child: Text('تحويل / بنك')),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => plan.immediatePaymentMethod = value);
+              },
+            ),
+            const SizedBox(height: 12),
             _moneyField(
               label: plan.type == PolicyPaymentPlanType.cashOnly
-                  ? 'مبلغ الدفع النقدي'
-                  : 'مبلغ الدفعة النقدية',
+                  ? 'مبلغ الدفعة الفورية'
+                  : 'مبلغ الدفعة الفورية مع الشيكات',
               controller: _cashCtrl,
               onChanged: (_) => setState(_syncTopToDraft),
             ),
@@ -454,23 +484,43 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
     );
   }
 
-  Widget _profitBox(double? profit) {
-    final text = profit == null
-        ? 'الربح/الخسارة: —'
-        : (profit >= 0
-            ? 'الربح: +${profit.toStringAsFixed(2)}'
-            : 'الخسارة: ${profit.toStringAsFixed(2)}');
-
+  Widget _pricingSummary({
+    required double? purchase,
+    required double? sale,
+    required double? profit,
+    required double? margin,
+  }) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Text(
-        text,
-        textAlign: TextAlign.right,
-        style: const TextStyle(fontWeight: FontWeight.w600),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'سعر الشراء: ${purchase == null ? '—' : _money2(purchase)}',
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'سعر البيع: ${sale == null ? '—' : _money2(sale)}',
+            textAlign: TextAlign.right,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'إجمالي الربح: ${profit == null ? '—' : _money2(profit)}',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'هامش الربح: ${margin == null ? '—' : '${margin.toStringAsFixed(2)}%'}',
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }
@@ -508,8 +558,12 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   // ============================
 
   Widget _chequeCard(int index, PolicyChequeItem item) {
-    final dueText =
-        item.dueDate == null ? 'اختر تاريخ الشيك' : _df.format(item.dueDate!);
+    final issueText = item.issueDate == null
+        ? 'اختر تاريخ إصدار الشيك'
+        : 'الإصدار: ${_df.format(item.issueDate!)}';
+    final dueText = item.dueDate == null
+        ? 'اختر تاريخ استحقاق الشيك'
+        : 'الاستحقاق: ${_df.format(item.dueDate!)}';
 
     return Card(
       key: ValueKey('cheque_$index'),
@@ -541,41 +595,55 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: const Icon(Icons.date_range),
-                    label: Text(dueText, overflow: TextOverflow.ellipsis),
+                    icon: const Icon(Icons.edit_calendar_outlined),
+                    label: Text(issueText, overflow: TextOverflow.ellipsis),
                     onPressed: () => _pickDate(
-                      current: item.dueDate,
-                      onPicked: (d) => item.dueDate = d,
+                      current: item.issueDate,
+                      onPicked: (date) {
+                        item.issueDate = date;
+                        if (item.dueDate != null &&
+                            item.dueDate!.isBefore(date)) {
+                          item.dueDate = null;
+                        }
+                      },
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: TextFormField(
-                    inputFormatters: const [YallaDigitNormalizer()],
-                    initialValue: item.amount?.toStringAsFixed(2) ?? '',
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    textAlign: TextAlign.right,
-                    decoration: const InputDecoration(
-                      labelText: 'قيمة الشيك',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.event_available_outlined),
+                    label: Text(dueText, overflow: TextOverflow.ellipsis),
+                    onPressed: () => _pickDate(
+                      current: item.dueDate,
+                      firstDate: item.issueDate,
+                      onPicked: (d) => item.dueDate = d,
                     ),
-                    onChanged: (v) => item.amount = _parseMoney(v),
-                    validator: (v) {
-                      final s = (v ?? '').trim();
-                      if (_needsCheques && s.isEmpty) {
-                        return 'قيمة الشيك مطلوبة';
-                      }
-                      if (s.isEmpty) return null;
-                      final n = _parseMoney(s);
-                      if (n == null || n <= 0) return 'قيمة غير صحيحة';
-                      return null;
-                    },
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              inputFormatters: const [YallaDigitNormalizer()],
+              initialValue: item.amount?.toStringAsFixed(2) ?? '',
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.right,
+              decoration: const InputDecoration(
+                labelText: 'قيمة الشيك',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (v) => item.amount = _parseMoney(v),
+              validator: (v) {
+                final s = (v ?? '').trim();
+                if (_needsCheques && s.isEmpty) return 'قيمة الشيك مطلوبة';
+                if (s.isEmpty) return null;
+                final n = _parseMoney(s);
+                if (n == null || n <= 0) return 'قيمة غير صحيحة';
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             AdaptiveRow(

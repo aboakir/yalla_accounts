@@ -40,14 +40,24 @@ class StepReviewSubmit extends StatelessWidget {
 
   String _s(String? v) => (v == null || v.trim().isEmpty) ? '—' : v.trim();
 
+  List<String> _coverageIds() {
+    return draft.coverageIds
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  String _immediateMethodLabel(String method) =>
+      method.trim().toUpperCase() == 'BANK' ? 'بنك / تحويل' : 'نقداً / صندوق';
+
   String _planLabel(PolicyPaymentPlanType t) {
     switch (t) {
       case PolicyPaymentPlanType.cashOnly:
-        return 'نقداً بالكامل';
+        return 'دفعة فورية بالكامل (نقد/بنك)';
       case PolicyPaymentPlanType.chequesOnly:
         return 'شيكات بالكامل';
       case PolicyPaymentPlanType.cashPlusCheques:
-        return 'دفعة نقدية + شيكات';
+        return 'دفعة فورية + شيكات';
       case PolicyPaymentPlanType.installmentsWithPromissory:
         return 'تقسيط بكمبيالة';
       case PolicyPaymentPlanType.installmentsNoPromissory:
@@ -63,6 +73,10 @@ class StepReviewSubmit extends StatelessWidget {
     final profit = (draft.sellPrice != null && draft.buyPrice != null)
         ? (draft.sellPrice! - draft.buyPrice!)
         : null;
+    final margin = profit == null || (draft.sellPrice ?? 0) == 0
+        ? null
+        : (profit / draft.sellPrice!) * 100;
+    final coverageIds = _coverageIds();
 
     final issues = <String>[];
 
@@ -73,11 +87,15 @@ class StepReviewSubmit extends StatelessWidget {
     final vehicleMake = (draft.vehicleMake ?? draft.vehicleType ?? '').trim();
     final vehicleEngine = (draft.engineCc ?? draft.engineSize ?? '').trim();
     final vehicleYear = (draft.vehicleModelYear ?? '').trim();
+    final engineNumber = (draft.engineNumber ?? '').trim();
+    final chassisNumber = (draft.chassisNumber ?? '').trim();
 
     if (plate.isEmpty) issues.add('رقم المركبة مطلوب');
     if (vehicleMake.isEmpty) issues.add('نوع المركبة مطلوب');
     if (vehicleYear.isEmpty) issues.add('موديل السنة مطلوب');
     if (vehicleEngine.isEmpty) issues.add('حجم المحرك مطلوب');
+    if (engineNumber.isEmpty) issues.add('رقم المحرك مطلوب');
+    if (chassisNumber.isEmpty) issues.add('رقم الشاصي / الهيكل مطلوب');
 
     // -------------------------
     // Insured
@@ -95,11 +113,21 @@ class StepReviewSubmit extends StatelessWidget {
     if ((draft.companyName ?? '').trim().isEmpty) {
       issues.add('شركة التأمين مطلوبة');
     }
+    if (draft.insuranceCompanyId == null) {
+      issues.add('اختر شركة تأمين مرتبطة بالسجل الرئيسي');
+    }
+    if ((draft.productId ?? '').trim().isEmpty) {
+      issues.add('منتج التأمين مطلوب');
+    }
+    if ((draft.policyNumber ?? '').trim().isEmpty) {
+      issues.add('رقم بوليصة شركة التأمين مطلوب');
+    }
 
     if (draft.startDate == null || draft.endDate == null) {
       issues.add('تاريخ بداية/نهاية التأمين مطلوب');
-    } else if (draft.endDate!.isBefore(draft.startDate!)) {
-      issues.add('تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
+    } else if (!draft.endDate!.isAfter(draft.startDate!)) {
+      issues.add(
+          'تاريخ النهاية يجب أن يكون بعد تاريخ البداية بيوم واحد على الأقل');
     }
 
     // -------------------------
@@ -119,6 +147,14 @@ class StepReviewSubmit extends StatelessWidget {
     final paymentIssues =
         (sell > 0) ? draft.payment.validateAgainst(sell) : <String>[];
     issues.addAll(paymentIssues);
+    final hasImmediate = draft.payment.type == PolicyPaymentPlanType.cashOnly ||
+        draft.payment.type == PolicyPaymentPlanType.cashPlusCheques;
+    if (hasImmediate &&
+        !const {'CASH', 'BANK'}.contains(
+          draft.payment.immediatePaymentMethod.trim().toUpperCase(),
+        )) {
+      issues.add('اختر طريقة الدفعة الفورية: نقداً أو بنك');
+    }
 
     // Totals
     final totalPaid = draft.payment.totalByType();
@@ -148,6 +184,8 @@ class StepReviewSubmit extends StatelessWidget {
             'نوع المركبة: ${vehicleMake.isEmpty ? '—' : vehicleMake}',
             'موديل السنة: ${vehicleYear.isEmpty ? '—' : vehicleYear}',
             'حجم المحرك: ${vehicleEngine.isEmpty ? '—' : vehicleEngine}',
+            'رقم المحرك: ${engineNumber.isEmpty ? '—' : engineNumber}',
+            'رقم الشاصي / الهيكل: ${chassisNumber.isEmpty ? '—' : chassisNumber}',
           ],
         ),
         const SizedBox(height: 10),
@@ -163,6 +201,11 @@ class StepReviewSubmit extends StatelessWidget {
           title: 'شركة التأمين والتواريخ',
           lines: [
             'الشركة: ${_s(draft.companyName)}',
+            'رقم بوليصة الشركة: ${_s(draft.policyNumber)}',
+            'الرقم الداخلي: ${_s(draft.documentNumber)}',
+            'منتج التأمين: ${_s(draft.productId)}',
+            'نوع التغطية: ${_s(draft.coverageType)}',
+            'التغطيات المختارة: ${coverageIds.isEmpty ? '—' : coverageIds.join('، ')}',
             'بداية التأمين: ${_fmtDate(draft.startDate)}',
             'نهاية التأمين: ${_fmtDate(draft.endDate)}',
             'VIP: ${draft.isVip ? 'نعم' : 'لا'}',
@@ -174,7 +217,8 @@ class StepReviewSubmit extends StatelessWidget {
           lines: [
             'سعر الشراء: ${_money(draft.buyPrice)}',
             'سعر البيع: ${_money(draft.sellPrice)}',
-            'الربح/الخسارة: ${profit == null ? '—' : profit.toStringAsFixed(2)}',
+            'إجمالي الربح: ${profit == null ? '—' : profit.toStringAsFixed(2)}',
+            'هامش الربح: ${margin == null ? '—' : '${margin.toStringAsFixed(2)}%'}',
           ],
         ),
         const SizedBox(height: 10),
@@ -182,7 +226,8 @@ class StepReviewSubmit extends StatelessWidget {
           title: 'خطة الدفع',
           lines: [
             'الخطة: ${_planLabel(draft.payment.type)}',
-            'دفعة نقدية: ${_money(draft.payment.cashAmount)}',
+            'طريقة الدفعة الفورية: ${hasImmediate ? _immediateMethodLabel(draft.payment.immediatePaymentMethod) : '—'}',
+            'قيمة الدفعة الفورية: ${_money(draft.payment.cashAmount)}',
             'عدد الشيكات: ${draft.payment.cheques.isEmpty ? '—' : draft.payment.cheques.length}',
             'عدد الأقساط: ${draft.payment.installments.isEmpty ? '—' : draft.payment.installments.length}',
             'عدد الكمبيالات: ${draft.payment.promissories.isEmpty ? '—' : draft.payment.promissories.length}',
@@ -281,9 +326,11 @@ class StepReviewSubmit extends StatelessWidget {
             ...p.cheques.asMap().entries.map((e) {
               final i = e.key;
               final c = e.value;
-              final date = c.dueDate == null ? '—' : _fmtDate(c.dueDate);
+              final issueDate =
+                  c.issueDate == null ? '—' : _fmtDate(c.issueDate);
+              final dueDate = c.dueDate == null ? '—' : _fmtDate(c.dueDate);
               return _miniRow(
-                '${i + 1}) ${_money(c.amount)} | $date | بنك: ${_s(c.bankName)} | ساحب: ${_s(c.drawerName)} | رقم: ${_s(c.chequeNumber)}',
+                '${i + 1}) ${_money(c.amount)} | إصدار: $issueDate | استحقاق: $dueDate | بنك: ${_s(c.bankName)} | ساحب: ${_s(c.drawerName)} | رقم: ${_s(c.chequeNumber)}',
               );
             }),
             const SizedBox(height: 10),

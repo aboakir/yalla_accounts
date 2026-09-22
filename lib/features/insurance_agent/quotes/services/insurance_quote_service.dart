@@ -174,8 +174,7 @@ class InsuranceQuoteService {
 
         final itemId = const Uuid().v4();
         itemIds.add(itemId);
-        final commissionAmount =
-            input.premium * input.commissionRate / 100.0;
+        final commissionAmount = input.premium * input.commissionRate / 100.0;
         await txn.insert('insurance_quote_items', {
           'id': itemId,
           'quote_id': quoteId,
@@ -280,7 +279,7 @@ class InsuranceQuoteService {
       }
       final policies = await db.query(
         'insurance_policies',
-        columns: const ['gl_entry_id'],
+        columns: const ['gl_entry_id', 'document_number'],
         where: 'id=?',
         whereArgs: [policyId],
         limit: 1,
@@ -288,8 +287,14 @@ class InsuranceQuoteService {
       if (policies.isEmpty) throw StateError('Issued quote policy is missing.');
       final glId = (policies.single['gl_entry_id'] as num?)?.toInt();
       if (glId == null) throw StateError('Issued quote policy is not posted.');
+      final documentNumber =
+          (policies.single['document_number'] ?? '').toString().trim();
+      if (documentNumber.isEmpty) {
+        throw StateError('Issued quote policy has no document number.');
+      }
       return InsurancePolicyPostingResult(
         policyId: policyId,
+        documentNumber: documentNumber,
         glEntryId: glId,
         pricing: InsurancePricingResult(
           purchasePrice: (row['purchase_price'] as num).toDouble(),

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class InsuranceProspectRecord {
   const InsuranceProspectRecord({
@@ -34,8 +35,25 @@ class InsuranceProspectRecord {
   final DateTime updatedAt;
 }
 
+class InsuranceInsuredIdentity {
+  const InsuranceInsuredIdentity({
+    required this.partyId,
+    required this.clientId,
+  });
+
+  final String partyId;
+  final int clientId;
+}
+
 class InsuranceCrmService {
   InsuranceCrmService._();
+
+  static String _phoneIdentityKey(String value) =>
+      YallaDigitNormalizer.normalize(value).replaceAll(RegExp(r'[^0-9]'), '');
+
+  static String _insuredNameKey(String value) => YallaDigitNormalizer.normalize(
+        value,
+      ).trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
   static Future<List<InsuranceProspectRecord>> listProspects({
     DatabaseExecutor? executor,
@@ -321,6 +339,238 @@ class InsuranceCrmService {
       );
     });
     return clientId;
+  }
+
+  static Future<InsuranceInsuredIdentity> ensureInsuredCustomer({
+    required String name,
+    required String phone,
+    DatabaseExecutor? executor,
+  }) async {
+    final cleanName = name.trim();
+    final canonicalPhone = _phoneIdentityKey(phone);
+    if (cleanName.isEmpty || phone.trim().isEmpty) {
+      throw ArgumentError('Insured name and phone are required.');
+    }
+    if (canonicalPhone.isEmpty) {
+      throw ArgumentError('Insured phone must contain digits.');
+    }
+
+    final db = executor ?? await DBService.database;
+    return SyncFoundationService.writeOn(db, (txn) async {
+      final candidates = <String, Map<String, Object?>>{};
+      for (final row in await txn.rawQuery('''
+        SELECT p.id,
+               p.display_name,
+               p.phone,
+               c.id AS client_id,
+               c.name AS client_name,
+               c.phone AS client_phone
+        FROM parties p
+        LEFT JOIN party_roles r
+          ON r.party_id=p.id AND r.role='CUSTOMER'
+        LEFT JOIN clients c
+          ON CAST(c.id AS TEXT)=r.legacy_id
+        WHERE p.is_active=1
+      ''')) {
+        final partyPhoneKey = _phoneIdentityKey(
+          (row['phone'] ?? '').toString(),
+        );
+        final clientPhoneKey = _phoneIdentityKey(
+          (row['client_phone'] ?? '').toString(),
+        );
+        if (partyPhoneKey == canonicalPhone ||
+            clientPhoneKey == canonicalPhone) {
+          candidates[row['id'].toString()] = row;
+        }
+      }
+
+      final matches = candidates.values.toList(growable: false);
+      if (matches.length > 1) {
+        throw StateError(
+          'Multiple Party identities use this phone; merge them before issuing.',
+        );
+      }
+      if (matches.isNotEmpty) {
+        final expectedName = _insuredNameKey(cleanName);
+        final identityNames = <String>{
+          _insuredNameKey((matches.single['display_name'] ?? '').toString()),
+          if (matches.single['client_id'] != null)
+            _insuredNameKey((matches.single['client_name'] ?? '').toString()),
+        }..remove('');
+        if (identityNames.any((existing) => existing != expectedName)) {
+          throw StateError(
+            'This phone belongs to a different insured Party identity.',
+          );
+        }
+      }
+
+      final now = DateTime.now().toIso8601String();
+      late String partyId;
+      String? prospectId;
+      if (matches.isEmpty) {
+        prospectId = const Uuid().v4();
+        partyId = 'PROSPECT:$prospectId';
+        await txn.insert(
+          'parties',
+          {
+            'id': partyId,
+            'display_name': cleanName,
+            'phone': canonicalPhone,
+            'role_codes': '[]',
+            'is_active': 1,
+            'created_at': now,
+            'updated_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+        await txn.insert(
+          'party_roles',
+          {
+            'party_id': partyId,
+            'role': 'PROSPECT',
+            'legacy_id': prospectId,
+            'created_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+        await txn.insert(
+          'insurance_prospects',
+          {
+            'id': prospectId,
+            'party_id': partyId,
+            'status': 'PROSPECT',
+            'created_at': now,
+            'updated_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      } else {
+        partyId = matches.single['id'].toString();
+        final prospects = await txn.query(
+          'insurance_prospects',
+          columns: const ['id'],
+          where: 'party_id=?',
+          whereArgs: [partyId],
+          limit: 1,
+        );
+        if (prospects.isNotEmpty) {
+          prospectId = prospects.single['id'].toString();
+        }
+        await txn.update(
+          'parties',
+          {
+            'phone': canonicalPhone,
+            'updated_at': now,
+          },
+          where: 'id=?',
+          whereArgs: [partyId],
+        );
+      }
+
+      final customerRoles = await txn.query(
+        'party_roles',
+        columns: const ['legacy_id'],
+        where: 'party_id=? AND role=?',
+        whereArgs: [partyId, 'CUSTOMER'],
+        limit: 1,
+      );
+      late int clientId;
+      if (customerRoles.isNotEmpty) {
+        clientId = int.parse(customerRoles.single['legacy_id'].toString());
+        final client = await txn.query(
+          'clients',
+          columns: const ['id', 'name'],
+          where: 'id=?',
+          whereArgs: [clientId],
+          limit: 1,
+        );
+        if (client.isEmpty) {
+          throw StateError('Customer Party role points to a missing client.');
+        }
+        if (_insuredNameKey(client.single['name'].toString()) !=
+            _insuredNameKey(cleanName)) {
+          throw StateError(
+            'This phone belongs to a different insured customer.',
+          );
+        }
+        await txn.update(
+          'clients',
+          {'phone': canonicalPhone},
+          where: 'id=?',
+          whereArgs: [clientId],
+        );
+      } else {
+        final guard = await txn.query(
+          'party_projection_guard',
+          columns: const ['suppressed'],
+          where: 'singleton_id=1',
+          limit: 1,
+        );
+        final oldSuppressed = guard.isEmpty
+            ? 0
+            : ((guard.single['suppressed'] as num?)?.toInt() ?? 0);
+        await txn.update(
+          'party_projection_guard',
+          {'suppressed': 1},
+          where: 'singleton_id=1',
+        );
+        try {
+          clientId = await txn.insert(
+            'clients',
+            {'name': cleanName, 'type': 'individual', 'phone': canonicalPhone},
+            conflictAlgorithm: ConflictAlgorithm.abort,
+          );
+          await txn.insert(
+            'party_roles',
+            {
+              'party_id': partyId,
+              'role': 'CUSTOMER',
+              'legacy_id': clientId.toString(),
+              'created_at': now,
+            },
+            conflictAlgorithm: ConflictAlgorithm.abort,
+          );
+        } finally {
+          await txn.update(
+            'party_projection_guard',
+            {'suppressed': oldSuppressed},
+            where: 'singleton_id=1',
+          );
+        }
+      }
+
+      final insuredRole = await txn.query(
+        'party_roles',
+        columns: const ['legacy_id'],
+        where: 'party_id=? AND role=?',
+        whereArgs: [partyId, 'INSURED'],
+        limit: 1,
+      );
+      if (insuredRole.isEmpty) {
+        await txn.insert(
+          'party_roles',
+          {
+            'party_id': partyId,
+            'role': 'INSURED',
+            'legacy_id': clientId.toString(),
+            'created_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
+      if (prospectId != null) {
+        await txn.update(
+          'insurance_prospects',
+          {'status': 'CONVERTED', 'updated_at': now},
+          where: 'id=?',
+          whereArgs: [prospectId],
+        );
+      }
+      return InsuranceInsuredIdentity(
+        partyId: partyId,
+        clientId: clientId,
+      );
+    });
   }
 
   static Future<void> upsertDrivingLicense({

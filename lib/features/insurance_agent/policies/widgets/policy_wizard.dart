@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 
 import '../models/policy_draft.dart';
+import '../services/insurance_policy_service.dart';
 
 // External steps (organized)
 import 'steps/step_vehicle_info.dart';
@@ -155,9 +156,8 @@ class _PolicyWizardState extends State<PolicyWizard> {
     setState(() => _busy = true);
 
     try {
-      // 🔥 الحفظ الفعلي سنكتبه داخل StepReviewSubmit (DB + transaction)
-      // هنا فقط Hook احتياطي إذا احتجناه لاحقاً
-      await Future.delayed(const Duration(milliseconds: 150));
+      draft.syncLegacyFromNew();
+      await InsurancePolicyService.savePolicyDraft(draft);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

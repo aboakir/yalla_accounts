@@ -28,6 +28,7 @@ import 'package:yalla_accounts/features/insurance_agent/policies/widgets/policie
 import 'package:yalla_accounts/features/insurance_agent/policies/widgets/policies_mobile_cards.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/utils/policy_filters.dart';
+import 'package:yalla_accounts/features/insurance_agent/policies/utils/policy_legacy_mutation_guard.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class PoliciesListScreen extends StatefulWidget {
@@ -262,6 +263,10 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
   }
 
   Future<void> _openEdit(Map<String, dynamic> r) async {
+    if (PolicyLegacyMutationGuard.hasCanonicalPostingEvidence(r)) {
+      _showCanonicalMutationBlocked();
+      return;
+    }
     final id = _resolvePolicyId(r);
     final ok = await Navigator.push(
       context,
@@ -287,6 +292,10 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
   }
 
   Future<void> _deletePolicy(Map<String, dynamic> r) async {
+    if (PolicyLegacyMutationGuard.hasCanonicalPostingEvidence(r)) {
+      _showCanonicalMutationBlocked();
+      return;
+    }
     final id = _resolvePolicyId(r);
     if (id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -322,14 +331,25 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
     try {
       final db = await DatabaseMigration.database;
 
-      String whereCol = 'id';
-      if (r.containsKey('policy_id')) whereCol = 'policy_id';
-      if (r.containsKey('uuid')) whereCol = 'uuid';
-
-      await SyncFoundationService.writeOn(
-          db,
-          (syncTxn) => syncTxn.delete('insurance_policies',
-              where: '$whereCol = ?', whereArgs: [id]));
+      await SyncFoundationService.writeOn(db, (syncTxn) async {
+        final current = await PolicyLegacyMutationGuard.requireUnposted(
+          syncTxn,
+          r,
+          fallbackId: id,
+        );
+        final locator = PolicyLegacyMutationGuard.locator(current);
+        if (locator == null) {
+          throw StateError('لا يمكن تحديد معرّف البوليصة للحذف.');
+        }
+        final deleted = await syncTxn.delete(
+          'insurance_policies',
+          where: '${locator.column}=?',
+          whereArgs: [locator.value],
+        );
+        if (deleted != 1) {
+          throw StateError('تعذر حذف البوليصة بأمان.');
+        }
+      });
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -338,12 +358,24 @@ class _PoliciesListScreenState extends State<PoliciesListScreen>
 
       await _reloadCurrentMonth();
       await _loadCompanies();
+    } on PolicyLegacyMutationBlocked {
+      if (!mounted) return;
+      _showCanonicalMutationBlocked();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('❌ فشل الحذف: ${UserFacingError.message(e)}')),
       );
     }
+  }
+
+  void _showCanonicalMutationBlocked() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(PolicyLegacyMutationGuard.blockedMessage),
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------

@@ -11,6 +11,7 @@ class CommercialFeatureCatalog {
       PermissionKeys.invoiceApprove,
       PermissionKeys.invoicePost,
       PermissionKeys.invoiceReverse,
+      PermissionKeys.insurancePolicyPost,
       PermissionKeys.receiptCreate,
       PermissionKeys.receiptReverse,
       PermissionKeys.paymentCreate,

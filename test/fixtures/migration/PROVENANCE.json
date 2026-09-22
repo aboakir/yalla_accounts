@@ -27,6 +27,21 @@
         "logicalSha256": "221b5b657167e59dd0a07f4c258fe24e042b86af02a51d2ce9145287e97ec6f6",
         "tablesVerified": 84
       }
+    },
+    {
+      "name": "insurance84",
+      "sourceFixture": "commercial83",
+      "sourceCommit": "c7692421c1ab253805c6308db33ce01d20334684",
+      "migrationCommit": "eef3d1b96263d3a1ac72429f3d1788f6c958805c",
+      "schema": 84,
+      "sha256": "79efedd3328a076a78b25e662ed37889e174d3c411e8bb53bf487e8eadd39816",
+      "compressedSha256": "d3e371d9648c39ccae371ab3252b5adb1f94e6a9f29b35a3aacb05ce549ed4db",
+      "syntheticInsuranceSentinels": true,
+      "packaging": {
+        "journalMode": "DELETE",
+        "sourceFixtureMigratedByHistoricalRelease": true,
+        "sourceFixturePreserved": true
+      }
     }
   ],
   "generatedWith": "Original branch DatabaseMigration, canonical AccountingTables and OwnerBootstrapTables; synthetic client/cheque/balanced GL entry.",

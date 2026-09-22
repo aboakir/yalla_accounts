@@ -11,9 +11,12 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/insurance_agent/policies/utils/policy_legacy_mutation_guard.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -37,6 +40,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
 
   bool _loading = true;
   bool _saving = false;
+  bool _legacyMutationBlocked = false;
 
   Map<String, dynamic>? _row;
 
@@ -91,6 +95,8 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
   Future<void> _boot() async {
     if (widget.row != null) {
       _row = Map<String, dynamic>.from(widget.row!);
+      _legacyMutationBlocked =
+          PolicyLegacyMutationGuard.hasCanonicalPostingEvidence(_row!);
       _fillFromRow(_row!);
       setState(() => _loading = false);
       return;
@@ -133,6 +139,8 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
 
       setState(() {
         _row = found;
+        _legacyMutationBlocked = found != null &&
+            PolicyLegacyMutationGuard.hasCanonicalPostingEvidence(found);
         _loading = false;
       });
 
@@ -276,8 +284,10 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  Future<Set<String>> _tableColumns(String table) async {
-    final db = await DatabaseMigration.database;
+  Future<Set<String>> _tableColumns(
+    DatabaseExecutor db,
+    String table,
+  ) async {
     final rows = await db.rawQuery('PRAGMA table_info($table)');
     return rows.map((e) => (e['name'] ?? '').toString()).toSet();
   }
@@ -289,6 +299,15 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
     return null;
   }
 
+  void _showCanonicalMutationBlocked() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(PolicyLegacyMutationGuard.blockedMessage),
+      ),
+    );
+  }
+
   // ---------------------------------------------------------------------------
   Future<void> _save() async {
     if (_saving) return;
@@ -298,6 +317,12 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('⚠️ لا توجد بيانات للتعديل')),
       );
+      return;
+    }
+
+    if (_legacyMutationBlocked ||
+        PolicyLegacyMutationGuard.hasCanonicalPostingEvidence(r)) {
+      _showCanonicalMutationBlocked();
       return;
     }
 
@@ -332,76 +357,77 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
 
     try {
       final db = await DatabaseMigration.database;
-      final cols = await _tableColumns('insurance_policies');
+      await SyncFoundationService.writeOn(db, (txn) async {
+        final current = await PolicyLegacyMutationGuard.requireUnposted(
+          txn,
+          r,
+          fallbackId: id,
+        );
+        final locator = PolicyLegacyMutationGuard.locator(current);
+        if (locator == null) {
+          throw StateError('لا يمكن تحديد معرّف البوليصة للتعديل.');
+        }
 
-      // نحدد عمود where
-      String whereCol = 'id';
-      if (r.containsKey('id')) {
-        whereCol = 'id';
-      } else if (r.containsKey('policy_id')) {
-        whereCol = 'policy_id';
-      } else if (r.containsKey('uuid')) {
-        whereCol = 'uuid';
-      }
+        final cols = await _tableColumns(txn, 'insurance_policies');
+        final updateMap = <String, dynamic>{};
 
-      // ✅ خريطة تحديث ذكية حسب الأعمدة الموجودة فعليًا
-      final updateMap = <String, dynamic>{};
+        void putIfExists(String colName, dynamic value) {
+          if (cols.contains(colName)) updateMap[colName] = value;
+        }
 
-      void putIfExists(String colName, dynamic value) {
-        if (cols.contains(colName)) updateMap[colName] = value;
-      }
+        putIfExists('vehicle_plate', _plate.text.trim());
+        putIfExists('insured_name', _insuredName.text.trim());
+        putIfExists('insured_phone', _insuredPhone.text.trim());
+        putIfExists('company_name', _company.text.trim());
 
-      // الأساسية (أسماء أعمدة شائعة)
-      putIfExists('vehicle_plate', _plate.text.trim());
-      putIfExists('insured_name', _insuredName.text.trim());
-      putIfExists('insured_phone', _insuredPhone.text.trim());
-      putIfExists('company_name', _company.text.trim());
+        final iso = DateFormat('yyyy-MM-dd', 'en_US');
+        putIfExists('start_date', iso.format(_startDate!));
+        putIfExists('end_date', iso.format(_endDate!));
 
-      final iso = DateFormat('yyyy-MM-dd', 'en_US');
-      putIfExists('start_date', iso.format(_startDate!));
-      putIfExists('end_date', iso.format(_endDate!));
+        putIfExists('is_vip', _vip ? 1 : 0);
+        putIfExists('engine_size', _engineSize.text.trim());
+        putIfExists('buy_price', _buyPrice.text.trim());
+        putIfExists('sell_price', _sellPrice.text.trim());
+        putIfExists('payment_method', _paymentMethod.text.trim());
+        putIfExists('notes', _notes.text.trim());
 
-      putIfExists('is_vip', _vip ? 1 : 0);
+        final carPriceCol = _pickExistingColumn(cols, [
+          'car_price',
+          'vehicle_price',
+          'vehicle_value',
+          'car_value',
+          'price',
+        ]);
+        if (carPriceCol != null) {
+          updateMap[carPriceCol] = _vehiclePrice.text.trim();
+        }
 
-      putIfExists('engine_size', _engineSize.text.trim());
-      putIfExists('buy_price', _buyPrice.text.trim());
-      putIfExists('sell_price', _sellPrice.text.trim());
-      putIfExists('payment_method', _paymentMethod.text.trim());
-      putIfExists('notes', _notes.text.trim());
+        final docTypeCol = _pickExistingColumn(cols, [
+          'document_type',
+          'policy_type',
+          'coverage_type',
+          'doc_type',
+        ]);
+        if (docTypeCol != null) {
+          updateMap[docTypeCol] = _documentType!.trim();
+        }
 
-      // ✅ NEW: سعر المركبة — نختار العمود الحقيقي الموجود
-      final carPriceCol = _pickExistingColumn(cols, [
-        'car_price',
-        'vehicle_price',
-        'vehicle_value',
-        'car_value',
-        'price',
-      ]);
-      if (carPriceCol != null) {
-        updateMap[carPriceCol] = _vehiclePrice.text.trim();
-      }
+        if (updateMap.isEmpty) {
+          throw StateError(
+            'لا يوجد أي أعمدة مطابقة للتحديث داخل insurance_policies',
+          );
+        }
 
-      // ✅ NEW: نوع الوثيقة — نختار العمود الحقيقي الموجود
-      final docTypeCol = _pickExistingColumn(cols, [
-        'document_type',
-        'policy_type',
-        'coverage_type',
-        'doc_type',
-      ]);
-      if (docTypeCol != null) {
-        updateMap[docTypeCol] = _documentType!.trim();
-      }
-
-      if (updateMap.isEmpty) {
-        throw 'لا يوجد أي أعمدة مطابقة للتحديث داخل insurance_policies';
-      }
-
-      await db.update(
-        'insurance_policies',
-        updateMap,
-        where: '$whereCol = ?',
-        whereArgs: [id],
-      );
+        final updated = await txn.update(
+          'insurance_policies',
+          updateMap,
+          where: '${locator.column}=?',
+          whereArgs: [locator.value],
+        );
+        if (updated != 1) {
+          throw StateError('تعذر تحديث البوليصة بأمان.');
+        }
+      });
 
       if (!mounted) return;
 
@@ -410,6 +436,10 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
       );
 
       Navigator.pop(context, true);
+    } on PolicyLegacyMutationBlocked {
+      if (!mounted) return;
+      setState(() => _legacyMutationBlocked = true);
+      _showCanonicalMutationBlocked();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -431,6 +461,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
     return TextFormField(
       inputFormatters: const [YallaDigitNormalizer()],
       controller: c,
+      enabled: !_legacyMutationBlocked && !_saving,
       keyboardType: type,
       textAlign: TextAlign.right,
       decoration: InputDecoration(
@@ -452,7 +483,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
   }) {
     final text = value == null ? '—' : DateFormat('yyyy-MM-dd').format(value);
     return InkWell(
-      onTap: _saving ? null : onPick,
+      onTap: (_saving || _legacyMutationBlocked) ? null : onPick,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
@@ -517,7 +548,9 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
             ),
           )
           .toList(),
-      onChanged: _saving ? null : (v) => setState(() => _documentType = v),
+      onChanged: (_saving || _legacyMutationBlocked)
+          ? null
+          : (v) => setState(() => _documentType = v),
       validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
     );
   }
@@ -535,8 +568,10 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            tooltip: 'حفظ',
-            onPressed: (_loading || _saving) ? null : _save,
+            tooltip:
+                _legacyMutationBlocked ? 'التعديل المباشر غير متاح' : 'حفظ',
+            onPressed:
+                (_loading || _saving || _legacyMutationBlocked) ? null : _save,
             icon: const Icon(Icons.save, color: Colors.white),
           ),
           const SizedBox(width: 8),
@@ -555,6 +590,39 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                         key: _formKey,
                         child: ListView(
                           children: [
+                            if (_legacyMutationBlocked) ...[
+                              Container(
+                                key: const ValueKey(
+                                  'canonical-policy-mutation-warning',
+                                ),
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.orange),
+                                ),
+                                child: const AdaptiveRow(
+                                  children: [
+                                    Icon(
+                                      Icons.lock_outline,
+                                      color: Colors.orange,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        PolicyLegacyMutationGuard
+                                            .blockedMessage,
+                                        textAlign: TextAlign.right,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
                             _sectionTitle('بيانات المركبة'),
                             const SizedBox(height: 10),
                             _field(
@@ -663,7 +731,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                             const SizedBox(height: 12),
                             SwitchListTile(
                               value: _vip,
-                              onChanged: _saving
+                              onChanged: (_saving || _legacyMutationBlocked)
                                   ? null
                                   : (v) => setState(() => _vip = v),
                               title: const Text('VIP'),
@@ -720,6 +788,7 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                             TextFormField(
                               inputFormatters: const [YallaDigitNormalizer()],
                               controller: _notes,
+                              enabled: !_legacyMutationBlocked && !_saving,
                               textAlign: TextAlign.right,
                               minLines: 3,
                               maxLines: 6,
@@ -739,7 +808,10 @@ class _EditPolicyScreenState extends State<EditPolicyScreen> {
                               children: [
                                 Expanded(
                                   child: ElevatedButton.icon(
-                                    onPressed: (_saving) ? null : _save,
+                                    onPressed:
+                                        (_saving || _legacyMutationBlocked)
+                                            ? null
+                                            : _save,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       padding: const EdgeInsets.symmetric(

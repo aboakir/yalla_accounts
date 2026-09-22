@@ -11,12 +11,25 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/cheque_tables.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
+import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
 
 class ChequeAccountingService {
+  static String _physicalChequeNumber(Object? value) =>
+      YallaDigitNormalizer.normalize(value?.toString() ?? '')
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'[\s\-_/]+'), '');
+
+  static String _physicalChequeText(Object? value) =>
+      YallaDigitNormalizer.normalize(value?.toString() ?? '')
+          .trim()
+          .toLowerCase()
+          .replaceAll(RegExp(r'\s+'), ' ');
+
   static bool isChequeMethod(String value) {
     final normalized = value.trim().toLowerCase();
     return normalized == 'cheque' ||
@@ -98,6 +111,9 @@ class ChequeAccountingService {
 
     final issueDate = _parseDate(draft['issue_date'], 'issue date');
     final dueDate = _parseDate(draft['due_date'], 'due date');
+    if (dueDate.isBefore(issueDate)) {
+      throw StateError('Cheque due date cannot be before its issue date.');
+    }
     final uuid = (draft['uuid'] ?? '').toString().trim().isNotEmpty
         ? draft['uuid'].toString().trim()
         : 'chq-${DateTime.now().microsecondsSinceEpoch}';
@@ -131,6 +147,37 @@ class ChequeAccountingService {
       return _asInt(existing.first['id']);
     }
 
+    final physicalCandidates = await txn.query(
+      'cheques',
+      columns: const [
+        'id',
+        'cheque_no',
+        'bank_name',
+        'drawer_name',
+        'direction',
+        'cheque_type',
+      ],
+    );
+    final direction = type == ChequeType.outgoing ? 'ISSUED' : 'RECEIVED';
+    final duplicatePhysicalCheque = physicalCandidates.any((row) {
+      final storedDirection = (row['direction'] ?? '').toString().toUpperCase();
+      final storedType = (row['cheque_type'] ?? '').toString().toLowerCase();
+      final sameDirection = storedDirection == direction ||
+          (storedDirection.isEmpty && storedType == type.name);
+      return sameDirection &&
+          _physicalChequeNumber(row['cheque_no']) ==
+              _physicalChequeNumber(chequeNo) &&
+          _physicalChequeText(row['bank_name']) ==
+              _physicalChequeText(bankName) &&
+          _physicalChequeText(row['drawer_name']) ==
+              _physicalChequeText(drawerName);
+    });
+    if (duplicatePhysicalCheque) {
+      throw StateError(
+        'This physical cheque is already registered in Cheques Core.',
+      );
+    }
+
     if (type == ChequeType.outgoing &&
         (supplierPid == null || supplierPid.trim().isEmpty) &&
         (recipientName == null || recipientName.trim().isEmpty)) {
@@ -154,7 +201,6 @@ class ChequeAccountingService {
     final now = DateTime.now().toIso8601String();
     final linkedPayments =
         sourceType.toUpperCase() == 'PAYMENT' ? jsonEncode([sourceId]) : '[]';
-    final direction = type == ChequeType.outgoing ? 'ISSUED' : 'RECEIVED';
     final initialStatus = type == ChequeType.outgoing
         ? ChequeStatus.issued.name
         : ChequeStatus.received.name;
@@ -514,6 +560,39 @@ class ChequeAccountingService {
       whereArgs: [chequeId],
     );
 
+    var reversedInsurancePaymentIds = const <String>[];
+    if (newStatus == ChequeStatus.returned ||
+        newStatus == ChequeStatus.cancelled) {
+      final linkedInsurancePayments = await txn.query(
+        'insurance_policy_payments',
+        columns: const ['id'],
+        where: 'cheque_id=? AND status=?',
+        whereArgs: [chequeId, 'POSTED'],
+        orderBy: 'id',
+      );
+      if (linkedInsurancePayments.isNotEmpty) {
+        final reversedAt = DateTime.now().toIso8601String();
+        final reversalReason = reason?.trim().isNotEmpty == true
+            ? reason!.trim()
+            : 'Cheque ${newStatus.name}';
+        await txn.update(
+          'insurance_policy_payments',
+          {
+            'status': 'REVERSED',
+            'reversal_gl_entry_id': lifecycleGlId,
+            'reversed_at': reversedAt,
+            'reversal_reason': reversalReason,
+          },
+          where: 'cheque_id=? AND status=?',
+          whereArgs: [chequeId, 'POSTED'],
+        );
+        reversedInsurancePaymentIds = linkedInsurancePayments
+            .map((row) => row['id']?.toString() ?? '')
+            .where((id) => id.isNotEmpty)
+            .toList(growable: false);
+      }
+    }
+
     await _event(
       txn,
       chequeId: chequeId,
@@ -525,6 +604,12 @@ class ChequeAccountingService {
       eventDate: when,
       actorUserId: actorUserId,
       reason: reason,
+      metadata: reversedInsurancePaymentIds.isEmpty
+          ? null
+          : {
+              'reversed_insurance_policy_payment_ids':
+                  reversedInsurancePaymentIds,
+            },
     );
 
     final refreshed = await txn.query(

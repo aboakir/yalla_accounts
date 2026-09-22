@@ -30,11 +30,15 @@ class StepCompanyDates extends StatefulWidget {
 
 class _StepCompanyDatesState extends State<StepCompanyDates> {
   late final TextEditingController _companyCtrl;
+  late final TextEditingController _policyNumberCtrl;
 
   @override
   void initState() {
     super.initState();
     _companyCtrl = TextEditingController(text: widget.draft.companyName ?? '');
+    _policyNumberCtrl = TextEditingController(
+      text: widget.draft.policyNumber ?? '',
+    );
   }
 
   @override
@@ -46,24 +50,34 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
     if (_companyCtrl.text != newName) {
       _companyCtrl.text = newName;
     }
+    final policyNumber = widget.draft.policyNumber ?? '';
+    if (_policyNumberCtrl.text != policyNumber) {
+      _policyNumberCtrl.text = policyNumber;
+    }
   }
 
   @override
   void dispose() {
     _companyCtrl.dispose();
+    _policyNumberCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _pickDate({required bool isStart}) async {
     final now = DateTime.now();
-    final initial =
+    final earliest = isStart
+        ? DateTime(now.year - 2)
+        : (widget.draft.startDate?.add(const Duration(days: 1)) ??
+            DateTime(now.year - 2));
+    var initial =
         (isStart ? widget.draft.startDate : widget.draft.endDate) ?? now;
+    if (initial.isBefore(earliest)) initial = earliest;
 
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(now.year - 2),
-      lastDate: DateTime(now.year + 5),
+      firstDate: earliest,
+      lastDate: DateTime(now.year + 10),
       locale: const Locale('ar'),
     );
 
@@ -75,13 +89,14 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
 
         // لو النهاية أقل من البداية أو فاضية -> خلّيها نفس البداية مؤقتاً
         if (widget.draft.endDate == null ||
-            widget.draft.endDate!.isBefore(picked)) {
-          widget.draft.endDate = picked;
+            !widget.draft.endDate!.isAfter(picked)) {
+          widget.draft.endDate = picked.add(const Duration(days: 365));
         }
       } else {
         widget.draft.endDate = picked;
       }
     });
+    widget.formKey.currentState?.validate();
   }
 
   @override
@@ -101,6 +116,29 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          TextFormField(
+            controller: _policyNumberCtrl,
+            textAlign: TextAlign.right,
+            decoration: const InputDecoration(
+              labelText: 'رقم بوليصة شركة التأمين',
+              hintText: 'أدخل الرقم الصادر عن شركة التأمين',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) => (value ?? '').trim().isEmpty
+                ? 'رقم بوليصة شركة التأمين مطلوب'
+                : null,
+            onChanged: (value) {
+              final clean = value.trim();
+              widget.draft.policyNumber = clean.isEmpty ? null : clean;
+            },
+            onSaved: (value) {
+              final clean = (value ?? '').trim();
+              widget.draft.policyNumber = clean.isEmpty ? null : clean;
+            },
+          ),
+
+          const SizedBox(height: 12),
+
           // ✅ الشركة تُعرض فقط (بدون تعديل)
           TextFormField(
             inputFormatters: const [YallaDigitNormalizer()],
@@ -137,15 +175,8 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
 
           const SizedBox(height: 10),
 
-          // ✅ Validator للتواريخ (بدون حقل شركة)
-          TextFormField(
-            inputFormatters: const [YallaDigitNormalizer()],
-            enabled: false,
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              isCollapsed: true,
-              contentPadding: EdgeInsets.zero,
-            ),
+          // Validator مرئي للتواريخ، ولا يسمح بوثيقة مدتها صفر يوم.
+          FormField<DateTime>(
             validator: (_) {
               if (widget.draft.startDate == null) {
                 return 'اختر تاريخ بداية التأمين';
@@ -153,11 +184,24 @@ class _StepCompanyDatesState extends State<StepCompanyDates> {
               if (widget.draft.endDate == null) {
                 return 'اختر تاريخ انتهاء التأمين';
               }
-              if (widget.draft.endDate!.isBefore(widget.draft.startDate!)) {
-                return 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية';
+              if (!widget.draft.endDate!.isAfter(widget.draft.startDate!)) {
+                return 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية بيوم واحد على الأقل';
               }
               return null;
             },
+            builder: (field) => field.hasError
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      field.errorText!,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
 
           SwitchListTile(

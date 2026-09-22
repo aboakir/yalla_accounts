@@ -153,133 +153,147 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
   Widget build(BuildContext context) {
     final titleColor = Colors.grey.shade700;
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        title: const Text(
-          'إضافة تأمين جديد',
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            tooltip: 'مسح وإعادة',
-            onPressed: _busy ? null : _resetAll,
-            icon: const Icon(Icons.restart_alt, color: Colors.white),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.primary,
+          title: const Text(
+            'إضافة تأمين جديد',
+            style: TextStyle(color: Colors.white),
           ),
-        ],
-      ),
-      body: Center(
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              AdaptiveRow(
-                children: [
-                  Text(
-                    _titleForStep(_step),
-                    textAlign: TextAlign.right,
-                    style: TextStyle(color: titleColor),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'الخطوة ${_step + 1} من 5',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Stepper(
-                  type: StepperType.vertical,
-                  currentStep: _step,
-                  onStepTapped: _busy
-                      ? null
-                      : (i) {
-                          final key = _keyForStep(_step);
-                          key?.currentState?.save();
-                          draft.syncLegacyFromNew();
-                          setState(() => _step = i);
-                        },
-                  controlsBuilder: (context, details) {
-                    final isLast = _step == 4;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: AdaptiveRow(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: (_busy || isLast) ? null : _goNext,
-                              child: Text(isLast ? 'تم' : 'التالي'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: (_busy || _step == 0) ? null : _goBack,
-                              child: const Text('السابق'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  steps: [
-                    Step(
-                      title: const Text('بيانات المركبة'),
-                      isActive: _step >= 0,
-                      state: _step > 0 ? StepState.complete : StepState.indexed,
-                      content: StepVehicleInfo(
-                        draft: draft,
-                        formKey: _vehicleFormKey,
-                      ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            IconButton(
+              tooltip: 'مسح وإعادة',
+              onPressed: _busy ? null : _resetAll,
+              icon: const Icon(Icons.restart_alt, color: Colors.white),
+            ),
+          ],
+        ),
+        body: Center(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                AdaptiveRow(
+                  children: [
+                    Text(
+                      _titleForStep(_step),
+                      textAlign: TextAlign.right,
+                      style: TextStyle(color: titleColor),
                     ),
-                    Step(
-                      title: const Text('بيانات المؤمن له'),
-                      isActive: _step >= 1,
-                      state: _step > 1 ? StepState.complete : StepState.indexed,
-                      content: StepInsuredInfo(
-                        formKey: _insuredFormKey,
-                        draft: draft,
-                      ),
-                    ),
-                    Step(
-                      title: const Text('الشركة والتواريخ'),
-                      isActive: _step >= 2,
-                      state: _step > 2 ? StepState.complete : StepState.indexed,
-                      content: StepCompanyDates(
-                        formKey: _companyFormKey,
-                        draft: draft,
-                      ),
-                    ),
-                    Step(
-                      title: const Text('التسعير والدفع'),
-                      isActive: _step >= 3,
-                      state: _step > 3 ? StepState.complete : StepState.indexed,
-                      content: StepPricingPayment(
-                        formKey: _pricingFormKey,
-                        draft: draft,
-                      ),
-                    ),
-                    Step(
-                      title: const Text('مراجعة وحفظ'),
-                      isActive: _step >= 4,
-                      state: StepState.indexed,
-                      content: StepReviewSubmit(
-                        draft: draft,
-                        busy: _busy,
-                        onSave: _savePolicy,
-                        onSaved: _onSavedSuccessfully,
-                      ),
+                    const Spacer(),
+                    Text(
+                      'الخطوة ${_step + 1} من 5',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Stepper(
+                    type: StepperType.vertical,
+                    currentStep: _step,
+                    onStepTapped: _busy
+                        ? null
+                        : (i) {
+                            var targetStep = i;
+                            if (i > _step) {
+                              if (!_validateAndSaveCurrentStep()) return;
+                              // لا نتجاوز خطوة غير مُراجعة بالنقر على العنوان.
+                              targetStep = _step + 1;
+                            }
+                            final key = _keyForStep(_step);
+                            key?.currentState?.save();
+                            draft.syncLegacyFromNew();
+                            setState(() => _step = targetStep);
+                          },
+                    controlsBuilder: (context, details) {
+                      final isLast = _step == 4;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: AdaptiveRow(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: (_busy || isLast) ? null : _goNext,
+                                child: Text(isLast ? 'تم' : 'التالي'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed:
+                                    (_busy || _step == 0) ? null : _goBack,
+                                child: const Text('السابق'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    steps: [
+                      Step(
+                        title: const Text('بيانات المركبة'),
+                        isActive: _step >= 0,
+                        state:
+                            _step > 0 ? StepState.complete : StepState.indexed,
+                        content: StepVehicleInfo(
+                          draft: draft,
+                          formKey: _vehicleFormKey,
+                        ),
+                      ),
+                      Step(
+                        title: const Text('بيانات المؤمن له'),
+                        isActive: _step >= 1,
+                        state:
+                            _step > 1 ? StepState.complete : StepState.indexed,
+                        content: StepInsuredInfo(
+                          formKey: _insuredFormKey,
+                          draft: draft,
+                        ),
+                      ),
+                      Step(
+                        title: const Text('الشركة والتواريخ'),
+                        isActive: _step >= 2,
+                        state:
+                            _step > 2 ? StepState.complete : StepState.indexed,
+                        content: StepCompanyDates(
+                          formKey: _companyFormKey,
+                          draft: draft,
+                        ),
+                      ),
+                      Step(
+                        title: const Text('التسعير والدفع'),
+                        isActive: _step >= 3,
+                        state:
+                            _step > 3 ? StepState.complete : StepState.indexed,
+                        content: StepPricingPayment(
+                          formKey: _pricingFormKey,
+                          draft: draft,
+                        ),
+                      ),
+                      Step(
+                        title: const Text('مراجعة وحفظ'),
+                        isActive: _step >= 4,
+                        state: StepState.indexed,
+                        content: StepReviewSubmit(
+                          draft: draft,
+                          busy: _busy,
+                          onSave: _savePolicy,
+                          onSaved: _onSavedSuccessfully,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

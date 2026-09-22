@@ -1,17 +1,8 @@
-// 📁 lib/features/insurance_agent/policies/widgets/steps/step_insured_info.dart
-//
-// Step 2 — بيانات المؤمن له + شركة التأمين (Dropdown من DB)
-// ✅ RTL
-// ✅ تحميل شركات التأمين من جدول insurance_companies
-// ✅ Validation كامل
-// ✅ بدون Controllers داخل build
-// ✅ NEW: نوع الوثيقة Dropdown (طرف ثالث / شامل)
-
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
-import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
-
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
+import 'package:yalla_accounts/features/insurance_agent/master_data/services/insurance_master_data_service.dart';
+import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 
 class StepInsuredInfo extends StatefulWidget {
   final PolicyDraft draft;
@@ -27,33 +18,41 @@ class StepInsuredInfo extends StatefulWidget {
   State<StepInsuredInfo> createState() => _StepInsuredInfoState();
 }
 
+class _CoverageOption {
+  const _CoverageOption({
+    required this.id,
+    required this.code,
+    required this.name,
+  });
+
+  final String id;
+  final String code;
+  final String name;
+}
+
 class _StepInsuredInfoState extends State<StepInsuredInfo> {
   late final TextEditingController _insuredNameCtrl;
   late final TextEditingController _insuredPhoneCtrl;
 
-  List<String> _insurers = [];
-  bool _loadingInsurers = true;
+  List<InsuranceCompanyRecord> _insurers = const [];
+  List<InsuranceProductRecord> _products = const [];
+  List<_CoverageOption> _coverages = const [];
+  Set<String> _selectedCoverageIds = <String>{};
 
-  // ✅ NEW: نوع الوثيقة
-  static const List<String> _docTypes = ['طرف ثالث', 'شامل'];
-  String? _docType;
+  bool _loadingInsurers = true;
+  bool _loadingProducts = false;
+  bool _loadingCoverages = false;
 
   @override
   void initState() {
     super.initState();
-
-    _insuredNameCtrl =
-        TextEditingController(text: widget.draft.insuredName ?? '');
-    _insuredPhoneCtrl =
-        TextEditingController(text: widget.draft.insuredPhone ?? '');
-
-    _docType = _readDraftDocType();
-    if (_docType == null) {
-      // افتراضي: طرف ثالث
-      _docType = _docTypes.first;
-      _writeDraftDocType(_docType);
-    }
-
+    _insuredNameCtrl = TextEditingController(
+      text: widget.draft.insuredName ?? '',
+    );
+    _insuredPhoneCtrl = TextEditingController(
+      text: widget.draft.insuredPhone ?? '',
+    );
+    _selectedCoverageIds = _readCoverageIds().toSet();
     _loadInsurers();
   }
 
@@ -64,34 +63,57 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
     super.dispose();
   }
 
+  List<String> _readCoverageIds() {
+    return widget.draft.coverageIds
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+  }
+
+  void _writeCoverageIds(Iterable<String> values) {
+    final normalized = values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+    widget.draft.coverageIds
+      ..clear()
+      ..addAll(normalized);
+  }
+
   Future<void> _loadInsurers() async {
     try {
-      final db = await DBService.database;
-
-      final rows = await db.query(
-        'insurance_companies',
-        orderBy: 'name ASC',
-      );
-
-      final names = rows
-          .map((e) => (e['name'] ?? '').toString().trim())
-          .where((n) => n.isNotEmpty)
+      final rows = (await InsuranceMasterDataService.listCompanies())
+          .where((company) => company.isActive)
           .toList();
 
-      if (!mounted) return;
+      int? selectedId = widget.draft.insuranceCompanyId;
+      if (!rows.any((company) => company.id == selectedId)) {
+        final currentName =
+            (widget.draft.companyName ?? '').trim().toLowerCase();
+        InsuranceCompanyRecord? matching;
+        for (final company in rows) {
+          if (company.name.trim().toLowerCase() == currentName) {
+            matching = company;
+            break;
+          }
+        }
+        selectedId = matching?.id;
+      }
+      selectedId ??= rows.isEmpty ? null : rows.first.id;
 
+      if (!mounted) return;
       setState(() {
-        _insurers = names;
+        _insurers = rows;
         _loadingInsurers = false;
       });
 
-      // تثبيت قيمة افتراضية إذا لا يوجد اختيار سابق
-      final current = (widget.draft.companyName ?? '').trim();
-      if (current.isEmpty && names.isNotEmpty) {
-        widget.draft.companyName = names.first;
-      } else if (current.isNotEmpty && !names.contains(current)) {
-        // إذا كانت القيمة القديمة غير موجودة بالقائمة، نخليها null فعليًا
-        widget.draft.companyName = null;
+      if (selectedId != null) {
+        final selected = rows.firstWhere(
+          (company) => company.id == selectedId,
+        );
+        widget.draft.insuranceCompanyId = selected.id;
+        widget.draft.companyName = selected.name;
+        await _loadProducts(selected.id, preserveSelection: true);
       }
     } catch (_) {
       if (!mounted) return;
@@ -99,97 +121,155 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // NEW: Draft helpers (safe read/write without compile errors)
-  // ---------------------------------------------------------------------------
-  String? _readDraftDocType() {
+  Future<void> _loadProducts(
+    int companyId, {
+    required bool preserveSelection,
+  }) async {
+    if (mounted) {
+      setState(() {
+        _loadingProducts = true;
+        _loadingCoverages = false;
+        _products = const [];
+        _coverages = const [];
+        if (!preserveSelection) {
+          _selectedCoverageIds.clear();
+          _writeCoverageIds(const []);
+        }
+      });
+    }
+
     try {
-      final d = widget.draft as dynamic;
+      final rows = (await InsuranceMasterDataService.listProducts(
+        companyId: companyId,
+      ))
+          .where((product) => product.isActive)
+          .toList();
+      if (widget.draft.insuranceCompanyId != companyId) return;
 
-      // جرّب عدة أسماء حقول محتملة
-      final v = d.documentType ??
-          d.policyDocumentType ??
-          d.coverageType ??
-          d.policyType ??
-          d.insuranceType;
-
-      if (v == null) return null;
-
-      final t = v.toString().trim();
-      if (t.isEmpty) return null;
-
-      // طَبِّع القيم لو كانت إنجليزية/اختصارات
-      if (t.toLowerCase() == 'third' || t == 'tp' || t == 'third_party') {
-        return 'طرف ثالث';
-      }
-      if (t.toLowerCase() == 'comprehensive' || t == 'full') {
-        return 'شامل';
+      String? selectedProductId =
+          preserveSelection ? widget.draft.productId?.trim() : null;
+      if (!rows.any((product) => product.id == selectedProductId)) {
+        selectedProductId = rows.isEmpty ? null : rows.first.id;
       }
 
-      // إذا القيمة موجودة ضمن قائمتنا
-      if (_docTypes.contains(t)) return t;
+      if (!mounted) return;
+      setState(() {
+        _products = rows;
+        _loadingProducts = false;
+      });
 
-      return t;
+      if (selectedProductId == null) {
+        widget.draft.productId = null;
+        widget.draft.coverageType = null;
+        return;
+      }
+
+      final selected = rows.firstWhere(
+        (product) => product.id == selectedProductId,
+      );
+      widget.draft.productId = selected.id;
+      widget.draft.coverageType = selected.productType;
+      await _loadCoverages(
+        selected.id,
+        preserveSelection: preserveSelection,
+      );
     } catch (_) {
-      return null;
+      if (!mounted) return;
+      setState(() => _loadingProducts = false);
     }
   }
 
-  void _writeDraftDocType(String? value) {
-    final v = (value ?? '').trim();
-    if (v.isEmpty) return;
+  Future<void> _loadCoverages(
+    String productId, {
+    required bool preserveSelection,
+  }) async {
+    if (mounted) {
+      setState(() {
+        _loadingCoverages = true;
+        _coverages = const [];
+        if (!preserveSelection) {
+          _selectedCoverageIds.clear();
+          _writeCoverageIds(const []);
+        }
+      });
+    }
 
     try {
-      final d = widget.draft as dynamic;
+      final db = await DBService.database;
+      final rows = await db.query(
+        'insurance_coverages',
+        columns: const ['id', 'code', 'name'],
+        where: 'product_id=? AND is_active=1',
+        whereArgs: [productId],
+        orderBy: 'name ASC',
+      );
+      final options = rows
+          .map(
+            (row) => _CoverageOption(
+              id: row['id'].toString(),
+              code: (row['code'] ?? '').toString(),
+              name: (row['name'] ?? '').toString(),
+            ),
+          )
+          .toList();
+      if (widget.draft.productId != productId) return;
+      final availableIds = options.map((option) => option.id).toSet();
+      final selected = preserveSelection
+          ? _selectedCoverageIds.intersection(availableIds)
+          : <String>{};
 
-      // حاول تكتبها على أكثر من اسم حقل محتمل
-      try {
-        d.documentType = v;
-      } catch (_) {}
-      try {
-        d.policyDocumentType = v;
-      } catch (_) {}
-      try {
-        d.coverageType = v;
-      } catch (_) {}
-      try {
-        d.policyType = v;
-      } catch (_) {}
-      try {
-        d.insuranceType = v;
-      } catch (_) {}
-    } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        _coverages = options;
+        _selectedCoverageIds = selected;
+        _loadingCoverages = false;
+      });
+      _writeCoverageIds(selected);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingCoverages = false);
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  String? _validateName(String? v) {
-    final t = (v ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
-    if (t.isEmpty) return 'أدخل اسم المؤمن له';
+  String? _validateName(String? value) {
+    if ((value ?? '').trim().isEmpty) return 'أدخل اسم المؤمن له';
     return null;
   }
 
-  String? _validatePhone(String? v) {
-    final t = (v ?? '').trim();
-    if (t.isEmpty) return 'أدخل رقم الهاتف';
-    if (t.length < 7) return 'رقم الهاتف غير صحيح';
+  String? _validatePhone(String? value) {
+    final phone = (value ?? '').trim();
+    if (phone.isEmpty) return 'أدخل رقم الهاتف';
+    if (phone.length < 7) return 'رقم الهاتف غير صحيح';
     return null;
   }
 
-  String? _validateCompany(String? v) {
-    final t = (v ?? '').trim();
-    if (t.isEmpty) return 'اختر شركة التأمين';
-    return null;
-  }
-
-  String? _validateDocType(String? v) {
-    final t = (v ?? '').trim();
-    if (t.isEmpty) return 'اختر نوع الوثيقة';
-    return null;
+  String _productTypeLabel(String type) {
+    switch (type.trim().toUpperCase()) {
+      case 'THIRD_PARTY':
+      case 'THIRD':
+      case 'TP':
+        return 'طرف ثالث';
+      case 'COMPREHENSIVE':
+      case 'FULL':
+        return 'شامل';
+      default:
+        return type.trim();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final d = widget.draft;
+    final draft = widget.draft;
+    final selectedCompanyId = _insurers.any(
+      (company) => company.id == draft.insuranceCompanyId,
+    )
+        ? draft.insuranceCompanyId
+        : null;
+    final selectedProductId = _products.any(
+      (product) => product.id == draft.productId,
+    )
+        ? draft.productId
+        : null;
 
     return Form(
       key: widget.formKey,
@@ -198,13 +278,11 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            'بيانات المؤمن له + شركة التأمين',
+            'بيانات المؤمن له وشركة التأمين',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             textAlign: TextAlign.right,
           ),
           const SizedBox(height: 16),
-
-          // اسم المؤمن له
           TextFormField(
             inputFormatters: const [YallaDigitNormalizer()],
             controller: _insuredNameCtrl,
@@ -214,12 +292,10 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
               border: OutlineInputBorder(),
             ),
             validator: _validateName,
-            onChanged: (v) => d.insuredName = v.trim(),
+            onChanged: (value) => draft.insuredName = value.trim(),
+            onSaved: (value) => draft.insuredName = (value ?? '').trim(),
           ),
-
           const SizedBox(height: 12),
-
-          // رقم الهاتف
           TextFormField(
             inputFormatters: const [YallaDigitNormalizer()],
             controller: _insuredPhoneCtrl,
@@ -230,78 +306,190 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
               border: OutlineInputBorder(),
             ),
             validator: _validatePhone,
-            onChanged: (v) => d.insuredPhone = v.trim(),
+            onChanged: (value) => draft.insuredPhone = value.trim(),
+            onSaved: (value) => draft.insuredPhone = (value ?? '').trim(),
           ),
-
           const SizedBox(height: 12),
-
-          // شركة التأمين (Dropdown)
-          _loadingInsurers
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : DropdownButtonFormField<String>(
-                  value: (_insurers.contains((d.companyName ?? '').trim()))
-                      ? (d.companyName ?? '').trim()
-                      : null,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'شركة التأمين',
-                    border: OutlineInputBorder(),
-                  ),
-                  hint: const Text('اختر شركة التأمين'),
-                  items: _insurers
-                      .map(
-                        (c) => DropdownMenuItem<String>(
-                          value: c,
-                          child: Text(c, textAlign: TextAlign.right),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    d.companyName = v;
-                    widget.formKey.currentState?.validate();
-                    setState(() {});
-                  },
-                  validator: _validateCompany,
-                ),
-
-          const SizedBox(height: 12),
-
-          // ✅ NEW: نوع الوثيقة (Dropdown)
-          DropdownButtonFormField<String>(
-            value: (_docTypes.contains((_docType ?? '').trim()))
-                ? (_docType ?? '').trim()
-                : null,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'نوع الوثيقة',
-              border: OutlineInputBorder(),
+          if (_loadingInsurers)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            DropdownButtonFormField<int>(
+              value: selectedCompanyId,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'شركة التأمين',
+                border: OutlineInputBorder(),
+              ),
+              hint: const Text('اختر شركة التأمين'),
+              items: _insurers
+                  .map(
+                    (company) => DropdownMenuItem<int>(
+                      value: company.id,
+                      child: Text(
+                        company.name,
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (companyId) async {
+                if (companyId == null) return;
+                final company = _insurers.firstWhere(
+                  (item) => item.id == companyId,
+                );
+                setState(() {
+                  draft.insuranceCompanyId = company.id;
+                  draft.companyName = company.name;
+                  draft.productId = null;
+                  draft.coverageType = null;
+                });
+                await _loadProducts(company.id, preserveSelection: false);
+                widget.formKey.currentState?.validate();
+              },
+              validator: (value) => value == null
+                  ? 'اختر شركة تأمين مرتبطة بسجل المورد والأطراف'
+                  : null,
             ),
-            hint: const Text('اختر نوع الوثيقة'),
-            items: _docTypes
-                .map(
-                  (t) => DropdownMenuItem<String>(
-                    value: t,
-                    child: Text(t, textAlign: TextAlign.right),
+          const SizedBox(height: 12),
+          if (_loadingProducts)
+            const LinearProgressIndicator()
+          else if (_products.isEmpty && selectedCompanyId != null)
+            FormField<String>(
+              key: ValueKey<int>(selectedCompanyId),
+              initialValue: draft.productId,
+              validator: (_) => 'لا توجد منتجات تأمين فعّالة لهذه الشركة.',
+              builder: (field) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'لا توجد منتجات تأمين فعّالة لهذه الشركة حالياً.',
+                    textAlign: TextAlign.right,
                   ),
-                )
-                .toList(),
-            onChanged: (v) {
-              setState(() => _docType = v);
-              _writeDraftDocType(v);
-              widget.formKey.currentState?.validate();
-            },
-            validator: _validateDocType,
-          ),
-
+                  if (field.hasError) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      field.errorText!,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            )
+          else if (_products.isNotEmpty)
+            DropdownButtonFormField<String>(
+              value: selectedProductId,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                labelText: 'منتج التأمين',
+                border: OutlineInputBorder(),
+              ),
+              hint: const Text('اختر منتج التأمين'),
+              items: _products
+                  .map(
+                    (product) => DropdownMenuItem<String>(
+                      value: product.id,
+                      child: Text(
+                        '${product.name} — ${_productTypeLabel(product.productType)}',
+                        textAlign: TextAlign.right,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (productId) async {
+                if (productId == null) return;
+                final product = _products.firstWhere(
+                  (item) => item.id == productId,
+                );
+                setState(() {
+                  draft.productId = product.id;
+                  draft.coverageType = product.productType;
+                });
+                await _loadCoverages(
+                  product.id,
+                  preserveSelection: false,
+                );
+                widget.formKey.currentState?.validate();
+              },
+              validator: (value) => value == null ? 'اختر منتج التأمين' : null,
+            ),
+          if (_loadingCoverages) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(),
+          ] else if (_coverages.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'التغطيات المشمولة',
+              textAlign: TextAlign.right,
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            FormField<Set<String>>(
+              key: ValueKey<String>('coverage_${draft.productId ?? ''}'),
+              initialValue: Set<String>.from(_selectedCoverageIds),
+              validator: (_) => _selectedCoverageIds.isEmpty
+                  ? 'اختر تغطية واحدة على الأقل'
+                  : null,
+              builder: (field) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _coverages.map((coverage) {
+                      final selected =
+                          _selectedCoverageIds.contains(coverage.id);
+                      return FilterChip(
+                        selected: selected,
+                        label: Text(
+                          coverage.code.trim().isEmpty
+                              ? coverage.name
+                              : '${coverage.name} (${coverage.code})',
+                        ),
+                        onSelected: (enabled) {
+                          setState(() {
+                            if (enabled) {
+                              _selectedCoverageIds.add(coverage.id);
+                            } else {
+                              _selectedCoverageIds.remove(coverage.id);
+                            }
+                            _writeCoverageIds(_selectedCoverageIds);
+                          });
+                          field.didChange(
+                            Set<String>.from(_selectedCoverageIds),
+                          );
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  if (field.hasError) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      field.errorText!,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
-
-          // VIP
           SwitchListTile(
-            value: d.isVip,
-            onChanged: (v) => setState(() => d.isVip = v),
+            contentPadding: EdgeInsets.zero,
+            value: draft.isVip,
+            onChanged: (value) => setState(() => draft.isVip = value),
             title: const Text('VIP', textAlign: TextAlign.right),
           ),
         ],

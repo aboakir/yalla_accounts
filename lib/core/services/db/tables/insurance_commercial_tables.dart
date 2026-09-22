@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/services/document_number_service.dart';
 
 /// DB v85 — commercial insurance foundation.
 ///
@@ -49,6 +50,7 @@ class InsuranceCommercialTables {
   static Future<void> ensure(DatabaseExecutor db) async {
     await _expandPartyRoles(db);
     await _extendPolicyAggregate(db);
+    await _extendPolicyPaymentSchedules(db);
     await _createMasterData(db);
     await backfillLegacyCompanyParties(db);
     await _createCrm(db);
@@ -56,6 +58,21 @@ class InsuranceCommercialTables {
     await _createPolicyHistory(db);
     await _createClaimsAndRenewals(db);
     await _createSettlementsAndFinancialLinks(db);
+    await _extendInsurancePolicyPayments(db);
+    await _ensureDocumentSequences(db);
+    await _backfillLegacyPolicyDocuments(db);
+    await _createIndexes(db);
+  }
+
+  /// Additive compatibility for databases already stamped v85 while the
+  /// insurance rebuild is still completing within that schema version.
+  static Future<void> ensurePhase10Compatibility(DatabaseExecutor db) async {
+    await _extendPolicyAggregate(db);
+    await _extendPolicyPaymentSchedules(db);
+    await _extendInsurancePolicyPayments(db);
+    await backfillLegacyCompanyParties(db);
+    await _ensureDocumentSequences(db);
+    await _backfillLegacyPolicyDocuments(db);
     await _createIndexes(db);
   }
 
@@ -117,7 +134,13 @@ class InsuranceCommercialTables {
 
     final columns = <String, String>{
       'operation_id': 'TEXT',
+      'document_number': 'TEXT',
       'policy_number': 'TEXT',
+      'engine_number': 'TEXT',
+      'chassis_number': 'TEXT',
+      'coverage_type': 'TEXT',
+      'coverage_ids_json': 'TEXT',
+      'posting_request_json': 'TEXT',
       'status': "TEXT NOT NULL DEFAULT 'DRAFT'",
       'client_id': 'INTEGER',
       'insured_party_id': 'TEXT',
@@ -152,6 +175,47 @@ class InsuranceCommercialTables {
     };
     for (final entry in columns.entries) {
       await _ensureColumn(db, 'insurance_policies', entry.key, entry.value);
+    }
+  }
+
+  static Future<void> _extendPolicyPaymentSchedules(
+    DatabaseExecutor db,
+  ) async {
+    if (await _tableExists(db, 'insurance_policy_cheques')) {
+      await _ensureColumn(
+        db,
+        'insurance_policy_cheques',
+        'issue_date',
+        'TEXT',
+      );
+    }
+    if (await _tableExists(db, 'insurance_policy_promissories')) {
+      await _ensureColumn(
+        db,
+        'insurance_policy_promissories',
+        'image_path',
+        'TEXT',
+      );
+    }
+  }
+
+  static Future<void> _extendInsurancePolicyPayments(
+    DatabaseExecutor db,
+  ) async {
+    if (!await _tableExists(db, 'insurance_policy_payments')) return;
+    const columns = <String, String>{
+      'reversal_payment_id': 'TEXT',
+      'reversal_gl_entry_id': 'INTEGER',
+      'reversed_at': 'TEXT',
+      'reversal_reason': 'TEXT',
+    };
+    for (final entry in columns.entries) {
+      await _ensureColumn(
+        db,
+        'insurance_policy_payments',
+        entry.key,
+        entry.value,
+      );
     }
   }
 
@@ -226,6 +290,52 @@ class InsuranceCommercialTables {
 
   /// Links every legacy workshop insurance-company row to the canonical
   /// Supplier/Party master without replacing its historical integer id.
+  static Future<void> _reconcileInsuranceCompanyRole(
+    DatabaseExecutor db, {
+    required int companyId,
+    required String canonicalPartyId,
+    required String createdAt,
+  }) async {
+    final targetRoles = await db.query(
+      'party_roles',
+      columns: const ['legacy_id'],
+      where: 'party_id=? AND role=?',
+      whereArgs: [canonicalPartyId, 'INSURANCE_COMPANY'],
+      limit: 1,
+    );
+    if (targetRoles.isNotEmpty &&
+        targetRoles.single['legacy_id'].toString() != companyId.toString()) {
+      throw StateError(
+        'Insurance company identity conflict: Party $canonicalPartyId is '
+        'already linked to insurance company '
+        '${targetRoles.single['legacy_id']}.',
+      );
+    }
+
+    // The (role, legacy_id) key may still point at a pre-v85 Party while the
+    // Supplier role already points at the canonical Party. Move the role; an
+    // ignored insert would leave the company split across two identities.
+    await db.delete(
+      'party_roles',
+      where: 'role=? AND legacy_id=? AND party_id<>?',
+      whereArgs: [
+        'INSURANCE_COMPANY',
+        companyId.toString(),
+        canonicalPartyId,
+      ],
+    );
+    await db.insert(
+      'party_roles',
+      {
+        'party_id': canonicalPartyId,
+        'role': 'INSURANCE_COMPANY',
+        'legacy_id': companyId.toString(),
+        'created_at': createdAt,
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
   static Future<void> _normalizeExistingCompanyParties(
     DatabaseExecutor db,
   ) async {
@@ -236,19 +346,28 @@ class InsuranceCommercialTables {
       orderBy: 'id ASC',
     );
     for (final company in rows) {
-      final id = company['id'];
+      final rawId = company['id'];
       final name = (company['name'] ?? '').toString().trim();
-      if (id == null || name.isEmpty) continue;
+      if (rawId is! num || name.isEmpty) continue;
+      final id = rawId.toInt();
+      final now = DateTime.now().toIso8601String();
 
       int? supplierId = (company['supplier_id'] as num?)?.toInt();
-      if (supplierId == null || supplierId <= 0) {
-        final suppliers = await db.query(
+      if (supplierId != null && supplierId > 0) {
+        final supplierExists = await db.query(
           'suppliers',
           columns: const ['id'],
-          where: 'TRIM(name)=?',
-          whereArgs: [name],
-          orderBy: 'id ASC',
+          where: 'id=?',
+          whereArgs: [supplierId],
           limit: 1,
+        );
+        if (supplierExists.isEmpty) supplierId = null;
+      }
+      if (supplierId == null || supplierId <= 0) {
+        final suppliers = await db.rawQuery(
+          '''SELECT id FROM suppliers
+             WHERE TRIM(name)=? COLLATE NOCASE ORDER BY id ASC LIMIT 1''',
+          [name],
         );
         if (suppliers.isNotEmpty) {
           supplierId = (suppliers.single['id'] as num).toInt();
@@ -277,7 +396,7 @@ class InsuranceCommercialTables {
               'id': partyId,
               'display_name': name,
               'role_codes': '["SUPPLIER"]',
-              'created_at': DateTime.now().toIso8601String(),
+              'created_at': now,
             },
             conflictAlgorithm: ConflictAlgorithm.ignore);
         await db.insert(
@@ -286,7 +405,7 @@ class InsuranceCommercialTables {
               'party_id': partyId,
               'role': 'SUPPLIER',
               'legacy_id': supplierId.toString(),
-              'created_at': DateTime.now().toIso8601String(),
+              'created_at': now,
             },
             conflictAlgorithm: ConflictAlgorithm.ignore);
         partyRows = [
@@ -295,33 +414,39 @@ class InsuranceCommercialTables {
       }
       final partyId = partyRows.single['party_id'].toString();
 
-      await db.insert(
-          'party_roles',
-          {
-            'party_id': partyId,
-            'role': 'INSURANCE_COMPANY',
-            'legacy_id': id.toString(),
-            'created_at': DateTime.now().toIso8601String(),
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore);
+      await _reconcileInsuranceCompanyRole(
+        db,
+        companyId: id,
+        canonicalPartyId: partyId,
+        createdAt: now,
+      );
 
       final rawCode = (company['code'] ?? '').toString().trim();
       final code =
           rawCode.isEmpty ? 'INS-${id.toString().padLeft(4, '0')}' : rawCode;
-      final now = DateTime.now().toIso8601String();
-      await db.update(
-        'insurance_companies',
-        {
-          'party_id': partyId,
-          'supplier_id': supplierId,
-          'code': code,
-          'is_active': 1,
-          'created_at': now,
-          'updated_at': now,
-        },
-        where: 'id=?',
-        whereArgs: [id],
+      await db.rawUpdate(
+        '''UPDATE insurance_companies
+           SET party_id=?,supplier_id=?,code=?,
+               created_at=COALESCE(created_at,?),updated_at=?
+           WHERE id=?''',
+        [partyId, supplierId, code, now, now, id],
       );
+      if (await _tableExists(db, 'insurance_policies') &&
+          await _columnExists(
+            db,
+            'insurance_policies',
+            'insurance_company_id',
+          )) {
+        await db.update(
+          'insurance_policies',
+          {
+            'insurer_party_id': partyId,
+            'insurer_supplier_id': supplierId,
+          },
+          where: 'CAST(insurance_company_id AS TEXT)=?',
+          whereArgs: [id.toString()],
+        );
+      }
     }
   }
 
@@ -423,31 +548,32 @@ class InsuranceCommercialTables {
           },
           conflictAlgorithm: ConflictAlgorithm.ignore);
 
-      final companyId = 'INSCO:$supplierId';
-      final code = 'INS-${supplierId.toString().padLeft(4, '0')}';
-      await db.insert(
-          'insurance_companies',
-          {
-            'id': companyId,
-            'party_id': partyId,
-            'supplier_id': supplierId,
-            'code': code,
-            'name': name,
-            'default_commission_rate': 0.0,
-            'is_active': 1,
-            'created_at': now,
-            'updated_at': now,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore);
-      await db.insert(
-          'party_roles',
-          {
-            'party_id': partyId,
-            'role': 'INSURANCE_COMPANY',
-            'legacy_id': companyId,
-            'created_at': now,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore);
+      final companyId = await db.insert(
+        'insurance_companies',
+        {
+          'party_id': partyId,
+          'supplier_id': supplierId,
+          'name': name,
+          'default_commission_rate': 0.0,
+          'is_active': 1,
+          'created_at': now,
+          'updated_at': now,
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+      final code = 'INS-${companyId.toString().padLeft(4, '0')}';
+      await db.update(
+        'insurance_companies',
+        {'code': code},
+        where: 'id=?',
+        whereArgs: [companyId],
+      );
+      await _reconcileInsuranceCompanyRole(
+        db,
+        companyId: companyId,
+        canonicalPartyId: partyId,
+        createdAt: now,
+      );
       await db.update(
         'insurance_policies',
         {
@@ -742,6 +868,10 @@ class InsuranceCommercialTables {
         amount REAL NOT NULL,
         currency TEXT NOT NULL DEFAULT 'ILS',
         status TEXT NOT NULL DEFAULT 'POSTED',
+        reversal_payment_id TEXT,
+        reversal_gl_entry_id INTEGER,
+        reversed_at TEXT,
+        reversal_reason TEXT,
         created_at TEXT NOT NULL,
         UNIQUE(direction,receipt_number,payment_id),
         UNIQUE(direction,voucher_id,policy_id)
@@ -779,15 +909,200 @@ class InsuranceCommercialTables {
     ''');
   }
 
+  static Future<void> _ensureDocumentSequences(
+    DatabaseExecutor db,
+  ) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS document_sequences (
+        document_type TEXT PRIMARY KEY,
+        prefix TEXT NOT NULL,
+        next_value INTEGER NOT NULL CHECK(next_value > 0),
+        pad_width INTEGER NOT NULL DEFAULT 4 CHECK(pad_width BETWEEN 1 AND 12),
+        reset_policy TEXT NOT NULL DEFAULT 'NEVER'
+          CHECK(reset_policy IN ('NEVER','YEARLY')),
+        updated_at TEXT NOT NULL
+      )
+    ''');
+    final now = DateTime.now().toIso8601String();
+    await db.insert(
+      'document_sequences',
+      {
+        'document_type': 'INSURANCE_POLICY',
+        'prefix': 'POL',
+        'next_value': 1,
+        'pad_width': 4,
+        'reset_policy': 'NEVER',
+        'updated_at': now,
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+
+    final sequence = (await db.query(
+      'document_sequences',
+      columns: const ['prefix', 'next_value'],
+      where: 'document_type=?',
+      whereArgs: const ['INSURANCE_POLICY'],
+      limit: 1,
+    ))
+        .single;
+    final prefix = sequence['prefix']?.toString() ?? 'POL';
+    var highestIssued = 0;
+    if (await _tableExists(db, 'insurance_policies') &&
+        await _columnExists(db, 'insurance_policies', 'document_number')) {
+      final pattern = RegExp(
+        '^${RegExp.escape(prefix)}-(\\d+)\$',
+        caseSensitive: false,
+      );
+      final documents = await db.query(
+        'insurance_policies',
+        columns: const ['document_number'],
+        where: 'document_number IS NOT NULL AND TRIM(document_number)<>""',
+      );
+      for (final row in documents) {
+        final match = pattern.firstMatch(
+          (row['document_number'] ?? '').toString().trim(),
+        );
+        final value = match == null ? null : int.tryParse(match.group(1)!);
+        if (value != null && value > highestIssued) highestIssued = value;
+      }
+    }
+    final currentNext = (sequence['next_value'] as num?)?.toInt() ?? 1;
+    if (currentNext <= highestIssued) {
+      await db.update(
+        'document_sequences',
+        {'next_value': highestIssued + 1, 'updated_at': now},
+        where: 'document_type=?',
+        whereArgs: const ['INSURANCE_POLICY'],
+      );
+    }
+  }
+
+  /// First-generation v85 policy postings predate the internal document
+  /// number. Assign sequence numbers without rewriting immutable GL history.
+  static Future<void> _backfillLegacyPolicyDocuments(
+    DatabaseExecutor db,
+  ) async {
+    if (!await _tableExists(db, 'insurance_policies') ||
+        !await _columnExists(db, 'insurance_policies', 'document_number')) {
+      return;
+    }
+
+    final rows = await db.query(
+      'insurance_policies',
+      columns: const ['id'],
+      where: "operation_id IS NOT NULL AND TRIM(operation_id)<>'' "
+          "AND UPPER(COALESCE(posting_status,''))='POSTED' "
+          "AND (document_number IS NULL OR TRIM(document_number)='')",
+      orderBy: 'posted_at ASC, id ASC',
+    );
+    for (final row in rows) {
+      final id = row['id'].toString();
+      final document = await DocumentNumberService.nextOn(
+        db,
+        documentType: 'INSURANCE_POLICY',
+      );
+      await db.update(
+        'insurance_policies',
+        {'document_number': document},
+        where: 'id=? AND (document_number IS NULL OR TRIM(document_number)=?)',
+        whereArgs: [id, ''],
+      );
+    }
+  }
+
+  static Future<void> _ensureUniqueIndex(
+    DatabaseExecutor db, {
+    required String name,
+    required List<String> sqlMarkers,
+    required String createSql,
+  }) async {
+    final rows = await db.rawQuery(
+      "SELECT sql FROM sqlite_master WHERE type='index' AND name=?",
+      [name],
+    );
+    final current = rows.isEmpty
+        ? ''
+        : (rows.single['sql'] ?? '')
+            .toString()
+            .toLowerCase()
+            .replaceAll(RegExp(r'\s+'), '');
+    final isCurrent = sqlMarkers.every(
+      (marker) => current.contains(marker.toLowerCase().replaceAll(' ', '')),
+    );
+    if (rows.isNotEmpty && !isCurrent) {
+      await db.execute('DROP INDEX $name');
+    }
+    if (rows.isEmpty || !isCurrent) await db.execute(createSql);
+  }
+
+  static Future<void> _assertNormalizedPolicyKeysUnique(
+    DatabaseExecutor db,
+  ) async {
+    final duplicatePolicyNumbers = await db.rawQuery('''
+      SELECT insurance_company_id,LOWER(TRIM(policy_number)) normalized_number,
+             COUNT(*) duplicate_count
+      FROM insurance_policies
+      WHERE insurance_company_id IS NOT NULL
+        AND TRIM(insurance_company_id)<>''
+        AND policy_number IS NOT NULL AND TRIM(policy_number)<>''
+      GROUP BY insurance_company_id,LOWER(TRIM(policy_number))
+      HAVING COUNT(*)>1
+      LIMIT 1
+    ''');
+    if (duplicatePolicyNumbers.isNotEmpty) {
+      final row = duplicatePolicyNumbers.single;
+      throw StateError(
+        'Insurance policy integrity error: company '
+        '${row['insurance_company_id']} has duplicate policy number '
+        '${row['normalized_number']} (case-insensitive).',
+      );
+    }
+
+    final duplicateDocuments = await db.rawQuery('''
+      SELECT LOWER(TRIM(document_number)) normalized_number,
+             COUNT(*) duplicate_count
+      FROM insurance_policies
+      WHERE document_number IS NOT NULL AND TRIM(document_number)<>''
+      GROUP BY LOWER(TRIM(document_number))
+      HAVING COUNT(*)>1
+      LIMIT 1
+    ''');
+    if (duplicateDocuments.isNotEmpty) {
+      throw StateError(
+        'Insurance policy integrity error: duplicate global document number '
+        '${duplicateDocuments.single['normalized_number']} '
+        '(case-insensitive).',
+      );
+    }
+  }
+
   static Future<void> _createIndexes(DatabaseExecutor db) async {
+    await _assertNormalizedPolicyKeysUnique(db);
     await db.execute(
       'CREATE UNIQUE INDEX IF NOT EXISTS uq_insurance_policy_operation '
       'ON insurance_policies(operation_id) WHERE operation_id IS NOT NULL',
     );
-    await db.execute(
-      'CREATE UNIQUE INDEX IF NOT EXISTS uq_insurance_policy_number '
-      'ON insurance_policies(policy_number) '
-      'WHERE policy_number IS NOT NULL AND TRIM(policy_number)<>""',
+    await _ensureUniqueIndex(
+      db,
+      name: 'uq_insurance_policy_number',
+      sqlMarkers: const [
+        'insurance_company_id,lower(trim(policy_number))',
+        "trim(insurance_company_id)<>''",
+      ],
+      createSql:
+          'CREATE UNIQUE INDEX uq_insurance_policy_number ON insurance_policies('
+          'insurance_company_id, LOWER(TRIM(policy_number))) '
+          'WHERE insurance_company_id IS NOT NULL '
+          "AND TRIM(insurance_company_id)<>'' "
+          "AND policy_number IS NOT NULL AND TRIM(policy_number)<>''",
+    );
+    await _ensureUniqueIndex(
+      db,
+      name: 'uq_insurance_document_number',
+      sqlMarkers: const ['lower(trim(document_number))'],
+      createSql: 'CREATE UNIQUE INDEX uq_insurance_document_number '
+          'ON insurance_policies(LOWER(TRIM(document_number))) '
+          "WHERE document_number IS NOT NULL AND TRIM(document_number)<>''",
     );
     await db.execute(
       'CREATE UNIQUE INDEX IF NOT EXISTS uq_insurance_policy_posting '

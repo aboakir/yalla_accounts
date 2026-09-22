@@ -190,6 +190,33 @@ class StepVehicleInfo extends StatelessWidget {
                       },
                     ),
 
+                    const SizedBox(height: 10),
+                    _tf(
+                      label: 'رقم المحرك',
+                      hint: 'رقم المحرك كما يظهر في رخصة المركبة',
+                      initialValue: draft.engineNumber ?? '',
+                      validator: (v) =>
+                          (v ?? '').trim().isEmpty ? 'رقم المحرك مطلوب' : null,
+                      onSaved: (v) {
+                        final value = (v ?? '').trim();
+                        draft.engineNumber = value.isEmpty ? null : value;
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+                    _tf(
+                      label: 'رقم الشاصي / الهيكل',
+                      hint: 'رقم الشاصي كما يظهر في رخصة المركبة',
+                      initialValue: draft.chassisNumber ?? '',
+                      validator: (v) => (v ?? '').trim().isEmpty
+                          ? 'رقم الشاصي / الهيكل مطلوب'
+                          : null,
+                      onSaved: (v) {
+                        final value = (v ?? '').trim();
+                        draft.chassisNumber = value.isEmpty ? null : value;
+                      },
+                    ),
+
                     // ✅ NEW: سعر المركبة
                     const SizedBox(height: 10),
                     _tf(
