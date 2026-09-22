@@ -393,38 +393,87 @@ class InsuranceQuoteService {
       }
       final policies = await db.query(
         'insurance_policies',
-        columns: const ['gl_entry_id', 'document_number'],
+        columns: const [
+          'gl_entry_id',
+          'document_number',
+          'policy_number',
+          'start_date',
+          'end_date',
+          'buy_price',
+          'sell_price',
+          'base_premium',
+          'discount',
+          'fees',
+          'tax',
+          'commission_rate',
+          'commission_amount',
+          'direct_cost',
+          'net_sale_amount',
+          'net_insurer_payable',
+          'gross_profit',
+          'markup_percent',
+          'margin_percent',
+        ],
         where: 'id=?',
         whereArgs: [policyId],
         limit: 1,
       );
       if (policies.isEmpty) throw StateError('Issued quote policy is missing.');
-      final glId = (policies.single['gl_entry_id'] as num?)?.toInt();
+      final policy = policies.single;
+      final glId = (policy['gl_entry_id'] as num?)?.toInt();
       if (glId == null) throw StateError('Issued quote policy is not posted.');
       final documentNumber =
-          (policies.single['document_number'] ?? '').toString().trim();
+          (policy['document_number'] ?? '').toString().trim();
       if (documentNumber.isEmpty) {
         throw StateError('Issued quote policy has no document number.');
       }
+
+      bool sameDate(Object? stored, DateTime requested) {
+        final parsed = DateTime.tryParse(stored?.toString() ?? '');
+        return parsed != null && parsed.isAtSameMomentAs(requested);
+      }
+
+      final glRows = await db.query(
+        'gl_entries',
+        columns: const ['date'],
+        where: 'id=? AND source=? AND source_id=?',
+        whereArgs: [glId, 'INSURANCE_POLICY', policyId],
+        limit: 1,
+      );
+      final retryMatches =
+          policy['policy_number']?.toString().trim() == policyNumber.trim() &&
+              sameDate(policy['start_date'], startDate) &&
+              sameDate(policy['end_date'], endDate) &&
+              glRows.isNotEmpty &&
+              sameDate(glRows.single['date'], postingDate);
+      if (!retryMatches) {
+        throw StateError('Issued quote retry differs from original issuance.');
+      }
+
+      double amount(String key) {
+        final value = policy[key];
+        return value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
+      }
+
       return InsurancePolicyPostingResult(
         policyId: policyId,
         documentNumber: documentNumber,
         glEntryId: glId,
         pricing: InsurancePricingResult(
-          purchasePrice: (row['purchase_price'] as num).toDouble(),
-          salePrice: (row['final_price'] as num).toDouble(),
-          basePremium: (row['premium'] as num).toDouble(),
-          discount: 0,
-          fees: (row['fees'] as num).toDouble(),
-          tax: (row['tax'] as num).toDouble(),
-          commissionRate: (row['commission_rate'] as num).toDouble(),
-          commissionAmount: 0,
-          directCost: (row['direct_cost'] as num).toDouble(),
-          netSaleAmount: (row['final_price'] as num).toDouble(),
-          netInsurerPayable: (row['purchase_price'] as num).toDouble(),
-          grossProfit: 0,
-          markupPercent: 0,
-          marginPercent: 0,
+          purchasePrice: amount('buy_price'),
+          salePrice: amount('sell_price'),
+          basePremium: amount('base_premium'),
+          discount: amount('discount'),
+          fees: amount('fees'),
+          tax: amount('tax'),
+          commissionRate: amount('commission_rate'),
+          commissionAmount: amount('commission_amount'),
+          directCost: amount('direct_cost'),
+          netSaleAmount: amount('net_sale_amount'),
+          netInsurerPayable: amount('net_insurer_payable'),
+          grossProfit: amount('gross_profit'),
+          markupPercent: amount('markup_percent'),
+          marginPercent: amount('margin_percent'),
         ),
         wasExisting: true,
       );

@@ -189,5 +189,88 @@ void main() {
       whereArgs: ['INSURANCE_POLICY', issued.policyId],
     );
     expect(insuranceGl, hasLength(1));
+
+    final issuedBeforeTariffChange = (await db.query(
+      'insurance_policies',
+      where: 'id=?',
+      whereArgs: [issued.policyId],
+      limit: 1,
+    ))
+        .single;
+    await db.update(
+      'insurance_products',
+      {
+        'default_commission_rate': 25.0,
+        'updated_at': DateTime(2026, 10, 1).toIso8601String(),
+      },
+      where: 'id=?',
+      whereArgs: [product.id],
+    );
+    final issuedAfterTariffChange = (await db.query(
+      'insurance_policies',
+      where: 'id=?',
+      whereArgs: [issued.policyId],
+      limit: 1,
+    ))
+        .single;
+
+    expect(issuedAfterTariffChange['commission_rate'],
+        issuedBeforeTariffChange['commission_rate']);
+    expect(issuedAfterTariffChange['gross_profit'],
+        issuedBeforeTariffChange['gross_profit']);
+    expect(issuedAfterTariffChange['net_sale_amount'],
+        issuedBeforeTariffChange['net_sale_amount']);
+    expect(
+      await db.query(
+        'insurance_policy_versions',
+        where: 'policy_id=?',
+        whereArgs: [issued.policyId],
+      ),
+      hasLength(1),
+      reason: 'master-data tariff changes must not rewrite issued snapshots',
+    );
+
+    final retried = await InsuranceQuoteService.issueAcceptedQuote(
+      quoteId: quote.quoteId,
+      policyNumber: 'POL-Q-0001',
+      startDate: DateTime(2026, 9, 22),
+      endDate: DateTime(2027, 9, 21),
+      postingDate: DateTime(2026, 9, 22),
+      createdBy: 'qa-owner',
+    );
+    expect(retried.wasExisting, isTrue);
+    expect(retried.policyId, issued.policyId);
+    expect(retried.glEntryId, issued.glEntryId);
+    expect(retried.pricing.purchasePrice, issued.pricing.purchasePrice);
+    expect(retried.pricing.salePrice, issued.pricing.salePrice);
+    expect(retried.pricing.basePremium, issued.pricing.basePremium);
+    expect(retried.pricing.commissionRate, issued.pricing.commissionRate);
+    expect(retried.pricing.commissionAmount, issued.pricing.commissionAmount);
+    expect(retried.pricing.grossProfit, issued.pricing.grossProfit);
+    expect(retried.pricing.netSaleAmount, issued.pricing.netSaleAmount);
+    expect(retried.pricing.netInsurerPayable, issued.pricing.netInsurerPayable);
+    expect(retried.pricing.markupPercent, issued.pricing.markupPercent);
+    expect(retried.pricing.marginPercent, issued.pricing.marginPercent);
+    expect(
+      await db.query(
+        'gl_entries',
+        where: 'source=? AND source_id=?',
+        whereArgs: ['INSURANCE_POLICY', issued.policyId],
+      ),
+      hasLength(1),
+      reason: 'an issued quote retry must never post a second GL entry',
+    );
+
+    await expectLater(
+      InsuranceQuoteService.issueAcceptedQuote(
+        quoteId: quote.quoteId,
+        policyNumber: 'POL-Q-DIFFERENT',
+        startDate: DateTime(2026, 9, 22),
+        endDate: DateTime(2027, 9, 21),
+        postingDate: DateTime(2026, 9, 22),
+        createdBy: 'qa-owner',
+      ),
+      throwsStateError,
+    );
   });
 }

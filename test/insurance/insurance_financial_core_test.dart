@@ -120,6 +120,7 @@ void main() {
   Future<InsurancePolicyPostingResult> issue({
     String operationId = 'POLICY-OP-1',
     String policyNumber = 'POL-001',
+    double tax = 0,
   }) {
     return InsuranceFinancialService.postPolicy(
       InsurancePolicyPostingCommand(
@@ -135,6 +136,7 @@ void main() {
         postingDate: DateTime(2026, 9, 22),
         purchasePrice: 2000,
         salePrice: 2400,
+        tax: tax,
         createdBy: 'insurance-owner',
       ),
       database: db,
@@ -263,6 +265,41 @@ void main() {
     expect(balances.customerOutstanding, 900);
     expect(await accountBalance('1000'), 1500);
     expect(await accountBalance('1200.C$clientId'), 900);
+    expect(await total('debit'), await total('credit'));
+  });
+
+  test('tax is customer liability but never inflates policy profit', () async {
+    final posted = await issue(
+      operationId: 'POLICY-TAX-100',
+      policyNumber: 'POL-TAX-100',
+      tax: 100,
+    );
+
+    expect(posted.pricing.customerTotalAmount, 2500);
+    expect(posted.pricing.netRevenueAmount, 2400);
+    expect(posted.pricing.grossProfit, 400);
+    expect(posted.pricing.markupPercent, closeTo(20, 0.000001));
+    expect(posted.pricing.marginPercent, closeTo(16.6666667, 0.00001));
+
+    final policy = (await db.query(
+      'insurance_policies',
+      where: 'id=?',
+      whereArgs: [posted.policyId],
+      limit: 1,
+    ))
+        .single;
+    expect((policy['net_sale_amount'] as num).toDouble(), 2500);
+    expect((policy['tax'] as num).toDouble(), 100);
+    expect((policy['gross_profit'] as num).toDouble(), 400);
+
+    expect(await accountBalance('1200.C$clientId'), 2500);
+    expect(await accountBalance('4010'), -2400);
+    expect(await accountBalance('2105'), -100);
+    expect(await accountBalance('5010'), 2000);
+    expect(
+      -await accountBalance('4010') - await accountBalance('5010'),
+      400,
+    );
     expect(await total('debit'), await total('credit'));
   });
 

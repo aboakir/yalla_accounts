@@ -47,17 +47,28 @@ class InsurancePricingResult {
   final double commissionRate;
   final double commissionAmount;
   final double directCost;
+
+  /// Total amount collectible from the customer, including tax collected
+  /// for third parties. Kept as netSaleAmount for storage/API compatibility.
   final double netSaleAmount;
   final double netInsurerPayable;
   final double grossProfit;
   final double markupPercent;
   final double marginPercent;
+
+  double get customerTotalAmount => netSaleAmount;
+  double get netRevenueAmount => netSaleAmount - tax;
+  bool get markupCalculable => purchasePrice + directCost != 0;
+  bool get marginCalculable => netRevenueAmount != 0;
 }
 
 class InsurancePricingEngine {
   InsurancePricingEngine._();
 
-  static double money(double value) => double.parse(value.toStringAsFixed(2));
+  static int _minor(double value) => (value * 100).round();
+  static double _fromMinor(int value) => value / 100.0;
+
+  static double money(double value) => _fromMinor(_minor(value));
 
   static InsurancePricingResult calculate(InsurancePricingInput input) {
     final values = <double>[
@@ -77,29 +88,39 @@ class InsurancePricingEngine {
       throw ArgumentError('Discount cannot exceed sale price.');
     }
 
-    final commissionBase = input.basePremium > 0
-        ? input.basePremium
-        : input.purchasePrice;
-    final commission = commissionBase * input.commissionRate / 100;
-    final netSale = input.salePrice - input.discount + input.fees + input.tax;
-    final costBase = input.purchasePrice + input.directCost;
-    final profit = netSale - costBase;
-    final markup = costBase == 0 ? 0.0 : profit / costBase * 100;
-    final margin = netSale == 0 ? 0.0 : profit / netSale * 100;
+    final purchaseMinor = _minor(input.purchasePrice);
+    final saleMinor = _minor(input.salePrice);
+    final basePremiumMinor = _minor(input.basePremium);
+    final discountMinor = _minor(input.discount);
+    final feesMinor = _minor(input.fees);
+    final taxMinor = _minor(input.tax);
+    final directCostMinor = _minor(input.directCost);
+
+    final commissionBaseMinor =
+        basePremiumMinor > 0 ? basePremiumMinor : purchaseMinor;
+    final commissionMinor =
+        (commissionBaseMinor * input.commissionRate / 100).round();
+    final customerTotalMinor = saleMinor - discountMinor + feesMinor + taxMinor;
+    final netRevenueMinor = customerTotalMinor - taxMinor;
+    final costBaseMinor = purchaseMinor + directCostMinor;
+    final profitMinor = netRevenueMinor - costBaseMinor;
+    final markup = costBaseMinor == 0 ? 0.0 : profitMinor / costBaseMinor * 100;
+    final margin =
+        netRevenueMinor == 0 ? 0.0 : profitMinor / netRevenueMinor * 100;
 
     return InsurancePricingResult(
-      purchasePrice: money(input.purchasePrice),
-      salePrice: money(input.salePrice),
-      basePremium: money(input.basePremium),
-      discount: money(input.discount),
-      fees: money(input.fees),
-      tax: money(input.tax),
+      purchasePrice: _fromMinor(purchaseMinor),
+      salePrice: _fromMinor(saleMinor),
+      basePremium: _fromMinor(basePremiumMinor),
+      discount: _fromMinor(discountMinor),
+      fees: _fromMinor(feesMinor),
+      tax: _fromMinor(taxMinor),
       commissionRate: input.commissionRate,
-      commissionAmount: money(commission),
-      directCost: money(input.directCost),
-      netSaleAmount: money(netSale),
-      netInsurerPayable: money(input.purchasePrice),
-      grossProfit: money(profit),
+      commissionAmount: _fromMinor(commissionMinor),
+      directCost: _fromMinor(directCostMinor),
+      netSaleAmount: _fromMinor(customerTotalMinor),
+      netInsurerPayable: _fromMinor(purchaseMinor),
+      grossProfit: _fromMinor(profitMinor),
       markupPercent: markup,
       marginPercent: margin,
     );
