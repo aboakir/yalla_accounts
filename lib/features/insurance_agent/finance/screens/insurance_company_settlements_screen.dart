@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -96,8 +98,8 @@ class _InsuranceCompanySettlementsScreenState
       await action();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(UserFacingError.message(error))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -237,7 +239,8 @@ class _InsuranceCompanySettlementsScreenState
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('تعذر تحميل التسويات: ${state.error}',
+                      Text(
+                          'تعذر تحميل التسويات: ${UserFacingError.message(state.error!)}',
                           textAlign: TextAlign.center),
                       const SizedBox(height: 12),
                       FilledButton(
@@ -515,7 +518,7 @@ class _SettlementPaymentDialogState extends State<_SettlementPaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('تسجيل دفعة تسوية'),
       content: SizedBox(
         width: 420,

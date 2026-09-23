@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/services/insurance_endorsement_service.dart';
@@ -309,7 +310,7 @@ class _EndorsementDialogState extends State<_EndorsementDialog> {
       decimal: true,
       signed: true,
     );
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text(
           '\u0625\u0636\u0627\u0641\u0629 \u0645\u0644\u062d\u0642 \u062a\u0623\u0645\u064a\u0646\u064a'),
       content: SingleChildScrollView(
@@ -398,7 +399,7 @@ class _ReversalReasonDialogState extends State<_ReversalReasonDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title:
           const Text('\u0639\u0643\u0633 \u0627\u0644\u0645\u0644\u062d\u0642'),
       content: TextField(

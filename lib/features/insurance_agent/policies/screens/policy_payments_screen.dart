@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -136,7 +137,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) => AdaptiveAlertDialog(
           title: const Text('قبض من العميل', textAlign: TextAlign.right),
           content: SizedBox(
             width:
@@ -398,7 +399,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
             }
           }
 
-          return AlertDialog(
+          return AdaptiveAlertDialog(
             title: const Text('دفع لشركة التأمين', textAlign: TextAlign.right),
             content: SizedBox(
               width: MediaQuery.sizeOf(context).width < 600
@@ -632,7 +633,7 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     final reason = TextEditingController();
     final accepted = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AdaptiveAlertDialog(
         title: const Text('عكس الحركة المالية', textAlign: TextAlign.right),
         content: TextField(
           key: const Key('insuranceMovementReversalReason'),

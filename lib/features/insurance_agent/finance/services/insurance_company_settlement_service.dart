@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
@@ -585,7 +586,7 @@ class InsuranceCompanySettlementService {
     required DateTime date,
     required String method,
     Map<String, dynamic>? chequeDraft,
-    String currency = 'ILS',
+    String? currency,
     String? notes,
     Database? database,
   }) async {
@@ -622,7 +623,7 @@ class InsuranceCompanySettlementService {
       partyType: 'SUPPLIER',
       partyId: supplierId.toString(),
       amount: InsurancePricingEngine.money(amount),
-      currency: currency.trim().toUpperCase(),
+      currency: (currency ?? MoneyFormatter.currencyCode).trim().toUpperCase(),
       date: date,
       method: method.trim().toUpperCase(),
       reference: null,

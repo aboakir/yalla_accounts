@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
@@ -529,7 +530,7 @@ class InsuranceEndorsementRefundService {
       partyType: 'CLIENT',
       partyId: clientId.toString(),
       amount: _money(amount),
-      currency: (row['currency'] ?? 'ILS').toString(),
+      currency: (row['currency'] ?? MoneyFormatter.currencyCode).toString(),
       date: date,
       method: method.trim().toUpperCase(),
       reference: pid,

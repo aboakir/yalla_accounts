@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
@@ -404,7 +405,7 @@ class InsuranceSettlementService {
       partyType: 'SUPPLIER',
       partyId: supplierId.toString(),
       amount: _money(amount),
-      currency: 'ILS',
+      currency: MoneyFormatter.currencyCode,
       date: date,
       method: method.trim().toUpperCase(),
       reference: settlementId.trim(),

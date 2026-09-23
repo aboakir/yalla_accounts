@@ -1,3 +1,4 @@
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/features/insurance_agent/contacts/services/insurance_crm_service.dart';
@@ -254,7 +255,7 @@ class _InsuranceQuotesScreenState extends State<InsuranceQuotesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setLocal) => AlertDialog(
+        builder: (context, setLocal) => AdaptiveAlertDialog(
           title: const Text(
               '\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0628\u0648\u0644\u064a\u0635\u0629'),
           content: SingleChildScrollView(
@@ -381,7 +382,7 @@ class _InsuranceQuotesScreenState extends State<InsuranceQuotesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setLocal) => AlertDialog(
+        builder: (context, setLocal) => AdaptiveAlertDialog(
           title: const Text(
               '\u0639\u0631\u0636 \u062a\u0623\u0645\u064a\u0646 \u062c\u062f\u064a\u062f'),
           content: SizedBox(

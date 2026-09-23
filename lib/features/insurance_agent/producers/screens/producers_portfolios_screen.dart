@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
+import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:flutter/material.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
@@ -37,7 +39,7 @@ class _ProducersPortfoliosScreenState extends State<ProducersPortfoliosScreen> {
     }
     final candidate = await showDialog<InsuranceProducerCandidate>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AdaptiveAlertDialog(
         title: const Text('إضافة منتج من الموظفين'),
         content: SizedBox(
           width: 420,
@@ -81,7 +83,7 @@ class _ProducersPortfoliosScreenState extends State<ProducersPortfoliosScreen> {
     }
     final producer = await showDialog<InsuranceProducerPortfolioRow>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AdaptiveAlertDialog(
         title: Text('إسناد ${policy.policyNumber}'),
         content: SizedBox(
           width: 420,
@@ -398,5 +400,4 @@ Widget _kv(String label, String value) => Container(
       ),
       child: Text('$label: $value'),
     );
-
-String _money(double value) => '${value.toStringAsFixed(2)} ₪';
+String _money(double value) => MoneyFormatter.format(value);
