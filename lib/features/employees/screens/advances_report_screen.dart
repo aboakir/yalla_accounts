@@ -83,6 +83,7 @@ class _AdvancesReportScreenState extends State<AdvancesReportScreen> {
 
     // 1) اجلب الكل ثم طبق الفلاتر محليًا
     final all = await AdvanceDatabaseService.listAll();
+    if (!mounted) return;
 
     // 2) فلترة
     bool okByDate(DateTime d) {

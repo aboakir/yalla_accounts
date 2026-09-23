@@ -77,8 +77,10 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
         final n = an.compareTo(bn);
         return n != 0 ? n : a.employeeId.compareTo(b.employeeId);
       });
+      if (!mounted) return;
       setState(() => _all = rows);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -144,28 +146,57 @@ class _PayrollReportScreenState extends ConsumerState<PayrollReportScreen> {
           workshopName:
               'تقرير الرواتب - ${DateFormat('MMMM yyyy', 'ar').format(_month)}',
           showThemeToggle: true,
-          actions: [
-            IconButton(
-              tooltip: 'الشهر السابق',
-              onPressed: _prevMonth,
-              icon: const Icon(Icons.chevron_left),
-            ),
-            IconButton(
-              tooltip: 'اختر شهر',
-              onPressed: _pickMonth,
-              icon: const Icon(Icons.calendar_month),
-            ),
-            IconButton(
-              tooltip: 'الشهر التالي',
-              onPressed: _nextMonth,
-              icon: const Icon(Icons.chevron_right),
-            ),
-            IconButton(
-              tooltip: 'تصدير CSV',
-              onPressed: _exportPayrollCsv,
-              icon: const Icon(Icons.download),
-            ),
-          ],
+          actions: isDesktop
+              ? [
+                  IconButton(
+                    tooltip: 'الشهر السابق',
+                    onPressed: _prevMonth,
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  IconButton(
+                    tooltip: 'اختر شهر',
+                    onPressed: _pickMonth,
+                    icon: const Icon(Icons.calendar_month),
+                  ),
+                  IconButton(
+                    tooltip: 'الشهر التالي',
+                    onPressed: _nextMonth,
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                  IconButton(
+                    tooltip: 'تصدير CSV',
+                    onPressed: _exportPayrollCsv,
+                    icon: const Icon(Icons.download),
+                  ),
+                ]
+              : [
+                  PopupMenuButton<String>(
+                    tooltip: 'خيارات التقرير',
+                    icon: const Icon(Icons.more_vert, color: Colors.white),
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'prev':
+                          await _prevMonth();
+                          break;
+                        case 'pick':
+                          await _pickMonth();
+                          break;
+                        case 'next':
+                          await _nextMonth();
+                          break;
+                        case 'export':
+                          await _exportPayrollCsv();
+                          break;
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'prev', child: Text('الشهر السابق')),
+                      PopupMenuItem(value: 'pick', child: Text('اختر شهر')),
+                      PopupMenuItem(value: 'next', child: Text('الشهر التالي')),
+                      PopupMenuItem(value: 'export', child: Text('تصدير CSV')),
+                    ],
+                  ),
+                ],
         ),
       ),
       body: AdaptiveRow(

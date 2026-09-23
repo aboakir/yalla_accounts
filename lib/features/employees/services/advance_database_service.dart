@@ -1,4 +1,6 @@
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 // 📁 lib/features/employees/services/advance_database_service.dart
 //
 // AdvanceDatabaseService — Employee Advances / Bonuses / Repayments → GL (DB v30)
@@ -163,6 +165,7 @@ class AdvanceDatabaseService {
     required Advance advance,
     String? method,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTable();
     final db = await DBService.database;
 
@@ -232,6 +235,7 @@ class AdvanceDatabaseService {
     required Advance advance,
     String? method,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTable();
     final db = await DBService.database;
 
@@ -336,6 +340,7 @@ class AdvanceDatabaseService {
 
   /// عكس القيد فقط بدون حذف السجل. يبقي السجل ويصفر gl_entry_id.
   static Future<void> reverseAdvance(String id) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTable();
     final db = await DBService.database;
 
@@ -368,6 +373,7 @@ class AdvanceDatabaseService {
 
   /// حذف سجل + عكس قيده إن وجد.
   static Future<void> deleteAdvance(String id) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTable();
     final db = await DBService.database;
 
@@ -392,6 +398,7 @@ class AdvanceDatabaseService {
 
   /// حذف كل سلف/مكافآت/تسديدات موظف + عكس قيودهم.
   static Future<void> deleteByEmployee(String employeeId) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTable();
     final db = await DBService.database;
 
@@ -434,6 +441,7 @@ class AdvanceDatabaseService {
     String? method,
     String? note,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTable();
     final db = await DBService.database;
 
@@ -513,6 +521,7 @@ class AdvanceDatabaseService {
   // ================= Queries =================
 
   static Future<List<Advance>> listAll() async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTable();
     final db = await DBService.database;
     final rows = await db.query(_table, orderBy: 'date DESC');
@@ -527,6 +536,7 @@ class AdvanceDatabaseService {
     String? to, // 'yyyy-MM-dd'
     String? method,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTable();
     final db = await DBService.database;
 
@@ -606,6 +616,7 @@ AND (? IS NULL OR LOWER(method) = LOWER(?))
   }
 
   static Future<Advance?> getById(String id) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTable();
     final db = await DBService.database;
     final rows =
@@ -616,6 +627,7 @@ AND (? IS NULL OR LOWER(method) = LOWER(?))
 
   /// رصيد السلف الحالي لموظف من GL
   static Future<double> pendingBalance(String employeeId) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     return DBService.getEmployeeAdvancePending(employeeId);
   }
 
@@ -629,6 +641,7 @@ AND (? IS NULL OR LOWER(method) = LOWER(?))
     String employeeId, {
     int limit = 20,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTable();
     final db = await DBService.database;
     return db.query(

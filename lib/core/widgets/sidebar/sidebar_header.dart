@@ -32,9 +32,13 @@ class _SidebarHeaderState extends ConsumerState<SidebarHeader> {
   }
 
   Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    if (!mounted) return;
-    setState(() => _appVersion = info.version);
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() => _appVersion = info.version);
+    } catch (_) {
+      // Keep the bundled fallback version if platform metadata is unavailable.
+    }
   }
 
   @override

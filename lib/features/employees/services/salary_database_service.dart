@@ -7,7 +7,9 @@
 // Financial accrual/payment commands are disabled; payroll_runs + vouchers are canonical.
 
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/employees/models/salary.dart';
 import 'package:yalla_accounts/features/employees/services/payroll_periods_service.dart';
 
@@ -124,12 +126,16 @@ class SalaryDatabaseService {
     await db.insert(_table, map, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  static Future<void> insertSalary(Salary s) => upsertSalary(s);
+  static Future<void> insertSalary(Salary s) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
+    await upsertSalary(s);
+  }
 
   static Future<int> deleteSalary({
     required String employeeId,
     required String month,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTable();
     final db = await DBService.database;
     final hit = await db.query(
@@ -156,6 +162,7 @@ class SalaryDatabaseService {
   /// Legacy rows remain readable, but a canonical payroll run always wins.
   /// Paid amounts come from posted vouchers, never the legacy snapshot.
   static Future<List<Salary>> getSalaries() async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTable();
     final db = await DBService.database;
     final legacy = await db.query(_table);

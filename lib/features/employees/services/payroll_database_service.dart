@@ -1,5 +1,8 @@
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:yalla_accounts/core/services/posting_engine.dart';
+import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/core/services/db/tables/hr_tables.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 // 📁 lib/features/employees/services/payroll_database_service.dart
@@ -284,6 +287,7 @@ class PayrollDatabaseService {
     double unpaidAbsencePenalty = 0, // + إلى الاقتطاعات
     double paidHolidayPay = 0, // + إلى المصروف
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTables();
     final db = await DBService.database;
 
@@ -470,6 +474,24 @@ class PayrollDatabaseService {
         ),
         executor: txn,
       );
+      await AuditTrailService.log(
+        executor: txn,
+        action: 'PAYROLL_ACCRUED',
+        entityType: 'payroll_run',
+        entityId: runId,
+        after: {
+          'employee_id': employeeId,
+          'period_start': periodStart.toIso8601String(),
+          'period_end': periodEnd.toIso8601String(),
+          'gross': _fix2(gross),
+          'allowances': _fix2(allowances),
+          'deductions': totalDeductSide,
+          'advance_applied': applied,
+          'net': net,
+          'status': 'ACCRUED',
+        },
+        metadata: {'gl_source': 'PAYROLL_ACCRUAL'},
+      );
       return runId;
     });
   }
@@ -483,6 +505,7 @@ class PayrollDatabaseService {
     String? method,
     String? note,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTables();
     final db = await DBService.database;
 
@@ -589,8 +612,18 @@ class PayrollDatabaseService {
 
   /// عكس قيد الإثبات فقط. يُمنع إن وُجدت دفعات.
   static Future<void> reverseAccrual(String runId, {String? note}) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensureTables();
     final db = await DBService.database;
+
+    final runRows =
+        await db.query(table, where: 'id=?', whereArgs: [runId], limit: 1);
+    if (runRows.isEmpty) throw StateError('Payroll run not found');
+    final run = PayrollRun.fromMap(runRows.first);
+    await PayrollPeriodsService.ensureOpen(
+      run.periodStart.year,
+      run.periodStart.month,
+    );
 
     final pays = await db.query(
       'vouchers',
@@ -630,11 +663,21 @@ class PayrollDatabaseService {
               where: 'id=?',
               whereArgs: [runId],
             ));
+    await AuditTrailService.log(
+      action: 'PAYROLL_ACCRUAL_REVERSED',
+      entityType: 'payroll_run',
+      entityId: runId,
+      before: runRows.first,
+      after: {...runRows.first, 'status': 'REVERSED'},
+      reason: note,
+      metadata: {'gl_source': 'PAYROLL_ACCRUAL'},
+    );
   }
 
   // ===== Queries =====
 
   static Future<List<PayrollRun>> listByEmployee(String employeeId) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTables();
     final db = await DBService.database;
     final rows = await db.query(
@@ -648,6 +691,7 @@ class PayrollDatabaseService {
 
   /// يجلب كل رواتب شهر محدد 'yyyy-MM' باستخدام period_start.
   static Future<List<PayrollRun>> listByMonth(String ym) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTables();
     final db = await DBService.database;
 
@@ -674,6 +718,7 @@ class PayrollDatabaseService {
   }
 
   static Future<PayrollRun?> getById(String runId) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTables();
     final db = await DBService.database;
     final rows =

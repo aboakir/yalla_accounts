@@ -20,7 +20,9 @@
 // - لا تغييرات مكسّرة؛ الدوال القديمة بقيت كما هي وأضيفت overloads للراحة.
 
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 
 class PayrollPeriodsService {
   PayrollPeriodsService._();
@@ -106,6 +108,7 @@ class PayrollPeriodsService {
   }
 
   static Future<void> lockPeriod(int year, int month, {String? note}) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensurePeriodRow(year, month);
     final db = await DBService.database;
     final key = _ym(year, month);
@@ -123,6 +126,7 @@ class PayrollPeriodsService {
   }
 
   static Future<void> unlockPeriod(int year, int month) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollManage);
     await ensurePeriodRow(year, month);
     final db = await DBService.database;
     final key = _ym(year, month);
@@ -217,6 +221,7 @@ class PayrollPeriodsService {
   // ===== Queries =====
 
   static Future<List<Map<String, Object?>>> listPeriods({int? limit}) async {
+    await AuthorizationGuard.require(PermissionKeys.payrollView);
     await ensureTable();
     final db = await DBService.database;
     return db.query(
