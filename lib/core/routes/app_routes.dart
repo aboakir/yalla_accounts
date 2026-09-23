@@ -64,6 +64,7 @@ import 'package:yalla_accounts/features/finance/gl/screens/gl_entry_screen.dart'
 import 'package:yalla_accounts/features/finance/screens/account_ledger_screen.dart';
 import 'package:yalla_accounts/features/finance/invoices/screens/invoice_view_screen.dart';
 import 'package:yalla_accounts/features/finance/screens/general_journal_screen.dart';
+import 'package:yalla_accounts/features/finance/screens/accounting_periods_screen.dart';
 import 'package:yalla_accounts/features/finance/payments/screens/payment_list_screen.dart';
 
 // ===== Purchases =====
@@ -242,6 +243,7 @@ class AppRoutes {
   static const financeAccountLedger = '/finance/account-ledger';
   static const invoiceView = '/finance/invoices/view';
   static const financeGeneralJournal = '/finance/general-journal';
+  static const accountingPeriods = '/finance/accounting-periods';
 
   // ===== Purchases =====
   static const purchasesDashboard = '/purchases';
@@ -409,6 +411,7 @@ class AppRoutes {
     financeAccountLedger,
     invoiceView,
     financeGeneralJournal,
+    accountingPeriods,
     purchasesDashboard,
     purchaseTools,
     purchasePaint,
@@ -754,6 +757,9 @@ class AppRoutes {
     // Finance
     if (name == financeDashboard) {
       return _page(settings, const FinanceDashboardScreen());
+    }
+    if (name == accountingPeriods) {
+      return _page(settings, const AccountingPeriodsScreen());
     }
     if (name == payments) {
       final args = settings.arguments;

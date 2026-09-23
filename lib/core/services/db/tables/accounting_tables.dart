@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import 'payments_tables.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/core/services/accounting_source_policy.dart';
+import 'package:yalla_accounts/core/services/accounting_period_guard.dart';
 import 'accounting_integrity_tables.dart';
 import 'party_tables.dart';
 
@@ -400,8 +401,7 @@ class AccountingTables {
       db: db,
       table: 'accounts',
       column: 'report_class',
-      type:
-          "TEXT CHECK(report_class IN "
+      type: "TEXT CHECK(report_class IN "
           "('ASSET','LIABILITY','EQUITY','REVENUE',"
           "'COGS','EXPENSE','OTHER_INCOME','OTHER_EXPENSE'))",
     );
@@ -1226,6 +1226,7 @@ class AccountingTables {
     if (postingVersion < 1) {
       throw StateError('SYNC_GL_POSTING_VERSION_INVALID');
     }
+    await AccountingPeriodGuard.assertOpenOn(ex, date);
     if (reversalOf != null) {
       if (reversalOf <= 0) {
         throw StateError('SYNC_GL_REVERSAL_REFERENCE_INVALID');
@@ -1330,9 +1331,8 @@ class AccountingTables {
       'cheque_id': chequeId,
       'reference_id': referenceId,
       'reference_type': referenceType,
-      'created_at': (createdAt ?? DateTime.now().toUtc())
-          .toUtc()
-          .toIso8601String(),
+      'created_at':
+          (createdAt ?? DateTime.now().toUtc()).toUtc().toIso8601String(),
     });
   }
 
@@ -1475,6 +1475,7 @@ class AccountingTables {
     if (reversalOf != null && reversalOf <= 0) {
       throw ArgumentError('reversalOf must reference a positive GL entry id');
     }
+    await AccountingPeriodGuard.assertOpenOn(db, date);
 
     final canonicalSource = AccountingSourcePolicy.canonical(source);
     if (canonicalSource.isEmpty) {
@@ -1775,9 +1776,8 @@ class AccountingTables {
 
     final linkedRaw = client.first['account_id'];
     if (linkedRaw != null) {
-      final linkedId = linkedRaw is int
-          ? linkedRaw
-          : int.parse(linkedRaw.toString());
+      final linkedId =
+          linkedRaw is int ? linkedRaw : int.parse(linkedRaw.toString());
       final linked = await db.query(
         'accounts',
         where: 'id = ?',
@@ -1847,7 +1847,8 @@ class AccountingTables {
   static Future<int> ensureSupplierAccountOn(
     DatabaseExecutor db,
     String supplierId,
-  ) => _ensureSupplierAccountOn(db, supplierId);
+  ) =>
+      _ensureSupplierAccountOn(db, supplierId);
 
   static Future<int> _ensureSupplierAccountOn(
     DatabaseExecutor db,

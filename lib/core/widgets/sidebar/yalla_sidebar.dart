@@ -109,6 +109,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rFinanceGL = AppRoutes.financeGL;
   static const rFinanceGeneralJournal = AppRoutes.financeGeneralJournal;
   static const rReportsBalanceSheet = AppRoutes.reportsBalanceSheet;
+  static const rAccountingPeriods = AppRoutes.accountingPeriods;
 
   // Reports
   static const rReportsRoot = '/reports';
@@ -542,6 +543,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (Icons.menu_book, 'دفتر الأستاذ', rFinanceAccountLedger),
       (Icons.receipt_long_outlined, 'اليومية العامة', rFinanceGeneralJournal),
       (Icons.manage_search_outlined, 'متصفح القيود المحاسبية', rFinanceGL),
+      (Icons.lock_clock_outlined, 'الفترات المحاسبية', rAccountingPeriods),
     ].where((e) => _matches(e.$2)).toList();
 
     // ===== NEW: سندات مالية =====
