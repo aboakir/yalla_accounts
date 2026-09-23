@@ -273,5 +273,32 @@ void main() {
     ))
         .single;
     expect(newCandidate['previous_policy_id'], old.policyId);
+
+    await expectLater(
+      issue(
+        operationId: 'REN-LINK-DUPLICATE',
+        policyNumber: 'REN-LINK-DUPLICATE-001',
+        startDate: DateTime(2027, 1, 1),
+        endDate: DateTime(2027, 12, 31),
+        previousPolicyId: old.policyId,
+      ),
+      throwsStateError,
+    );
+    expect(
+      await db.query(
+        'insurance_policies',
+        where: 'previous_policy_id=?',
+        whereArgs: [old.policyId],
+      ),
+      hasLength(1),
+    );
+    final unchangedOldCandidate = (await db.query(
+      'insurance_renewals',
+      where: 'policy_id=?',
+      whereArgs: [old.policyId],
+    ))
+        .single;
+    expect(unchangedOldCandidate['new_policy_id'], renewed.policyId);
+    expect(unchangedOldCandidate['status'], 'RENEWED');
   });
 }

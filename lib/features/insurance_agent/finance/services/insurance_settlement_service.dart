@@ -139,7 +139,7 @@ class InsuranceSettlementService {
       throw ArgumentError('Settlement period is invalid.');
     }
     final db = database ?? await DBService.database;
-    final id = 'SET:' + operationId.trim();
+    final id = 'SET:${operationId.trim()}';
     return SyncFoundationService.writeOn<InsuranceSettlementRecord>(
       db,
       (txn) async {
@@ -220,12 +220,10 @@ class InsuranceSettlementService {
         if (policyIds.isNotEmpty) {
           final marks = List.filled(policyIds.length, '?').join(',');
           final rows = await txn.rawQuery(
-            'SELECT COALESCE(SUM(CASE WHEN delta_cost<0 THEN -delta_cost ELSE 0 END),0) n '
-                    'FROM insurance_endorsements '
-                    'WHERE status=? AND effective_date>=? AND effective_date<=? '
-                    'AND policy_id IN (' +
-                marks +
-                ')',
+            '''SELECT COALESCE(SUM(CASE WHEN delta_cost<0 THEN -delta_cost ELSE 0 END),0) n
+               FROM insurance_endorsements
+               WHERE status=? AND effective_date>=? AND effective_date<=?
+               AND policy_id IN ($marks)''',
             [
               'POSTED',
               start.toIso8601String(),
@@ -262,7 +260,7 @@ class InsuranceSettlementService {
 
         for (final entry in outstandingByPolicy.entries) {
           await txn.insert('insurance_settlement_items', {
-            'id': 'SI:' + id + ':' + entry.key,
+            'id': 'SI:$id:${entry.key}',
             'settlement_id': id,
             'policy_id': entry.key,
             'item_type': 'POLICY_OUTSTANDING',
@@ -385,7 +383,7 @@ class InsuranceSettlementService {
       throw StateError('Settlement company has no supplier.');
     }
 
-    final voucherId = 'INS-SET-PAY:' + operationId.trim();
+    final voucherId = 'INS-SET-PAY:${operationId.trim()}';
     final paidRows = await db.rawQuery(
       '''SELECT COALESCE(SUM(amount),0) paid
          FROM insurance_policy_payments

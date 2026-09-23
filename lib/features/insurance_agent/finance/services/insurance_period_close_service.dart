@@ -236,43 +236,37 @@ class InsurancePeriodCloseService {
     }
     if (unbalanced.isNotEmpty) {
       issues.add(
-        unbalanced.length.toString() +
-            ' GL entries are individually unbalanced.',
+        '${unbalanced.length} GL entries are individually unbalanced.',
       );
     }
     if (malformedPolicies > 0) {
       issues.add(
-        malformedPolicies.toString() +
-            ' posted policies are missing canonical GL.',
+        '$malformedPolicies posted policies are missing canonical GL.',
       );
     }
     if (malformedPayments > 0) {
       issues.add(
-        malformedPayments.toString() +
-            ' policy payments have broken receipt/voucher links.',
+        '$malformedPayments policy payments have broken receipt/voucher links.',
       );
     }
     if (negativeCustomerBalances > 0) {
       issues.add(
-        negativeCustomerBalances.toString() +
-            ' policies have negative customer balances.',
+        '$negativeCustomerBalances policies have negative customer balances.',
       );
     }
     if (negativeInsurerBalances > 0) {
       issues.add(
-        negativeInsurerBalances.toString() +
-            ' policies have negative insurer balances.',
+        '$negativeInsurerBalances policies have negative insurer balances.',
       );
     }
     if (pendingSettlements > 0) {
       issues.add(
-        pendingSettlements.toString() +
-            ' insurance settlements are still open.',
+        '$pendingSettlements insurance settlements are still open.',
       );
     }
     if (fkViolations.isNotEmpty) {
       issues.add(
-        fkViolations.length.toString() + ' foreign-key violations exist.',
+        '${fkViolations.length} foreign-key violations exist.',
       );
     }
 
@@ -308,10 +302,8 @@ class InsurancePeriodCloseService {
     final actor = (closedBy ?? '').trim().isNotEmpty
         ? closedBy!.trim()
         : (permit?.id ?? 'SYSTEM');
-    final id = 'INS-CLOSE:' +
-        start.toIso8601String().substring(0, 10) +
-        ':' +
-        end.toIso8601String().substring(0, 10);
+    final id =
+        'INS-CLOSE:${start.toIso8601String().substring(0, 10)}:${end.toIso8601String().substring(0, 10)}';
     return SyncFoundationService.writeOn<InsurancePeriodCloseRecord>(
       db,
       (txn) async {
@@ -345,8 +337,7 @@ class InsurancePeriodCloseService {
         );
         if (!reconciliation.isClean) {
           throw StateError(
-            'Insurance reconciliation failed: ' +
-                reconciliation.issues.join(' | '),
+            'Insurance reconciliation failed: ${reconciliation.issues.join(' | ')}',
           );
         }
 

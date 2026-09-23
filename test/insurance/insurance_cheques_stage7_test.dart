@@ -132,6 +132,23 @@ void main() {
     if (await temp.exists()) await temp.delete(recursive: true);
   });
 
+  Future<double> accountBalance(String code) async {
+    final account = (await db.query(
+      'accounts',
+      columns: const ['id'],
+      where: 'code=?',
+      whereArgs: [code],
+      limit: 1,
+    ))
+        .single['id'];
+    final row = (await db.rawQuery(
+      'SELECT COALESCE(SUM(debit-credit),0) n FROM gl_lines WHERE account_id=?',
+      [account],
+    ))
+        .single;
+    return (row['n'] as num).toDouble();
+  }
+
   test('insurer cheque reserves book number and stays linked to voucher',
       () async {
     final books = await InsurancePolicyCashflowService.listOpenChequeBooks(
@@ -207,6 +224,89 @@ void main() {
     expect(snapshot.balances.insurerOutstanding, 2000);
     expect(snapshot.movements.single.status, 'REVERSED');
     expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+  });
+
+  test('clearing insurer cheque does not pay insurer twice', () async {
+    await InsurancePolicyCashflowService.payInsurerByCheque(
+      operationId: 'STAGE13-CLEAR-700',
+      policyId: policyId,
+      amount: 700,
+      issueDate: DateTime(2026, 9, 23),
+      dueDate: DateTime(2026, 10, 23),
+      chequeBookId: bookId,
+      notes: 'stage 13 canonical outgoing cheque',
+      database: db,
+    );
+
+    final cheque = (await db.query('cheques')).single;
+    final chequeId = (cheque['id'] as num).toInt();
+    final voucherId = cheque['payment_voucher_id'].toString();
+
+    expect(await accountBalance('1030'), -700);
+    expect(await accountBalance('1010'), 0);
+    expect(
+      await db.query(
+        'insurance_policy_payments',
+        where: 'policy_id=? AND direction=? AND status=?',
+        whereArgs: [policyId, 'INSURER_PAYMENT', 'POSTED'],
+      ),
+      hasLength(1),
+    );
+    expect(
+      (await InsurancePolicyCashflowService.load(policyId, executor: db))
+          .balances
+          .insurerOutstanding,
+      1300,
+    );
+
+    await ChequeAccountingService.transitionStatus(
+      chequeId: chequeId,
+      newStatus: ChequeStatus.delivered,
+      eventDate: DateTime(2026, 9, 25),
+    );
+    await ChequeAccountingService.transitionStatus(
+      chequeId: chequeId,
+      newStatus: ChequeStatus.presented,
+      eventDate: DateTime(2026, 10, 22),
+    );
+    await ChequeAccountingService.transitionStatus(
+      chequeId: chequeId,
+      newStatus: ChequeStatus.cleared,
+      eventDate: DateTime(2026, 10, 23),
+    );
+
+    expect(await accountBalance('1030'), 0);
+    expect(await accountBalance('1010'), -700);
+    expect(
+      await db.query(
+        'insurance_policy_payments',
+        where: 'policy_id=? AND direction=? AND status=?',
+        whereArgs: [policyId, 'INSURER_PAYMENT', 'POSTED'],
+      ),
+      hasLength(1),
+    );
+    expect(
+      await db.query(
+        'vouchers',
+        where: 'id=?',
+        whereArgs: [voucherId],
+      ),
+      hasLength(1),
+    );
+    expect(
+      (await InsurancePolicyCashflowService.load(policyId, executor: db))
+          .balances
+          .insurerOutstanding,
+      1300,
+    );
+    expect(
+      await db.query(
+        'gl_entries',
+        where: 'source=? AND source_id=?',
+        whereArgs: ['CHEQUE_STATUS', '$chequeId:cleared'],
+      ),
+      hasLength(1),
+    );
   });
 
   test('returned incoming cheque reopens AR and remains a high alert',

@@ -222,6 +222,40 @@ void main() {
       ),
       3500,
     );
+
+    final finalRetry = await InsuranceSettlementService.paySettlement(
+      operationId: 'STAGE9-SET-PAY-2',
+      settlementId: settlement.id,
+      amount: 2500,
+      date: DateTime(2026, 10, 2),
+      method: 'CASH',
+      database: db,
+    );
+    expect(finalRetry.id, finalPay.id);
+    expect(
+      await InsuranceSettlementService.paidAmount(
+        settlement.id,
+        executor: db,
+      ),
+      3500,
+    );
+    expect(
+      await db.query(
+        'insurance_policy_payments',
+        where: 'voucher_id=?',
+        whereArgs: [finalPay.id],
+      ),
+      hasLength(1),
+    );
+    expect(
+      await db.query(
+        'gl_entries',
+        where: 'source=? AND source_id=?',
+        whereArgs: ['VOUCHER', finalPay.id],
+      ),
+      hasLength(1),
+    );
+
     stored = (await db.query(
       'insurance_settlements',
       where: 'id=?',

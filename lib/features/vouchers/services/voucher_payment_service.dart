@@ -349,9 +349,10 @@ class VoucherPaymentService {
         final expectedSupplier =
             (rows.single['insurer_supplier_id'] as num?)?.toInt();
         final actualSupplier = int.tryParse(voucher.partyId ?? '');
-        if (expectedSupplier != null &&
-            expectedSupplier > 0 &&
-            expectedSupplier != actualSupplier) {
+        if (expectedSupplier == null ||
+            expectedSupplier <= 0 ||
+            expectedSupplier != actualSupplier ||
+            voucher.partyType?.trim().toUpperCase() != 'SUPPLIER') {
           throw StateError('Insurance payment supplier does not match policy.');
         }
         final payable =
@@ -360,8 +361,9 @@ class VoucherPaymentService {
           '''SELECT COALESCE(SUM(amount),0) paid
              FROM insurance_policy_payments
              WHERE policy_id=? AND direction='INSURER_PAYMENT'
-               AND status='POSTED' ''',
-          [policyId],
+               AND status='POSTED'
+               AND (voucher_id IS NULL OR voucher_id<>?)''',
+          [policyId, voucher.id],
         );
         final alreadyPaid =
             (paidRows.single['paid'] as num?)?.toDouble() ?? 0.0;
@@ -386,8 +388,9 @@ class VoucherPaymentService {
              FROM insurance_policy_payments
              WHERE policy_id=? AND status='POSTED'
                AND direction IN ('CUSTOMER_RECEIPT','REFUND')
+               AND (voucher_id IS NULL OR voucher_id<>?)
              GROUP BY direction''',
-          [policyId],
+          [policyId, voucher.id],
         );
         var receipts = 0.0;
         var refunds = 0.0;
@@ -402,14 +405,40 @@ class VoucherPaymentService {
         }
       }
     } else {
-      final rows = await txn.query(
-        'insurance_settlements',
-        columns: const ['id'],
-        where: 'id=?',
-        whereArgs: [settlementId],
-        limit: 1,
+      if (direction != 'INSURER_PAYMENT') {
+        throw StateError('Insurance settlement only accepts insurer payments.');
+      }
+      final rows = await txn.rawQuery(
+        '''SELECT s.id,s.payable,c.supplier_id
+           FROM insurance_settlements s
+           JOIN insurance_companies c ON c.id=s.company_id
+           WHERE s.id=? LIMIT 1''',
+        [settlementId],
       );
       if (rows.isEmpty) throw StateError('Insurance settlement not found.');
+      final expectedSupplier = (rows.single['supplier_id'] as num?)?.toInt();
+      final actualSupplier = int.tryParse(voucher.partyId ?? '');
+      if (expectedSupplier == null ||
+          expectedSupplier <= 0 ||
+          expectedSupplier != actualSupplier ||
+          voucher.partyType?.trim().toUpperCase() != 'SUPPLIER') {
+        throw StateError(
+          'Insurance settlement payment supplier does not match company.',
+        );
+      }
+      final paidRows = await txn.rawQuery(
+        '''SELECT COALESCE(SUM(amount),0) paid
+           FROM insurance_policy_payments
+           WHERE settlement_id=? AND direction='INSURER_PAYMENT'
+             AND status='POSTED'
+             AND (voucher_id IS NULL OR voucher_id<>?)''',
+        [settlementId, voucher.id],
+      );
+      final alreadyPaid = (paidRows.single['paid'] as num?)?.toDouble() ?? 0.0;
+      final payable = (rows.single['payable'] as num?)?.toDouble() ?? 0.0;
+      if (voucher.amount - (payable - alreadyPaid) > 0.005) {
+        throw StateError('Insurance settlement payment exceeds payable.');
+      }
     }
 
     final targetId = policyId?.isNotEmpty == true ? policyId! : settlementId!;

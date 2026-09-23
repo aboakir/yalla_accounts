@@ -353,7 +353,7 @@ void main() {
     final paid = await InsuranceFinancialService.payInsuranceCompanyForPolicy(
       operationId: 'INS-PAY-1',
       policyId: posted.policyId,
-      amount: 500,
+      amount: 2000,
       date: DateTime(2026, 9, 22),
       method: 'CASH',
       database: db,
@@ -361,7 +361,7 @@ void main() {
     final retry = await InsuranceFinancialService.payInsuranceCompanyForPolicy(
       operationId: 'INS-PAY-1',
       policyId: posted.policyId,
-      amount: 500,
+      amount: 2000,
       date: DateTime(2026, 9, 22),
       method: 'CASH',
       database: db,
@@ -372,8 +372,8 @@ void main() {
       posted.policyId,
       executor: db,
     );
-    expect(balances.insurerPayments, 500);
-    expect(balances.insurerOutstanding, 1500);
+    expect(balances.insurerPayments, 2000);
+    expect(balances.insurerOutstanding, 0);
     expect(
       await db.query(
         'insurance_policy_payments',
@@ -384,8 +384,8 @@ void main() {
     );
     expect(
         await accountBalance('2200.S${supplierId.toString().padLeft(4, '0')}'),
-        -1500);
-    expect(await accountBalance('1000'), -500);
+        0);
+    expect(await accountBalance('1000'), -2000);
     expect(await total('debit'), await total('credit'));
   });
 }

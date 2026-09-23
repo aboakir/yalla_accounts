@@ -111,6 +111,95 @@ void main() {
     return (row['n'] as num).toDouble();
   }
 
+  test(
+      'fully settled policy reconciles customer company statements and GL to zero',
+      () async {
+    final posted = await InsuranceFinancialService.postPolicy(
+      InsurancePolicyPostingCommand(
+        operationId: 'STAGE14-ZERO-POLICY',
+        policyNumber: 'STAGE14-ZERO-001',
+        clientId: clientId,
+        insuredPartyId: clientPartyId,
+        companyId: companyId,
+        insurerPartyId: supplierPartyId,
+        insurerSupplierId: supplierId,
+        startDate: DateTime(2026, 9, 22),
+        endDate: DateTime(2027, 9, 21),
+        postingDate: DateTime(2026, 9, 22),
+        purchasePrice: 2000,
+        salePrice: 2400,
+        createdBy: 'insurance-reconcile-owner',
+      ),
+      database: db,
+    );
+
+    await InsuranceFinancialService.collectPolicy(
+      operationId: 'STAGE14-ZERO-RECEIPT',
+      policyId: posted.policyId,
+      date: DateTime(2026, 9, 22),
+      database: db,
+      instruments: const [
+        ReceiptInstrumentInput(
+          instrumentKey: 'stage14-zero-cash',
+          method: 'cash',
+          amount: 2400,
+        ),
+      ],
+    );
+    await InsuranceFinancialService.payInsuranceCompanyForPolicy(
+      operationId: 'STAGE14-ZERO-PAYMENT',
+      policyId: posted.policyId,
+      amount: 2000,
+      date: DateTime(2026, 9, 22),
+      method: 'CASH',
+      database: db,
+    );
+
+    final policyBalances = await InsuranceFinancialService.balances(
+      posted.policyId,
+      executor: db,
+    );
+    final customer = await CustomerAccountStatementService.load(
+      clientId: clientId,
+      executor: db,
+    );
+    final supplier = await SupplierStatementService.load(
+      supplierId: supplierId.toString(),
+      executor: db,
+    );
+    final partyBalances = await PartyFinancialService.balances(executor: db);
+    final customerSummary = partyBalances.singleWhere(
+      (row) => row.customerLegacyId == clientId.toString(),
+    );
+    final supplierSummary = partyBalances.singleWhere(
+      (row) => row.supplierLegacyId == supplierId.toString(),
+    );
+
+    expect(policyBalances.customerOutstanding, 0);
+    expect(policyBalances.insurerOutstanding, 0);
+    expect(customer.closingBalance, 0);
+    expect(supplier.closingBalance, 0);
+    expect(customerSummary.receivableBalance, 0);
+    expect(supplierSummary.payableBalance, 0);
+    expect(await accountBalance('1200.C$clientId'), 0);
+    expect(
+      await accountBalance(
+        '2200.S${supplierId.toString().padLeft(4, '0')}',
+      ),
+      0,
+    );
+    final gl = (await db.rawQuery(
+      'SELECT COALESCE(SUM(debit),0) debit, COALESCE(SUM(credit),0) credit FROM gl_lines',
+    ))
+        .single;
+    expect(
+      ((gl['debit'] as num).toDouble() - (gl['credit'] as num).toDouble())
+          .abs(),
+      0,
+    );
+    expect(await db.rawQuery('PRAGMA foreign_key_check'), isEmpty);
+  });
+
   test('policy customer and insurer balances reconcile to statements and GL',
       () async {
     final posted = await InsuranceFinancialService.postPolicy(
