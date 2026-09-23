@@ -16,6 +16,7 @@ import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
+import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_period_close_service.dart';
 
 class ChequeAccountingService {
   static String _physicalChequeNumber(Object? value) =>
@@ -39,6 +40,23 @@ class ChequeAccountingService {
         normalized.contains('cheque') ||
         normalized.contains('check') ||
         normalized.contains('شيك');
+  }
+
+  static Future<void> _assertInsuranceDateOpenIfLinked(
+    DatabaseExecutor db, {
+    required int chequeId,
+    required DateTime date,
+  }) async {
+    final links = await db.query(
+      'insurance_policy_payments',
+      columns: const ['id'],
+      where: 'cheque_id=?',
+      whereArgs: [chequeId],
+      limit: 1,
+    );
+    if (links.isNotEmpty) {
+      await InsurancePeriodCloseService.assertOpen(db, date);
+    }
   }
 
   static String permissionForTransition(ChequeStatus status) {
@@ -514,6 +532,11 @@ class ChequeAccountingService {
     _assertTransition(cheque, newStatus);
 
     final when = eventDate ?? DateTime.now();
+    await _assertInsuranceDateOpenIfLinked(
+      txn,
+      chequeId: chequeId,
+      date: when,
+    );
     int? lifecycleGlId;
     final hasAccountingSource = cheque.glEntryId != null &&
         (cheque.sourceType ?? '').trim().isNotEmpty &&

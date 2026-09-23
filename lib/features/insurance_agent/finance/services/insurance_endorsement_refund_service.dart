@@ -501,6 +501,7 @@ class InsuranceEndorsementRefundService {
       );
     }
     final db = database ?? await DBService.database;
+    await _assertOpen(db, date);
     final policies = await db.query(
       'insurance_policies',
       columns: const ['client_id', 'insured_name', 'currency'],

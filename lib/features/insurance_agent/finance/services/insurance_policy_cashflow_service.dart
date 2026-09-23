@@ -4,6 +4,7 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/cheques/services/cheque_book_service.dart';
 import 'package:yalla_accounts/features/finance/payments/services/payment_service.dart';
 import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_financial_service.dart';
+import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_period_close_service.dart';
 import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
 
 class InsurancePolicyCashflowMovement {
@@ -229,6 +230,7 @@ class InsurancePolicyCashflowService {
     Database? database,
   }) async {
     final db = database ?? await DBService.database;
+    await InsurancePeriodCloseService.assertOpen(db, date);
     final balances =
         await InsuranceFinancialService.balances(policyId, executor: db);
     if (!amount.isFinite || amount <= 0.005) {
@@ -388,6 +390,7 @@ class InsurancePolicyCashflowService {
     Database? database,
   }) async {
     final db = database ?? await DBService.database;
+    await InsurancePeriodCloseService.assertOpen(db, date);
     final balances =
         await InsuranceFinancialService.balances(policyId, executor: db);
     if (!amount.isFinite || amount <= 0.005) {

@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_period_close_service.dart';
 import 'package:yalla_accounts/features/vouchers/models/voucher_payment_model.dart';
 import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
 
@@ -360,6 +361,7 @@ class InsuranceSettlementService {
       throw ArgumentError('Valid settlement payment is required.');
     }
     final db = database ?? await DBService.database;
+    await InsurancePeriodCloseService.assertOpen(db, date);
     final rows = await db.rawQuery(
       '''SELECT s.*, c.supplier_id, c.name company_name
          FROM insurance_settlements s

@@ -1130,10 +1130,12 @@ class InsuranceFinancialService {
     String? notes,
     DatabaseExecutor? database,
     InsuranceReceiptAuthorizationToken? authorizationToken,
-  }) {
+  }) async {
+    final db = database ?? await DBService.database;
+    await _assertOpen(db, date);
     return PaymentService.insertCanonicalInsuranceReceipt(
       operationId: operationId,
-      database: database,
+      database: db,
       authorizationToken: authorizationToken,
       policyId: policyId,
       date: date,
@@ -1160,6 +1162,7 @@ class InsuranceFinancialService {
       throw ArgumentError('Insurance company payment must be positive.');
     }
     final db = database ?? await DBService.database;
+    await _assertOpen(db, date);
     final rows = await db.rawQuery(
       '''SELECT p.insurer_supplier_id, c.name
          FROM insurance_policies p
