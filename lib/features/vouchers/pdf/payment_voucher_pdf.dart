@@ -33,14 +33,27 @@ class PaymentVoucherPdf {
     DateTime? chequeIssueDate,
     DateTime? chequeDueDate,
   }) async {
-    final pdf = pw.Document();
-
-    // تحميل خط عربي
-    final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
+    // تحميل خط عربي مع بدائل تغطي الحروف اللاتينية والرموز.
+    final fontData =
+        await rootBundle.load("assets/fonts/NotoNaskhArabic-Regular.ttf");
     final ttf = pw.Font.ttf(fontData);
 
-    final fontBoldData = await rootBundle.load("assets/fonts/Cairo-Bold.ttf");
+    final fontBoldData =
+        await rootBundle.load("assets/fonts/NotoNaskhArabic-Bold.ttf");
     final ttfBold = pw.Font.ttf(fontBoldData);
+    final latin =
+        pw.Font.ttf(await rootBundle.load("assets/fonts/Tahoma-Regular.ttf"));
+    final symbols = pw.Font.ttf(
+      await rootBundle.load("assets/fonts/NotoSansSymbols2-Regular.ttf"),
+    );
+
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: ttf,
+        bold: ttfBold,
+        fontFallback: [latin, symbols],
+      ),
+    );
 
     // تحميل شعار YALLAH ACCOUNTS
     final logoData = await rootBundle

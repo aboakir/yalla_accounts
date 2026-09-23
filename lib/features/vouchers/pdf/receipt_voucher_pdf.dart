@@ -58,12 +58,25 @@ class ReceiptVoucherPDF {
     // ----------------------------------------------------------
     // تحميل الخطوط العربية
     // ----------------------------------------------------------
-    final fontReg =
-        pw.Font.ttf(await rootBundle.load("assets/fonts/Cairo-Regular.ttf"));
-    final fontBold =
-        pw.Font.ttf(await rootBundle.load("assets/fonts/Cairo-Bold.ttf"));
+    final fontReg = pw.Font.ttf(
+      await rootBundle.load("assets/fonts/NotoNaskhArabic-Regular.ttf"),
+    );
+    final fontBold = pw.Font.ttf(
+      await rootBundle.load("assets/fonts/NotoNaskhArabic-Bold.ttf"),
+    );
+    final latin =
+        pw.Font.ttf(await rootBundle.load("assets/fonts/Tahoma-Regular.ttf"));
+    final symbols = pw.Font.ttf(
+      await rootBundle.load("assets/fonts/NotoSansSymbols2-Regular.ttf"),
+    );
 
-    final pdf = pw.Document();
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: fontReg,
+        bold: fontBold,
+        fontFallback: [latin, symbols],
+      ),
+    );
 
     // ----------------------------------------------------------
     // التاريخ بصيغة جميلة

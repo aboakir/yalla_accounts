@@ -97,6 +97,8 @@ class ChequeNotifier extends StateNotifier<List<Cheque>> {
       dueTo: f.dueTo,
     );
 
+    if (!mounted) return;
+
     lastFilter = f;
     state = rows;
   }
