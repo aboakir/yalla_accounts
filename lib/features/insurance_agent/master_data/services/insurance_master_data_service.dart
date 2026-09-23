@@ -1,8 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 
 class InsuranceCompanyRecord {
   const InsuranceCompanyRecord({
@@ -84,6 +86,7 @@ class InsuranceMasterDataService {
   static Future<List<InsuranceCompanyRecord>> listCompanies({
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = executor ?? await DBService.database;
     final rows = await db.rawQuery('''
       SELECT c.id,c.party_id,c.supplier_id,c.code,c.name,c.phone,c.address,
@@ -131,6 +134,7 @@ class InsuranceMasterDataService {
     String? address,
     double defaultCommissionRate = 0,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceMasterDataManage);
     final cleanCode = code.trim().toUpperCase();
     final cleanName = name.trim();
     if (cleanCode.isEmpty || cleanName.isEmpty) {
@@ -186,20 +190,16 @@ class InsuranceMasterDataService {
       if (partyRows.isEmpty) {
         final partyId = 'SUPPLIER:$supplierId';
         final now = DateTime.now().toIso8601String();
-        await txn.insert(
-          'parties',
-          {
-            'id': partyId,
-            'display_name': cleanName,
-            'phone': phone?.trim(),
-            'address': address?.trim(),
-            'role_codes': '[]',
-            'is_active': 1,
-            'created_at': now,
-            'updated_at': now,
-          },
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
+        await txn.insert('parties', {
+          'id': partyId,
+          'display_name': cleanName,
+          'phone': phone?.trim(),
+          'address': address?.trim(),
+          'role_codes': '[]',
+          'is_active': 1,
+          'created_at': now,
+          'updated_at': now,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
         await txn.insert('party_roles', {
           'party_id': partyId,
           'role': 'SUPPLIER',
@@ -207,7 +207,7 @@ class InsuranceMasterDataService {
           'created_at': now,
         });
         partyRows = [
-          {'party_id': partyId}
+          {'party_id': partyId},
         ];
       }
       final partyId = partyRows.single['party_id'].toString();
@@ -225,16 +225,12 @@ class InsuranceMasterDataService {
         'created_at': now,
         'updated_at': now,
       });
-      await txn.insert(
-        'party_roles',
-        {
-          'party_id': partyId,
-          'role': 'INSURANCE_COMPANY',
-          'legacy_id': companyId.toString(),
-          'created_at': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      await txn.insert('party_roles', {
+        'party_id': partyId,
+        'role': 'INSURANCE_COMPANY',
+        'legacy_id': companyId.toString(),
+        'created_at': now,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     });
 
     return (await listCompanies()).firstWhere((row) => row.id == companyId);
@@ -249,6 +245,7 @@ class InsuranceMasterDataService {
     required double defaultCommissionRate,
     bool isActive = true,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceMasterDataManage);
     final db = await DBService.database;
     await SyncFoundationService.transaction(db, (txn) async {
       final rows = await txn.query(
@@ -306,6 +303,7 @@ class InsuranceMasterDataService {
     required String productType,
     double defaultCommissionRate = 0,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceMasterDataManage);
     final db = await DBService.database;
     final company = await db.query(
       'insurance_companies',
@@ -329,14 +327,16 @@ class InsuranceMasterDataService {
       'created_at': now,
       'updated_at': now,
     });
-    return (await listProducts(companyId: companyId))
-        .firstWhere((row) => row.id == id);
+    return (await listProducts(
+      companyId: companyId,
+    )).firstWhere((row) => row.id == id);
   }
 
   static Future<List<InsuranceProductRecord>> listProducts({
     required int companyId,
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = executor ?? await DBService.database;
     final rows = await db.query(
       'insurance_products',
@@ -396,6 +396,7 @@ class InsuranceMasterDataService {
     double? limitAmount,
     String? description,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceMasterDataManage);
     final db = await DBService.database;
     final product = await db.query(
       'insurance_products',

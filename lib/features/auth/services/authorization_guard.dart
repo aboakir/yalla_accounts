@@ -58,6 +58,8 @@ class AuthorizationGuard {
       PermissionKeys.userView,
       PermissionKeys.auditView,
       PermissionKeys.settingsView,
+      PermissionKeys.insuranceView,
+      PermissionKeys.insuranceReportExport,
       PermissionKeys.backupCreate,
       PermissionKeys.backupExport,
     };

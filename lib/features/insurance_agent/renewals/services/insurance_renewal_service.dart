@@ -1,6 +1,8 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 
 class InsuranceRenewalCandidate {
   const InsuranceRenewalCandidate({
@@ -73,6 +75,7 @@ class InsuranceRenewalService {
     DateTime? asOf,
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = executor ?? await DBService.database;
     final reference = asOf ?? DateTime.now();
     final rows = await db.rawQuery('''
@@ -113,6 +116,7 @@ class InsuranceRenewalService {
     String? outcome,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceRenewalManage);
     final canonicalStatus = status.trim().toUpperCase();
     if (!followUpStatuses.contains(canonicalStatus)) {
       throw ArgumentError('Unsupported insurance renewal follow-up status.');

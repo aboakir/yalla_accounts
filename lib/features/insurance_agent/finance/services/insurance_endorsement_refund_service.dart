@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db/tables/accounting_tables.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:yalla_accounts/features/vouchers/models/voucher_payment_model.dart';
 import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
@@ -97,6 +99,7 @@ class InsuranceEndorsementRefundService {
     String? createdBy,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     final op = operationId.trim();
     final pid = policyId.trim();
     final type = endorsementType.trim().toUpperCase();
@@ -351,6 +354,7 @@ class InsuranceEndorsementRefundService {
     required String reason,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     final id = endorsementId.trim();
     final cleanReason = reason.trim();
     if (id.isEmpty || cleanReason.isEmpty) {
@@ -493,6 +497,7 @@ class InsuranceEndorsementRefundService {
     Map<String, dynamic>? chequeDraft,
     Database? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     final op = operationId.trim();
     final pid = policyId.trim();
     if (op.isEmpty || pid.isEmpty || !amount.isFinite || amount <= 0.005) {
@@ -547,7 +552,8 @@ class InsuranceEndorsementRefundService {
     required String voucherId,
     required String reason,
     Database? database,
-  }) {
+  }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     return VoucherPaymentService.reverseVoucher(
       voucherId,
       reason: reason,

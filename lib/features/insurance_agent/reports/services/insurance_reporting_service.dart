@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_pricing_engine.dart';
 
 class InsuranceReportingSnapshot {
@@ -80,6 +82,7 @@ class InsuranceReportingService {
     DateTime? asOf,
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final now = asOf ?? DateTime.now();
     final nowIso = now.toIso8601String();
@@ -142,6 +145,7 @@ class InsuranceReportingService {
   static Future<List<InsuranceCompanyBalanceRow>> companyBalances({
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final rows = await db.rawQuery('''
       SELECT c.id company_id,

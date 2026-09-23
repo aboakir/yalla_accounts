@@ -1,7 +1,9 @@
 import 'package:sqflite/sqflite.dart';
 
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_period_close_service.dart';
 import 'package:yalla_accounts/features/vouchers/models/voucher_payment_model.dart';
 import 'package:yalla_accounts/features/vouchers/services/voucher_payment_service.dart';
@@ -115,6 +117,7 @@ class InsuranceSettlementService {
     required DateTime periodEnd,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     if (operationId.trim().isEmpty || companyId <= 0) {
       throw ArgumentError('Settlement operation and company are required.');
     }
@@ -285,6 +288,7 @@ class InsuranceSettlementService {
     String settlementId, {
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     final id = settlementId.trim();
     if (id.isEmpty) throw ArgumentError('Settlement id is required.');
     final db = database ?? await DBService.database;
@@ -354,6 +358,7 @@ class InsuranceSettlementService {
     Map<String, dynamic>? chequeDraft,
     Database? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     if (operationId.trim().isEmpty ||
         settlementId.trim().isEmpty ||
         !amount.isFinite ||
@@ -380,14 +385,23 @@ class InsuranceSettlementService {
       throw StateError('Settlement company has no supplier.');
     }
 
-    final paid = await paidAmount(settlementId, executor: db);
-    final remaining = _money(_n(row['payable']) - paid);
+    final voucherId = 'INS-SET-PAY:' + operationId.trim();
+    final paidRows = await db.rawQuery(
+      '''SELECT COALESCE(SUM(amount),0) paid
+         FROM insurance_policy_payments
+         WHERE settlement_id=? AND direction='INSURER_PAYMENT'
+           AND status='POSTED'
+           AND (voucher_id IS NULL OR voucher_id<>?)''',
+      [settlementId.trim(), voucherId],
+    );
+    final paidExcludingRetry = _money(_n(paidRows.single['paid']));
+    final remaining = _money(_n(row['payable']) - paidExcludingRetry);
     if (amount - remaining > 0.005) {
       throw StateError('Settlement payment exceeds remaining payable.');
     }
 
     final voucher = VoucherPayment(
-      id: 'INS-SET-PAY:' + operationId.trim(),
+      id: voucherId,
       voucherType: 'PAYMENT',
       partyType: 'SUPPLIER',
       partyId: supplierId.toString(),
@@ -428,6 +442,7 @@ class InsuranceSettlementService {
     required String reason,
     Database? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceFinanceManage);
     final db = database ?? await DBService.database;
     await VoucherPaymentService.reverseVoucher(
       voucherId,

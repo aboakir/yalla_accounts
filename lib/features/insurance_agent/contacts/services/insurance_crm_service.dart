@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class InsuranceProspectRecord {
@@ -143,6 +145,7 @@ class InsuranceCrmService {
     DatabaseExecutor? executor,
     bool includeConverted = true,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = executor ?? await DBService.database;
     final rows = await db.rawQuery('''
       SELECT p.id, p.party_id, p.status, p.city, p.source,
@@ -207,6 +210,7 @@ class InsuranceCrmService {
     String? contactResult,
     String? notes,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceCrmManage);
     final cleanName = name.trim();
     final rawPhone = phone.trim();
     final cleanPhone = _phoneIdentityKey(rawPhone);
@@ -343,6 +347,7 @@ class InsuranceCrmService {
     String? notes,
     String? status,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceCrmManage);
     final db = await DBService.database;
     await SyncFoundationService.transaction(db, (txn) async {
       final rows = await txn.query(
@@ -499,6 +504,7 @@ class InsuranceCrmService {
     String? createdBy,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceCrmManage);
     final cleanChannel = channel.trim().toUpperCase();
     if (cleanChannel.isEmpty) {
       throw ArgumentError('Insurance contact channel is required.');
@@ -600,6 +606,7 @@ class InsuranceCrmService {
   }
 
   static Future<void> archiveProspect(String id) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceCrmManage);
     final db = await DBService.database;
     await db.update(
       'insurance_prospects',
@@ -613,6 +620,7 @@ class InsuranceCrmService {
   }
 
   static Future<int> convertToInsured(String prospectId) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceCrmManage);
     final db = await DBService.database;
     late int clientId;
     await SyncFoundationService.transaction(db, (txn) async {
@@ -929,6 +937,7 @@ class InsuranceCrmService {
     List<String> categories = const [],
     String? notes,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceCrmManage);
     final cleanNumber = licenseNumber.trim();
     if (cleanNumber.isEmpty) throw ArgumentError('License number is required.');
     final db = await DBService.database;

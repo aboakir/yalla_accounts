@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 
 double _amount(Object? value) =>
     value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
@@ -90,6 +92,7 @@ class InsuranceDashboardService {
     DateTime? asOf,
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final day = (asOf ?? DateTime.now()).toIso8601String().substring(0, 10);
     final row = (await db.rawQuery('''
@@ -139,6 +142,7 @@ class InsuranceDashboardService {
     int limit = 100,
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final cleaned = query.trim();
     final where = cleaned.isEmpty
@@ -183,6 +187,7 @@ class InsuranceDashboardService {
   static Future<List<InsuranceCompanyBalance>> companyBalances({
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final rows = await db.rawQuery('''
       SELECT c.id,c.name,
@@ -214,6 +219,7 @@ class InsuranceDashboardService {
   static Future<List<InsuranceProducerPortfolio>> producerPortfolios({
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final rows = await db.rawQuery('''
       SELECT c.producer_party_id party_id,

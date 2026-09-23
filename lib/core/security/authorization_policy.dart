@@ -116,7 +116,15 @@ class PermissionKeys {
   static const String invoicePost = 'INVOICE_POST';
   static const String invoiceReverse = 'INVOICE_REVERSE';
 
+  static const String insuranceView = 'INSURANCE_VIEW';
+  static const String insuranceCrmManage = 'INSURANCE_CRM_MANAGE';
+  static const String insuranceMasterDataManage =
+      'INSURANCE_MASTER_DATA_MANAGE';
   static const String insurancePolicyPost = 'INSURANCE_POLICY_POST';
+  static const String insuranceClaimManage = 'INSURANCE_CLAIM_MANAGE';
+  static const String insuranceRenewalManage = 'INSURANCE_RENEWAL_MANAGE';
+  static const String insuranceFinanceManage = 'INSURANCE_FINANCE_MANAGE';
+  static const String insuranceReportExport = 'INSURANCE_REPORT_EXPORT';
 
   static const String receiptCreate = 'RECEIPT_CREATE';
   static const String receiptReverse = 'RECEIPT_REVERSE';
@@ -181,7 +189,14 @@ class PermissionKeys {
     invoiceApprove,
     invoicePost,
     invoiceReverse,
+    insuranceView,
+    insuranceCrmManage,
+    insuranceMasterDataManage,
     insurancePolicyPost,
+    insuranceClaimManage,
+    insuranceRenewalManage,
+    insuranceFinanceManage,
+    insuranceReportExport,
     receiptCreate,
     receiptReverse,
     paymentCreate,
@@ -256,7 +271,14 @@ class AuthorizationPolicy {
     PermissionKeys.repairReopen,
     PermissionKeys.invoiceCreate,
     PermissionKeys.invoiceApprove,
+    PermissionKeys.insuranceView,
+    PermissionKeys.insuranceCrmManage,
+    PermissionKeys.insuranceMasterDataManage,
     PermissionKeys.insurancePolicyPost,
+    PermissionKeys.insuranceClaimManage,
+    PermissionKeys.insuranceRenewalManage,
+    PermissionKeys.insuranceFinanceManage,
+    PermissionKeys.insuranceReportExport,
     PermissionKeys.receiptCreate,
     PermissionKeys.paymentCreate,
     PermissionKeys.chequeManage,
@@ -297,7 +319,10 @@ class AuthorizationPolicy {
       PermissionKeys.invoiceApprove,
       PermissionKeys.invoicePost,
       PermissionKeys.invoiceReverse,
+      PermissionKeys.insuranceView,
       PermissionKeys.insurancePolicyPost,
+      PermissionKeys.insuranceFinanceManage,
+      PermissionKeys.insuranceReportExport,
       PermissionKeys.receiptCreate,
       PermissionKeys.receiptReverse,
       PermissionKeys.paymentCreate,
@@ -331,8 +356,20 @@ class AuthorizationPolicy {
       PermissionKeys.backupExport,
     },
 
-    RoleKeys.employee: _employeePermissions,
-    RoleKeys.staff: _employeePermissions,
+    RoleKeys.employee: {
+      ..._employeePermissions,
+      PermissionKeys.insuranceView,
+      PermissionKeys.insuranceCrmManage,
+      PermissionKeys.insuranceClaimManage,
+      PermissionKeys.insuranceRenewalManage,
+    },
+    RoleKeys.staff: {
+      ..._employeePermissions,
+      PermissionKeys.insuranceView,
+      PermissionKeys.insuranceCrmManage,
+      PermissionKeys.insuranceClaimManage,
+      PermissionKeys.insuranceRenewalManage,
+    },
 
     RoleKeys.technician: {
       PermissionKeys.repairView,
@@ -384,6 +421,8 @@ class AuthorizationPolicy {
     },
     RoleKeys.auditor: {
       PermissionKeys.customerView,
+      PermissionKeys.insuranceView,
+      PermissionKeys.insuranceReportExport,
       PermissionKeys.repairView,
       PermissionKeys.glView,
       PermissionKeys.reportView,
@@ -391,8 +430,14 @@ class AuthorizationPolicy {
       PermissionKeys.auditView,
       PermissionKeys.settingsView,
     },
-    RoleKeys.readOnly: _readOnlyPermissions,
-    RoleKeys.viewer: _readOnlyPermissions,
+    RoleKeys.readOnly: {
+      ..._readOnlyPermissions,
+      PermissionKeys.insuranceView,
+    },
+    RoleKeys.viewer: {
+      ..._readOnlyPermissions,
+      PermissionKeys.insuranceView,
+    },
   };
 
   static Set<String> forRole(String role) => Set<String>.unmodifiable(

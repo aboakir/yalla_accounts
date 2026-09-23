@@ -5,10 +5,12 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.dart';
 import 'package:yalla_accounts/core/services/db/tables/vehicle_tables.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 
 class InsuranceClaimRecord {
   const InsuranceClaimRecord({
@@ -282,6 +284,7 @@ class InsuranceClaimService {
     String? actorUserId,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceClaimManage);
     final db = await _db(database);
     final cleanPolicyId = policyId.trim();
     if (cleanPolicyId.isEmpty) {
@@ -337,6 +340,7 @@ class InsuranceClaimService {
     String? actorUserId,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceClaimManage);
     final db = await _db(database);
     final target = status.trim().toUpperCase();
     if (!statuses.contains(target)) {
@@ -386,6 +390,7 @@ class InsuranceClaimService {
     String? actorUserId,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceClaimManage);
     final source = File(sourcePath.trim());
     if (!await source.exists()) {
       throw ArgumentError.value(sourcePath, 'sourcePath', 'File not found.');
@@ -435,6 +440,7 @@ class InsuranceClaimService {
     String? actorUserId,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceClaimManage);
     final db = await _db(database);
     final type = documentType.trim();
     final path = filePath.trim();
@@ -589,6 +595,7 @@ class InsuranceClaimService {
     String? actorUserId,
     DatabaseExecutor? database,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceClaimManage);
     final db = await _db(database);
     final workshop = workshopRef.trim();
     if (workshop.isEmpty) {
@@ -619,6 +626,7 @@ class InsuranceClaimService {
     String? policyId,
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final where = <String>[];
     final args = <Object?>[];
@@ -649,6 +657,7 @@ class InsuranceClaimService {
     String claimId, {
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final rows = await db.query(
       'insurance_claim_documents',
@@ -665,6 +674,7 @@ class InsuranceClaimService {
     String claimId, {
     DatabaseExecutor? executor,
   }) async {
+    await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = await _db(executor);
     final rows = await db.query(
       'app_audit_events',
