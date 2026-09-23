@@ -161,6 +161,7 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
       if (selectedProductId == null) {
         widget.draft.productId = null;
         widget.draft.coverageType = null;
+        widget.draft.commissionRate = null;
         return;
       }
 
@@ -169,6 +170,7 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
       );
       widget.draft.productId = selected.id;
       widget.draft.coverageType = selected.productType;
+      widget.draft.commissionRate = selected.defaultCommissionRate;
       await _loadCoverages(
         selected.id,
         preserveSelection: preserveSelection,
@@ -345,6 +347,7 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
                   draft.companyName = company.name;
                   draft.productId = null;
                   draft.coverageType = null;
+                  draft.commissionRate = null;
                 });
                 await _loadProducts(company.id, preserveSelection: false);
                 widget.formKey.currentState?.validate();
@@ -412,6 +415,7 @@ class _StepInsuredInfoState extends State<StepInsuredInfo> {
                 setState(() {
                   draft.productId = product.id;
                   draft.coverageType = product.productType;
+                  draft.commissionRate = product.defaultCommissionRate;
                 });
                 await _loadCoverages(
                   product.id,

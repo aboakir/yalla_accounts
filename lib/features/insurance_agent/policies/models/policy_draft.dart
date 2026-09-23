@@ -4,6 +4,8 @@
 // ✅ يدعم خطط الدفع: نقد / شيكات / نقد+شيكات / تقسيط / تقسيط بكمبيالة / تقسيط بدون كمبيالة
 // ✅ جاهز لاحقًا للتحويل إلى DB عبر toMap()
 
+import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_pricing_engine.dart';
+
 class PolicyDraft {
   // ===== Canonical identity / idempotency =====
   String? operationId;
@@ -42,6 +44,15 @@ class PolicyDraft {
   // ===== Pricing =====
   double? buyPrice;
   double? sellPrice;
+  double? basePremium;
+  double? discount;
+  double? fees;
+  double? tax;
+  double? directCost;
+
+  /// Snapshot used by the wizard for preview only. The posting service always
+  /// resolves the authoritative commission rate from the selected product.
+  double? commissionRate;
 
   // ===== Payment Plan =====
   PolicyPaymentPlan payment = PolicyPaymentPlan();
@@ -83,10 +94,36 @@ class PolicyDraft {
 
     buyPrice = null;
     sellPrice = null;
+    basePremium = null;
+    discount = null;
+    fees = null;
+    tax = null;
+    directCost = null;
+    commissionRate = null;
 
     payment = PolicyPaymentPlan();
 
     notes = null;
+  }
+
+  InsurancePricingResult calculatePricing({double? commissionRateOverride}) {
+    final purchase = buyPrice;
+    final sale = sellPrice;
+    if (purchase == null || sale == null) {
+      throw StateError('Policy purchase and sale prices are required.');
+    }
+    return InsurancePricingEngine.calculate(
+      InsurancePricingInput(
+        purchasePrice: purchase,
+        salePrice: sale,
+        basePremium: basePremium ?? 0,
+        discount: discount ?? 0,
+        fees: fees ?? 0,
+        tax: tax ?? 0,
+        directCost: directCost ?? 0,
+        commissionRate: commissionRateOverride ?? commissionRate ?? 0,
+      ),
+    );
   }
 
   // توافُق: لو في مكان يستخدم الحقول القديمة
@@ -172,12 +209,12 @@ class PolicyPaymentPlan {
   }
 
   /// تحقق صارم — يرجّع قائمة مشاكل (فاضية يعني تمام)
-  List<String> validateAgainst(double? sellPrice) {
+  List<String> validateAgainst(double? customerTotalAmount) {
     final issues = <String>[];
-    final sell = sellPrice ?? 0.0;
+    final target = customerTotalAmount ?? 0.0;
 
-    if (sell <= 0) {
-      issues.add('سعر بيع البوليصة مطلوب وأكبر من 0');
+    if (target <= 0) {
+      issues.add('إجمالي المستحق على العميل يجب أن يكون أكبر من 0');
       return issues;
     }
 
@@ -226,10 +263,11 @@ class PolicyPaymentPlan {
     }
 
     final total = totalByType();
-    final diff = (total - sell).abs();
+    final diff = (total - target).abs();
 
     if (diff > 0.01) {
-      issues.add('مجموع المدفوعات يجب أن يساوي سعر البيع تمامًا');
+      issues
+          .add('مجموع المدفوعات يجب أن يساوي إجمالي المستحق على العميل تمامًا');
     }
 
     return issues;

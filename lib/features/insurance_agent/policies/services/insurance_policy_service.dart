@@ -131,7 +131,12 @@ class InsurancePolicyService {
     if (sale == null || !sale.isFinite || sale <= 0) {
       throw ArgumentError('Policy sale price is invalid.');
     }
-    final paymentIssues = draft.payment.validateAgainst(sale);
+    late final pricing = draft.calculatePricing();
+    if (pricing.customerTotalAmount <= 0) {
+      throw ArgumentError('Policy customer total must be greater than zero.');
+    }
+    final paymentIssues =
+        draft.payment.validateAgainst(pricing.customerTotalAmount);
     if (paymentIssues.isNotEmpty) {
       throw StateError(paymentIssues.first);
     }
@@ -479,7 +484,12 @@ class InsurancePolicyService {
       postingDate: postingDate,
       purchasePrice: draft.buyPrice!,
       salePrice: draft.sellPrice!,
+      basePremium: draft.basePremium ?? 0,
+      discount: draft.discount ?? 0,
+      fees: draft.fees ?? 0,
+      tax: draft.tax ?? 0,
       commissionRate: product.defaultCommissionRate,
+      directCost: draft.directCost ?? 0,
       notes: _clean(draft.notes),
     );
   }
@@ -686,6 +696,7 @@ class InsurancePolicyService {
     draft.insuranceCompanyId = resolvedCompany.id;
     draft.companyName = resolvedCompany.name;
     draft.productId = resolvedProduct.id;
+    draft.commissionRate = resolvedProduct.defaultCommissionRate;
     return posted.policyId;
   }
 }

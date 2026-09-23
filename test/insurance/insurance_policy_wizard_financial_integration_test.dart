@@ -44,6 +44,7 @@ void main() {
       code: 'P10-COMP',
       name: 'Phase 10 Comprehensive',
       productType: 'COMPREHENSIVE',
+      defaultCommissionRate: 10,
     );
     coverageIds = [
       await InsuranceMasterDataService.createCoverage(
@@ -93,6 +94,7 @@ void main() {
       ..endDate = DateTime(2027, 9, 21)
       ..buyPrice = 2000
       ..sellPrice = 2400
+      ..commissionRate = product.defaultCommissionRate
       ..notes = 'Phase 10 wizard integration';
     draft.coverageIds.addAll(coverageIds);
     return draft;
@@ -362,6 +364,89 @@ void main() {
     expect(await accountBalance('1000'), 2400);
     expect(await accountBalance('1010'), 0);
     expect(await accountBalance('1200.C$clientId'), 0);
+    expect(await glTotal('debit'), closeTo(await glTotal('credit'), 0.001));
+  });
+
+  test(
+      'wizard unified pricing posts discount fees tax direct cost and customer total',
+      () async {
+    final underpaid = baseDraft(
+      operationId: 'P10-UNIFIED-UNDERPAID',
+      policyNumber: 'INSURER-P10-UNIFIED-UNDERPAID',
+      insuredPhone: '0598123498',
+      vehiclePlate: 'P10-10-098',
+    )
+      ..basePremium = 1800
+      ..discount = 50
+      ..fees = 30
+      ..tax = 100
+      ..directCost = 80;
+    underpaid.payment
+      ..type = PolicyPaymentPlanType.cashOnly
+      ..immediatePaymentMethod = 'CASH'
+      ..cashAmount = 2400;
+
+    final preview = underpaid.calculatePricing();
+    expect(preview.customerTotalAmount, 2480);
+    expect(preview.netRevenueAmount, 2380);
+    expect(preview.commissionAmount, 180);
+    expect(preview.grossProfit, 300);
+    await expectLater(save(underpaid), throwsA(isA<StateError>()));
+    expect(await count('insurance_policies'), 0);
+    expect(await count('receipt_headers'), 0);
+
+    final draft = baseDraft(
+      operationId: 'P10-UNIFIED-1',
+      policyNumber: 'INSURER-P10-UNIFIED',
+      insuredPhone: '0598123499',
+      vehiclePlate: 'P10-10-099',
+    )
+      ..basePremium = 1800
+      ..discount = 50
+      ..fees = 30
+      ..tax = 100
+      ..directCost = 80;
+    draft.payment
+      ..type = PolicyPaymentPlanType.cashOnly
+      ..immediatePaymentMethod = 'CASH'
+      ..cashAmount = 2480;
+
+    final policyId = await save(draft);
+    final policy = (await db.query(
+      'insurance_policies',
+      where: 'id=?',
+      whereArgs: [policyId],
+      limit: 1,
+    ))
+        .single;
+    final clientId = (policy['client_id'] as num).toInt();
+    final receipt = (await db.query('receipt_headers', limit: 1)).single;
+
+    expect((policy['base_premium'] as num).toDouble(), 1800);
+    expect((policy['discount'] as num).toDouble(), 50);
+    expect((policy['fees'] as num).toDouble(), 30);
+    expect((policy['tax'] as num).toDouble(), 100);
+    expect((policy['direct_cost'] as num).toDouble(), 80);
+    expect((policy['commission_rate'] as num).toDouble(), 10);
+    expect((policy['commission_amount'] as num).toDouble(), 180);
+    expect((policy['net_sale_amount'] as num).toDouble(), 2480);
+    expect((policy['gross_profit'] as num).toDouble(), 300);
+    expect((receipt['total_amount'] as num).toDouble(), 2480);
+    expect((receipt['allocated_amount'] as num).toDouble(), 2480);
+
+    expect(await accountBalance('1000'), 2480);
+    expect(await accountBalance('1200.C$clientId'), 0);
+    expect(await accountBalance('4010'), -2380);
+    expect(await accountBalance('2105'), -100);
+    expect(await accountBalance('5010'), 2000);
+    expect(await accountBalance('5030'), 80);
+    expect(await accountBalance('2190'), -80);
+    expect(
+      await accountBalance(
+        '2200.S${company.supplierId.toString().padLeft(4, '0')}',
+      ),
+      -2000,
+    );
     expect(await glTotal('debit'), closeTo(await glTotal('credit'), 0.001));
   });
 

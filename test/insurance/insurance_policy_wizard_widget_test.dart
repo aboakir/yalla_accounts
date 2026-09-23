@@ -96,12 +96,18 @@ void main() {
     expect(find.text('تاريخ استحقاق الشيك مطلوب'), findsNothing);
   });
 
-  testWidgets('review shows purchase, sale, gross profit, and margin', (
+  testWidgets('review uses unified pricing fields and canonical profit', (
     tester,
   ) async {
     final draft = PolicyDraft()
       ..buyPrice = 800
-      ..sellPrice = 1000;
+      ..sellPrice = 1000
+      ..basePremium = 800
+      ..discount = 50
+      ..fees = 20
+      ..tax = 100
+      ..directCost = 30
+      ..commissionRate = 10;
 
     await tester.pumpWidget(
       testHost(
@@ -115,8 +121,14 @@ void main() {
     );
 
     expect(find.text('سعر الشراء: 800.00'), findsOneWidget);
-    expect(find.text('سعر البيع: 1000.00'), findsNWidgets(2));
-    expect(find.text('إجمالي الربح: 200.00'), findsOneWidget);
-    expect(find.text('هامش الربح: 20.00%'), findsOneWidget);
+    expect(find.text('سعر البيع الاسمي: 1000.00'), findsOneWidget);
+    expect(find.text('الخصم: 50.00'), findsOneWidget);
+    expect(find.text('الرسوم: 20.00'), findsOneWidget);
+    expect(find.text('الضريبة: 100.00'), findsOneWidget);
+    expect(find.text('قيمة العمولة: 80.00'), findsOneWidget);
+    expect(find.text('إجمالي المستحق على العميل: 1070.00'), findsNWidgets(2));
+    expect(find.text('صافي الإيراد دون الضريبة: 970.00'), findsOneWidget);
+    expect(find.text('إجمالي الربح: 140.00'), findsOneWidget);
+    expect(find.text('هامش الربح: 14.43%'), findsOneWidget);
   });
 }

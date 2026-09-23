@@ -3,11 +3,12 @@
 // Step 4 — التسعير والدفع (متناسق مع التحديثات الجديدة في PolicyDraft.payment)
 // ✅ يدعم: نقداً بالكامل / شيكات بالكامل / دفعة نقدية + شيكات / تقسيط بكمبيالة / تقسيط بدون كمبيالة
 // ✅ إدخال تفاصيل الشيكات + الأقساط + (اختياري) الكمبيالات
-// ✅ Validation صارم: مجموع المدفوعات = سعر بيع البوليصة
+// ✅ Validation صارم: مجموع المدفوعات = إجمالي المستحق على العميل من محرك التسعير المركزي
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_pricing_engine.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -30,6 +31,11 @@ class StepPricingPayment extends StatefulWidget {
 class _StepPricingPaymentState extends State<StepPricingPayment> {
   final _buyCtrl = TextEditingController();
   final _sellCtrl = TextEditingController();
+  final _basePremiumCtrl = TextEditingController();
+  final _discountCtrl = TextEditingController();
+  final _feesCtrl = TextEditingController();
+  final _taxCtrl = TextEditingController();
+  final _directCostCtrl = TextEditingController();
   final _cashCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
 
@@ -41,6 +47,11 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
 
     _buyCtrl.text = widget.draft.buyPrice?.toStringAsFixed(2) ?? '';
     _sellCtrl.text = widget.draft.sellPrice?.toStringAsFixed(2) ?? '';
+    _basePremiumCtrl.text = widget.draft.basePremium?.toStringAsFixed(2) ?? '';
+    _discountCtrl.text = widget.draft.discount?.toStringAsFixed(2) ?? '';
+    _feesCtrl.text = widget.draft.fees?.toStringAsFixed(2) ?? '';
+    _taxCtrl.text = widget.draft.tax?.toStringAsFixed(2) ?? '';
+    _directCostCtrl.text = widget.draft.directCost?.toStringAsFixed(2) ?? '';
     _cashCtrl.text = widget.draft.payment.cashAmount?.toStringAsFixed(2) ?? '';
     _notesCtrl.text = widget.draft.notes ?? '';
   }
@@ -49,6 +60,11 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   void dispose() {
     _buyCtrl.dispose();
     _sellCtrl.dispose();
+    _basePremiumCtrl.dispose();
+    _discountCtrl.dispose();
+    _feesCtrl.dispose();
+    _taxCtrl.dispose();
+    _directCostCtrl.dispose();
     _cashCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
@@ -61,6 +77,19 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   }
 
   String _money2(double v) => v.toStringAsFixed(2);
+
+  InsurancePricingResult? _pricingResult() {
+    if (widget.draft.buyPrice == null || widget.draft.sellPrice == null) {
+      return null;
+    }
+    try {
+      return widget.draft.calculatePricing();
+    } on ArgumentError {
+      return null;
+    } on StateError {
+      return null;
+    }
+  }
 
   // ----------------------------
   // Plan helpers
@@ -104,6 +133,11 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   void _syncTopToDraft() {
     widget.draft.buyPrice = _parseMoney(_buyCtrl.text);
     widget.draft.sellPrice = _parseMoney(_sellCtrl.text);
+    widget.draft.basePremium = _parseMoney(_basePremiumCtrl.text);
+    widget.draft.discount = _parseMoney(_discountCtrl.text);
+    widget.draft.fees = _parseMoney(_feesCtrl.text);
+    widget.draft.tax = _parseMoney(_taxCtrl.text);
+    widget.draft.directCost = _parseMoney(_directCostCtrl.text);
     widget.draft.notes =
         _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim();
 
@@ -183,10 +217,28 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   String? _validateAll(_) {
     _syncTopToDraft();
 
-    final sell = widget.draft.sellPrice;
-    if (sell == null || sell <= 0) return 'أدخل سعر بيع البوليصة';
+    final purchase = widget.draft.buyPrice;
+    final sale = widget.draft.sellPrice;
+    if (purchase == null || purchase < 0) return 'أدخل سعر شراء صحيح';
+    if (sale == null || sale <= 0) return 'أدخل سعر بيع البوليصة';
+    if ((widget.draft.discount ?? 0) > sale) {
+      return 'الخصم لا يمكن أن يتجاوز سعر البيع';
+    }
 
-    final issues = widget.draft.payment.validateAgainst(sell);
+    InsurancePricingResult pricing;
+    try {
+      pricing = widget.draft.calculatePricing();
+    } on ArgumentError {
+      return 'تحقق من قيم التسعير؛ جميع القيم يجب أن تكون غير سالبة';
+    } on StateError {
+      return 'أكمل بيانات التسعير المطلوبة';
+    }
+    if (pricing.customerTotalAmount <= 0) {
+      return 'إجمالي المستحق على العميل يجب أن يكون أكبر من صفر';
+    }
+
+    final issues =
+        widget.draft.payment.validateAgainst(pricing.customerTotalAmount);
     if (issues.isNotEmpty) return issues.first;
 
     return null;
@@ -196,12 +248,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   Widget build(BuildContext context) {
     final plan = widget.draft.payment;
 
-    final purchase = widget.draft.buyPrice;
-    final sale = widget.draft.sellPrice;
-    final profit = (sale != null && purchase != null) ? sale - purchase : null;
-    final margin = profit == null || sale == null || sale == 0
-        ? null
-        : (profit / sale) * 100;
+    final pricing = _pricingResult();
 
     return Form(
       key: widget.formKey,
@@ -217,7 +264,7 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
           const SizedBox(height: 14),
 
           // ----------------------------
-          // Pricing (buy/sell)
+          // Pricing — all values flow through InsurancePricingEngine.
           // ----------------------------
           AdaptiveRow(
             children: [
@@ -239,12 +286,67 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
             ],
           ),
           const SizedBox(height: 10),
-          _pricingSummary(
-            purchase: purchase,
-            sale: sale,
-            profit: profit,
-            margin: margin,
+          AdaptiveRow(
+            children: [
+              Expanded(
+                child: _moneyField(
+                  label: 'القسط الأساسي لاحتساب العمولة',
+                  controller: _basePremiumCtrl,
+                  onChanged: (_) => setState(_syncTopToDraft),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _moneyField(
+                  label: 'الخصم',
+                  controller: _discountCtrl,
+                  onChanged: (_) => setState(_syncTopToDraft),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 10),
+          AdaptiveRow(
+            children: [
+              Expanded(
+                child: _moneyField(
+                  label: 'الرسوم',
+                  controller: _feesCtrl,
+                  onChanged: (_) => setState(_syncTopToDraft),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _moneyField(
+                  label: 'الضريبة',
+                  controller: _taxCtrl,
+                  onChanged: (_) => setState(_syncTopToDraft),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          AdaptiveRow(
+            children: [
+              Expanded(
+                child: _moneyField(
+                  label: 'تكلفة مباشرة إضافية',
+                  controller: _directCostCtrl,
+                  onChanged: (_) => setState(_syncTopToDraft),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _readOnlyValueField(
+                  label: 'نسبة العمولة من المنتج',
+                  value:
+                      '${(widget.draft.commissionRate ?? 0).toStringAsFixed(2)}%',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _pricingSummary(pricing),
           const SizedBox(height: 18),
 
           // ----------------------------
@@ -452,11 +554,12 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
   Widget _totalsBox() {
     _syncTopToDraft();
 
-    final sell = widget.draft.sellPrice ?? 0.0;
+    final pricing = _pricingResult();
+    final target = pricing?.customerTotalAmount ?? 0.0;
     final total = widget.draft.payment.totalByType();
-    final diff = total - sell;
+    final diff = total - target;
 
-    final line1 = 'سعر البيع: ${_money2(sell)}';
+    final line1 = 'إجمالي المستحق على العميل: ${_money2(target)}';
     final line2 = 'مجموع المدفوعات: ${_money2(total)}';
     final line3 =
         diff.abs() <= 0.01 ? '✅ المجموع مطابق' : '⚠️ فرق: ${_money2(diff)}';
@@ -484,12 +587,11 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
     );
   }
 
-  Widget _pricingSummary({
-    required double? purchase,
-    required double? sale,
-    required double? profit,
-    required double? margin,
-  }) {
+  Widget _pricingSummary(InsurancePricingResult? pricing) {
+    String money(double value) => _money2(value);
+    String percent(bool calculable, double value) =>
+        calculable ? '${value.toStringAsFixed(2)}%' : 'غير قابل للحساب';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -498,30 +600,75 @@ class _StepPricingPaymentState extends State<StepPricingPayment> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'سعر الشراء: ${purchase == null ? '—' : _money2(purchase)}',
-            textAlign: TextAlign.right,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'سعر البيع: ${sale == null ? '—' : _money2(sale)}',
-            textAlign: TextAlign.right,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'إجمالي الربح: ${profit == null ? '—' : _money2(profit)}',
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'هامش الربح: ${margin == null ? '—' : '${margin.toStringAsFixed(2)}%'}',
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ],
+        children: pricing == null
+            ? const [
+                Text('أكمل بيانات التسعير لعرض النتيجة المحاسبية.',
+                    textAlign: TextAlign.right),
+              ]
+            : [
+                Text('سعر الشراء: ${money(pricing.purchasePrice)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text('سعر البيع الاسمي: ${money(pricing.salePrice)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text('الخصم: ${money(pricing.discount)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text('الرسوم: ${money(pricing.fees)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text('الضريبة: ${money(pricing.tax)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text(
+                    'إجمالي المستحق على العميل: ${money(pricing.customerTotalAmount)}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                    'صافي الإيراد دون الضريبة: ${money(pricing.netRevenueAmount)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text('التكلفة المباشرة الإضافية: ${money(pricing.directCost)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text(
+                    'المستحق لشركة التأمين: ${money(pricing.netInsurerPayable)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text(
+                    'العمولة (${pricing.commissionRate.toStringAsFixed(2)}%): ${money(pricing.commissionAmount)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text('إجمالي الربح: ${money(pricing.grossProfit)}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                    'Markup: ${percent(pricing.markupCalculable, pricing.markupPercent)}',
+                    textAlign: TextAlign.right),
+                const SizedBox(height: 4),
+                Text(
+                    'هامش الربح: ${percent(pricing.marginCalculable, pricing.marginPercent)}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+              ],
       ),
+    );
+  }
+
+  Widget _readOnlyValueField({
+    required String label,
+    required String value,
+  }) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+      child: Text(value, textAlign: TextAlign.right),
     );
   }
 

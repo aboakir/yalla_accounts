@@ -837,10 +837,26 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
   Widget _financeCard(Map<String, dynamic> r, List<String> images) {
     final buyPrice = _toDouble(r['buy_price'] ?? r['purchase_price']);
     final sellPrice = _toDouble(r['sell_price'] ?? r['sale_price']);
-    final profit = sellPrice - buyPrice;
+    final hasCanonicalPricing = r['net_sale_amount'] != null;
+    final customerTotal =
+        hasCanonicalPricing ? _toDouble(r['net_sale_amount']) : sellPrice;
+    final profit = r['gross_profit'] != null
+        ? _toDouble(r['gross_profit'])
+        : sellPrice - buyPrice;
+    final basePremium = _toDouble(r['base_premium']);
+    final discount = _toDouble(r['discount']);
+    final fees = _toDouble(r['fees']);
+    final tax = _toDouble(r['tax']);
+    final directCost = _toDouble(r['direct_cost']);
+    final commissionRate = _toDouble(r['commission_rate']);
+    final commissionAmount = _toDouble(r['commission_amount']);
+    final markup = _toDouble(r['markup_percent']);
+    final margin = _toDouble(r['margin_percent']);
+    final markupCalculable = buyPrice + directCost != 0;
+    final marginCalculable = customerTotal - tax != 0;
 
     final paid = _toDouble(r['paid_amount'] ?? r['paid'] ?? r['amount_paid']);
-    final remaining = (sellPrice > 0) ? (sellPrice - paid) : 0.0;
+    final remaining = customerTotal > 0 ? customerTotal - paid : 0.0;
 
     final status = _statusText(r);
     final statusColor = _statusColor(r);
@@ -912,13 +928,34 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
             ),
             const SizedBox(height: 10),
             _kv('شراء', buyPrice == 0 ? '—' : _currency.format(buyPrice)),
-            _kv('بيع', sellPrice == 0 ? '—' : _currency.format(sellPrice)),
+            _kv('بيع اسمي', sellPrice == 0 ? '—' : _currency.format(sellPrice)),
+            if (hasCanonicalPricing) ...[
+              _kv('القسط الأساسي', _currency.format(basePremium)),
+              _kv('الخصم', _currency.format(discount)),
+              _kv('الرسوم', _currency.format(fees)),
+              _kv('الضريبة', _currency.format(tax)),
+              _kv('تكلفة مباشرة', _currency.format(directCost)),
+              _kv('إجمالي العميل', _currency.format(customerTotal)),
+              _kv('العمولة',
+                  '${commissionRate.toStringAsFixed(2)}% / ${_currency.format(commissionAmount)}'),
+              _kv(
+                  'Markup',
+                  markupCalculable
+                      ? '${markup.toStringAsFixed(2)}%'
+                      : 'غير قابل للحساب'),
+              _kv(
+                  'هامش الربح',
+                  marginCalculable
+                      ? '${margin.toStringAsFixed(2)}%'
+                      : 'غير قابل للحساب'),
+            ],
             _kv(
-                'الربح',
-                (sellPrice == 0 && buyPrice == 0)
-                    ? '—'
-                    : _currency.format(profit)),
-            if (sellPrice > 0) ...[
+              'الربح',
+              (sellPrice == 0 && buyPrice == 0 && !hasCanonicalPricing)
+                  ? '—'
+                  : _currency.format(profit),
+            ),
+            if (customerTotal > 0) ...[
               _kv('المدفوع', _currency.format(paid)),
               _kv('المتبقي', _currency.format(remaining)),
             ],

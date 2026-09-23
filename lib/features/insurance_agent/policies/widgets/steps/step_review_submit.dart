@@ -5,12 +5,13 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 // ✅ يعرض Vehicle (الجديد + legacy)
 // ✅ يعرض Company/Dates/VIP
 // ✅ يعرض خطة الدفع الجديدة (نقد/شيكات/نقد+شيكات/تقسيط بكمبيالة/تقسيط بدون كمبيالة)
-// ✅ تحقق صارم: مجموع الدفعات يساوي سعر البيع + تحقق التواريخ + الحقول الأساسية
+// ✅ تحقق صارم: مجموع الدفعات يساوي إجمالي العميل من محرك التسعير المركزي + تحقق التواريخ + الحقول الأساسية
 // ✅ الحفظ مربوط بالخدمة المالية الفعلية مع تحقق كامل قبل الترحيل.
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_pricing_engine.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 
@@ -70,15 +71,9 @@ class StepReviewSubmit extends StatelessWidget {
     // ⚠️ لا نعدّل draft داخل build (منع side effects).
     // أي مزامنة legacy تتم في الـWizard قبل الدخول لهذه الخطوة.
 
-    final profit = (draft.sellPrice != null && draft.buyPrice != null)
-        ? (draft.sellPrice! - draft.buyPrice!)
-        : null;
-    final margin = profit == null || (draft.sellPrice ?? 0) == 0
-        ? null
-        : (profit / draft.sellPrice!) * 100;
     final coverageIds = _coverageIds();
-
     final issues = <String>[];
+    InsurancePricingResult? pricing;
 
     // -------------------------
     // Vehicle (prefer new, fallback legacy)
@@ -139,13 +134,30 @@ class StepReviewSubmit extends StatelessWidget {
     if (draft.buyPrice == null || draft.buyPrice! < 0) {
       issues.add('سعر شراء البوليصة مطلوب');
     }
+    if (draft.buyPrice != null &&
+        draft.buyPrice! >= 0 &&
+        draft.sellPrice != null &&
+        draft.sellPrice! > 0) {
+      try {
+        pricing = draft.calculatePricing();
+        if (pricing.customerTotalAmount <= 0) {
+          issues.add('إجمالي المستحق على العميل يجب أن يكون أكبر من صفر');
+        }
+      } on ArgumentError {
+        issues.add(
+            'قيم التسعير غير صحيحة؛ تحقق من الخصم والرسوم والضريبة والتكلفة المباشرة');
+      } on StateError {
+        issues.add('أكمل بيانات التسعير المطلوبة');
+      }
+    }
 
     // -------------------------
-    // Payment validation (new)
+    // Payment validation — against the canonical customer total.
     // -------------------------
-    final sell = draft.sellPrice ?? 0.0;
-    final paymentIssues =
-        (sell > 0) ? draft.payment.validateAgainst(sell) : <String>[];
+    final customerTotal = pricing?.customerTotalAmount ?? 0.0;
+    final paymentIssues = customerTotal > 0
+        ? draft.payment.validateAgainst(customerTotal)
+        : <String>[];
     issues.addAll(paymentIssues);
     final hasImmediate = draft.payment.type == PolicyPaymentPlanType.cashOnly ||
         draft.payment.type == PolicyPaymentPlanType.cashPlusCheques;
@@ -158,8 +170,8 @@ class StepReviewSubmit extends StatelessWidget {
 
     // Totals
     final totalPaid = draft.payment.totalByType();
-    final diff = totalPaid - sell;
-    final totalsOk = sell > 0 && diff.abs() <= 0.01;
+    final diff = totalPaid - customerTotal;
+    final totalsOk = customerTotal > 0 && diff.abs() <= 0.01;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -216,9 +228,20 @@ class StepReviewSubmit extends StatelessWidget {
           title: 'التسعير',
           lines: [
             'سعر الشراء: ${_money(draft.buyPrice)}',
-            'سعر البيع: ${_money(draft.sellPrice)}',
-            'إجمالي الربح: ${profit == null ? '—' : profit.toStringAsFixed(2)}',
-            'هامش الربح: ${margin == null ? '—' : '${margin.toStringAsFixed(2)}%'}',
+            'سعر البيع الاسمي: ${_money(draft.sellPrice)}',
+            'القسط الأساسي: ${_money(draft.basePremium ?? 0)}',
+            'الخصم: ${_money(draft.discount ?? 0)}',
+            'الرسوم: ${_money(draft.fees ?? 0)}',
+            'الضريبة: ${_money(draft.tax ?? 0)}',
+            'التكلفة المباشرة الإضافية: ${_money(draft.directCost ?? 0)}',
+            'نسبة العمولة من المنتج: ${(draft.commissionRate ?? 0).toStringAsFixed(2)}%',
+            'قيمة العمولة: ${pricing == null ? '—' : _money(pricing.commissionAmount)}',
+            'إجمالي المستحق على العميل: ${pricing == null ? '—' : _money(pricing.customerTotalAmount)}',
+            'صافي الإيراد دون الضريبة: ${pricing == null ? '—' : _money(pricing.netRevenueAmount)}',
+            'المستحق لشركة التأمين: ${pricing == null ? '—' : _money(pricing.netInsurerPayable)}',
+            'إجمالي الربح: ${pricing == null ? '—' : _money(pricing.grossProfit)}',
+            'Markup: ${pricing == null ? '—' : pricing.markupCalculable ? '${pricing.markupPercent.toStringAsFixed(2)}%' : 'غير قابل للحساب'}',
+            'هامش الربح: ${pricing == null ? '—' : pricing.marginCalculable ? '${pricing.marginPercent.toStringAsFixed(2)}%' : 'غير قابل للحساب'}',
           ],
         ),
         const SizedBox(height: 10),
@@ -237,7 +260,7 @@ class StepReviewSubmit extends StatelessWidget {
         _paymentDetailsBox(draft),
         const SizedBox(height: 10),
         _totalsBox(
-          sell: sell,
+          customerTotal: customerTotal,
           totalPaid: totalPaid,
           diff: diff,
           ok: totalsOk,
@@ -380,12 +403,13 @@ class StepReviewSubmit extends StatelessWidget {
       );
 
   Widget _totalsBox({
-    required double sell,
+    required double customerTotal,
     required double totalPaid,
     required double diff,
     required bool ok,
   }) {
-    final line1 = 'سعر البيع: ${sell.toStringAsFixed(2)}';
+    final line1 =
+        'إجمالي المستحق على العميل: ${customerTotal.toStringAsFixed(2)}';
     final line2 = 'مجموع المدفوعات: ${totalPaid.toStringAsFixed(2)}';
     final line3 = ok
         ? '✅ المجموع مطابق'
