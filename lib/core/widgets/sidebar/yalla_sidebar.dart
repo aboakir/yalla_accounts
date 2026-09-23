@@ -146,6 +146,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rInsuranceFinance = AppRoutes.insuranceAgentFinance;
   static const rInsuranceAlerts = AppRoutes.insuranceAgentAlerts;
   static const rInsuranceReports = AppRoutes.insuranceAgentReports;
+  static const rInsuranceIntelligence = AppRoutes.insuranceAgentIntelligence;
   static const rInsurancePoliciesList = AppRoutes.insurancePoliciesList;
   static const rInsuranceContacts = AppRoutes.insuranceAgentContacts;
   static const rInsuranceClaims = AppRoutes.insuranceAgentClaims;
@@ -572,6 +573,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       ),
       (Icons.account_balance_wallet, 'المالية', rInsuranceFinance),
       (Icons.notifications_active, 'التنبيهات والمتابعة', rInsuranceAlerts),
+      (Icons.insights_outlined, 'ذكاء المبيعات', rInsuranceIntelligence),
       (Icons.print, 'التقارير والطباعة', rInsuranceReports),
     ].where((e) => _matches(e.$2) && _isRouteVisible(e.$3)).toList();
 
