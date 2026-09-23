@@ -240,4 +240,60 @@ void main() {
       hasLength(1),
     );
   });
+
+  test('claim links only a canonical repair for the insured vehicle', () async {
+    final claim = await InsuranceClaimService.createClaim(
+      policyId: policyId,
+      database: db,
+    );
+    final registry = await db.query(
+      'sync_entity_registry',
+      columns: const ['entity_uuid'],
+      where: 'entity_type=? AND local_id=?',
+      whereArgs: ['vehicle', claim.vehicleId.toString()],
+      limit: 1,
+    );
+    expect(registry, hasLength(1));
+    final vehicleUuid = registry.single['entity_uuid'].toString();
+
+    await db.insert('repairs', {
+      'id': 'REPAIR-CLAIM-1',
+      'vehicleNumber': 'CLAIM-001',
+      'vehicle_entity_uuid': vehicleUuid,
+      'beneficiaryName': 'Claim Customer',
+      'vehicleStatus': 'received',
+      'receivedDate': '2026-09-22T10:00:00Z',
+      'is_active': 1,
+    });
+    await db.insert('repairs', {
+      'id': 'REPAIR-OTHER-1',
+      'vehicleNumber': 'OTHER-999',
+      'vehicle_entity_uuid': 'vehicle-other-uuid',
+      'beneficiaryName': 'Other Customer',
+      'vehicleStatus': 'received',
+      'receivedDate': '2026-09-22T11:00:00Z',
+      'is_active': 1,
+    });
+
+    final candidates = await InsuranceClaimService.eligibleRepairsForClaim(
+        claim.id,
+        executor: db);
+    expect(candidates.map((row) => row.repairId), ['REPAIR-CLAIM-1']);
+
+    await InsuranceClaimService.linkRepair(
+      claimId: claim.id,
+      repairId: 'REPAIR-CLAIM-1',
+      database: db,
+    );
+    expect(await InsuranceClaimService.repairId(claim.id, executor: db),
+        'REPAIR-CLAIM-1');
+    await expectLater(
+      InsuranceClaimService.linkRepair(
+        claimId: claim.id,
+        repairId: 'REPAIR-OTHER-1',
+        database: db,
+      ),
+      throwsStateError,
+    );
+  });
 }

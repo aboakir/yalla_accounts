@@ -252,18 +252,61 @@ class _InsuranceClaimsScreenState extends State<InsuranceClaimsScreen> {
     }
   }
 
-  Future<void> _linkWorkshop(InsuranceClaimRecord claim) async {
-    final reference = await _textPrompt(
-      title: 'ربط المطالبة بورشة',
-      label: 'رقم أمر الإصلاح أو مرجع الورشة',
-    );
-    if (reference == null || reference.trim().isEmpty) return;
+  Future<void> _linkRepair(InsuranceClaimRecord claim) async {
     try {
-      await InsuranceClaimService.linkWorkshop(
-        claimId: claim.id,
-        workshopRef: reference,
+      final repairs =
+          await InsuranceClaimService.eligibleRepairsForClaim(claim.id);
+      if (!mounted) return;
+      if (repairs.isEmpty) {
+        _notice('لا يوجد ملف إصلاح نشط لنفس مركبة المؤمن له', error: true);
+        return;
+      }
+      var selectedId = repairs.first.repairId;
+      final selected = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AdaptiveAlertDialog(
+            title: const Text('ربط المطالبة بملف إصلاح'),
+            content: DropdownButtonFormField<String>(
+              value: selectedId,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'ملف الإصلاح'),
+              items: repairs
+                  .map((repair) => DropdownMenuItem<String>(
+                        value: repair.repairId,
+                        child: Text(
+                          '${repair.vehicleNumber} • ${repair.beneficiaryName ?? repair.repairId}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ))
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value != null) {
+                  setDialogState(() => selectedId = value);
+                }
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(dialogContext, selectedId),
+                icon: const Icon(Icons.link_rounded),
+                label: const Text('ربط'),
+              ),
+            ],
+          ),
+        ),
       );
-      _notice('تم ربط المطالبة بالورشة');
+      if (selected == null) return;
+      await InsuranceClaimService.linkRepair(
+        claimId: claim.id,
+        repairId: selected,
+      );
+      await _load();
+      _notice('تم ربط المطالبة بملف الإصلاح');
     } catch (error) {
       _notice(UserFacingError.message(error), error: true);
     }
@@ -304,12 +347,12 @@ class _InsuranceClaimsScreenState extends State<InsuranceClaimsScreen> {
       final values = await Future.wait([
         InsuranceClaimService.listDocuments(claim.id),
         InsuranceClaimService.timeline(claim.id),
-        InsuranceClaimService.workshopRef(claim.id),
+        InsuranceClaimService.repairId(claim.id),
       ]);
       if (!mounted) return;
       final documents = values[0] as List<InsuranceClaimDocumentRecord>;
       final timeline = values[1] as List<InsuranceClaimTimelineEvent>;
-      final workshop = values[2] as String?;
+      final repairId = values[2] as String?;
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
@@ -327,7 +370,7 @@ class _InsuranceClaimsScreenState extends State<InsuranceClaimsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text('الحالة: ${_labels[claim.status] ?? claim.status}'),
-                  Text('مرجع الورشة: ${workshop ?? 'غير مربوط'}'),
+                  Text('ملف الإصلاح: ${repairId ?? 'غير مربوط'}'),
                   const Divider(height: 32),
                   Text('المستندات (${documents.length})',
                       style: Theme.of(context).textTheme.titleMedium),
@@ -443,8 +486,8 @@ class _InsuranceClaimsScreenState extends State<InsuranceClaimsScreen> {
                                           _changeStatus(claim);
                                         } else if (action == 'attach') {
                                           _attach(claim);
-                                        } else if (action == 'workshop') {
-                                          _linkWorkshop(claim);
+                                        } else if (action == 'repair') {
+                                          _linkRepair(claim);
                                         } else {
                                           _details(claim);
                                         }
@@ -457,8 +500,8 @@ class _InsuranceClaimsScreenState extends State<InsuranceClaimsScreen> {
                                             value: 'attach',
                                             child: Text('إضافة مستند')),
                                         PopupMenuItem(
-                                            value: 'workshop',
-                                            child: Text('ربط بالورشة')),
+                                            value: 'repair',
+                                            child: Text('ربط بملف إصلاح')),
                                         PopupMenuItem(
                                             value: 'details',
                                             child: Text('السجل والتفاصيل')),
