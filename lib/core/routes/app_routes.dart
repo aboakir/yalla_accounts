@@ -31,6 +31,13 @@ import 'package:yalla_accounts/features/insurance_agent/finance/screens/insuranc
 import 'package:yalla_accounts/features/insurance_agent/reports/screens/insurance_reports_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/claims/screens/insurance_claims_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/master_data/screens/insurance_products_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/master_data/screens/insurance_master_data_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/renewals/screens/insurance_renewals_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/quotes/screens/insurance_quotes_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/intelligence/screens/insurance_sales_intelligence_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/finance/screens/insurance_company_settlements_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/contacts/screens/insurance_contact_center_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/policies/screens/insurance_endorsements_screen.dart';
 
 // ===== Employees =====
 import 'package:yalla_accounts/features/employees/screens/employee_dashboard_screen.dart';
@@ -310,6 +317,14 @@ class AppRoutes {
   static const insuranceAgentContacts = '/insurance-agent/contacts';
   static const insuranceAgentClaims = '/insurance-agent/claims';
   static const insuranceAgentProducts = '/insurance-agent/products';
+  static const insuranceAgentMasterData = '/insurance-agent/master-data';
+  static const insuranceAgentRenewals = '/insurance-agent/renewals';
+  static const insuranceAgentQuotes = '/insurance-agent/quotes';
+  static const insuranceAgentIntelligence = '/insurance-agent/intelligence';
+  static const insuranceAgentSettlements = '/insurance-agent/settlements';
+  static const insuranceAgentContactCenter = '/insurance-agent/contact-center';
+  static const insurancePolicyEndorsements =
+      '/insurance-agent/policies/endorsements';
 
   // ===== Reports =====
   static const reportsDashboard = '/reports';
@@ -450,6 +465,13 @@ class AppRoutes {
     insuranceAgentContacts,
     insuranceAgentClaims,
     insuranceAgentProducts,
+    insuranceAgentMasterData,
+    insuranceAgentRenewals,
+    insuranceAgentQuotes,
+    insuranceAgentIntelligence,
+    insuranceAgentSettlements,
+    insuranceAgentContactCenter,
+    insurancePolicyEndorsements,
     reportsDashboard,
     reportsTrialBalance,
     reportsARAging,
@@ -1065,6 +1087,42 @@ class AppRoutes {
     }
     if (name == insuranceAgentProducts) {
       return _page(settings, const InsuranceProductsScreen());
+    }
+    if (name == insuranceAgentMasterData) {
+      return _page(settings, const InsuranceMasterDataScreen());
+    }
+    if (name == insuranceAgentRenewals) {
+      return _page(settings, const InsuranceRenewalsScreen());
+    }
+    if (name == insuranceAgentQuotes) {
+      return _page(settings, const InsuranceQuotesScreen());
+    }
+    if (name == insuranceAgentIntelligence) {
+      return _page(settings, const InsuranceSalesIntelligenceScreen());
+    }
+    if (name == insuranceAgentSettlements) {
+      return _page(settings, const InsuranceCompanySettlementsScreen());
+    }
+    if (name == insuranceAgentContactCenter) {
+      return _page(settings, const InsuranceContactCenterScreen());
+    }
+    if (name == insurancePolicyEndorsements) {
+      final args = settings.arguments;
+      final policyId = args is Map
+          ? args['policyId']?.toString()
+          : (args is String ? args : null);
+      if (policyId != null && policyId.trim().isNotEmpty) {
+        return _page(
+          settings,
+          InsurancePolicyEndorsementsScreen(policyId: policyId.trim()),
+        );
+      }
+      return _fallback(
+        settings,
+        insurancePoliciesList,
+        const PoliciesListScreen(),
+        'تعذر فتح ملحقات الوثيقة لأن رقم الوثيقة غير متاح.',
+      );
     }
 
     // Inventory
