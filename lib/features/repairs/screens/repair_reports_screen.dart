@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/release/release_scope_config.dart';
@@ -119,7 +120,7 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
         ],
       ),
     );
-    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+    await YallaPdfPrintService.layoutPdf(onLayout: (format) async => pdf.save());
   }
 
   @override

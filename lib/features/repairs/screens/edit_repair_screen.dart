@@ -9,7 +9,7 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/core/services/image_storage_service.dart';
@@ -595,7 +595,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
               } else if (value == 'pdf') {
                 final pdf =
                     await RepairPdfGenerator.generate(_buildUpdatedRepair());
-                await Printing.layoutPdf(onLayout: (_) => pdf);
+                await YallaPdfPrintService.layoutPdf(onLayout: (_) => pdf);
               }
             },
             itemBuilder: (_) => const [
@@ -901,7 +901,7 @@ class _EditRepairScreenState extends State<EditRepairScreen> {
             onPressed: () async {
               final pdf =
                   await RepairPdfGenerator.generate(_buildUpdatedRepair());
-              await Printing.layoutPdf(onLayout: (_) => pdf);
+              await YallaPdfPrintService.layoutPdf(onLayout: (_) => pdf);
             },
           ),
           IconButton(

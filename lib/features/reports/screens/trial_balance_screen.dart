@@ -21,7 +21,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -281,7 +281,7 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
         ),
       );
 
-      await Printing.layoutPdf(
+      await YallaPdfPrintService.layoutPdf(
         name: 'trial_balance.pdf',
         onLayout: (_) async => doc.save(),
       );

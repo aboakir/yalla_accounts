@@ -13,7 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:yalla_accounts/core/services/image_storage_service.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
@@ -637,7 +637,7 @@ class _RepairDetailsScreenState extends State<RepairDetailsScreen> {
   Future<void> _printPdf() async {
     try {
       final bytes = await RepairPdfGenerator.generate(_repair);
-      await Printing.layoutPdf(onLayout: (_) async => bytes);
+      await YallaPdfPrintService.layoutPdf(onLayout: (_) async => bytes);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

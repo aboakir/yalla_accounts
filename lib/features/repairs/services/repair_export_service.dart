@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 
 class RepairExportService {
@@ -56,6 +57,6 @@ class RepairExportService {
       ),
     );
 
-    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+    await YallaPdfPrintService.layoutPdf(onLayout: (format) async => pdf.save());
   }
 }

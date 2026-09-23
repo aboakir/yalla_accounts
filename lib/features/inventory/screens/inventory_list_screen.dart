@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
@@ -254,7 +254,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
           ],
         ],
       );
-      await Printing.layoutPdf(onLayout: (_) async => bytes);
+      await YallaPdfPrintService.layoutPdf(onLayout: (_) async => bytes);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

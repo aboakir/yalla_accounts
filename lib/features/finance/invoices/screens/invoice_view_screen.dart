@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
@@ -287,7 +288,7 @@ class _InvoiceViewScreenState extends State<InvoiceViewScreen> {
       );
       final fileName = 'invoice_${widget.invoiceId}.pdf';
       if (action == 'print') {
-        await Printing.layoutPdf(onLayout: (_) async => bytes);
+        await YallaPdfPrintService.layoutPdf(onLayout: (_) async => bytes);
       } else if (action == 'share') {
         await Printing.sharePdf(bytes: bytes, filename: fileName);
       } else {

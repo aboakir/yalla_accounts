@@ -3,6 +3,7 @@ import 'package:excel/excel.dart' as ex;
 import 'package:intl/intl.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:yalla_accounts/features/employees/models/attendance.dart';
 import 'package:yalla_accounts/features/employees/models/employee.dart';
@@ -59,7 +60,7 @@ class AttendanceExportService {
       ),
     );
 
-    await Printing.layoutPdf(onLayout: (format) => pdf.save());
+    await YallaPdfPrintService.layoutPdf(onLayout: (format) => pdf.save());
   }
 
   /// تصدير تقرير الحضور الشهري إلى Excel

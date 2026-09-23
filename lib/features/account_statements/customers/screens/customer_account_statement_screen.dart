@@ -2,6 +2,7 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 import 'package:yalla_accounts/features/account_statements/customers/services/customer_account_statement_service.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
@@ -59,7 +60,7 @@ class _CustomerAccountStatementScreenState
           ? 'customer_statement_${widget.clientId}_detailed.pdf'
           : 'customer_statement_${widget.clientId}_summary.pdf';
       if (action == 'print') {
-        await Printing.layoutPdf(onLayout: (_) async => bytes);
+        await YallaPdfPrintService.layoutPdf(onLayout: (_) async => bytes);
       } else if (action == 'share') {
         await Printing.sharePdf(bytes: bytes, filename: fileName);
       } else {

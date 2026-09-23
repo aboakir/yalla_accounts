@@ -5,6 +5,7 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_print_service.dart';
 
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
@@ -114,7 +115,7 @@ class _ChequesReportScreenState extends State<ChequesReportScreen> {
       if (Platform.isIOS || Platform.isAndroid) {
         await Printing.sharePdf(bytes: bytes, filename: filename);
       } else {
-        await Printing.layoutPdf(name: filename, onLayout: (_) async => bytes);
+        await YallaPdfPrintService.layoutPdf(name: filename, onLayout: (_) async => bytes);
       }
     } catch (e) {
       if (mounted) {
