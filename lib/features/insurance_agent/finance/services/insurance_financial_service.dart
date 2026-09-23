@@ -1051,6 +1051,15 @@ class InsuranceFinancialService {
           throw StateError(
               'Previous policy renewal link could not be recorded.');
         }
+        await txn.update(
+          'insurance_alerts',
+          {
+            'status': 'RESOLVED',
+            'updated_at': now,
+          },
+          where: 'policy_id=? AND alert_type=? AND status=?',
+          whereArgs: [previousPolicyId, 'POLICY_EXPIRY', 'OPEN'],
+        );
       }
 
       await txn.insert(

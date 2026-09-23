@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/features/insurance_agent/alerts/services/insurance_alert_center_service.dart';
 import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_financial_service.dart';
 import 'package:yalla_accounts/features/insurance_agent/renewals/services/insurance_renewal_service.dart';
 
@@ -180,6 +181,21 @@ void main() {
     expect(candidate.nextContactAt, nextAt);
     expect(candidate.outcome, 'Quote requested');
     expect(candidate.isExpired, isTrue);
+
+    final followUpAlerts = await InsuranceAlertCenterService.listAlerts(
+      asOf: DateTime(2025, 12, 1),
+      window: InsuranceAlertWindow.next14,
+      executor: db,
+    );
+    final renewalFollowUps = followUpAlerts
+        .where(
+          (alert) =>
+              alert.type == 'RENEWAL_FOLLOW_UP' &&
+              alert.policyId == old.policyId,
+        )
+        .toList();
+    expect(renewalFollowUps, hasLength(1));
+    expect(renewalFollowUps.single.dueAt, nextAt);
   });
 
   test('renewal links old and new policy atomically through previousPolicyId',
@@ -190,6 +206,15 @@ void main() {
       startDate: DateTime(2026, 1, 1),
       endDate: DateTime(2026, 12, 31),
     );
+    await InsuranceRenewalService.updateFollowUp(
+      policyId: old.policyId,
+      status: 'CONTACTED',
+      lastContactAt: DateTime(2026, 12, 10),
+      nextContactAt: DateTime(2026, 12, 15),
+      outcome: 'Renewal confirmed',
+      database: db,
+    );
+
     final renewed = await issue(
       operationId: 'REN-LINK-NEW',
       policyNumber: 'REN-LINK-NEW-001',
@@ -216,6 +241,30 @@ void main() {
     expect(oldCandidate['status'], 'RENEWED');
     expect(oldCandidate['outcome'], 'RENEWED');
     expect(oldCandidate['new_policy_id'], renewed.policyId);
+
+    final oldAlerts = await db.query(
+      'insurance_alerts',
+      columns: const ['status'],
+      where: 'policy_id=? AND alert_type=?',
+      whereArgs: [old.policyId, 'POLICY_EXPIRY'],
+    );
+    expect(oldAlerts, hasLength(7));
+    expect(
+      oldAlerts.every((row) => row['status'] == 'RESOLVED'),
+      isTrue,
+    );
+    final visibleAfterRenewal = await InsuranceAlertCenterService.listAlerts(
+      asOf: DateTime(2026, 12, 15),
+      window: InsuranceAlertWindow.all,
+      executor: db,
+    );
+    expect(
+      visibleAfterRenewal.where(
+        (alert) =>
+            alert.type == 'RENEWAL_FOLLOW_UP' && alert.policyId == old.policyId,
+      ),
+      isEmpty,
+    );
 
     final newCandidate = (await db.query(
       'insurance_renewals',

@@ -48,6 +48,7 @@ class InsuranceAlertCenterService {
     'MISSING_DOCUMENTS',
     'PENDING_SETTLEMENT',
     'CUSTOMER_FOLLOW_UP',
+    'RENEWAL_FOLLOW_UP',
     'QUOTE_RESPONSE',
   };
 
@@ -143,6 +144,7 @@ class InsuranceAlertCenterService {
     await _appendClaims(db, reference, add);
     await _appendSettlements(db, reference, add);
     await _appendProspectFollowUps(db, reference, add);
+    await _appendRenewalFollowUps(db, reference, add);
     await _appendQuoteResponses(db, reference, add);
 
     final result = byKey.values.toList(growable: false)
@@ -352,6 +354,45 @@ class InsuranceAlertCenterService {
         message: 'Customer follow-up is due',
         status: 'OPEN',
         partyId: _clean(row['party_id']),
+        sourceId: id,
+      ));
+    }
+  }
+
+  static Future<void> _appendRenewalFollowUps(
+    DatabaseExecutor db,
+    DateTime reference,
+    void Function(InsuranceAlertItem) add,
+  ) async {
+    final rows = await db.rawQuery('''
+      SELECT r.id,r.policy_id,r.next_contact_at,r.status,
+             p.policy_number,p.insured_party_id,c.name customer_name
+      FROM insurance_renewals r
+      LEFT JOIN insurance_policies p ON p.id=r.policy_id
+      LEFT JOIN clients c ON c.id=p.client_id
+      WHERE r.next_contact_at IS NOT NULL
+        AND TRIM(r.next_contact_at)<>''
+        AND UPPER(COALESCE(r.status,'PENDING')) NOT IN
+          ('RENEWED','RENEWED_COMPETITOR','REJECTED','CANCELLED')
+    ''');
+    for (final row in rows) {
+      final dueAt = _date(row['next_contact_at']);
+      if (dueAt == null) continue;
+      final id = row['id'].toString();
+      final policyId = _clean(row['policy_id']);
+      final label = _clean(row['policy_number']) ??
+          _clean(row['customer_name']) ??
+          policyId ??
+          id;
+      add(InsuranceAlertItem(
+        key: 'RENEWAL:FOLLOWUP:$id',
+        type: 'RENEWAL_FOLLOW_UP',
+        dueAt: dueAt,
+        severity: _severityFor(dueAt, reference),
+        message: 'Renewal follow-up is due — $label',
+        status: 'OPEN',
+        partyId: _clean(row['insured_party_id']),
+        policyId: policyId,
         sourceId: id,
       ));
     }
