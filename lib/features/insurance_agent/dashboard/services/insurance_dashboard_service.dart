@@ -139,7 +139,7 @@ class InsuranceDashboardService {
 
   static Future<List<InsurancePolicyOverview>> policies({
     String query = '',
-    int limit = 100,
+    int? limit = 100,
     DatabaseExecutor? executor,
   }) async {
     await AuthorizationGuard.require(PermissionKeys.insuranceView);
@@ -152,7 +152,8 @@ class InsuranceDashboardService {
              OR document_number LIKE ? OR company_name LIKE ?''';
     final args =
         cleaned.isEmpty ? <Object?>[] : List<Object?>.filled(6, '%$cleaned%');
-    args.add(limit);
+    final limitClause = limit == null ? '' : 'LIMIT ?';
+    if (limit != null) args.add(limit);
     final rows = await db.rawQuery('''
       SELECT id,COALESCE(NULLIF(TRIM(policy_number),''),
                          NULLIF(TRIM(document_number),''),id) number,
@@ -161,7 +162,7 @@ class InsuranceDashboardService {
       FROM insurance_policies
       $where
       ORDER BY date(end_date) ASC, updated_at DESC
-      LIMIT ?
+      $limitClause
     ''', args);
     return rows.map((row) {
       final rawEnd = row['end_date']?.toString() ?? '';
