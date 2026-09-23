@@ -272,7 +272,7 @@ class VehicleService {
     final ownerPartyUuid = await _ownerPartyUuidForClient(db, clientId);
     final existing = await db.query(
       VehicleTables.tableName,
-      columns: const ['id', 'is_active'],
+      columns: const ['id', 'is_active', 'client_id'],
       where: 'normalized_number = ?',
       whereArgs: [normalized],
       limit: 1,
@@ -283,6 +283,15 @@ class VehicleService {
     if (existing.isNotEmpty) {
       if (existing.first['is_active'] == 0) {
         throw StateError('VEHICLE_TOMBSTONE_RESTORE_REQUIRED');
+      }
+      final rawClientId = existing.first['client_id'];
+      final existingClientId = rawClientId is num
+          ? rawClientId.toInt()
+          : int.tryParse(rawClientId?.toString() ?? '');
+      if (existingClientId != null &&
+          clientId != null &&
+          existingClientId != clientId) {
+        throw StateError('VEHICLE_OWNER_CONFLICT');
       }
       final rawId = existing.first['id'];
       final id = rawId is int
