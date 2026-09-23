@@ -85,6 +85,19 @@ void main() {
       expect(screen, contains('_equity'));
     });
 
+    test('trial balance exports visible GL rows to CSV and printable PDF', () {
+      final screen = read(
+        'lib/features/reports/screens/trial_balance_screen.dart',
+      );
+      expect(screen, contains('Future<void> _exportCsv()'));
+      expect(screen, contains('Future<void> _exportPdf()'));
+      expect(screen, contains('Share.shareXFiles'));
+      expect(screen, contains('Printing.layoutPdf'));
+      expect(screen, contains('_rows'));
+      expect(screen, contains('_sumDebit'));
+      expect(screen, contains('_sumCredit'));
+    });
+
     test('GL reports use half-open whole-day boundaries', () {
       final gl = read('lib/core/services/reports_gl_service.dart');
       expect(gl, contains('DateTime(value.year, value.month, value.day)'));

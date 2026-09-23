@@ -74,6 +74,9 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
   double _sumLiab = 0.0;
   double _sumEquity = 0.0;
 
+  static const _arabicTtfPath = 'fonts/Cairo/Cairo-Regular.ttf';
+  pw.Font? _pdfArabicFont;
+
   // أرباح الفترة المضافة إلى حقوق الملكية
 
   @override
@@ -336,6 +339,192 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
     );
   }
 
+  bool get _hasExportData =>
+      _assets.isNotEmpty || _liabilities.isNotEmpty || _equity.isNotEmpty;
+
+  String _csvCell(String value) => '"${value.replaceAll('"', '""')}"';
+
+  void _appendCsvSection(StringBuffer sb, String section, List<_Row> rows) {
+    for (final row in rows) {
+      sb.writeln([
+        _csvCell(section),
+        _csvCell(row.code),
+        _csvCell(row.name),
+        row.amount.toStringAsFixed(2),
+      ].join(','));
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    try {
+      if (!_hasExportData) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد بيانات للتصدير')),
+        );
+        return;
+      }
+
+      final difference = _sumAssets - (_sumLiab + _sumEquity);
+      final sb = StringBuffer()..writeln('section,code,account,amount');
+      _appendCsvSection(sb, 'Assets', _assets);
+      _appendCsvSection(sb, 'Liabilities', _liabilities);
+      _appendCsvSection(sb, 'Equity', _equity);
+      sb
+        ..writeln('Summary,,Assets,${_sumAssets.toStringAsFixed(2)}')
+        ..writeln('Summary,,Liabilities,${_sumLiab.toStringAsFixed(2)}')
+        ..writeln('Summary,,Equity,${_sumEquity.toStringAsFixed(2)}')
+        ..writeln('Summary,,Difference,${difference.toStringAsFixed(2)}');
+
+      final dir =
+          await getDownloadsDirectory() ?? await getTemporaryDirectory();
+      final file = File('${dir.path}/balance_sheet.csv');
+      await file.writeAsString(sb.toString());
+      await Share.shareXFiles([XFile(file.path)], text: 'Balance Sheet');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}'),
+        ),
+      );
+    }
+  }
+
+  Future<pw.Font> _loadPdfArabicFont() async {
+    if (_pdfArabicFont != null) return _pdfArabicFont!;
+    try {
+      final data = await rootBundle.load(_arabicTtfPath);
+      _pdfArabicFont = pw.Font.ttf(data);
+    } catch (_) {
+      _pdfArabicFont = pw.Font.helvetica();
+    }
+    return _pdfArabicFont!;
+  }
+
+  pw.Widget _pdfSection(pw.Font font, String title, List<_Row> rows) {
+    final sum = rows.fold<double>(0, (value, row) => value + row.amount);
+    final tableRows = <pw.TableRow>[
+      pw.TableRow(
+        decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+        children: [
+          for (final label in const ['الكود', 'الحساب', 'المبلغ'])
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(
+                label,
+                textDirection: pw.TextDirection.rtl,
+                style: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
+              ),
+            ),
+        ],
+      ),
+      ...rows.map(
+        (row) => pw.TableRow(
+          children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(row.code.isEmpty ? '—' : row.code, style: pw.TextStyle(font: font)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(row.name, textDirection: pw.TextDirection.rtl, style: pw.TextStyle(font: font)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(row.amount.toStringAsFixed(2), style: pw.TextStyle(font: font)),
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: [
+        pw.Row(
+          children: [
+            pw.Text(
+              title,
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold, fontSize: 13),
+            ),
+            pw.Spacer(),
+            pw.Text(sum.toStringAsFixed(2), style: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold)),
+          ],
+        ),
+        pw.SizedBox(height: 5),
+        pw.Table(
+          border: pw.TableBorder.all(color: PdfColors.grey400, width: .4),
+          columnWidths: const {
+            0: pw.FlexColumnWidth(2),
+            1: pw.FlexColumnWidth(6),
+            2: pw.FlexColumnWidth(2),
+          },
+          children: tableRows,
+        ),
+        pw.SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      if (!_hasExportData) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد بيانات للتصدير')),
+        );
+        return;
+      }
+
+      final font = await _loadPdfArabicFont();
+      final doc = pw.Document();
+      final difference = _sumAssets - (_sumLiab + _sumEquity);
+      final periodText = _periodMode
+          ? 'الفترة: ${_from == null ? '—' : _df.format(_from!)} — ${_to == null ? '—' : _df.format(_to!)}'
+          : 'حتى تاريخ: ${_to == null ? '—' : _df.format(_to!)}';
+
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(28),
+          build: (_) => [
+            pw.Text(
+              'الميزانية العمومية',
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold, fontSize: 18),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Text(periodText, textDirection: pw.TextDirection.rtl, style: pw.TextStyle(font: font)),
+            pw.SizedBox(height: 14),
+            _pdfSection(font, 'الأصول', _assets),
+            _pdfSection(font, 'الخصوم', _liabilities),
+            _pdfSection(font, 'حقوق الملكية', _equity),
+            pw.Divider(),
+            pw.Text(
+              'الأصول: ${_sumAssets.toStringAsFixed(2)} | الخصوم: ${_sumLiab.toStringAsFixed(2)} | حقوق الملكية: ${_sumEquity.toStringAsFixed(2)} | الفرق: ${difference.toStringAsFixed(2)}',
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+
+      await Printing.layoutPdf(
+        name: 'balance_sheet.pdf',
+        onLayout: (_) async => doc.save(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('فشل تصدير PDF: ${UserFacingError.message(e)}'),
+        ),
+      );
+    }
+  }
+
   // ─────────────── UI ───────────────
   @override
   Widget build(BuildContext context) {
@@ -448,6 +637,16 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
             tooltip: 'مسح الفلاتر',
             onPressed: _clearFilters,
             icon: const Icon(Icons.filter_alt_off, color: Colors.white),
+          ),
+          IconButton(
+            tooltip: 'تصدير CSV',
+            onPressed: _loading ? null : _exportCsv,
+            icon: const Icon(Icons.table_view_outlined, color: Colors.white),
+          ),
+          IconButton(
+            tooltip: 'طباعة / PDF',
+            onPressed: _loading ? null : _exportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.white),
           ),
         ],
       ),

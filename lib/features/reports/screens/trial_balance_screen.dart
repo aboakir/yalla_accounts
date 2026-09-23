@@ -17,7 +17,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -52,6 +56,8 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
 
   List<_TBRow> _rows = [];
   double _sumDebit = 0.0, _sumCredit = 0.0;
+  static const _arabicTtfPath = 'fonts/Cairo/Cairo-Regular.ttf';
+  pw.Font? _pdfArabicFont;
 
   @override
   void initState() {
@@ -110,11 +116,19 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
 
   Future<void> _exportCsv() async {
     try {
-      final sb = StringBuffer()..writeln('code,account,debit,credit,net');
+      if (_rows.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد بيانات للتصدير')),
+        );
+        return;
+      }
 
+      final sb = StringBuffer()..writeln('code,account,debit,credit,net');
       for (final r in _rows) {
         final net = r.debit - r.credit;
-        double debit = r.debit, credit = r.credit;
+        var debit = r.debit;
+        var credit = r.credit;
         if (_showNetSide) {
           if (net >= 0) {
             debit = net;
@@ -132,6 +146,15 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           net.toStringAsFixed(2),
         ].join(','));
       }
+      final totalDebit = _showNetSide ? _sumNetDebit() : _sumDebit;
+      final totalCredit = _showNetSide ? _sumNetCredit() : _sumCredit;
+      sb.writeln([
+        'TOTAL',
+        '',
+        totalDebit.toStringAsFixed(2),
+        totalCredit.toStringAsFixed(2),
+        (totalDebit - totalCredit).toStringAsFixed(2),
+      ].join(','));
 
       Directory? dir;
       try {
@@ -146,8 +169,127 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
       await Share.shareXFiles([XFile(file.path)], text: 'Trial Balance Export');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تصدير CSV: ${UserFacingError.message(e)}')),
+      );
+    }
+  }
+
+  Future<pw.Font> _loadPdfArabicFont() async {
+    if (_pdfArabicFont != null) return _pdfArabicFont!;
+    try {
+      final data = await rootBundle.load(_arabicTtfPath);
+      _pdfArabicFont = pw.Font.ttf(data);
+    } catch (_) {
+      _pdfArabicFont = pw.Font.helvetica();
+    }
+    return _pdfArabicFont!;
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      if (_rows.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد بيانات للتصدير')),
+        );
+        return;
+      }
+
+      final font = await _loadPdfArabicFont();
+      final doc = pw.Document();
+      final totalDebit = _showNetSide ? _sumNetDebit() : _sumDebit;
+      final totalCredit = _showNetSide ? _sumNetCredit() : _sumCredit;
+      final period = [
+        if (_from != null) 'من ${_df.format(_from!)}',
+        if (_to != null) 'إلى ${_df.format(_to!)}',
+      ].join(' — ');
+
+      final tableRows = <pw.TableRow>[
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+          children: [
+            for (final label in const ['الكود', 'الحساب', 'مدين', 'دائن', 'الصافي'])
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(4),
+                child: pw.Text(
+                  label,
+                  textDirection: pw.TextDirection.rtl,
+                  style: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
+        ..._rows.map((r) {
+          final net = r.debit - r.credit;
+          var debit = r.debit;
+          var credit = r.credit;
+          if (_showNetSide) {
+            if (net >= 0) {
+              debit = net;
+              credit = 0.0;
+            } else {
+              debit = 0.0;
+              credit = -net;
+            }
+          }
+          return pw.TableRow(
+            children: [
+              pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(r.code, style: pw.TextStyle(font: font))),
+              pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(r.name, textDirection: pw.TextDirection.rtl, style: pw.TextStyle(font: font))),
+              pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(debit.toStringAsFixed(2), style: pw.TextStyle(font: font))),
+              pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(credit.toStringAsFixed(2), style: pw.TextStyle(font: font))),
+              pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(net.toStringAsFixed(2), style: pw.TextStyle(font: font))),
+            ],
+          );
+        }),
+      ];
+
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(28),
+          build: (_) => [
+            pw.Text(
+              'ميزان المراجعة',
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(font: font, fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+            if (period.isNotEmpty) ...[
+              pw.SizedBox(height: 4),
+              pw.Text(period, textDirection: pw.TextDirection.rtl, style: pw.TextStyle(font: font)),
+            ],
+            pw.SizedBox(height: 12),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: .4),
+              columnWidths: const {
+                0: pw.FlexColumnWidth(2),
+                1: pw.FlexColumnWidth(5),
+                2: pw.FlexColumnWidth(2),
+                3: pw.FlexColumnWidth(2),
+                4: pw.FlexColumnWidth(2),
+              },
+              children: tableRows,
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'إجمالي مدين: ${totalDebit.toStringAsFixed(2)} | إجمالي دائن: ${totalCredit.toStringAsFixed(2)} | الفرق: ${(totalDebit - totalCredit).abs().toStringAsFixed(2)}',
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+
+      await Printing.layoutPdf(
+        name: 'trial_balance.pdf',
+        onLayout: (_) async => doc.save(),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تصدير PDF: ${UserFacingError.message(e)}')),
+      );
     }
   }
 
@@ -384,9 +526,15 @@ class _TrialBalanceScreenState extends State<TrialBalanceScreen> {
           const SizedBox(width: 6),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-            onPressed: _exportCsv,
+            onPressed: _loading ? null : _exportCsv,
             icon: const Icon(Icons.download, color: Colors.black87),
             label: const Text('CSV', style: TextStyle(color: Colors.black87)),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+            onPressed: _loading ? null : _exportPdf,
+            icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.black87),
+            label: const Text('PDF', style: TextStyle(color: Colors.black87)),
           ),
         ],
       ),
