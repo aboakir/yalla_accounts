@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_accounts/features/cheques/models/cheque.dart';
@@ -59,5 +60,25 @@ void main() {
     expect(ascii.decode(empty.take(5).toList()), '%PDF-');
     expect(ascii.decode(many.take(5).toList()), '%PDF-');
     expect(many.length, greaterThan(empty.length));
+  });
+
+  test('PDF Arabic text emits no missing-glyph warnings', () async {
+    final printed = <String>[];
+    await runZoned(
+      () => ChequePdfReportService.generate(
+        ChequePdfReportKind.incoming,
+        rowSnapshot: [sample(900, 'ILS', 1250, 'received')],
+      ),
+      zoneSpecification: ZoneSpecification(
+        print: (self, parent, zone, line) {
+          printed.add(line);
+          parent.print(zone, line);
+        },
+      ),
+    );
+    expect(
+      printed.where((line) => line.contains('Unable to find a font to draw')),
+      isEmpty,
+    );
   });
 }

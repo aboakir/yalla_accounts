@@ -98,8 +98,16 @@ class ChequePdfReportService {
     final bold = pw.Font.ttf(
       await rootBundle.load('assets/fonts/Cairo-Bold.ttf'),
     );
+    final arabicFallback = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/NotoNaskhArabic-Regular.ttf'),
+    );
+    final fallbacks = <pw.Font>[arabicFallback];
     final pdf = pw.Document(
-      theme: pw.ThemeData.withFont(base: regular, bold: bold),
+      theme: pw.ThemeData.withFont(
+        base: regular,
+        bold: bold,
+        fontFallback: fallbacks,
+      ),
     );
     final totals = totalsByCurrency(rows);
     final totalText = totals.entries
@@ -116,7 +124,11 @@ class ChequePdfReportService {
           pw.Text(
             _title(kind),
             textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: bold, fontSize: 20),
+            style: pw.TextStyle(
+              font: bold,
+              fontSize: 20,
+              fontFallback: fallbacks,
+            ),
           ),
           pw.SizedBox(height: 6),
           pw.Text(
@@ -156,8 +168,16 @@ class ChequePdfReportService {
                   _reference(c),
                 ],
             ],
-            headerStyle: pw.TextStyle(font: bold, fontSize: 8),
-            cellStyle: pw.TextStyle(font: regular, fontSize: 7),
+            headerStyle: pw.TextStyle(
+              font: bold,
+              fontSize: 8,
+              fontFallback: fallbacks,
+            ),
+            cellStyle: pw.TextStyle(
+              font: regular,
+              fontSize: 7,
+              fontFallback: fallbacks,
+            ),
             headerDecoration: const pw.BoxDecoration(
               color: PdfColors.grey300,
             ),

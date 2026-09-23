@@ -642,6 +642,43 @@ void main() {
   );
 
   test(
+    'returned issued cheque restores supplier AP exactly once',
+    () async {
+      final chequeId = await issue(id: 'PV-RETURN', number: 200, amount: 4000);
+      expect(await supplierBalance(), 6000);
+
+      await ChequeAccountingService.transitionStatus(
+        chequeId: chequeId,
+        newStatus: ChequeStatus.delivered,
+        eventDate: DateTime(2026, 9, 20),
+      );
+      await ChequeAccountingService.transitionStatus(
+        chequeId: chequeId,
+        newStatus: ChequeStatus.returned,
+        reason: 'Bank returned issued cheque',
+        eventDate: DateTime(2026, 9, 25),
+      );
+
+      expect(await supplierBalance(), 10000);
+      await ChequeAccountingService.transitionStatus(
+        chequeId: chequeId,
+        newStatus: ChequeStatus.returned,
+        reason: 'Retry after timeout',
+      );
+      expect(await supplierBalance(), 10000);
+      expect(
+        await db.query(
+          'gl_entries',
+          where: 'source=? AND source_id=?',
+          whereArgs: ['CHEQUE_STATUS', '$chequeId:returned'],
+        ),
+        hasLength(1),
+      );
+      await expectBalancedSource('CHEQUE_STATUS', '$chequeId:returned');
+    },
+  );
+
+  test(
     'PHASE12 endorsement preserves received direction and immutable chain',
     () async {
       await createRepair('R-END', 3000);
@@ -751,6 +788,77 @@ void main() {
         asOf: asOf,
       ),
       isFalse,
+    );
+    expect(
+      ChequeMaturityService.isActionableDue(
+        cheque('received', '2026-09-18'),
+        asOf: asOf,
+      ),
+      isTrue,
+    );
+    expect(
+      ChequeMaturityService.isActionableDue(
+        cheque('received', '2026-09-22'),
+        asOf: asOf,
+      ),
+      isTrue,
+    );
+  });
+
+  test('collected incoming cheque cannot be cancelled after settlement', () async {
+    await createRepair('R-COL-CAN', 2000);
+    final chequeId = await receive(
+      op: 'RCV-COL-CAN',
+      key: 'col-can',
+      repairId: 'R-COL-CAN',
+      amount: 2000,
+    );
+    await ChequeDepositService.depositBatch(
+      batchId: 'DEP-COL-CAN',
+      bankAccountId: bankAccountId,
+      chequeIds: [chequeId],
+      depositDate: DateTime(2026, 9, 20),
+      database: db,
+    );
+    await ChequeAccountingService.transitionStatus(
+      chequeId: chequeId,
+      newStatus: ChequeStatus.collected,
+      eventDate: DateTime(2026, 9, 22),
+    );
+
+    final bankAfterCollection = await accountNet(bankAccountId);
+    final arAfterCollection = await customerBalance();
+    final statusEntriesBefore = await db.query(
+      'gl_entries',
+      where: 'source=?',
+      whereArgs: ['CHEQUE_STATUS'],
+    );
+
+    await expectLater(
+      ChequeAccountingService.transitionStatus(
+        chequeId: chequeId,
+        newStatus: ChequeStatus.cancelled,
+        reason: 'must not cancel settled cheque directly',
+      ),
+      throwsStateError,
+    );
+
+    final cheque = (await db.query(
+      'cheques',
+      where: 'id=?',
+      whereArgs: [chequeId],
+    ))
+        .single;
+    expect(cheque['status'], 'collected');
+    expect(await accountNet(bankAccountId), bankAfterCollection);
+    expect(await customerBalance(), arAfterCollection);
+    expect(
+      await db.query(
+        'gl_entries',
+        where: 'source=?',
+        whereArgs: ['CHEQUE_STATUS'],
+      ),
+      hasLength(statusEntriesBefore.length),
     );
   });
 }

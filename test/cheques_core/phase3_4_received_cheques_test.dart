@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -429,5 +430,97 @@ void main() {
       isEmpty,
     );
     expect(await outstanding('R-ROLLBACK'), 1000);
+  });
+
+  test('timeout-style retry reuses the committed receipt without duplicate cheque or GL',
+      () async {
+    await createRepair('R-TIMEOUT-RETRY', 2500);
+
+    Future<void> submit() async {
+      await PaymentService.insertCanonicalReceiptWithInstruments(
+        operationId: 'RCV-TIMEOUT-RETRY',
+        database: db,
+        clientId: clientId,
+        customerName: 'Cheque Customer',
+        date: DateTime(2026, 9, 19),
+        instruments: [
+          ReceiptInstrumentInput(
+            instrumentKey: 'timeout-retry-cheque',
+            method: 'cheque',
+            amount: 2500,
+            chequeDraft: chequeDraft('timeout-retry-cheque', 2500),
+            allocations: const [
+              ReceiptAllocationInput(
+                repairId: 'R-TIMEOUT-RETRY',
+                amount: 2500,
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    // First request commits, but the caller behaves as if its response was lost.
+    await submit();
+    // Retrying the exact same operation must resolve to the existing truth.
+    await submit();
+
+    expect(await db.query('receipt_headers'), hasLength(1));
+    expect(await db.query('receipt_requests'), hasLength(1));
+    expect(await db.query('cheques'), hasLength(1));
+    expect(await db.query('cheque_voucher_links'), hasLength(1));
+    expect(await db.query('cheque_allocations'), hasLength(1));
+    expect(
+      await db.query(
+        'gl_entries',
+        where: 'source=?',
+        whereArgs: ['PAYMENT'],
+      ),
+      hasLength(1),
+    );
+    expect(await outstanding('R-TIMEOUT-RETRY'), 0);
+  });
+
+  test('null target cheque allocation emits no sqflite null-arg warning',
+      () async {
+    await createRepair('R-NULL-TARGET', 1000);
+    final printed = <String>[];
+
+    await runZoned(
+      () async {
+        await PaymentService.insertCanonicalReceiptWithInstruments(
+          operationId: 'RCV-NULL-TARGET',
+          database: db,
+          clientId: clientId,
+          customerName: 'Cheque Customer',
+          date: DateTime(2026, 9, 19),
+          instruments: [
+            ReceiptInstrumentInput(
+              instrumentKey: 'null-target-cheque',
+              method: 'cheque',
+              amount: 1500,
+              chequeDraft: chequeDraft('null-target-cheque', 1500),
+              allocations: const [
+                ReceiptAllocationInput(
+                  repairId: 'R-NULL-TARGET',
+                  amount: 1500,
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+      zoneSpecification: ZoneSpecification(
+        print: (self, parent, zone, line) {
+          printed.add(line);
+          parent.print(zone, line);
+        },
+      ),
+    );
+
+    expect(
+      printed.where((line) => line.contains('Invalid argument null')),
+      isEmpty,
+    );
   });
 }

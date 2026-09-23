@@ -352,13 +352,13 @@ class ChequeAccountingService {
       'cheque_allocations',
       where:
           "cheque_id=? AND voucher_type=? AND voucher_id=? AND allocation_type=? "
-          "AND COALESCE(target_id,'')=COALESCE(?,'')",
+          "AND COALESCE(target_id,'')=?",
       whereArgs: [
         chequeId,
         canonicalType,
         voucherId,
         canonicalAllocationType,
-        target,
+        target ?? '',
       ],
       limit: 1,
     );
