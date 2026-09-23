@@ -152,8 +152,7 @@ import 'package:yalla_accounts/features/suppliers/screens/suppliers_payables_lis
 // ===== Raw Materials =====
 import 'package:yalla_accounts/features/raw_materials/models/raw_material.dart'
     as rm;
-import 'package:yalla_accounts/features/raw_materials/screens/raw_material_list_screen.dart';
-import 'package:yalla_accounts/features/raw_materials/screens/raw_material_edit_screen.dart';
+import 'package:yalla_accounts/features/inventory/screens/inventory_list_screen.dart';
 
 // ===== Dev / Debug =====
 import 'package:yalla_accounts/dev/dev_smoke_test.dart';
@@ -1069,27 +1068,19 @@ class AppRoutes {
 
     // Inventory
     if (name == rawMaterials) {
-      return _page(settings, const RawMaterialListScreen());
-    }
-    if (name == rawMaterialAdd) {
-      return _page(settings,
-          const RawMaterialEditScreen(material: null, rawMaterial: null));
-    }
-    if (name == rawMaterialEdit) {
-      final args = settings.arguments;
-      if (args is rm.RawMaterial) {
-        return _page(
-            settings, RawMaterialEditScreen(material: args, rawMaterial: null));
-      }
-      return _fallback(
+      return _page(
         settings,
-        rawMaterials,
-        const RawMaterialListScreen(),
-        'تعذر فتح تعديل المادة لأن بياناتها غير متاحة.',
+        const InventoryListScreen(itemKind: 'RAW_MATERIAL'),
+      );
+    }
+    if (name == rawMaterialAdd || name == rawMaterialEdit) {
+      return _page(
+        settings,
+        const InventoryListScreen(itemKind: 'RAW_MATERIAL'),
       );
     }
     if (name == inventory) {
-      return _under(settings, 'شاشة الجرد والمخزون');
+      return _page(settings, const InventoryListScreen());
     }
 
 // ===== Suppliers =====

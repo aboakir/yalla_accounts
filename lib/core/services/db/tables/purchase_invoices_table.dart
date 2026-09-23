@@ -63,6 +63,11 @@ class PurchaseInvoicesTable {
         price REAL DEFAULT 0,            -- ★ للكود الجديد
         total REAL DEFAULT 0,
         category TEXT,
+        inventory_item_id INTEGER,
+        warehouse_id INTEGER,
+        unit TEXT,
+        receive_stock INTEGER NOT NULL DEFAULT 0 CHECK(receive_stock IN (0,1)),
+        stock_received_qty REAL NOT NULL DEFAULT 0,
 
         note TEXT,
 
@@ -115,6 +120,15 @@ class PurchaseInvoicesTable {
     await _ensureColumn(db, 'purchase_invoice_lines', 'item_name', 'TEXT');
     await _ensureColumn(db, 'purchase_invoice_lines', 'price', 'REAL');
     await _ensureColumn(db, 'purchase_invoice_lines', 'category', 'TEXT');
+    await _ensureColumn(
+        db, 'purchase_invoice_lines', 'inventory_item_id', 'INTEGER');
+    await _ensureColumn(
+        db, 'purchase_invoice_lines', 'warehouse_id', 'INTEGER');
+    await _ensureColumn(db, 'purchase_invoice_lines', 'unit', 'TEXT');
+    await _ensureColumn(db, 'purchase_invoice_lines', 'receive_stock',
+        'INTEGER NOT NULL DEFAULT 0');
+    await _ensureColumn(db, 'purchase_invoice_lines', 'stock_received_qty',
+        'REAL NOT NULL DEFAULT 0');
     await _ensureColumn(db, 'purchase_invoice_lines', 'note', 'TEXT');
   }
 

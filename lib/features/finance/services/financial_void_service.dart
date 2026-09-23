@@ -1,6 +1,7 @@
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_cost_service.dart';
+import 'package:yalla_accounts/features/inventory/services/inventory_operations_service.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
 
@@ -46,6 +47,13 @@ class FinancialVoidService {
       if ((payments.single['n'] as num) > 0) {
         throw StateError(
             'Reverse linked receipts/payments before cancelling this invoice.');
+      }
+      if (purchase) {
+        await InventoryOperationsService.reversePurchaseReceiptsOn(
+          txn,
+          purchaseInvoiceId: id,
+          reason: reason,
+        );
       }
       final entries = await txn.rawQuery("""
         SELECT id FROM gl_entries e WHERE e.source_id=?

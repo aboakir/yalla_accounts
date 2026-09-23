@@ -127,8 +127,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   static const rSubscription = '/subscription';
   static const rGlobalSearch = AppRoutes.globalSearch;
+  static const rInventory = AppRoutes.inventory;
   static const rRawMaterials = AppRoutes.rawMaterials;
-  static const rRawMaterialAdd = AppRoutes.rawMaterialAdd;
 
 // ===== السندات المالية =====
   static const rReceiptVoucher = AppRoutes.receiptVoucher;
@@ -569,8 +569,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     // 7) المخزون والمواد
     final inventoryItems = [
+      (Icons.warehouse_outlined, 'المخزون والجرد', rInventory),
       (Icons.inventory_2_outlined, 'المواد الخام', rRawMaterials),
-      (Icons.add_box_outlined, 'إضافة مادة خام', rRawMaterialAdd),
     ].where((e) => _matches(e.$2)).toList();
 
     // 8) التقارير

@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/services/accounting_gl.dart';
 import 'package:yalla_accounts/core/services/db/tables/purchase_invoices_table.dart';
 import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.dart';
 import 'package:yalla_accounts/features/finance/purchases/services/purchase_sync_reference_service.dart';
+import 'package:yalla_accounts/features/inventory/services/inventory_operations_service.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
 import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
 import 'package:yalla_accounts/features/auth/services/audit_trail_service.dart';
@@ -34,6 +35,20 @@ class PurchaseInvoiceService {
         return GL.toolsExpense;
       default:
         return GL.otherExpense;
+    }
+  }
+
+  static String _inventoryAccountCodeForType(String purchaseType) {
+    switch (purchaseType.trim().toUpperCase()) {
+      case 'PARTS':
+        return GL.partsInventory;
+      case 'RAW':
+      case 'RAW_MATERIAL':
+      case 'PAINT':
+      case 'TOOLS':
+      case 'OTHER':
+      default:
+        return GL.inventoryOrPurchases;
     }
   }
 
@@ -127,6 +142,12 @@ class PurchaseInvoiceService {
         'price': price,
         'total': lineTotal,
         'category': _lineCategory(item, type),
+        'inventory_item_id': item['inventory_item_id'],
+        'warehouse_id': item['warehouse_id'],
+        'unit': item['unit']?.toString(),
+        'receive_stock':
+            item['receive_stock'] == true || item['receive_stock'] == 1 ? 1 : 0,
+        'stock_received_qty': 0.0,
         'note': item['note']?.toString(),
       });
       total += lineTotal;
@@ -137,17 +158,31 @@ class PurchaseInvoiceService {
     }
 
     final m = _normalizeMethod(method);
-    final debitAccountCode = _debitAccountCodeForType(type);
+    final debitTotalsByCode = <String, double>{};
+    for (final line in normalized) {
+      final stockManaged = line['receive_stock'] == 1 &&
+          line['inventory_item_id'] != null &&
+          line['warehouse_id'] != null;
+      final lineType = line['category']?.toString() ?? type;
+      final code = stockManaged
+          ? _inventoryAccountCodeForType(lineType)
+          : _debitAccountCodeForType(lineType);
+      debitTotalsByCode[code] =
+          _round2((debitTotalsByCode[code] ?? 0) + _number(line['total']));
+    }
+
     final cashAcc = await _accId(db, GL.cash);
     final bankAcc = await _accId(db, GL.bank);
-    final expenseAcc = await _accId(db, debitAccountCode);
     final apRootAcc = await _accId(db, GL.apMaster);
-    if (cashAcc == null ||
-        bankAcc == null ||
-        expenseAcc == null ||
-        apRootAcc == null) {
+    final debitAccountIds = <String, int>{};
+    for (final code in debitTotalsByCode.keys) {
+      final id = await _accId(db, code);
+      if (id == null) throw StateError('Missing essential account: $code');
+      debitAccountIds[code] = id;
+    }
+    if (cashAcc == null || bankAcc == null || apRootAcc == null) {
       throw StateError(
-        'Missing essential accounts: ${GL.cash} / ${GL.bank} / $debitAccountCode / ${GL.apMaster}',
+        'Missing essential accounts: ${GL.cash} / ${GL.bank} / ${GL.apMaster}',
       );
     }
 
@@ -193,6 +228,33 @@ class PurchaseInvoiceService {
 
       for (final line in normalized) {
         await tx.insert(_tableLines, line);
+        final stockManaged = line['receive_stock'] == 1 &&
+            line['inventory_item_id'] != null &&
+            line['warehouse_id'] != null;
+        if (stockManaged) {
+          final baseQty = await InventoryOperationsService.convertToBaseOn(
+            tx,
+            itemId: (line['inventory_item_id'] as num).toInt(),
+            quantity: _number(line['qty']),
+            unit: line['unit']?.toString() ?? '',
+          );
+          await InventoryOperationsService.receivePurchaseLineOn(
+            tx,
+            itemId: (line['inventory_item_id'] as num).toInt(),
+            warehouseId: (line['warehouse_id'] as num).toInt(),
+            quantity: _number(line['qty']),
+            unitCost: _number(line['price']),
+            purchaseLineId: line['id'].toString(),
+            unit: line['unit']?.toString() ?? '',
+            occurredAt: date,
+          );
+          await tx.update(
+            _tableLines,
+            {'stock_received_qty': baseQty},
+            where: 'id=?',
+            whereArgs: [line['id']],
+          );
+        }
       }
 
       final glId = await DBService.postEntryGLOn(
@@ -210,11 +272,12 @@ class PurchaseInvoiceService {
             'party_type': m == 'credit' ? 'SUPPLIER' : null,
             'party_id': m == 'credit' ? supplierId : null,
           },
-          {
-            'account_id': expenseAcc,
-            'debit': total,
-            'credit': 0.0,
-          },
+          for (final entry in debitTotalsByCode.entries)
+            {
+              'account_id': debitAccountIds[entry.key],
+              'debit': entry.value,
+              'credit': 0.0,
+            },
         ],
       );
 

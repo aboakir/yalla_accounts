@@ -212,6 +212,44 @@ class CanonicalInventoryService {
     });
   }
 
+  static Future<int> recordMovementOn(
+    Transaction txn, {
+    required int itemId,
+    required int warehouseId,
+    required String movementType,
+    required double onHandDelta,
+    double reservedDelta = 0,
+    double? unitCost,
+    double? landedCost,
+    String? currencyCode,
+    String? sourceEntityType,
+    String? sourceEntityUuid,
+    String? sourceReference,
+    String? relatedMovementUuid,
+    DateTime? occurredAt,
+    String? note,
+    bool skipAvailabilityCheck = false,
+  }) {
+    return _recordMovementInTransaction(
+      txn,
+      itemId: itemId,
+      warehouseId: warehouseId,
+      movementType: movementType,
+      onHandDelta: onHandDelta,
+      reservedDelta: reservedDelta,
+      unitCost: unitCost,
+      landedCost: landedCost,
+      currencyCode: currencyCode,
+      sourceEntityType: sourceEntityType,
+      sourceEntityUuid: sourceEntityUuid,
+      sourceReference: sourceReference,
+      relatedMovementUuid: relatedMovementUuid,
+      occurredAt: occurredAt,
+      note: note,
+      skipAvailabilityCheck: skipAvailabilityCheck,
+    );
+  }
+
   static Future<List<int>> transfer({
     required int itemId,
     required int fromWarehouseId,
@@ -307,8 +345,9 @@ class CanonicalInventoryService {
   static Future<InventoryStockBalance> stockBalance({
     required int itemId,
     required int warehouseId,
+    DatabaseExecutor? executor,
   }) async {
-    final db = await _database;
+    final db = executor ?? await _database;
     return _stockBalance(db, itemId, warehouseId);
   }
 
