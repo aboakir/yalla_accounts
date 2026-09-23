@@ -22,6 +22,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:yalla_accounts/core/services/image_storage_service.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
+import 'package:yalla_accounts/features/insurance_agent/finance/services/insurance_pricing_engine.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
@@ -838,20 +839,39 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
     final buyPrice = _toDouble(r['buy_price'] ?? r['purchase_price']);
     final sellPrice = _toDouble(r['sell_price'] ?? r['sale_price']);
     final hasCanonicalPricing = r['net_sale_amount'] != null;
-    final customerTotal =
-        hasCanonicalPricing ? _toDouble(r['net_sale_amount']) : sellPrice;
-    final profit = r['gross_profit'] != null
-        ? _toDouble(r['gross_profit'])
-        : sellPrice - buyPrice;
     final basePremium = _toDouble(r['base_premium']);
     final discount = _toDouble(r['discount']);
     final fees = _toDouble(r['fees']);
     final tax = _toDouble(r['tax']);
     final directCost = _toDouble(r['direct_cost']);
     final commissionRate = _toDouble(r['commission_rate']);
-    final commissionAmount = _toDouble(r['commission_amount']);
-    final markup = _toDouble(r['markup_percent']);
-    final margin = _toDouble(r['margin_percent']);
+    final legacyPricing = InsurancePricingEngine.calculate(
+      InsurancePricingInput(
+        purchasePrice: buyPrice,
+        salePrice: sellPrice,
+        basePremium: basePremium,
+        discount: discount,
+        fees: fees,
+        tax: tax,
+        commissionRate: commissionRate,
+        directCost: directCost,
+      ),
+    );
+    final customerTotal = hasCanonicalPricing
+        ? _toDouble(r['net_sale_amount'])
+        : legacyPricing.customerTotalAmount;
+    final profit = r['gross_profit'] != null
+        ? _toDouble(r['gross_profit'])
+        : legacyPricing.grossProfit;
+    final commissionAmount = r['commission_amount'] != null
+        ? _toDouble(r['commission_amount'])
+        : legacyPricing.commissionAmount;
+    final markup = r['markup_percent'] != null
+        ? _toDouble(r['markup_percent'])
+        : legacyPricing.markupPercent;
+    final margin = r['margin_percent'] != null
+        ? _toDouble(r['margin_percent'])
+        : legacyPricing.marginPercent;
     final markupCalculable = buyPrice + directCost != 0;
     final marginCalculable = customerTotal - tax != 0;
 
