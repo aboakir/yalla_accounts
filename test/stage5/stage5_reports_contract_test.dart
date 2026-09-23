@@ -78,7 +78,7 @@ void main() {
       expect(inventory, contains('Future<void> _exportCsv()'));
       expect(inventory, contains('Future<void> _exportPdf()'));
       expect(inventory, contains('YallaPdfService.generateTablePdf'));
-      expect(inventory, contains('Printing.layoutPdf'));
+      expect(inventory, contains('YallaPdfPrintService.layoutPdf'));
       expect(inventory, contains('inventory-report-search'));
       expect(inventory, contains('_visibleStockValue'));
     });
@@ -101,7 +101,7 @@ void main() {
       expect(screen, contains('Future<void> _exportCsv()'));
       expect(screen, contains('Future<void> _exportPdf()'));
       expect(screen, contains('Share.shareXFiles'));
-      expect(screen, contains('Printing.layoutPdf'));
+      expect(screen, contains('YallaPdfPrintService.layoutPdf'));
       expect(screen, contains('_assets'));
       expect(screen, contains('_liabilities'));
       expect(screen, contains('_equity'));
@@ -114,7 +114,7 @@ void main() {
       expect(screen, contains('Future<void> _exportCsv()'));
       expect(screen, contains('Future<void> _exportPdf()'));
       expect(screen, contains('Share.shareXFiles'));
-      expect(screen, contains('Printing.layoutPdf'));
+      expect(screen, contains('YallaPdfPrintService.layoutPdf'));
       expect(screen, contains('_rows'));
       expect(screen, contains('_sumDebit'));
       expect(screen, contains('_sumCredit'));
