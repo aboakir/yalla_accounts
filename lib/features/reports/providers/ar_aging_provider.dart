@@ -43,48 +43,35 @@ class ARAgingProvider {
     DatabaseExecutor? executor,
   }) async {
     final DatabaseExecutor db = executor ?? await DBService.database;
-    final DateTime end = asOf == null
+    final DateTime day = asOf == null
         ? DateTime.now()
-        : DateTime(asOf.year, asOf.month, asOf.day, 23, 59, 59);
-    final String asOfIso = end.toIso8601String();
+        : DateTime(asOf.year, asOf.month, asOf.day);
+    final DateTime end = DateTime(day.year, day.month, day.day, 23, 59, 59, 999);
+    final String nextDayIso =
+        DateTime(day.year, day.month, day.day).add(const Duration(days: 1)).toIso8601String();
 
-    // 1) جيب ids لكل حسابات الذمم: 1200 والفرعية 1200.*
-    final arAccs = await db.rawQuery('''
-      SELECT id FROM accounts 
-      WHERE code = '1200' OR code LIKE '1200.%'
-    ''');
-    if (arAccs.isEmpty) return <ARAgingRow>[];
-
-    final accIds = arAccs
-        .map((m) => m['id'])
-        .where((v) => v != null)
-        .map((v) => v is int ? v : int.tryParse(v.toString()) ?? -1)
-        .where((v) => v > 0)
-        .toList();
-    if (accIds.isEmpty) return <ARAgingRow>[];
-
-    // 2) اسحب كل حركات AR حتى asOf، مع ربط اسم العميل (CAST للحاقن)
-    //    نفلتر party_type ليتوافق مع قيود GL (CUSTOMER/CLIENT)
-    final placeholders = List.filled(accIds.length, '?').join(',');
-    final args = <Object?>[...accIds, asOfIso];
-
+    // Read the same canonical party projection used by the financial dashboard.
+    // The half-open upper bound includes fractional timestamps at the end of day.
     final rows = await db.rawQuery('''
       SELECT
-        e.date                         AS date,
-        l.debit                        AS debit,
-        l.credit                       AS credit,
-        UPPER(IFNULL(l.party_type,'')) AS party_type,
-        l.party_id                     AS party_id,
-        c.name                         AS client_name
-      FROM gl_lines l
-      JOIN gl_entries e ON e.id = l.entry_id
-      LEFT JOIN clients c ON c.id = CAST(l.party_id AS INTEGER)
-      WHERE l.account_id IN ($placeholders)
-        AND e.date <= ?
-        AND l.party_id IS NOT NULL
-        AND UPPER(IFNULL(l.party_type,'')) IN ('CUSTOMER','CLIENT')
-      ORDER BY e.date ASC, e.id ASC, l.id ASC
-    ''', args);
+        e.date AS date,
+        v.debit AS debit,
+        v.credit AS credit,
+        COALESCE(pr.legacy_id, CAST(v.legacy_party_id AS TEXT)) AS party_id,
+        COALESCE(p.display_name, c.name, 'غير مذكور') AS client_name
+      FROM v_party_gl_lines v
+      JOIN gl_entries e ON e.id = v.entry_id
+      JOIN accounts a ON a.id = v.account_id
+      LEFT JOIN parties p ON p.id = v.canonical_party_id
+      LEFT JOIN party_roles pr
+        ON pr.party_id = v.canonical_party_id AND pr.role = 'CUSTOMER'
+      LEFT JOIN clients c ON CAST(c.id AS TEXT) = pr.legacy_id
+      WHERE (a.code = '1200' OR a.code LIKE '1200.%')
+        AND e.date < ?
+        AND v.party_role = 'CUSTOMER'
+        AND v.canonical_party_id IS NOT NULL
+      ORDER BY e.date ASC, e.id ASC, v.gl_line_id ASC
+    ''', [nextDayIso]);
 
     // 3) بنية FIFO لكل عميل: invoices (debit) / credits
     final Map<int, _ClientBucket> clients = {};

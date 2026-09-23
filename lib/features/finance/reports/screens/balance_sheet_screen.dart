@@ -24,8 +24,17 @@ import 'package:yalla_accounts/shared/widgets/financial_period_filter.dart';
 // - في وضع "As-Of" يُهمل "من" ويُستخدم فقط "إلى" لحساب الرصيد التراكمي.
 // - الحسابات بلا حركة تبقى ظاهرة بقيم صفرية ما لم تختر إخفاءها.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';

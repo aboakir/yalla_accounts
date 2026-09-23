@@ -12,8 +12,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/features/reports/providers/supplier_aging_provider.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/pdf/supplier_ledger_pdf.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
@@ -69,87 +69,49 @@ class _SuppliersAgingScreenState extends State<SuppliersAgingScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final db = await DBService.database;
-
-    // نهاية اليوم: [asOf, nextDay) لتفادي مشاكل time zone
-    final asOfDay = DateTime(_asOf.year, _asOf.month, _asOf.day);
-    final nextDay = asOfDay.add(const Duration(days: 1));
-    final asOfIso = asOfDay.toIso8601String();
-    final nextDayIso = nextDay.toIso8601String();
-
-    final term = _searchCtrl.text.trim();
-    final whereSearch = term.isEmpty
-        ? ''
-        : ' AND (LOWER(s.name) LIKE LOWER(?) OR CAST(l.party_id AS TEXT) LIKE ?) ';
-
-    final sql = '''
-      WITH L AS (
-        SELECT 
-          CAST(l.party_id AS TEXT) AS supplier_id,
-          COALESCE(s.name, 'مورد ' || CAST(l.party_id AS TEXT)) AS supplier_name,
-          (l.credit - l.debit) AS delta,
-          CAST(julianday(?) - julianday(e.date) AS INTEGER) AS age_days
-        FROM gl_lines l
-        JOIN gl_entries e ON e.id = l.entry_id
-        LEFT JOIN suppliers s ON CAST(s.id AS TEXT) = CAST(l.party_id AS TEXT)
-        WHERE l.party_type='SUPPLIER'
-          AND e.date >= date(?) AND e.date < date(?)
-          $whereSearch
-      )
-      SELECT 
-        supplier_id,
-        supplier_name,
-        SUM(CASE WHEN age_days <= 30 THEN delta ELSE 0 END)                     AS b0_30,
-        SUM(CASE WHEN age_days > 30  AND age_days <= 60 THEN delta ELSE 0 END)  AS b31_60,
-        SUM(CASE WHEN age_days > 60  AND age_days <= 90 THEN delta ELSE 0 END)  AS b61_90,
-        SUM(CASE WHEN age_days > 90  AND age_days <= 120 THEN delta ELSE 0 END) AS b91_120,
-        SUM(CASE WHEN age_days > 120 THEN delta ELSE 0 END)                     AS b120p,
-        SUM(delta)                                                               AS total
-      FROM L
-      GROUP BY supplier_id, supplier_name
-      HAVING total > 0.00001
-      ORDER BY total DESC;
-    ''';
-
-    final args = term.isEmpty
-        ? [asOfIso, '2000-01-01', nextDayIso] // العمر يُحسب من asOfIso
-        : [asOfIso, '2000-01-01', nextDayIso, '%$term%', '%$term%'];
-
-    final q = await db.rawQuery(sql, args);
-
-    final rows = <_Row>[];
-    double t0 = 0, t30 = 0, t60 = 0, t90 = 0, t120 = 0, tg = 0;
-
-    for (final m in q) {
-      final r = _Row(
-        supplierId: m['supplier_id']?.toString() ?? '',
-        supplierName: m['supplier_name']?.toString() ?? 'مورد',
-        b0_30: ((m['b0_30'] as num?) ?? 0).toDouble(),
-        b31_60: ((m['b31_60'] as num?) ?? 0).toDouble(),
-        b61_90: ((m['b61_90'] as num?) ?? 0).toDouble(),
-        b91_120: ((m['b91_120'] as num?) ?? 0).toDouble(),
-        b120p: ((m['b120p'] as num?) ?? 0).toDouble(),
-        total: ((m['total'] as num?) ?? 0).toDouble(),
+    try {
+      final sourceRows = await SupplierAgingProvider.fetch(
+        asOf: _asOf,
+        query: _searchCtrl.text,
       );
-      rows.add(r);
-      t0 += r.b0_30;
-      t30 += r.b31_60;
-      t60 += r.b61_90;
-      t90 += r.b91_120;
-      t120 += r.b120p;
-      tg += r.total;
-    }
+      if (!mounted) return;
 
-    setState(() {
-      _rows = rows;
-      _tot0 = t0;
-      _tot30 = t30;
-      _tot60 = t60;
-      _tot90 = t90;
-      _tot120 = t120;
-      _grand = tg;
-      _loading = false;
-    });
+      final rows = sourceRows
+          .map((m) => _Row(
+                supplierId: m.supplierId,
+                supplierName: m.supplierName,
+                b0_30: m.b0_30,
+                b31_60: m.b31_60,
+                b61_90: m.b61_90,
+                b91_120: m.b91_120,
+                b120p: m.b120p,
+                total: m.total,
+              ))
+          .toList(growable: false);
+      double t0 = 0, t30 = 0, t60 = 0, t90 = 0, t120 = 0, tg = 0;
+      for (final row in rows) {
+        t0 += row.b0_30;
+        t30 += row.b31_60;
+        t60 += row.b61_90;
+        t90 += row.b91_120;
+        t120 += row.b120p;
+        tg += row.total;
+      }
+
+      setState(() {
+        _rows = rows;
+        _tot0 = t0;
+        _tot30 = t30;
+        _tot60 = t60;
+        _tot90 = t90;
+        _tot120 = t120;
+        _grand = tg;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+      rethrow;
+    }
   }
 
   void _openSupplier(String id, String name) {

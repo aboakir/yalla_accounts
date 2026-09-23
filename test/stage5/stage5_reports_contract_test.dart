@@ -62,6 +62,29 @@ void main() {
       }
     });
 
+    test('aging reports use canonical party GL truth', () {
+      final ar = read('lib/features/reports/providers/ar_aging_provider.dart');
+      final apScreen = read(
+        'lib/features/finance/purchases/screens/suppliers_aging_screen.dart',
+      );
+      expect(ar, contains('v_party_gl_lines'));
+      expect(apScreen, contains('SupplierAgingProvider.fetch'));
+      expect(apScreen, isNot(contains('FROM gl_lines l')));
+    });
+
+    test('balance sheet exports visible GL totals to CSV and printable PDF', () {
+      final screen = read(
+        'lib/features/finance/reports/screens/balance_sheet_screen.dart',
+      );
+      expect(screen, contains('Future<void> _exportCsv()'));
+      expect(screen, contains('Future<void> _exportPdf()'));
+      expect(screen, contains('Share.shareXFiles'));
+      expect(screen, contains('Printing.layoutPdf'));
+      expect(screen, contains('_assets'));
+      expect(screen, contains('_liabilities'));
+      expect(screen, contains('_equity'));
+    });
+
     test('GL reports use half-open whole-day boundaries', () {
       final gl = read('lib/core/services/reports_gl_service.dart');
       expect(gl, contains('DateTime(value.year, value.month, value.day)'));
