@@ -1083,7 +1083,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           child: AdaptiveRow(
             children: [
               const Text(
-                'الشيكات',
+                'شيكات خطة الدفع (غير مرحّلة)',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
@@ -1196,9 +1196,15 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'الشيكات',
+              'شيكات خطة الدفع (غير مرحّلة محاسبيًا)',
               textAlign: TextAlign.right,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'الشيكات الفعلية المحصلة أو الصادرة تظهر في حركات الوثيقة ومركز الشيكات.',
+              textAlign: TextAlign.right,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
             ),
             const SizedBox(height: 12),
 
@@ -1231,7 +1237,7 @@ class _PolicyDetailsScreenState extends State<PolicyDetailsScreen> {
 
             const Divider(height: 18),
             Text(
-              'مجموع الشيكات: ${_currency.format(total)}',
+              'مجموع شيكات خطة الدفع: ${_currency.format(total)}',
               textAlign: TextAlign.right,
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
             ),

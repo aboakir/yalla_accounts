@@ -219,7 +219,10 @@ class InsuranceAlertCenterService {
       JOIN insurance_policy_payments pp ON pp.cheque_id=c.id
       WHERE c.due_date IS NOT NULL AND TRIM(c.due_date)<>''
         AND pp.policy_id IS NOT NULL
-        AND UPPER(COALESCE(pp.status,'POSTED'))='POSTED'
+        AND (
+          UPPER(COALESCE(pp.status,'POSTED'))='POSTED'
+          OR LOWER(COALESCE(c.status,''))='returned'
+        )
     ''');
     for (final row in rows) {
       final dueAt = _date(row['due_date']);

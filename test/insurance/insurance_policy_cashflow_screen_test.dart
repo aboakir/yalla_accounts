@@ -58,6 +58,17 @@ void main() {
         home: PolicyPaymentsScreen(
           policyId: 'policy-ui-1',
           loader: (_) async => snapshot,
+          chequeBookLoader: () async => const [
+            InsuranceChequeBookOption(
+              id: 'book-ui-1',
+              bankAccountId: 10,
+              bookNumber: 'BOOK-UI',
+              nextAvailableNumber: 100,
+              lastChequeNumber: 120,
+              bankAccountName: 'UI Bank',
+              bankAccountCode: '1010',
+            ),
+          ],
         ),
       ),
     );
@@ -117,6 +128,29 @@ void main() {
     );
     expect(tester.takeException(), isNull,
         reason: 'insurer payment dialog must not overflow');
+
+    await tester.tap(
+      find.byKey(const Key('insuranceInsurerPaymentMethod')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('شيك صادر').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('insuranceInsurerChequeBook')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('insuranceInsurerChequeNextNumber')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('insuranceInsurerChequeDueDate')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('#100'), findsWidgets);
+    expect(find.byKey(const Key('insuranceInsurerChequeNumber')), findsNothing);
+    expect(tester.takeException(), isNull,
+        reason: 'issued-cheque controls must not overflow');
     await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
 

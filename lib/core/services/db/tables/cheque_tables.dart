@@ -721,7 +721,12 @@ class ChequeTables {
             ELSE 'EXPENSE'
           END,
           CASE
-            WHEN TRIM(COALESCE(v.reference,''))<>'' THEN v.reference
+            WHEN UPPER(COALESCE(v.party_type,''))='SUPPLIER'
+                 AND TRIM(COALESCE(v.reference,''))<>'' THEN v.reference
+            WHEN UPPER(COALESCE(v.source,''))='PAYROLL_ENTITLEMENT'
+                 AND TRIM(COALESCE(v.source_id,''))<>'' THEN v.source_id
+            WHEN UPPER(COALESCE(v.party_type,''))='SUPPLIER'
+                 THEN COALESCE(v.party_id,'')
             WHEN TRIM(COALESCE(v.source_id,''))<>'' THEN v.source_id
             ELSE COALESCE(v.party_id,'')
           END,

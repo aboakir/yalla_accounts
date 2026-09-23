@@ -8,6 +8,8 @@ import 'package:yalla_accounts/features/insurance_agent/finance/services/insuran
 
 typedef InsuranceCashflowLoader = Future<InsurancePolicyCashflowSnapshot>
     Function(String policyId);
+typedef InsuranceChequeBookLoader = Future<List<InsuranceChequeBookOption>>
+    Function();
 
 class PolicyPaymentsScreen extends StatefulWidget {
   const PolicyPaymentsScreen({
@@ -15,11 +17,13 @@ class PolicyPaymentsScreen extends StatefulWidget {
     required this.policyId,
     this.row,
     this.loader,
+    this.chequeBookLoader,
   });
 
   final dynamic policyId;
   final Map<String, dynamic>? row;
   final InsuranceCashflowLoader? loader;
+  final InsuranceChequeBookLoader? chequeBookLoader;
 
   @override
   State<PolicyPaymentsScreen> createState() => _PolicyPaymentsScreenState();
@@ -306,7 +310,8 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
       }
       try {
         await InsurancePolicyCashflowService.collectCustomer(
-          operationId: 'UI-INS-RCPT-$_policyId-${DateTime.now().microsecondsSinceEpoch}',
+          operationId:
+              'UI-INS-RCPT-$_policyId-${DateTime.now().microsecondsSinceEpoch}',
           policyId: _policyId,
           amount: value,
           date: activityDate,
@@ -344,110 +349,238 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
     final notes = TextEditingController();
     var method = 'CASH';
     var activityDate = DateTime.now();
+    var chequeDueDate = DateTime.now().add(const Duration(days: 30));
+    List<InsuranceChequeBookOption>? chequeBooks;
+    String? selectedChequeBookId;
+    String? chequeBookError;
+    var chequeBooksLoading = false;
+
+    Future<void> loadChequeBooks(
+        StateSetter setDialogState, BuildContext context) async {
+      if (chequeBooksLoading || chequeBooks != null) return;
+      setDialogState(() {
+        chequeBooksLoading = true;
+        chequeBookError = null;
+      });
+      try {
+        final loaded = await (widget.chequeBookLoader?.call() ??
+            InsurancePolicyCashflowService.listOpenChequeBooks());
+        if (!context.mounted) return;
+        setDialogState(() {
+          chequeBooks = loaded;
+          selectedChequeBookId = loaded.isEmpty ? null : loaded.first.id;
+          chequeBooksLoading = false;
+          if (loaded.isEmpty) {
+            chequeBookError = 'لا يوجد دفتر شيكات مفتوح يحتوي أرقامًا متاحة.';
+          }
+        });
+      } catch (e) {
+        if (!context.mounted) return;
+        setDialogState(() {
+          chequeBooksLoading = false;
+          chequeBookError = UserFacingError.message(e);
+        });
+      }
+    }
 
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('دفع لشركة التأمين', textAlign: TextAlign.right),
-          content: SizedBox(
-            width:
-                MediaQuery.sizeOf(context).width < 600 ? double.infinity : 520,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'المتبقي للشركة: ${_money(data.balances.insurerOutstanding)}',
-                    textAlign: TextAlign.right,
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    key: const Key('insuranceInsurerPaymentAmount'),
-                    controller: amount,
-                    inputFormatters: const [YallaDigitNormalizer()],
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    textAlign: TextAlign.right,
-                    decoration: const InputDecoration(
-                      labelText: 'المبلغ',
-                      border: OutlineInputBorder(),
+        builder: (context, setDialogState) {
+          InsuranceChequeBookOption? selectedBook;
+          final books = chequeBooks;
+          if (books != null && selectedChequeBookId != null) {
+            for (final book in books) {
+              if (book.id == selectedChequeBookId) {
+                selectedBook = book;
+                break;
+              }
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('دفع لشركة التأمين', textAlign: TextAlign.right),
+            content: SizedBox(
+              width: MediaQuery.sizeOf(context).width < 600
+                  ? double.infinity
+                  : 520,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'المتبقي للشركة: ${_money(data.balances.insurerOutstanding)}',
+                      textAlign: TextAlign.right,
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    key: const Key('insuranceInsurerPaymentMethod'),
-                    value: method,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'طريقة الدفع',
-                      border: OutlineInputBorder(),
+                    const SizedBox(height: 10),
+                    TextField(
+                      key: const Key('insuranceInsurerPaymentAmount'),
+                      controller: amount,
+                      inputFormatters: const [YallaDigitNormalizer()],
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.right,
+                      decoration: const InputDecoration(
+                        labelText: 'المبلغ',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'CASH', child: Text('نقد')),
-                      DropdownMenuItem(value: 'BANK', child: Text('بنك')),
-                      DropdownMenuItem(value: 'TRANSFER', child: Text('تحويل')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      key: const Key('insuranceInsurerPaymentMethod'),
+                      value: method,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'طريقة الدفع',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'CASH', child: Text('نقد')),
+                        DropdownMenuItem(value: 'BANK', child: Text('بنك')),
+                        DropdownMenuItem(
+                            value: 'TRANSFER', child: Text('تحويل')),
+                        DropdownMenuItem(
+                            value: 'CHEQUE', child: Text('شيك صادر')),
+                      ],
+                      onChanged: (value) async {
+                        if (value == null) return;
                         setDialogState(() => method = value);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    key: const Key('insuranceInsurerPaymentDate'),
-                    onPressed: () => _pickDate(
-                      current: activityDate,
-                      onPicked: (value) =>
-                          setDialogState(() => activityDate = value),
+                        if (value == 'CHEQUE') {
+                          await loadChequeBooks(setDialogState, context);
+                        }
+                      },
                     ),
-                    icon: const Icon(Icons.event),
-                    label: Text(_date.format(activityDate)),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    key: const Key('insuranceInsurerPaymentNotes'),
-                    controller: notes,
-                    maxLines: 2,
-                    textAlign: TextAlign.right,
-                    decoration: const InputDecoration(
-                      labelText: 'ملاحظات',
-                      border: OutlineInputBorder(),
+                    if (method == 'CHEQUE') ...[
+                      const SizedBox(height: 10),
+                      if (chequeBooksLoading)
+                        const LinearProgressIndicator()
+                      else if (chequeBookError != null)
+                        Text(
+                          chequeBookError!,
+                          key: const Key('insuranceInsurerChequeBookError'),
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(color: Colors.redAccent),
+                        )
+                      else if (books != null && books.isNotEmpty) ...[
+                        DropdownButtonFormField<String>(
+                          key: const Key('insuranceInsurerChequeBook'),
+                          value: selectedChequeBookId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'دفتر الشيكات',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: books
+                              .map(
+                                (book) => DropdownMenuItem(
+                                  value: book.id,
+                                  child: Text(book.label,
+                                      overflow: TextOverflow.ellipsis),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) => setDialogState(
+                              () => selectedChequeBookId = value),
+                        ),
+                        const SizedBox(height: 10),
+                        InputDecorator(
+                          key: const Key('insuranceInsurerChequeNextNumber'),
+                          decoration: const InputDecoration(
+                            labelText: 'رقم الشيك التالي - تلقائي',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: Text(
+                            selectedBook == null
+                                ? '-'
+                                : '#${selectedBook.nextAvailableNumber} • ${selectedBook.bankAccountName}',
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          key: const Key('insuranceInsurerChequeDueDate'),
+                          onPressed: () => _pickDate(
+                            current: chequeDueDate,
+                            onPicked: (value) =>
+                                setDialogState(() => chequeDueDate = value),
+                          ),
+                          icon: const Icon(Icons.event_busy),
+                          label: Text('استحقاق ${_date.format(chequeDueDate)}'),
+                        ),
+                      ],
+                    ],
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      key: const Key('insuranceInsurerPaymentDate'),
+                      onPressed: () => _pickDate(
+                        current: activityDate,
+                        onPicked: (value) =>
+                            setDialogState(() => activityDate = value),
+                      ),
+                      icon: const Icon(Icons.event),
+                      label: Text(_date.format(activityDate)),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    TextField(
+                      key: const Key('insuranceInsurerPaymentNotes'),
+                      controller: notes,
+                      maxLines: 2,
+                      textAlign: TextAlign.right,
+                      decoration: const InputDecoration(
+                        labelText: 'ملاحظات',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              key: const Key('insuranceInsurerPaymentSave'),
-              onPressed: () {
-                final value = double.tryParse(
-                      YallaDigitNormalizer.normalize(amount.text)
-                          .replaceAll(',', '.'),
-                    ) ??
-                    0;
-                if (value <= 0 ||
-                    value - data.balances.insurerOutstanding > 0.005) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('تحقق من مبلغ الدفع والمتبقي للشركة.'),
-                    ),
-                  );
-                  return;
-                }
-                Navigator.pop(dialogContext, true);
-              },
-              child: const Text('حفظ سند الدفع'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                key: const Key('insuranceInsurerPaymentSave'),
+                onPressed: () {
+                  final value = double.tryParse(
+                        YallaDigitNormalizer.normalize(amount.text)
+                            .replaceAll(',', '.'),
+                      ) ??
+                      0;
+                  if (value <= 0 ||
+                      value - data.balances.insurerOutstanding > 0.005) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('تحقق من مبلغ الدفع والمتبقي للشركة.'),
+                      ),
+                    );
+                    return;
+                  }
+                  if (method == 'CHEQUE') {
+                    if (selectedChequeBookId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('اختر دفتر شيكات مفتوح.')),
+                      );
+                      return;
+                    }
+                    if (chequeDueDate.isBefore(activityDate)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content:
+                              Text('تاريخ استحقاق الشيك لا يسبق تاريخ إصداره.'),
+                        ),
+                      );
+                      return;
+                    }
+                  }
+                  Navigator.pop(dialogContext, true);
+                },
+                child: const Text('حفظ سند الدفع'),
+              ),
+            ],
+          );
+        },
       ),
     );
 
@@ -455,15 +588,29 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
       final value = double.parse(
         YallaDigitNormalizer.normalize(amount.text).replaceAll(',', '.'),
       );
+      final operationId =
+          'UI-INS-PAY-$_policyId-${DateTime.now().microsecondsSinceEpoch}';
       try {
-        await InsurancePolicyCashflowService.payInsurer(
-          operationId: 'UI-INS-PAY-$_policyId-${DateTime.now().microsecondsSinceEpoch}',
-          policyId: _policyId,
-          amount: value,
-          date: activityDate,
-          method: method,
-          notes: notes.text.trim(),
-        );
+        if (method == 'CHEQUE') {
+          await InsurancePolicyCashflowService.payInsurerByCheque(
+            operationId: operationId,
+            policyId: _policyId,
+            amount: value,
+            issueDate: activityDate,
+            dueDate: chequeDueDate,
+            chequeBookId: selectedChequeBookId!,
+            notes: notes.text.trim(),
+          );
+        } else {
+          await InsurancePolicyCashflowService.payInsurer(
+            operationId: operationId,
+            policyId: _policyId,
+            amount: value,
+            date: activityDate,
+            method: method,
+            notes: notes.text.trim(),
+          );
+        }
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('تم إنشاء سند الدفع وترحيله بنجاح.')),
@@ -633,7 +780,18 @@ class _PolicyPaymentsScreenState extends State<PolicyPaymentsScreen> {
                 Text(reference),
                 Text(posted ? 'مرحّل' : 'معكوس'),
                 if (movement.chequeId != null)
-                  Text('شيك #${movement.chequeId}'),
+                  Text(
+                    'شيك ${movement.chequeNumber ?? '#${movement.chequeId}'}',
+                    key: Key('insuranceChequeRef-${movement.key}'),
+                  ),
+                if ((movement.chequeStatus ?? '').trim().isNotEmpty)
+                  Text('حالة الشيك: ${movement.chequeStatus}'),
+                if ((movement.chequeDirection ?? '').trim().isNotEmpty)
+                  Text('اتجاه الشيك: ${movement.chequeDirection}'),
+                if ((movement.chequeBankName ?? '').trim().isNotEmpty)
+                  Text('البنك: ${movement.chequeBankName}'),
+                if (movement.chequeDueDate != null)
+                  Text('استحقاق: ${_date.format(movement.chequeDueDate!)}'),
               ],
             ),
             if ((movement.notes ?? '').trim().isNotEmpty) ...[
