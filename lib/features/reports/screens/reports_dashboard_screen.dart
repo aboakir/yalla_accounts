@@ -123,6 +123,34 @@ class ReportsDashboardScreen extends StatelessWidget {
         AppRoutes.reportsARAging
       ),
       (
+        Icons.request_quote_outlined,
+        'تقادم ذمم الموردين',
+        'A/P Aging من المصدر المالي الرسمي',
+        Colors.deepOrange,
+        AppRoutes.purchasesSuppliersAging
+      ),
+      (
+        Icons.inventory_2_outlined,
+        'المواد والمخزون',
+        'الواجهة الحالية؛ تقييم التكلفة PENDING_STAGE4_MERGE',
+        Colors.green,
+        AppRoutes.rawMaterials
+      ),
+      (
+        Icons.payments_outlined,
+        'تقارير الشيكات',
+        'الوارد والصادر والحالات والاستحقاقات',
+        Colors.blueGrey,
+        AppRoutes.chequesReport
+      ),
+      (
+        Icons.policy_outlined,
+        'تقارير التأمين',
+        'البوالص والإنتاج والربحية والاستحقاقات',
+        Colors.teal,
+        AppRoutes.insuranceAgentReports
+      ),
+      (
         Icons.shopping_cart_outlined,
         'المشتريات',
         'فواتير الشراء والموردون',

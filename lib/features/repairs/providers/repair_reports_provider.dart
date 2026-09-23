@@ -3,6 +3,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
+import 'package:yalla_accounts/core/services/db_service.dart';
 // 📁 lib/features/repairs/providers/repair_report_provider.dart
 
 import 'package:yalla_accounts/features/repairs/services/repair_ledger_query_service.dart';
@@ -44,7 +46,25 @@ final yearlyRevenueProvider =
 });
 
 final repairReportsProvider = FutureProvider<List<Repair>>((ref) async {
-  return await RepairDatabaseService.getAllRepairs();
+  final repairs = await RepairDatabaseService.getAllRepairs();
+  if (repairs.isEmpty) return repairs;
+
+  final db = await DBService.database;
+  final rows = await db.rawQuery('''
+    WITH paid AS (${RepairFinancialTruthService.paidByRepairSql})
+    SELECT repair_id, COALESCE(paid, 0) AS paid FROM paid
+  ''');
+  final paidByRepair = <String, double>{
+    for (final row in rows)
+      if (row['repair_id'] != null)
+        row['repair_id'].toString(): (row['paid'] as num?)?.toDouble() ?? 0.0,
+  };
+
+  return repairs
+      .map((repair) => repair.copyWith(
+            paidAmount: paidByRepair[repair.id] ?? 0.0,
+          ))
+      .toList(growable: false);
 });
 
 /// 🔔 مزود عدد الملفات غير المسددة منذ أكثر من 30 يومًا

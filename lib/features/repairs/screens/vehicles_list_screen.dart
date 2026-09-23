@@ -13,7 +13,9 @@ import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class VehiclesListScreen extends StatefulWidget {
-  const VehiclesListScreen({super.key});
+  const VehiclesListScreen({super.key, this.initialVehicleId});
+
+  final int? initialVehicleId;
 
   @override
   State<VehiclesListScreen> createState() => _VehiclesListScreenState();
@@ -71,6 +73,12 @@ class _VehiclesListScreenState extends State<VehiclesListScreen> {
 
   List<Vehicle> get _filtered {
     final query = _searchController.text.trim().toLowerCase();
+    final initialId = widget.initialVehicleId;
+    if (query.isEmpty && initialId != null) {
+      return _vehicles
+          .where((vehicle) => vehicle.id == initialId)
+          .toList(growable: false);
+    }
     if (query.isEmpty) return _vehicles;
 
     return _vehicles

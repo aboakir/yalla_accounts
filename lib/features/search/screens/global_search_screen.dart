@@ -7,6 +7,9 @@ import 'package:yalla_accounts/core/services/global_search_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
+import 'package:yalla_accounts/features/employees/services/employee_database_service.dart';
+import 'package:yalla_accounts/features/cheques/services/cheque_service.dart';
+import 'package:yalla_accounts/features/raw_materials/services/raw_material_service.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
@@ -90,76 +93,110 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   Future<void> _openHit(SearchHit h) async {
     if (_opening) return;
     _opening = true;
-    // اقفل الكيبورد
     FocusScope.of(context).unfocus();
-
     try {
       switch (h.source) {
         case 'repairs':
-          final r = await RepairDatabaseService.getRepairById(h.id);
+          final repair = await RepairDatabaseService.getRepairById(h.id);
           if (!mounted) return;
-          if (r != null) {
-            Navigator.pushNamed(context, AppRoutes.repairDetail, arguments: r);
-          } else {
-            Navigator.pushNamed(context, AppRoutes.repairsDashboard);
-          }
+          await AppRoutes.pushNamedSafe(
+            context,
+            repair == null
+                ? AppRoutes.repairsDashboard
+                : AppRoutes.repairDetail,
+            arguments: repair,
+          );
           break;
-
         case 'clients':
           final clientId = int.tryParse(h.id);
           final client = clientId == null
               ? null
               : await ClientService.getClientById(clientId);
           if (!mounted) return;
-          if (client != null) {
-            Navigator.pushNamed(context, AppRoutes.clientEdit,
-                arguments: client);
-          } else {
-            Navigator.pushNamed(context, AppRoutes.clients);
-          }
+          await AppRoutes.pushNamedSafe(
+            context,
+            client == null ? AppRoutes.clients : AppRoutes.clientEdit,
+            arguments: client,
+          );
           break;
-
         case 'invoices':
-          if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.invoiceView, arguments: h.id);
+          await AppRoutes.pushNamedSafe(context, AppRoutes.invoiceView,
+              arguments: h.id);
           break;
-
         case 'payments':
-          if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.payments);
+          await AppRoutes.pushNamedSafe(context, AppRoutes.payments,
+              arguments: {'paymentId': h.id});
           break;
-
         case 'employees':
+          final employee = await EmployeeDatabaseService.getById(h.id);
           if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.employeeList);
+          await AppRoutes.pushNamedSafe(
+            context,
+            employee == null ? AppRoutes.employeeList : AppRoutes.employeeEdit,
+            arguments: employee,
+          );
           break;
-
         case 'suppliers':
-          if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.suppliers);
+          await AppRoutes.pushNamedSafe(
+            context,
+            AppRoutes.supplierPayables,
+            arguments: {'supplierId': h.id, 'supplierName': h.title},
+          );
           break;
-
         case 'receipts':
-          if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.receiptVouchersList);
+          await AppRoutes.pushNamedSafe(context, AppRoutes.receiptVouchersList,
+              arguments: {'receiptId': h.id});
           break;
-
         case 'cheques':
+          final chequeId = int.tryParse(h.id);
+          final cheque =
+              chequeId == null ? null : await ChequeService().getById(chequeId);
           if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.chequesDashboard);
+          await AppRoutes.pushNamedSafe(
+            context,
+            cheque == null ? AppRoutes.chequesList : AppRoutes.chequesEdit,
+            arguments: cheque,
+          );
           break;
-
         case 'purchases':
-          if (!mounted) return;
-          Navigator.pushNamed(context, AppRoutes.purchasesList);
+          await AppRoutes.pushNamedSafe(context, AppRoutes.purchasesList,
+              arguments: {'purchaseId': h.id});
           break;
-
+        case 'vehicles':
+          await AppRoutes.pushNamedSafe(
+            context,
+            AppRoutes.vehiclesList,
+            arguments: {'vehicleId': int.tryParse(h.id)},
+          );
+          break;
+        case 'documents':
+          await AppRoutes.pushNamedSafe(
+            context,
+            AppRoutes.insurancePolicyDetails,
+            arguments: {'policyId': h.id},
+          );
+          break;
+        case 'items':
+          final itemId = int.tryParse(h.id);
+          final item =
+              itemId == null ? null : await RawMaterialService.getById(itemId);
+          if (!mounted) return;
+          await AppRoutes.pushNamedSafe(
+            context,
+            item == null ? AppRoutes.rawMaterials : AppRoutes.rawMaterialEdit,
+            arguments: item,
+          );
+          break;
         default:
           break;
       }
     } finally {
-      // سماح بفتح عنصر جديد بعد الانتقال
       _opening = false;
+      if (mounted) {
+        _focus.requestFocus();
+        _controller.selection =
+            TextSelection.collapsed(offset: _controller.text.length);
+      }
     }
   }
 

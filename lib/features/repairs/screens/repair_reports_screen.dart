@@ -14,7 +14,7 @@ import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
 import 'package:yalla_accounts/features/repairs/models/repair.dart';
-import 'package:yalla_accounts/features/repairs/providers/repair_provider.dart';
+import 'package:yalla_accounts/features/repairs/providers/repair_reports_provider.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -125,7 +125,17 @@ class _RepairReportsScreenState extends ConsumerState<RepairReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
-    final repairs = ref.watch(repairsProvider);
+    final reports = ref.watch(repairReportsProvider);
+    if (reports.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (reports.hasError) {
+      return Scaffold(
+        body:
+            Center(child: Text('تعذر تحميل تقرير الإصلاحات: ${reports.error}')),
+      );
+    }
+    final repairs = reports.value ?? const <Repair>[];
 
     List<Repair> filtered = repairs.where((r) {
       final d = r.receivedDate;

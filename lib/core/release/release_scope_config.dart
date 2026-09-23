@@ -6,7 +6,7 @@ class ReleaseScopeConfig {
   const ReleaseScopeConfig._();
 
   /// P3-01: Repair Reports screen stays enabled, export actions are deferred.
-  static const bool repairReportExportsEnabled = false;
+  static const bool repairReportExportsEnabled = true;
 
   /// Employee advances/rewards UI is enabled; accounting remains on the canonical voucher/GL path.
   static const bool employeeAdvancesEnabled = true;

@@ -18,6 +18,12 @@ import 'package:yalla_accounts/core/services/db_service.dart';
 class ReportsGLService {
   ReportsGLService._();
 
+  static DateTime _dayStart(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  static DateTime _nextDay(DateTime value) =>
+      _dayStart(value).add(const Duration(days: 1));
+
   // ---------- Trial Balance ----------
   static Future<List<Map<String, Object?>>> trialBalance({
     required DateTime from,
@@ -26,8 +32,11 @@ class ReportsGLService {
   }) async {
     final db = await DBService.database;
 
-    final where = <String>['e.date >= ? AND e.date <= ?'];
-    final args = <Object>[from.toIso8601String(), to.toIso8601String()];
+    final where = <String>['e.date >= ? AND e.date < ?'];
+    final args = <Object>[
+      _dayStart(from).toIso8601String(),
+      _nextDay(to).toIso8601String(),
+    ];
 
     if (accountIds != null && accountIds.isNotEmpty) {
       final placeholders = List.filled(accountIds.length, '?').join(',');
@@ -70,8 +79,8 @@ class ReportsGLService {
       JOIN gl_entries e ON e.id = l.entry_id
       WHERE l.account_id = ? AND e.date < ?
     ''';
-    final openingRes =
-        await db.rawQuery(openingSql, [accountId, from.toIso8601String()]);
+    final openingRes = await db
+        .rawQuery(openingSql, [accountId, _dayStart(from).toIso8601String()]);
     final opening = _numToDouble(openingRes.first['opening']);
 
     final linesSql = '''
@@ -86,11 +95,14 @@ class ReportsGLService {
         ROUND(l.credit,2) AS credit
       FROM gl_lines l
       JOIN gl_entries e ON e.id = l.entry_id
-      WHERE l.account_id = ? AND e.date >= ? AND e.date <= ?
+      WHERE l.account_id = ? AND e.date >= ? AND e.date < ?
       ORDER BY e.date ASC, e.id ASC, l.id ASC
     ''';
-    final rows = await db.rawQuery(
-        linesSql, [accountId, from.toIso8601String(), to.toIso8601String()]);
+    final rows = await db.rawQuery(linesSql, [
+      accountId,
+      _dayStart(from).toIso8601String(),
+      _nextDay(to).toIso8601String(),
+    ]);
 
     // احسب رصيد جارٍ
     double running = opening;
@@ -152,7 +164,7 @@ class ReportsGLService {
             -- أو استخدام party_type كبديل
             (UPPER(COALESCE(l.party_type,'')) IN ('CLIENT','CUSTOMER') AND l.party_id IS NOT NULL)
           )
-          AND e.date <= ?
+          AND e.date < ?
       )
       SELECT
         client_id,
@@ -169,8 +181,17 @@ class ReportsGLService {
       ORDER BY client_name COLLATE NOCASE ASC
     ''';
 
-    final iso = asOf.toIso8601String();
-    final args = [iso, iso, iso, iso, iso, iso, iso];
+    final ageIso = _dayStart(asOf).toIso8601String();
+    final cutoffIso = _nextDay(asOf).toIso8601String();
+    final args = [
+      cutoffIso,
+      ageIso,
+      ageIso,
+      ageIso,
+      ageIso,
+      ageIso,
+      ageIso,
+    ];
 
     final rows = await db.rawQuery(sql, args);
 
@@ -196,7 +217,7 @@ class ReportsGLService {
         FROM gl_lines l
         JOIN gl_entries e ON e.id = l.entry_id
         JOIN suppliers s ON s.account_id = l.account_id
-        WHERE e.date <= ?
+        WHERE e.date < ?
       )
       SELECT
         supplier_id,
@@ -212,8 +233,17 @@ class ReportsGLService {
       ORDER BY supplier_name COLLATE NOCASE ASC
     ''';
 
-    final iso = asOf.toIso8601String();
-    final args = [iso, iso, iso, iso, iso, iso, iso];
+    final ageIso = _dayStart(asOf).toIso8601String();
+    final cutoffIso = _nextDay(asOf).toIso8601String();
+    final args = [
+      cutoffIso,
+      ageIso,
+      ageIso,
+      ageIso,
+      ageIso,
+      ageIso,
+      ageIso,
+    ];
 
     return db.rawQuery(sql, args);
   }

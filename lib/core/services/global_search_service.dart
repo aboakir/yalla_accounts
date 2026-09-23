@@ -63,15 +63,19 @@ class GlobalSearchService {
       guard(() => _searchReceipts(db, like)),
       guard(() => _searchCheques(db, like)),
       guard(() => _searchPurchases(db, like)),
+      guard(() => _searchVehicles(db, like)),
+      guard(() => _searchPolicyDocuments(db, like)),
+      guard(() => _searchRawMaterials(db, like)),
     ]);
 
-    // دمج + قصّ
+    // Interleave categories so a busy source cannot starve later modules.
     final hits = <SearchHit>[];
-    for (final group in futures) {
-      hits.addAll(group);
-      if (hits.length >= 50) break;
+    for (var index = 0; index < 10; index++) {
+      for (final group in futures) {
+        if (index < group.length) hits.add(group[index]);
+      }
     }
-    return hits.take(50).toList();
+    return hits.take(100).toList(growable: false);
   }
 
   // ---------------- Repairs ----------------
@@ -357,6 +361,104 @@ class GlobalSearchService {
           id: id,
           title: no.isEmpty ? 'فاتورة شراء' : 'فاتورة شراء $no',
           subtitle: sub);
+    }).toList();
+  }
+
+  // ---------------- Insurance policy documents ----------------
+  static Future<List<SearchHit>> _searchPolicyDocuments(
+      Database db, String like) async {
+    final info = await db.rawQuery('PRAGMA table_info(insurance_policies)');
+    final columns = info.map((r) => r['name']?.toString() ?? '').toSet();
+    if (columns.isEmpty) return const <SearchHit>[];
+
+    const candidates = [
+      'id',
+      'policy_number',
+      'document_number',
+      'insured_name',
+      'insured_phone',
+      'company_name',
+      'vehicle_plate',
+      'notes',
+    ];
+    final searchable = candidates.where(columns.contains).toList();
+    final where = searchable
+        .map((column) => "COALESCE(CAST($column AS TEXT),'') LIKE ?")
+        .join(' OR ');
+    final rows = await db.rawQuery(
+      'SELECT * FROM insurance_policies WHERE ($where) '
+      'ORDER BY updated_at DESC, created_at DESC LIMIT 10',
+      List<Object?>.filled(searchable.length, like),
+    );
+    return rows.map((m) {
+      final id = (m['id'] ?? '').toString();
+      final number =
+          (m['policy_number'] ?? m['document_number'] ?? id).toString();
+      final insured = (m['insured_name'] ?? '').toString();
+      final company = (m['company_name'] ?? '').toString();
+      final plate = (m['vehicle_plate'] ?? '').toString();
+      return SearchHit(
+        source: 'documents',
+        id: id,
+        title: number.isEmpty ? 'وثيقة تأمين' : 'وثيقة $number',
+        subtitle: [insured, company, plate]
+            .where((e) => e.trim().isNotEmpty)
+            .join(' — '),
+      );
+    }).toList();
+  }
+
+  // ---------------- Vehicles ----------------
+  static Future<List<SearchHit>> _searchVehicles(
+      Database db, String like) async {
+    final rows = await db.rawQuery('''
+      SELECT id, number, type, model, client_id, notes
+      FROM vehicles
+      WHERE is_active=1
+        AND (number LIKE ? OR normalized_number LIKE ? OR type LIKE ?
+          OR model LIKE ? OR notes LIKE ?)
+      ORDER BY updated_at DESC, id DESC
+      LIMIT 10
+    ''', [like, like, like, like, like]);
+    return rows.map((m) {
+      final id = (m['id'] ?? '').toString();
+      final number = (m['number'] ?? '').toString();
+      final type = (m['type'] ?? '').toString();
+      final model = (m['model'] ?? '').toString();
+      return SearchHit(
+        source: 'vehicles',
+        id: id,
+        title: number.isEmpty ? 'مركبة' : 'مركبة $number',
+        subtitle: [type, model].where((e) => e.trim().isNotEmpty).join(' — '),
+      );
+    }).toList();
+  }
+
+  // ---------------- Raw materials / items ----------------
+  static Future<List<SearchHit>> _searchRawMaterials(
+      Database db, String like) async {
+    final rows = await db.query(
+      'raw_materials',
+      where:
+          '(name LIKE ? OR supplier LIKE ? OR description LIKE ? OR CAST(id AS TEXT) LIKE ?)',
+      whereArgs: [like, like, like, like],
+      orderBy: 'name COLLATE NOCASE ASC',
+      limit: 10,
+    );
+    return rows.map((m) {
+      final id = (m['id'] ?? '').toString();
+      final name = (m['name'] ?? '').toString();
+      final supplier = (m['supplier'] ?? '').toString();
+      final quantity = (m['quantity'] ?? '').toString();
+      return SearchHit(
+        source: 'items',
+        id: id,
+        title: name.isEmpty ? 'صنف #$id' : name,
+        subtitle: [
+          if (supplier.isNotEmpty) 'المورد: $supplier',
+          if (quantity.isNotEmpty) 'الكمية: $quantity',
+        ].join(' — '),
+      );
     }).toList();
   }
 

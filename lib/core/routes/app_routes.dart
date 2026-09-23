@@ -22,6 +22,7 @@ import 'package:yalla_accounts/features/home/screens/dashboard_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/home/screens/insurance_agent_home_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/screens/add_policy_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/policies/screens/policies_list_screen.dart';
+import 'package:yalla_accounts/features/insurance_agent/policies/screens/policy_details_screen.dart';
 import 'package:yalla_accounts/features/insurance_agent/contacts/screens/insurance_contacts_list_screen.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/producers/screens/producers_portfolios_screen.dart';
@@ -299,6 +300,7 @@ class AppRoutes {
   static const insuranceAgentRoot = '/insurance-agent';
   static const insuranceAgentHome = '/insurance-agent/home';
   static const insurancePoliciesList = '/insurance-agent/policies';
+  static const insurancePolicyDetails = '/insurance-agent/policies/details';
 
   static const insuranceAgentAddNew = '/insurance-agent/add';
   static const insuranceAgentProducers = '/insurance-agent/producers';
@@ -440,6 +442,7 @@ class AppRoutes {
     insuranceAgentRoot,
     insuranceAgentHome,
     insurancePoliciesList,
+    insurancePolicyDetails,
     insuranceAgentAddNew,
     insuranceAgentProducers,
     insuranceAgentCalculator,
@@ -625,7 +628,14 @@ class AppRoutes {
 
     // Repairs
     if (name == vehiclesList) {
-      return _page(settings, const VehiclesListScreen());
+      final args = settings.arguments;
+      final rawId = args is Map ? args['vehicleId'] : args;
+      final vehicleId =
+          rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
+      return _page(
+        settings,
+        VehiclesListScreen(initialVehicleId: vehicleId),
+      );
     }
 
     if (name == repairs) {
@@ -1036,6 +1046,14 @@ class AppRoutes {
     }
     if (name == insurancePoliciesList) {
       return _page(settings, const PoliciesListScreen());
+    }
+    if (name == insurancePolicyDetails) {
+      final args = settings.arguments;
+      final policyId = args is Map ? args['policyId'] : args;
+      if (policyId == null) {
+        return _page(settings, const PoliciesListScreen());
+      }
+      return _page(settings, PolicyDetailsScreen(policyId: policyId));
     }
 
     if (name == insuranceAgentAddNew) {
