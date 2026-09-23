@@ -764,7 +764,9 @@ class VoucherPaymentService {
         await _syncPayrollRunFromVouchers(txn, postingVoucher.sourceId!.trim());
       }
 
+      final postingSource = (postingVoucher.source ?? '').trim().toUpperCase();
       if (postingVoucher.partyType?.toUpperCase() == 'SUPPLIER' &&
+          postingSource != 'INSURANCE_SETTLEMENT' &&
           postingVoucher.reference != null &&
           postingVoucher.reference!.trim().isNotEmpty) {
         await _autoSettleSupplierInvoicesFIFO(
@@ -1162,7 +1164,10 @@ class VoucherPaymentService {
       }
 
       final reference = (voucher.reference ?? '').trim();
-      if (reference.isNotEmpty) {
+      final source = (voucher.source ?? '').trim().toUpperCase();
+      final referenceIsPurchaseInvoice =
+          reference.isNotEmpty && source != 'INSURANCE_SETTLEMENT';
+      if (referenceIsPurchaseInvoice) {
         final invoices = await txn.query(
           'purchase_invoices',
           columns: const ['id', 'supplier_id', 'amount_total', 'status'],
