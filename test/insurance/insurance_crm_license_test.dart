@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:yalla_accounts/core/services/db/database_migration.dart';
+import 'package:yalla_accounts/features/insurance_agent/alerts/services/insurance_alert_center_service.dart';
 import 'package:yalla_accounts/features/insurance_agent/contacts/services/insurance_crm_service.dart';
 
 void main() {
@@ -294,5 +295,154 @@ void main() {
       isTrue,
       reason: 'driving license alerts must stay separate from policy expiry',
     );
+
+    final records = await InsuranceCrmService.listDrivingLicenses(
+      partyId: prospect.partyId,
+      executor: db,
+    );
+    expect(records, hasLength(1));
+    expect(records.single.licenseNumber, 'DL-100');
+    expect(records.single.licenseType, 'خصوصي');
+    expect(records.single.issueDate, DateTime(2024, 1, 1));
+    expect(records.single.expiryDate, DateTime(2027, 1, 1));
+    expect(records.single.categories, ['B']);
+  });
+
+  test('CRM follow-up history updates prospect and feeds alert center',
+      () async {
+    final prospect = await InsuranceCrmService.createProspect(
+      name: 'عميل متابعة',
+      phone: '٠٥٩٩-١٢٣-٤٥٦',
+      city: 'Bethlehem',
+      source: 'Referral',
+      currentCompany: 'Existing Insurer',
+      status: 'PROSPECT',
+    );
+    expect(prospect.phone, '0599123456');
+    expect(prospect.city, 'Bethlehem');
+    expect(prospect.source, 'Referral');
+    expect(prospect.currentCompany, 'Existing Insurer');
+
+    final contactedAt = DateTime(2026, 9, 23, 9, 30);
+    final nextFollowUp = DateTime(2026, 9, 26);
+    await InsuranceCrmService.recordContact(
+      prospectId: prospect.id,
+      channel: 'WHATSAPP',
+      contactAt: contactedAt,
+      status: 'FOLLOW_UP',
+      result: 'طلب عرض سعر',
+      notes: 'إعادة التواصل بعد ثلاثة أيام',
+      nextFollowUpAt: nextFollowUp,
+      database: db,
+    );
+
+    final updated = (await InsuranceCrmService.listProspects(executor: db))
+        .singleWhere((row) => row.id == prospect.id);
+    expect(updated.status, 'FOLLOW_UP');
+    expect(updated.lastContactAt, contactedAt);
+    expect(updated.nextContactAt, nextFollowUp);
+    expect(updated.contactResult, 'طلب عرض سعر');
+
+    final history = await InsuranceCrmService.listContactHistory(
+      prospectId: prospect.id,
+      executor: db,
+    );
+    expect(history, hasLength(1));
+    expect(history.single.channel, 'WHATSAPP');
+    expect(history.single.result, 'طلب عرض سعر');
+    expect(history.single.nextFollowUpAt, nextFollowUp);
+
+    final alerts = await InsuranceAlertCenterService.listAlerts(
+      asOf: DateTime(2026, 9, 23),
+      window: InsuranceAlertWindow.next7,
+      executor: db,
+    );
+    expect(
+      alerts.where(
+        (item) =>
+            item.type == 'CUSTOMER_FOLLOW_UP' &&
+            item.sourceId == prospect.id &&
+            item.dueAt == nextFollowUp,
+      ),
+      hasLength(1),
+    );
+  });
+
+  test('converted CRM edits keep Party and Customer identity synchronized',
+      () async {
+    final prospect = await InsuranceCrmService.createProspect(
+      name: 'Converted CRM',
+      phone: '0598777201',
+    );
+    final clientId = await InsuranceCrmService.convertToInsured(prospect.id);
+
+    await InsuranceCrmService.updateProspect(
+      id: prospect.id,
+      name: 'Converted CRM Updated',
+      phone: '٠٥٩٨-٧٧٧-٢٠٢',
+      status: 'CONVERTED',
+    );
+
+    final party = (await db.query(
+      'parties',
+      columns: const ['display_name', 'phone'],
+      where: 'id=?',
+      whereArgs: [prospect.partyId],
+      limit: 1,
+    ))
+        .single;
+    final client = (await db.query(
+      'clients',
+      columns: const ['name', 'phone'],
+      where: 'id=?',
+      whereArgs: [clientId],
+      limit: 1,
+    ))
+        .single;
+    expect(party['display_name'], 'Converted CRM Updated');
+    expect(party['phone'], '0598777202');
+    expect(client['name'], 'Converted CRM Updated');
+    expect(client['phone'], '0598777202');
+
+    final resolved = await InsuranceCrmService.ensureInsuredCustomer(
+      name: 'Converted CRM Updated',
+      phone: '(0598) 777-202',
+      executor: db,
+    );
+    expect(resolved.partyId, prospect.partyId);
+    expect(resolved.clientId, clientId);
+  });
+
+  test('CRM create and update share canonical phone identity guards', () async {
+    final first = await InsuranceCrmService.createProspect(
+      name: 'CRM Canonical',
+      phone: '٠٥٩٨-٧٧٧-١٠١',
+    );
+    expect(first.phone, '0598777101');
+
+    await expectLater(
+      InsuranceCrmService.createProspect(
+        name: 'Different CRM Person',
+        phone: '(0598) 777 101',
+      ),
+      throwsStateError,
+    );
+
+    final second = await InsuranceCrmService.createProspect(
+      name: 'Second CRM Person',
+      phone: '0598777102',
+    );
+    await expectLater(
+      InsuranceCrmService.updateProspect(
+        id: second.id,
+        name: second.name,
+        phone: '٠٥٩٨ ٧٧٧ ١٠١',
+      ),
+      throwsStateError,
+    );
+
+    final stored = (await InsuranceCrmService.listProspects(executor: db))
+        .singleWhere((row) => row.id == second.id);
+    expect(stored.phone, '0598777102');
   });
 }

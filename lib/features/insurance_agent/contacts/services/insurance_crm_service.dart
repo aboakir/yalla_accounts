@@ -19,6 +19,12 @@ class InsuranceProspectRecord {
     this.vehicleSummary,
     this.currentPolicyExpiry,
     this.city,
+    this.source,
+    this.responsibleUserId,
+    this.currentCompany,
+    this.lastContactAt,
+    this.nextContactAt,
+    this.contactResult,
     this.notes,
   });
 
@@ -30,6 +36,60 @@ class InsuranceProspectRecord {
   final String? vehicleSummary;
   final DateTime? currentPolicyExpiry;
   final String? city;
+  final String? source;
+  final String? responsibleUserId;
+  final String? currentCompany;
+  final DateTime? lastContactAt;
+  final DateTime? nextContactAt;
+  final String? contactResult;
+  final String? notes;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
+class InsuranceContactRecord {
+  const InsuranceContactRecord({
+    required this.id,
+    required this.partyId,
+    required this.contactAt,
+    required this.channel,
+    required this.createdAt,
+    this.result,
+    this.notes,
+    this.nextFollowUpAt,
+  });
+
+  final String id;
+  final String partyId;
+  final DateTime contactAt;
+  final String channel;
+  final String? result;
+  final String? notes;
+  final DateTime? nextFollowUpAt;
+  final DateTime createdAt;
+}
+
+class InsuranceDrivingLicenseRecord {
+  const InsuranceDrivingLicenseRecord({
+    required this.id,
+    required this.partyId,
+    required this.licenseNumber,
+    required this.expiryDate,
+    required this.categories,
+    required this.createdAt,
+    required this.updatedAt,
+    this.licenseType,
+    this.issueDate,
+    this.notes,
+  });
+
+  final String id;
+  final String partyId;
+  final String licenseNumber;
+  final String? licenseType;
+  final DateTime? issueDate;
+  final DateTime expiryDate;
+  final List<String> categories;
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -48,6 +108,30 @@ class InsuranceInsuredIdentity {
 class InsuranceCrmService {
   InsuranceCrmService._();
 
+  static const prospectStatuses = <String>{
+    'PROSPECT',
+    'CONTACTED',
+    'NO_ANSWER',
+    'WHATSAPP_SENT',
+    'QUOTE_SENT',
+    'INTERESTED',
+    'NOT_INTERESTED',
+    'FOLLOW_UP',
+    'CONVERTED',
+    'LOST',
+    'REJECTED',
+    'CLOSED',
+    'CANCELLED',
+  };
+
+  static String _canonicalStatus(String value) {
+    final status = value.trim().toUpperCase();
+    if (!prospectStatuses.contains(status)) {
+      throw ArgumentError('Unsupported insurance prospect status.');
+    }
+    return status;
+  }
+
   static String _phoneIdentityKey(String value) =>
       YallaDigitNormalizer.normalize(value).replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -61,8 +145,11 @@ class InsuranceCrmService {
   }) async {
     final db = executor ?? await DBService.database;
     final rows = await db.rawQuery('''
-      SELECT p.id, p.party_id, p.status, p.city, p.current_policy_expiry,
-             p.vehicle_summary, p.notes, p.created_at, p.updated_at,
+      SELECT p.id, p.party_id, p.status, p.city, p.source,
+             p.responsible_user_id, p.current_company,
+             p.current_policy_expiry, p.vehicle_summary,
+             p.last_contact_at, p.next_contact_at, p.contact_result,
+             p.notes, p.created_at, p.updated_at,
              m.display_name, m.phone
       FROM insurance_prospects p
       JOIN parties m ON m.id=p.party_id
@@ -91,8 +178,14 @@ class InsuranceCrmService {
       phone: (row['phone'] ?? '').toString(),
       status: (row['status'] ?? 'PROSPECT').toString(),
       city: row['city']?.toString(),
+      source: row['source']?.toString(),
+      responsibleUserId: row['responsible_user_id']?.toString(),
+      currentCompany: row['current_company']?.toString(),
       vehicleSummary: row['vehicle_summary']?.toString(),
       currentPolicyExpiry: parseOptional('current_policy_expiry'),
+      lastContactAt: parseOptional('last_contact_at'),
+      nextContactAt: parseOptional('next_contact_at'),
+      contactResult: row['contact_result']?.toString(),
       notes: row['notes']?.toString(),
       createdAt: parse('created_at'),
       updatedAt: parse('updated_at'),
@@ -106,10 +199,21 @@ class InsuranceCrmService {
     String? vehicleSummary,
     DateTime? currentPolicyExpiry,
     String? city,
+    String? source,
+    String? responsibleUserId,
+    String? currentCompany,
+    DateTime? lastContactAt,
+    DateTime? nextContactAt,
+    String? contactResult,
     String? notes,
   }) async {
     final cleanName = name.trim();
-    final cleanPhone = phone.trim();
+    final rawPhone = phone.trim();
+    final cleanPhone = _phoneIdentityKey(rawPhone);
+    final canonicalStatus = _canonicalStatus(status);
+    if (rawPhone.isNotEmpty && cleanPhone.isEmpty) {
+      throw ArgumentError('Prospect phone must contain digits.');
+    }
     if (cleanName.isEmpty &&
         cleanPhone.isEmpty &&
         (vehicleSummary ?? '').trim().isEmpty &&
@@ -146,15 +250,15 @@ class InsuranceCrmService {
         {
           'id': id,
           'party_id': partyId,
-          'status': status,
+          'status': canonicalStatus,
           'city': city?.trim(),
-          'source': null,
-          'responsible_user_id': null,
-          'current_company': null,
+          'source': source?.trim(),
+          'responsible_user_id': responsibleUserId?.trim(),
+          'current_company': currentCompany?.trim(),
           'current_policy_expiry': currentPolicyExpiry?.toIso8601String(),
-          'last_contact_at': null,
-          'next_contact_at': null,
-          'contact_result': null,
+          'last_contact_at': lastContactAt?.toIso8601String(),
+          'next_contact_at': nextContactAt?.toIso8601String(),
+          'contact_result': contactResult?.trim(),
           'tags_json': null,
           'vehicle_summary': vehicleSummary?.trim(),
           'notes': notes?.trim(),
@@ -176,14 +280,34 @@ class InsuranceCrmService {
     required String now,
   }) async {
     if (phone.isNotEmpty) {
-      final byPhone = await db.query(
+      final matches = <Map<String, Object?>>[];
+      for (final row in await db.query(
         'parties',
-        columns: const ['id'],
-        where: 'TRIM(phone)=? AND is_active=1',
-        whereArgs: [phone],
-        limit: 2,
-      );
-      if (byPhone.length == 1) return byPhone.single['id'].toString();
+        columns: const ['id', 'display_name', 'phone'],
+        where: 'is_active=1',
+      )) {
+        if (_phoneIdentityKey((row['phone'] ?? '').toString()) == phone) {
+          matches.add(row);
+        }
+      }
+      if (matches.length > 1) {
+        throw StateError(
+          'Multiple Party identities use this phone; merge them before CRM entry.',
+        );
+      }
+      if (matches.length == 1) {
+        final existingName =
+            _insuredNameKey((matches.single['display_name'] ?? '').toString());
+        final requestedName = _insuredNameKey(name);
+        if (requestedName.isNotEmpty &&
+            existingName.isNotEmpty &&
+            requestedName != existingName) {
+          throw StateError(
+            'This phone belongs to a different Party identity.',
+          );
+        }
+        return matches.single['id'].toString();
+      }
     }
 
     final partyId = 'PROSPECT:$fallbackId';
@@ -210,6 +334,12 @@ class InsuranceCrmService {
     String? vehicleSummary,
     DateTime? currentPolicyExpiry,
     String? city,
+    String? source,
+    String? responsibleUserId,
+    String? currentCompany,
+    DateTime? lastContactAt,
+    DateTime? nextContactAt,
+    String? contactResult,
     String? notes,
     String? status,
   }) async {
@@ -225,24 +355,85 @@ class InsuranceCrmService {
       if (rows.isEmpty) throw StateError('Insurance prospect not found.');
       final partyId = rows.single['party_id'].toString();
       final now = DateTime.now().toIso8601String();
+      final rawPhone = phone.trim();
+      final canonicalPhone = _phoneIdentityKey(rawPhone);
+      if (rawPhone.isNotEmpty && canonicalPhone.isEmpty) {
+        throw ArgumentError('Prospect phone must contain digits.');
+      }
+      if (canonicalPhone.isNotEmpty) {
+        final conflicts = <Map<String, Object?>>[];
+        for (final row in await txn.query(
+          'parties',
+          columns: const ['id', 'phone'],
+          where: 'is_active=1 AND id<>?',
+          whereArgs: [partyId],
+        )) {
+          if (_phoneIdentityKey((row['phone'] ?? '').toString()) ==
+              canonicalPhone) {
+            conflicts.add(row);
+          }
+        }
+        if (conflicts.isNotEmpty) {
+          throw StateError('This phone belongs to another Party identity.');
+        }
+      }
 
+      final displayName = name.trim().isEmpty ? 'عميل محتمل' : name.trim();
       await txn.update(
         'parties',
         {
-          'display_name': name.trim().isEmpty ? 'عميل محتمل' : name.trim(),
-          'phone': phone.trim().isEmpty ? null : phone.trim(),
+          'display_name': displayName,
+          'phone': canonicalPhone.isEmpty ? null : canonicalPhone,
           'updated_at': now,
         },
         where: 'id=?',
         whereArgs: [partyId],
       );
+
+      final customerRoles = await txn.query(
+        'party_roles',
+        columns: const ['legacy_id'],
+        where: 'party_id=? AND role=?',
+        whereArgs: [partyId, 'CUSTOMER'],
+        limit: 1,
+      );
+      if (customerRoles.isNotEmpty) {
+        final clientId = int.tryParse(
+          customerRoles.single['legacy_id'].toString(),
+        );
+        if (clientId == null) {
+          throw StateError('Customer Party role has an invalid client id.');
+        }
+        final changedClient = await txn.update(
+          'clients',
+          {
+            'name': displayName,
+            'phone': canonicalPhone.isEmpty ? null : canonicalPhone,
+          },
+          where: 'id=?',
+          whereArgs: [clientId],
+        );
+        if (changedClient != 1) {
+          throw StateError('Customer Party role points to a missing client.');
+        }
+      }
+
+      final canonicalStatus = status == null
+          ? rows.single['status'].toString()
+          : _canonicalStatus(status);
       await txn.update(
         'insurance_prospects',
         {
-          'status': status ?? rows.single['status'],
+          'status': canonicalStatus,
           'city': city?.trim(),
+          'source': source?.trim(),
+          'responsible_user_id': responsibleUserId?.trim(),
+          'current_company': currentCompany?.trim(),
           'current_policy_expiry': currentPolicyExpiry?.toIso8601String(),
           'vehicle_summary': vehicleSummary?.trim(),
+          'last_contact_at': lastContactAt?.toIso8601String(),
+          'next_contact_at': nextContactAt?.toIso8601String(),
+          'contact_result': contactResult?.trim(),
           'notes': notes?.trim(),
           'updated_at': now,
         },
@@ -250,6 +441,162 @@ class InsuranceCrmService {
         whereArgs: [id],
       );
     });
+  }
+
+  static Future<List<InsuranceContactRecord>> listContactHistory({
+    required String prospectId,
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? await DBService.database;
+    final prospect = await db.query(
+      'insurance_prospects',
+      columns: const ['party_id'],
+      where: 'id=?',
+      whereArgs: [prospectId.trim()],
+      limit: 1,
+    );
+    if (prospect.isEmpty) {
+      throw StateError('Insurance prospect not found.');
+    }
+    final partyId = prospect.single['party_id'].toString();
+    final rows = await db.query(
+      'insurance_contacts',
+      where: 'party_id=?',
+      whereArgs: [partyId],
+      orderBy: 'contact_at DESC, created_at DESC',
+    );
+    DateTime date(Object? value) =>
+        DateTime.tryParse(value?.toString() ?? '') ?? DateTime(1970);
+    DateTime? optionalDate(Object? value) {
+      final raw = value?.toString().trim() ?? '';
+      return raw.isEmpty ? null : DateTime.tryParse(raw);
+    }
+
+    return rows
+        .map(
+          (row) => InsuranceContactRecord(
+            id: row['id'].toString(),
+            partyId: partyId,
+            contactAt: date(row['contact_at']),
+            channel: row['channel'].toString(),
+            result: row['result']?.toString(),
+            notes: row['notes']?.toString(),
+            nextFollowUpAt: optionalDate(row['next_follow_up_at']),
+            createdAt: date(row['created_at']),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  static Future<void> recordContact({
+    required String prospectId,
+    required String channel,
+    DateTime? contactAt,
+    String? result,
+    String? notes,
+    DateTime? nextFollowUpAt,
+    String? status,
+    String? createdBy,
+    DatabaseExecutor? database,
+  }) async {
+    final cleanChannel = channel.trim().toUpperCase();
+    if (cleanChannel.isEmpty) {
+      throw ArgumentError('Insurance contact channel is required.');
+    }
+    final db = database ?? await DBService.database;
+    await SyncFoundationService.writeOn<void>(db, (txn) async {
+      final rows = await txn.query(
+        'insurance_prospects',
+        columns: const ['party_id', 'status'],
+        where: 'id=?',
+        whereArgs: [prospectId.trim()],
+        limit: 1,
+      );
+      if (rows.isEmpty) {
+        throw StateError('Insurance prospect not found.');
+      }
+      final now = DateTime.now();
+      final effectiveContactAt = contactAt ?? now;
+      final partyId = rows.single['party_id'].toString();
+      final canonicalStatus = status == null
+          ? rows.single['status'].toString()
+          : _canonicalStatus(status);
+
+      await txn.insert('insurance_contacts', {
+        'id': const Uuid().v4(),
+        'party_id': partyId,
+        'contact_at': effectiveContactAt.toIso8601String(),
+        'channel': cleanChannel,
+        'result': result?.trim(),
+        'notes': notes?.trim(),
+        'next_follow_up_at': nextFollowUpAt?.toIso8601String(),
+        'created_by': createdBy?.trim(),
+        'created_at': now.toIso8601String(),
+      });
+      await txn.update(
+        'insurance_prospects',
+        {
+          'status': canonicalStatus,
+          'last_contact_at': effectiveContactAt.toIso8601String(),
+          'next_contact_at': nextFollowUpAt?.toIso8601String(),
+          'contact_result': result?.trim(),
+          'updated_at': now.toIso8601String(),
+        },
+        where: 'id=?',
+        whereArgs: [prospectId.trim()],
+      );
+    });
+  }
+
+  static Future<List<InsuranceDrivingLicenseRecord>> listDrivingLicenses({
+    required String partyId,
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? await DBService.database;
+    final rows = await db.query(
+      'insurance_driver_licenses',
+      where: 'party_id=?',
+      whereArgs: [partyId.trim()],
+      orderBy: 'expiry_date ASC, license_number ASC',
+    );
+    DateTime date(Object? value) =>
+        DateTime.tryParse(value?.toString() ?? '') ?? DateTime(1970);
+    DateTime? optionalDate(Object? value) {
+      final raw = value?.toString().trim() ?? '';
+      return raw.isEmpty ? null : DateTime.tryParse(raw);
+    }
+
+    List<String> categories(Object? value) {
+      final raw = value?.toString().trim() ?? '';
+      if (raw.isEmpty) return const [];
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          return decoded
+              .map((entry) => entry.toString())
+              .where((entry) => entry.trim().isNotEmpty)
+              .toList(growable: false);
+        }
+      } catch (_) {}
+      return const [];
+    }
+
+    return rows
+        .map(
+          (row) => InsuranceDrivingLicenseRecord(
+            id: row['id'].toString(),
+            partyId: row['party_id'].toString(),
+            licenseNumber: row['license_number'].toString(),
+            licenseType: row['license_type']?.toString(),
+            issueDate: optionalDate(row['issue_date']),
+            expiryDate: date(row['expiry_date']),
+            categories: categories(row['categories_json']),
+            notes: row['notes']?.toString(),
+            createdAt: date(row['created_at']),
+            updatedAt: date(row['updated_at']),
+          ),
+        )
+        .toList(growable: false);
   }
 
   static Future<void> archiveProspect(String id) async {
