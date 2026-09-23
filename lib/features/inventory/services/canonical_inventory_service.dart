@@ -267,6 +267,11 @@ class CanonicalInventoryService {
     final db = await _database;
     return SyncFoundationService.transaction(db, (txn) async {
       await _assertAvailable(txn, itemId, fromWarehouseId, quantity);
+      final transferCost = await _weightedAverageUnitCost(
+        txn,
+        itemId: itemId,
+        warehouseId: fromWarehouseId,
+      );
       final outId = await _recordMovementInTransaction(
         txn,
         itemId: itemId,
@@ -274,6 +279,8 @@ class CanonicalInventoryService {
         movementType: 'TRANSFER_OUT',
         onHandDelta: -quantity,
         reservedDelta: 0,
+        unitCost: transferCost,
+        landedCost: transferCost,
         occurredAt: occurredAt,
         note: note,
         skipAvailabilityCheck: true,
@@ -286,6 +293,8 @@ class CanonicalInventoryService {
         movementType: 'TRANSFER_IN',
         onHandDelta: quantity,
         reservedDelta: 0,
+        unitCost: transferCost,
+        landedCost: transferCost,
         occurredAt: occurredAt,
         relatedMovementUuid: outUuid,
         note: note,
@@ -337,7 +346,7 @@ class CanonicalInventoryService {
         sourceReference: originalUuid,
         relatedMovementUuid: originalUuid,
         note: _nullable(note) ?? 'Reversal of immutable inventory movement.',
-        skipAvailabilityCheck: true,
+        skipAvailabilityCheck: false,
       );
     });
   }
@@ -421,6 +430,60 @@ class CanonicalInventoryService {
       'note': _nullable(note),
       'created_at': now,
     });
+  }
+
+  static Future<double> _weightedAverageUnitCost(
+    DatabaseExecutor db, {
+    required int itemId,
+    required int warehouseId,
+  }) async {
+    final itemRows = await db.query(
+      InventoryTables.items,
+      columns: const ['default_purchase_price'],
+      where: 'id=?',
+      whereArgs: [itemId],
+      limit: 1,
+    );
+    final fallback = itemRows.isEmpty
+        ? 0.0
+        : (itemRows.single['default_purchase_price'] as num?)?.toDouble() ??
+            0.0;
+    final rows = await db.query(
+      InventoryTables.movements,
+      columns: const [
+        'on_hand_delta',
+        'unit_cost',
+        'landed_cost',
+        'occurred_at',
+        'id',
+      ],
+      where: 'item_id=? AND warehouse_id=?',
+      whereArgs: [itemId, warehouseId],
+      orderBy: 'datetime(occurred_at) ASC, id ASC',
+    );
+    var onHand = 0.0;
+    var value = 0.0;
+    for (final row in rows) {
+      final delta = (row['on_hand_delta'] as num?)?.toDouble() ?? 0.0;
+      if (delta == 0) continue;
+      final currentAverage = onHand.abs() <= 0.000001 ? 0.0 : value / onHand;
+      var cost = (row['landed_cost'] as num?)?.toDouble() ??
+          (row['unit_cost'] as num?)?.toDouble();
+      cost ??= currentAverage > 0 ? currentAverage : fallback;
+      onHand += delta;
+      value += delta * cost;
+      if (onHand.abs() <= 0.000001) {
+        onHand = 0.0;
+        value = 0.0;
+      }
+      if (onHand < -0.000001) {
+        throw StateError('INVENTORY_NEGATIVE_STOCK_LEDGER');
+      }
+    }
+    if (onHand <= 0.000001) {
+      return fallback;
+    }
+    return value / onHand;
   }
 
   static Future<void> _assertAvailable(
