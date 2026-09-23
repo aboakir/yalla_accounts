@@ -16,6 +16,7 @@ import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../../core/services/db_service.dart';
+import '../../../core/services/db/tables/accounting_tables.dart';
 import '../../../core/services/document_number_service.dart';
 import '../../../core/security/authorization_policy.dart';
 import '../../auth/services/audit_trail_service.dart';
@@ -306,9 +307,14 @@ class VoucherPaymentService {
     required VoucherPayment voucher,
     String? insurancePolicyId,
     String? insuranceSettlementId,
+    String insuranceDirection = 'INSURER_PAYMENT',
   }) async {
     final policyId = insurancePolicyId?.trim();
     final settlementId = insuranceSettlementId?.trim();
+    final direction = insuranceDirection.trim().toUpperCase();
+    if (!const {'INSURER_PAYMENT', 'REFUND'}.contains(direction)) {
+      throw ArgumentError('Unsupported insurance voucher direction.');
+    }
     if ((policyId == null || policyId.isEmpty) &&
         (settlementId == null || settlementId.isEmpty)) {
       return;
@@ -319,38 +325,81 @@ class VoucherPaymentService {
         'Insurance payment must target a policy or a settlement, not both.',
       );
     }
+    if (direction == 'REFUND' && (settlementId?.isNotEmpty ?? false)) {
+      throw StateError('Insurance refund must target a policy.');
+    }
 
     if (policyId?.isNotEmpty ?? false) {
       final rows = await txn.query(
         'insurance_policies',
-        columns: const ['id', 'insurer_supplier_id', 'net_insurer_payable'],
+        columns: const [
+          'id',
+          'client_id',
+          'insurer_supplier_id',
+          'net_sale_amount',
+          'net_insurer_payable',
+        ],
         where: 'id=?',
         whereArgs: [policyId],
         limit: 1,
       );
       if (rows.isEmpty) throw StateError('Insurance policy not found.');
-      final expectedSupplier =
-          (rows.single['insurer_supplier_id'] as num?)?.toInt();
-      final actualSupplier = int.tryParse(voucher.partyId ?? '');
-      if (expectedSupplier != null &&
-          expectedSupplier > 0 &&
-          expectedSupplier != actualSupplier) {
-        throw StateError('Insurance payment supplier does not match policy.');
-      }
-      final payable =
-          (rows.single['net_insurer_payable'] as num?)?.toDouble() ?? 0.0;
-      final paidRows = await txn.rawQuery(
-        '''SELECT COALESCE(SUM(amount),0) paid
-           FROM insurance_policy_payments
-           WHERE policy_id=? AND direction='INSURER_PAYMENT'
-             AND status='POSTED' ''',
-        [policyId],
-      );
-      final alreadyPaid = (paidRows.single['paid'] as num?)?.toDouble() ?? 0.0;
-      if (voucher.amount - (payable - alreadyPaid) > 0.005) {
-        throw StateError(
-          'Insurance payment exceeds company payable for this policy.',
+
+      if (direction == 'INSURER_PAYMENT') {
+        final expectedSupplier =
+            (rows.single['insurer_supplier_id'] as num?)?.toInt();
+        final actualSupplier = int.tryParse(voucher.partyId ?? '');
+        if (expectedSupplier != null &&
+            expectedSupplier > 0 &&
+            expectedSupplier != actualSupplier) {
+          throw StateError('Insurance payment supplier does not match policy.');
+        }
+        final payable =
+            (rows.single['net_insurer_payable'] as num?)?.toDouble() ?? 0.0;
+        final paidRows = await txn.rawQuery(
+          '''SELECT COALESCE(SUM(amount),0) paid
+             FROM insurance_policy_payments
+             WHERE policy_id=? AND direction='INSURER_PAYMENT'
+               AND status='POSTED' ''',
+          [policyId],
         );
+        final alreadyPaid =
+            (paidRows.single['paid'] as num?)?.toDouble() ?? 0.0;
+        if (voucher.amount - (payable - alreadyPaid) > 0.005) {
+          throw StateError(
+            'Insurance payment exceeds company payable for this policy.',
+          );
+        }
+      } else {
+        final expectedClient = (rows.single['client_id'] as num?)?.toInt();
+        final actualClient = int.tryParse(voucher.partyId ?? '');
+        if (expectedClient == null ||
+            expectedClient <= 0 ||
+            actualClient != expectedClient ||
+            voucher.partyType?.trim().toUpperCase() != 'CLIENT') {
+          throw StateError('Insurance refund client does not match policy.');
+        }
+        final sale =
+            (rows.single['net_sale_amount'] as num?)?.toDouble() ?? 0.0;
+        final sums = await txn.rawQuery(
+          '''SELECT direction, COALESCE(SUM(amount),0) total
+             FROM insurance_policy_payments
+             WHERE policy_id=? AND status='POSTED'
+               AND direction IN ('CUSTOMER_RECEIPT','REFUND')
+             GROUP BY direction''',
+          [policyId],
+        );
+        var receipts = 0.0;
+        var refunds = 0.0;
+        for (final row in sums) {
+          final amount = (row['total'] as num?)?.toDouble() ?? 0.0;
+          if (row['direction'] == 'CUSTOMER_RECEIPT') receipts += amount;
+          if (row['direction'] == 'REFUND') refunds += amount;
+        }
+        final refundable = receipts - refunds - sale;
+        if (voucher.amount - refundable > 0.005) {
+          throw StateError('Insurance refund exceeds customer credit.');
+        }
       }
     } else {
       final rows = await txn.query(
@@ -389,7 +438,7 @@ class VoucherPaymentService {
           'policy_id': policyId?.isNotEmpty == true ? policyId : null,
           'settlement_id':
               settlementId?.isNotEmpty == true ? settlementId : null,
-          'direction': 'INSURER_PAYMENT',
+          'direction': direction,
           'receipt_number': null,
           'payment_id': null,
           'voucher_id': voucher.id,
@@ -412,6 +461,7 @@ class VoucherPaymentService {
     Database? database,
     String? insurancePolicyId,
     String? insuranceSettlementId,
+    String insuranceDirection = 'INSURER_PAYMENT',
   }) async {
     await AuthorizationGuard.require(PermissionKeys.paymentCreate);
     if (ChequeAccountingService.isChequeMethod(voucher.method)) {
@@ -608,6 +658,7 @@ class VoucherPaymentService {
           voucher: postingVoucher,
           insurancePolicyId: insurancePolicyId,
           insuranceSettlementId: insuranceSettlementId,
+          insuranceDirection: insuranceDirection,
         );
 
         // Retry of an already-posted voucher stops here.
@@ -734,6 +785,7 @@ class VoucherPaymentService {
         voucher: postingVoucher,
         insurancePolicyId: insurancePolicyId,
         insuranceSettlementId: insuranceSettlementId,
+        insuranceDirection: insuranceDirection,
       );
 
       await AuditTrailService.log(
@@ -993,6 +1045,14 @@ class VoucherPaymentService {
                 : "ASSET",
         "normal_balance": isPayroll ? "CREDIT" : "DEBIT",
       });
+    }
+
+    if (type == "CLIENT") {
+      final clientId = int.tryParse(voucher.partyId ?? '');
+      if (clientId == null || clientId <= 0) {
+        throw StateError('Invalid client id');
+      }
+      return AccountingTables.ensureClientAccountOn(txn, clientId);
     }
 
     if (type == "EXPENSE") {
@@ -1305,8 +1365,8 @@ class VoucherPaymentService {
       }
       final insuranceLinksBefore = await txn.query(
         'insurance_policy_payments',
-        where: 'direction=? AND voucher_id=?',
-        whereArgs: ['INSURER_PAYMENT', voucherId],
+        where: 'voucher_id=? AND direction IN (?,?)',
+        whereArgs: [voucherId, 'INSURER_PAYMENT', 'REFUND'],
         orderBy: 'id',
       );
 
@@ -1343,8 +1403,8 @@ class VoucherPaymentService {
             'reversed_at': reversedAt,
             'reversal_reason': trimmedReason,
           },
-          where: 'direction=? AND voucher_id=? AND status=?',
-          whereArgs: ['INSURER_PAYMENT', voucherId, 'POSTED'],
+          where: 'voucher_id=? AND direction IN (?,?) AND status=?',
+          whereArgs: [voucherId, 'INSURER_PAYMENT', 'REFUND', 'POSTED'],
         );
         await AuditTrailService.log(
           executor: txn,
@@ -1358,8 +1418,8 @@ class VoucherPaymentService {
             'insurance_policy_payments_before': insuranceLinksBefore,
             'insurance_policy_payments_after': await txn.query(
               'insurance_policy_payments',
-              where: 'direction=? AND voucher_id=?',
-              whereArgs: ['INSURER_PAYMENT', voucherId],
+              where: 'voucher_id=? AND direction IN (?,?)',
+              whereArgs: [voucherId, 'INSURER_PAYMENT', 'REFUND'],
               orderBy: 'id',
             ),
           },
@@ -1432,8 +1492,8 @@ class VoucherPaymentService {
           'reversed_at': now,
           'reversal_reason': trimmedReason,
         },
-        where: 'direction=? AND voucher_id=? AND status=?',
-        whereArgs: ['INSURER_PAYMENT', voucherId, 'POSTED'],
+        where: 'voucher_id=? AND direction IN (?,?) AND status=?',
+        whereArgs: [voucherId, 'INSURER_PAYMENT', 'REFUND', 'POSTED'],
       );
 
       if ((row['source'] ?? '').toString().trim().toUpperCase() ==
@@ -1465,8 +1525,8 @@ class VoucherPaymentService {
           'insurance_policy_payments_before': insuranceLinksBefore,
           'insurance_policy_payments_after': await txn.query(
             'insurance_policy_payments',
-            where: 'direction=? AND voucher_id=?',
-            whereArgs: ['INSURER_PAYMENT', voucherId],
+            where: 'voucher_id=? AND direction IN (?,?)',
+            whereArgs: [voucherId, 'INSURER_PAYMENT', 'REFUND'],
             orderBy: 'id',
           ),
         },
