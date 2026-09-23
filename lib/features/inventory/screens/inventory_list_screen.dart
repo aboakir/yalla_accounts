@@ -1,7 +1,15 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:yalla_accounts/core/pdf/yalla_pdf_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/inventory_tables.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/platform/yalla_path_provider.dart';
+import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/inventory/services/canonical_inventory_service.dart';
 import 'package:yalla_accounts/features/inventory/services/inventory_operations_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_cost_service.dart';
@@ -20,6 +28,26 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
   String? _error;
   int? _warehouseId;
   List<_InventoryRow> _rows = const [];
+  String _query = '';
+
+  List<_InventoryRow> get _visibleRows {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _rows;
+    return _rows.where((row) {
+      final haystack = [
+        row.name,
+        row.sku ?? '',
+        row.kind,
+        row.unit,
+      ].join(' ').toLowerCase();
+      return haystack.contains(q);
+    }).toList(growable: false);
+  }
+
+  double get _visibleStockValue => _visibleRows.fold<double>(
+        0,
+        (sum, row) => sum + row.stockValue,
+      );
 
   @override
   void initState() {
@@ -100,6 +128,142 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  String _csvCell(String value) {
+    final clean = value.replaceAll('"', '""');
+    return '"$clean"';
+  }
+
+  Future<void> _exportCsv() async {
+    try {
+      final rows = _visibleRows;
+      if (rows.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد بيانات مخزون للتصدير')),
+        );
+        return;
+      }
+
+      final sb = StringBuffer()
+        ..writeln([
+          'sku',
+          'item',
+          'kind',
+          'unit',
+          'on_hand',
+          'average_cost',
+          'stock_value',
+          'reorder_level',
+          'needs_reorder',
+        ].map(_csvCell).join(','));
+
+      for (final row in rows) {
+        sb.writeln([
+          row.sku ?? '',
+          row.name,
+          row.kind,
+          row.unit,
+          row.onHand.toStringAsFixed(2),
+          row.averageCost.toStringAsFixed(2),
+          row.stockValue.toStringAsFixed(2),
+          row.reorderLevel.toStringAsFixed(2),
+          row.needsReorder ? 'YES' : 'NO',
+        ].map(_csvCell).join(','));
+      }
+      sb.writeln([
+        'TOTAL',
+        '',
+        '',
+        '',
+        '',
+        '',
+        _visibleStockValue.toStringAsFixed(2),
+        '',
+        '',
+      ].map(_csvCell).join(','));
+
+      Directory? dir;
+      try {
+        dir = await getDownloadsDirectory();
+      } catch (_) {
+        dir = null;
+      }
+      dir ??= await getTemporaryDirectory();
+      final file = File('${dir.path}/inventory_report.csv');
+      await file.writeAsString(sb.toString(), encoding: utf8);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Inventory Report Export',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'فشل تصدير المخزون: ${UserFacingError.message(e)}',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportPdf() async {
+    try {
+      final rows = _visibleRows;
+      if (rows.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد بيانات مخزون للطباعة')),
+        );
+        return;
+      }
+
+      final bytes = await YallaPdfService.generateTablePdf(
+        title: 'تقرير المخزون',
+        headers: const [
+          'الرمز',
+          'الصنف',
+          'الوحدة',
+          'الرصيد',
+          'متوسط التكلفة',
+          'قيمة المخزون',
+          'إعادة الطلب',
+        ],
+        rows: [
+          for (final row in rows)
+            [
+              row.sku ?? '',
+              row.name,
+              row.unit,
+              row.onHand.toStringAsFixed(2),
+              row.averageCost.toStringAsFixed(2),
+              row.stockValue.toStringAsFixed(2),
+              row.needsReorder ? 'نعم' : 'لا',
+            ],
+          [
+            'الإجمالي',
+            '',
+            '',
+            '',
+            '',
+            _visibleStockValue.toStringAsFixed(2),
+            '',
+          ],
+        ],
+      );
+      await Printing.layoutPdf(onLayout: (_) async => bytes);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'فشل طباعة تقرير المخزون: ${UserFacingError.message(e)}',
+          ),
+        ),
+      );
     }
   }
 
@@ -399,16 +563,62 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
   Widget build(BuildContext context) {
     final title =
         widget.itemKind == 'RAW_MATERIAL' ? 'المواد والمخزون' : 'إدارة المخزون';
+    final compact = MediaQuery.sizeOf(context).width < 600;
+    final visibleRows = _visibleRows;
+    final reorderCount = visibleRows.where((row) => row.needsReorder).length;
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        actions: [
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: _load,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
+        actions: compact
+            ? [
+                PopupMenuButton<String>(
+                  tooltip: 'خيارات التقرير',
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'csv':
+                        _exportCsv();
+                        break;
+                      case 'pdf':
+                        _exportPdf();
+                        break;
+                      case 'refresh':
+                        _load();
+                        break;
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'csv',
+                      child: Text('تصدير CSV'),
+                    ),
+                    PopupMenuItem(
+                      value: 'pdf',
+                      child: Text('طباعة PDF'),
+                    ),
+                    PopupMenuItem(
+                      value: 'refresh',
+                      child: Text('تحديث'),
+                    ),
+                  ],
+                ),
+              ]
+            : [
+                IconButton(
+                  tooltip: 'تصدير CSV',
+                  onPressed: _exportCsv,
+                  icon: const Icon(Icons.download_outlined),
+                ),
+                IconButton(
+                  tooltip: 'طباعة PDF',
+                  onPressed: _exportPdf,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                ),
+                IconButton(
+                  tooltip: 'تحديث',
+                  onPressed: _load,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addItem,
@@ -425,10 +635,67 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                       onRefresh: _load,
                       child: ListView.separated(
                         padding: const EdgeInsets.all(12),
-                        itemCount: _rows.length,
+                        itemCount: visibleRows.length + 1,
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (_, index) {
-                          final row = _rows[index];
+                          if (index == 0) {
+                            return Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        Chip(
+                                          label: Text(
+                                            'الأصناف: ${visibleRows.length}',
+                                            key: const ValueKey(
+                                              'inventory-report-item-count',
+                                            ),
+                                          ),
+                                        ),
+                                        Chip(
+                                          label: Text(
+                                            'قيمة المخزون: ${_visibleStockValue.toStringAsFixed(2)}',
+                                            key: const ValueKey(
+                                              'inventory-report-total-value',
+                                            ),
+                                          ),
+                                        ),
+                                        Chip(
+                                          label: Text(
+                                            'إعادة الطلب: $reorderCount',
+                                            key: const ValueKey(
+                                              'inventory-report-reorder-count',
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextField(
+                                      key: const ValueKey(
+                                        'inventory-report-search',
+                                      ),
+                                      decoration: const InputDecoration(
+                                        labelText: 'بحث في المخزون',
+                                        prefixIcon: Icon(Icons.search),
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (value) {
+                                        setState(() => _query = value);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          final row = visibleRows[index - 1];
                           return Card(
                             child: Padding(
                               padding: const EdgeInsets.all(12),

@@ -52,7 +52,7 @@ void main() {
       );
       for (final route in [
         'AppRoutes.purchasesSuppliersAging',
-        'AppRoutes.rawMaterials',
+        'AppRoutes.inventory',
         'AppRoutes.chequesReport',
         'AppRoutes.insuranceAgentReports',
       ]) {
@@ -60,6 +60,27 @@ void main() {
         expect(RegExp(RegExp.escape(route)).allMatches(hub), hasLength(1),
             reason: 'duplicate $route card');
       }
+    });
+
+    test('inventory report is canonical and exportable after Stage 4 merge',
+        () {
+      final hub = read(
+        'lib/features/reports/screens/reports_dashboard_screen.dart',
+      );
+      final inventory = read(
+        'lib/features/inventory/screens/inventory_list_screen.dart',
+      );
+
+      expect(hub, contains('AppRoutes.inventory'));
+      expect(hub, isNot(contains('PENDING_STAGE4_MERGE')));
+      expect(inventory, contains('InventoryOperationsService.valuation'));
+      expect(inventory, contains('InventoryOperationsService.reorderStatus'));
+      expect(inventory, contains('Future<void> _exportCsv()'));
+      expect(inventory, contains('Future<void> _exportPdf()'));
+      expect(inventory, contains('YallaPdfService.generateTablePdf'));
+      expect(inventory, contains('Printing.layoutPdf'));
+      expect(inventory, contains('inventory-report-search'));
+      expect(inventory, contains('_visibleStockValue'));
     });
 
     test('aging reports use canonical party GL truth', () {
@@ -72,7 +93,8 @@ void main() {
       expect(apScreen, isNot(contains('FROM gl_lines l')));
     });
 
-    test('balance sheet exports visible GL totals to CSV and printable PDF', () {
+    test('balance sheet exports visible GL totals to CSV and printable PDF',
+        () {
       final screen = read(
         'lib/features/finance/reports/screens/balance_sheet_screen.dart',
       );

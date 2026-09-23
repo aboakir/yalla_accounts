@@ -132,9 +132,9 @@ class ReportsDashboardScreen extends StatelessWidget {
       (
         Icons.inventory_2_outlined,
         'المواد والمخزون',
-        'الواجهة الحالية؛ تقييم التكلفة PENDING_STAGE4_MERGE',
+        'الرصيد ومتوسط التكلفة والقيمة وإعادة الطلب من Canonical Ledger',
         Colors.green,
-        AppRoutes.rawMaterials
+        AppRoutes.inventory
       ),
       (
         Icons.payments_outlined,
