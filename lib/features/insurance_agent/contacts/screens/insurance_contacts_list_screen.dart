@@ -432,6 +432,16 @@ class _InsuranceContactsListScreenState
 
         actions: [
           IconButton(
+            key: const Key('openInsuranceContactCenter'),
+            tooltip: 'مركز التواصل والمتابعات',
+            onPressed: _busy
+                ? null
+                : () => Navigator.of(context).pushNamed(
+                      AppRoutes.insuranceAgentContactCenter,
+                    ),
+            icon: const Icon(Icons.support_agent, color: Colors.white),
+          ),
+          IconButton(
             tooltip: 'تصدير PDF (العرض الحالي)',
             onPressed: _busy ? null : _exportCurrentTabPdf,
             icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
@@ -1299,5 +1309,4 @@ class _LeadContact {
     required this.createdAt,
     required this.updatedAt,
   });
-
 }

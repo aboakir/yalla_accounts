@@ -6,6 +6,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/storage/yalla_storage_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/db/tables/sync_foundation_tables.dart';
+import 'package:yalla_accounts/core/services/db/tables/vehicle_tables.dart';
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
 
 class InsuranceClaimRecord {
@@ -93,6 +95,35 @@ class InsuranceClaimDocumentRecord {
   }
 }
 
+class InsuranceClaimRepairOption {
+  const InsuranceClaimRepairOption({
+    required this.repairId,
+    required this.vehicleNumber,
+    this.beneficiaryName,
+    this.vehicleStatus,
+    this.receivedDate,
+  });
+
+  final String repairId;
+  final String vehicleNumber;
+  final String? beneficiaryName;
+  final String? vehicleStatus;
+  final DateTime? receivedDate;
+
+  factory InsuranceClaimRepairOption.fromRow(Map<String, Object?> row) {
+    final received = row['receivedDate']?.toString().trim();
+    return InsuranceClaimRepairOption(
+      repairId: row['id'].toString(),
+      vehicleNumber: (row['vehicleNumber'] ?? '').toString(),
+      beneficiaryName: row['beneficiaryName']?.toString(),
+      vehicleStatus: row['vehicleStatus']?.toString(),
+      receivedDate: received == null || received.isEmpty
+          ? null
+          : DateTime.tryParse(received),
+    );
+  }
+}
+
 class InsuranceClaimTimelineEvent {
   const InsuranceClaimTimelineEvent({
     required this.id,
@@ -165,6 +196,9 @@ class InsuranceClaimService {
     'REJECTED': <String>{},
   };
 
+  static Set<String> allowedTransitions(String status) => Set.unmodifiable(
+        _transitions[status.trim().toUpperCase()] ?? const <String>{},
+      );
   static String? _clean(Object? value) {
     final text = value?.toString().trim();
     return text == null || text.isEmpty ? null : text;
@@ -439,6 +473,115 @@ class InsuranceClaimService {
     return result;
   }
 
+  static Future<List<InsuranceClaimRepairOption>> eligibleRepairsForClaim(
+    String claimId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final db = await _db(executor);
+    final cleanClaimId = claimId.trim();
+    if (cleanClaimId.isEmpty) {
+      throw ArgumentError('Claim is required.');
+    }
+    final claims = await db.query(
+      'insurance_claims',
+      columns: const ['vehicle_id'],
+      where: 'id=?',
+      whereArgs: [cleanClaimId],
+      limit: 1,
+    );
+    if (claims.isEmpty) throw StateError('Insurance claim not found.');
+
+    final vehicleId = int.parse(claims.single['vehicle_id'].toString());
+    final vehicles = await db.query(
+      'vehicles',
+      columns: const ['number', 'normalized_number'],
+      where: 'id=?',
+      whereArgs: [vehicleId],
+      limit: 1,
+    );
+    if (vehicles.isEmpty) throw StateError('Claim vehicle not found.');
+    final vehicle = vehicles.single;
+    var normalized = (vehicle['normalized_number'] ?? '').toString().trim();
+    if (normalized.isEmpty) {
+      normalized = VehicleTables.normalizeNumber(
+        (vehicle['number'] ?? '').toString(),
+      );
+    }
+
+    final registry = await db.query(
+      SyncFoundationTables.registry,
+      columns: const ['entity_uuid'],
+      where: 'entity_type=? AND local_id=?',
+      whereArgs: ['vehicle', vehicleId.toString()],
+      limit: 1,
+    );
+    final vehicleUuid =
+        registry.isEmpty ? null : _clean(registry.single['entity_uuid']);
+
+    final repairs = await db.query(
+      'repairs',
+      columns: const [
+        'id',
+        'vehicleNumber',
+        'vehicle_entity_uuid',
+        'beneficiaryName',
+        'vehicleStatus',
+        'receivedDate',
+      ],
+      where: 'is_active=1',
+      orderBy: 'receivedDate DESC, id DESC',
+    );
+    return repairs
+        .where((row) {
+          final repairUuid = _clean(row['vehicle_entity_uuid']);
+          if (repairUuid != null) {
+            return vehicleUuid != null && repairUuid == vehicleUuid;
+          }
+          if (normalized.isEmpty) return false;
+          return VehicleTables.normalizeNumber(
+                (row['vehicleNumber'] ?? '').toString(),
+              ) ==
+              normalized;
+        })
+        .map(InsuranceClaimRepairOption.fromRow)
+        .toList(growable: false);
+  }
+
+  static Future<void> linkRepair({
+    required String claimId,
+    required String repairId,
+    String? reason,
+    String? actorUserId,
+    DatabaseExecutor? database,
+  }) async {
+    final db = await _db(database);
+    final cleanClaimId = claimId.trim();
+    final cleanRepairId = repairId.trim();
+    if (cleanClaimId.isEmpty || cleanRepairId.isEmpty) {
+      throw ArgumentError('Claim and repair are required.');
+    }
+    await SyncFoundationService.writeOn<void>(db, (txn) async {
+      final candidates = await eligibleRepairsForClaim(
+        cleanClaimId,
+        executor: txn,
+      );
+      if (!candidates.any((row) => row.repairId == cleanRepairId)) {
+        throw StateError('Repair does not match the claim vehicle.');
+      }
+      await _audit(
+        txn,
+        claimId: cleanClaimId,
+        action: 'CLAIM_REPAIR_LINKED',
+        reason: reason,
+        actorUserId: actorUserId,
+        metadata: {
+          'repair_id': cleanRepairId,
+          'workshop_ref': cleanRepairId,
+        },
+      );
+    });
+  }
+
   static Future<void> linkWorkshop({
     required String claimId,
     required String workshopRef,
@@ -532,6 +675,19 @@ class InsuranceClaimService {
     return rows
         .map(InsuranceClaimTimelineEvent.fromRow)
         .toList(growable: false);
+  }
+
+  static Future<String?> repairId(
+    String claimId, {
+    DatabaseExecutor? executor,
+  }) async {
+    final events = await timeline(claimId, executor: executor);
+    for (final event in events.reversed) {
+      if (event.action != 'CLAIM_REPAIR_LINKED') continue;
+      final value = _clean(event.metadata?['repair_id']);
+      if (value != null) return value;
+    }
+    return null;
   }
 
   static Future<String?> workshopRef(

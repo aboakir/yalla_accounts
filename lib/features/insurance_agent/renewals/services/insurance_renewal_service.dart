@@ -14,6 +14,9 @@ class InsuranceRenewalCandidate {
     this.lastContactAt,
     this.nextContactAt,
     this.outcome,
+    this.policyNumber,
+    this.documentNumber,
+    this.customerName,
   });
 
   final String id;
@@ -26,6 +29,9 @@ class InsuranceRenewalCandidate {
   final DateTime? lastContactAt;
   final DateTime? nextContactAt;
   final String? outcome;
+  final String? policyNumber;
+  final String? documentNumber;
+  final String? customerName;
 
   bool get isExpired => daysRemaining < 0 && status != 'RENEWED';
 }
@@ -69,10 +75,16 @@ class InsuranceRenewalService {
   }) async {
     final db = executor ?? await DBService.database;
     final reference = asOf ?? DateTime.now();
-    final rows = await db.query(
-      'insurance_renewals',
-      orderBy: 'renewal_date ASC, id ASC',
-    );
+    final rows = await db.rawQuery('''
+      SELECT r.*,
+             p.policy_number,
+             p.document_number,
+             c.name AS customer_name
+      FROM insurance_renewals r
+      LEFT JOIN insurance_policies p ON p.id=r.policy_id
+      LEFT JOIN clients c ON c.id=p.client_id
+      ORDER BY r.renewal_date ASC, r.id ASC
+    ''');
     return rows.map((row) {
       final renewalDate = DateTime.parse(row['renewal_date'].toString());
       return InsuranceRenewalCandidate(
@@ -86,6 +98,9 @@ class InsuranceRenewalService {
         lastContactAt: _date(row['last_contact_at']),
         nextContactAt: _date(row['next_contact_at']),
         outcome: _clean(row['outcome']),
+        policyNumber: _clean(row['policy_number']),
+        documentNumber: _clean(row['document_number']),
+        customerName: _clean(row['customer_name']),
       );
     }).toList(growable: false);
   }

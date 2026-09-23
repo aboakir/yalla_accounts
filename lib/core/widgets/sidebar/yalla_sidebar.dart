@@ -138,12 +138,16 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 // ===== وكيل التأمين =====
   static const rInsuranceRoot = AppRoutes.insuranceAgentRoot;
   static const rInsuranceHome = AppRoutes.insuranceAgentHome;
+  static const rInsuranceMasterData = AppRoutes.insuranceAgentMasterData;
   static const rInsuranceAddNew = AppRoutes.insuranceAgentAddNew;
   static const rInsuranceProducers = AppRoutes.insuranceAgentProducers;
+  static const rInsuranceRenewals = AppRoutes.insuranceAgentRenewals;
+  static const rInsuranceQuotes = AppRoutes.insuranceAgentQuotes;
   static const rInsuranceCalculator = AppRoutes.insuranceAgentCalculator;
   static const rInsuranceFinance = AppRoutes.insuranceAgentFinance;
   static const rInsuranceAlerts = AppRoutes.insuranceAgentAlerts;
   static const rInsuranceReports = AppRoutes.insuranceAgentReports;
+  static const rInsuranceIntelligence = AppRoutes.insuranceAgentIntelligence;
   static const rInsurancePoliciesList = AppRoutes.insurancePoliciesList;
   static const rInsuranceContacts = AppRoutes.insuranceAgentContacts;
   static const rInsuranceClaims = AppRoutes.insuranceAgentClaims;
@@ -549,12 +553,14 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     ].where((e) => _matches(e.$2)).toList();
 // ===== NEW: وكيل التأمين =====
     final insuranceAgentItems = [
+      (Icons.dataset_outlined, '\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629', rInsuranceMasterData),
       (Icons.home, 'الشاشة الرئيسية', rInsuranceHome),
       (
         Icons.receipt_long_outlined,
         'فواتير التأمين',
         AppRoutes.insuranceInvoices
       ),
+      (Icons.request_quote_outlined, 'العروض', rInsuranceQuotes),
       (Icons.add_circle_outline, 'إضافة تأمين جديد', rInsuranceAddNew),
       (Icons.calculate, 'حاسبة التأمين', rInsuranceCalculator),
       (Icons.list_alt, 'قائمة التأمينات', rInsurancePoliciesList),
@@ -562,8 +568,14 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (Icons.car_crash_outlined, 'مطالبات التأمين', rInsuranceClaims),
       (Icons.inventory_2_outlined, 'منتجات التأمين', rInsuranceProducts),
       (Icons.folder_shared, 'محافظ المنتجين', rInsuranceProducers),
+      (
+        Icons.autorenew,
+        '\u0627\u0644\u062a\u062c\u062f\u064a\u062f\u0627\u062a',
+        rInsuranceRenewals
+      ),
       (Icons.account_balance_wallet, 'المالية', rInsuranceFinance),
       (Icons.notifications_active, 'التنبيهات والمتابعة', rInsuranceAlerts),
+      (Icons.insights_outlined, 'ذكاء المبيعات', rInsuranceIntelligence),
       (Icons.print, 'التقارير والطباعة', rInsuranceReports),
     ].where((e) => _matches(e.$2) && _isRouteVisible(e.$3)).toList();
 
