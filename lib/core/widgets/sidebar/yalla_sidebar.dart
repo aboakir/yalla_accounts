@@ -138,6 +138,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 // ===== وكيل التأمين =====
   static const rInsuranceRoot = AppRoutes.insuranceAgentRoot;
   static const rInsuranceHome = AppRoutes.insuranceAgentHome;
+  static const rInsuranceMasterData = AppRoutes.insuranceAgentMasterData;
   static const rInsuranceAddNew = AppRoutes.insuranceAgentAddNew;
   static const rInsuranceProducers = AppRoutes.insuranceAgentProducers;
   static const rInsuranceRenewals = AppRoutes.insuranceAgentRenewals;
@@ -552,6 +553,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     ].where((e) => _matches(e.$2)).toList();
 // ===== NEW: وكيل التأمين =====
     final insuranceAgentItems = [
+      (Icons.dataset_outlined, '\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629', rInsuranceMasterData),
       (Icons.home, 'الشاشة الرئيسية', rInsuranceHome),
       (
         Icons.receipt_long_outlined,

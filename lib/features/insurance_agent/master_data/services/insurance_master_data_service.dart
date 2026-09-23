@@ -53,6 +53,28 @@ class InsuranceProductRecord {
   final bool isActive;
 }
 
+class InsuranceCoverageRecord {
+  const InsuranceCoverageRecord({
+    required this.id,
+    required this.productId,
+    required this.code,
+    required this.name,
+    required this.deductible,
+    required this.isActive,
+    this.description,
+    this.limitAmount,
+  });
+
+  final String id;
+  final String productId;
+  final String code;
+  final String name;
+  final String? description;
+  final double deductible;
+  final double? limitAmount;
+  final bool isActive;
+}
+
 class InsuranceMasterDataService {
   InsuranceMasterDataService._();
 
@@ -330,8 +352,36 @@ class InsuranceMasterDataService {
             code: row['code'].toString(),
             name: row['name'].toString(),
             productType: row['product_type'].toString(),
-            defaultCommissionRate:
-                _number(row['default_commission_rate']),
+            defaultCommissionRate: _number(row['default_commission_rate']),
+            isActive: ((row['is_active'] as num?)?.toInt() ?? 1) == 1,
+          ),
+        )
+        .toList();
+  }
+
+  static Future<List<InsuranceCoverageRecord>> listCoverages({
+    required String productId,
+    DatabaseExecutor? executor,
+  }) async {
+    final db = executor ?? await DBService.database;
+    final rows = await db.query(
+      'insurance_coverages',
+      where: 'product_id=?',
+      whereArgs: [productId],
+      orderBy: 'is_active DESC,name',
+    );
+    return rows
+        .map(
+          (row) => InsuranceCoverageRecord(
+            id: row['id'].toString(),
+            productId: row['product_id'].toString(),
+            code: row['code'].toString(),
+            name: row['name'].toString(),
+            description: row['description']?.toString(),
+            deductible: _number(row['deductible']),
+            limitAmount: row['limit_amount'] == null
+                ? null
+                : _number(row['limit_amount']),
             isActive: ((row['is_active'] as num?)?.toInt() ?? 1) == 1,
           ),
         )
