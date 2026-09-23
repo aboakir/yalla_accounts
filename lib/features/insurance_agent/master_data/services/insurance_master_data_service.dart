@@ -83,6 +83,64 @@ class InsuranceMasterDataService {
   static double _number(Object? raw) =>
       raw is num ? raw.toDouble() : double.tryParse('$raw') ?? 0.0;
 
+  static Future<void> _ensureDefaultProductsForCompany(
+    DatabaseExecutor db,
+    int companyId,
+  ) async {
+    final existing = await db.query(
+      'insurance_products',
+      columns: const ['id'],
+      where: 'company_id=?',
+      whereArgs: [companyId],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) return;
+
+    final companyRows = await db.query(
+      'insurance_companies',
+      columns: const ['id', 'default_commission_rate'],
+      where: 'id=? AND COALESCE(is_active,1)=1',
+      whereArgs: [companyId],
+      limit: 1,
+    );
+    if (companyRows.isEmpty) return;
+
+    final now = DateTime.now().toIso8601String();
+    final commission = _number(companyRows.single['default_commission_rate']);
+    final defaults = <Map<String, Object?>>[
+      {
+        'id': 'system-third-party-$companyId',
+        'company_id': companyId,
+        'code': 'THIRD_PARTY',
+        'name': 'إلزامي',
+        'product_type': 'THIRD_PARTY',
+        'default_commission_rate': commission,
+        'is_active': 1,
+        'created_at': now,
+        'updated_at': now,
+      },
+      {
+        'id': 'system-comprehensive-$companyId',
+        'company_id': companyId,
+        'code': 'COMPREHENSIVE',
+        'name': 'شامل',
+        'product_type': 'COMPREHENSIVE',
+        'default_commission_rate': commission,
+        'is_active': 1,
+        'created_at': now,
+        'updated_at': now,
+      },
+    ];
+
+    for (final product in defaults) {
+      await db.insert(
+        'insurance_products',
+        product,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+  }
+
   static Future<List<InsuranceCompanyRecord>> listCompanies({
     DatabaseExecutor? executor,
   }) async {
@@ -338,12 +396,21 @@ class InsuranceMasterDataService {
   }) async {
     await AuthorizationGuard.require(PermissionKeys.insuranceView);
     final db = executor ?? await DBService.database;
-    final rows = await db.query(
+    var rows = await db.query(
       'insurance_products',
       where: 'company_id=?',
       whereArgs: [companyId],
       orderBy: 'is_active DESC,name',
     );
+    if (rows.isEmpty) {
+      await _ensureDefaultProductsForCompany(db, companyId);
+      rows = await db.query(
+        'insurance_products',
+        where: 'company_id=?',
+        whereArgs: [companyId],
+        orderBy: 'is_active DESC,name',
+      );
+    }
     return rows
         .map(
           (row) => InsuranceProductRecord(

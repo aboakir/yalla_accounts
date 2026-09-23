@@ -171,6 +171,63 @@ void main() {
     return InsurancePolicyService.savePolicyDraft(draft, database: db);
   }
 
+  test('company without products bootstraps and saves a complete policy',
+      () async {
+    final legacyCompany = await InsuranceMasterDataService.createCompany(
+      code: 'P10-AUTO-PRODUCT',
+      name: 'Policy Auto Product Company',
+      defaultCommissionRate: 8,
+    );
+    final defaults = await InsuranceMasterDataService.listProducts(
+      companyId: legacyCompany.id,
+    );
+    final defaultProduct = defaults.firstWhere(
+      (item) => item.productType == 'COMPREHENSIVE',
+    );
+
+    final draft = PolicyDraft()
+      ..operationId = 'P10-AUTO-PRODUCT-POLICY'
+      ..policyNumber = 'INSURER-AUTO-001'
+      ..postingDate = DateTime(2026, 9, 22)
+      ..vehiclePlate = 'AUTO-PRODUCT-1'
+      ..vehicleMake = 'Hyundai'
+      ..vehicleModelYear = '2024'
+      ..engineCc = '1600'
+      ..engineNumber = 'AUTO-ENG-1'
+      ..chassisNumber = 'AUTO-CHS-1'
+      ..insuredName = 'Auto Product Customer'
+      ..insuredPhone = '0566666666'
+      ..insuranceCompanyId = legacyCompany.id
+      ..companyName = legacyCompany.name
+      ..productId = defaultProduct.id
+      ..coverageType = defaultProduct.productType
+      ..startDate = DateTime(2026, 9, 22)
+      ..endDate = DateTime(2027, 9, 21)
+      ..buyPrice = 2000
+      ..sellPrice = 2400
+      ..commissionRate = defaultProduct.defaultCommissionRate;
+    draft.payment
+      ..type = PolicyPaymentPlanType.cashOnly
+      ..immediatePaymentMethod = 'CASH'
+      ..cashAmount = 2400;
+
+    final policyId = await save(draft);
+    final policy = (await db.query(
+      'insurance_policies',
+      columns: const ['id', 'product_id', 'insurance_company_id'],
+      where: 'id=?',
+      whereArgs: [policyId],
+      limit: 1,
+    ))
+        .single;
+
+    expect(policy['product_id'], defaultProduct.id);
+    expect(
+      int.parse(policy['insurance_company_id'].toString()),
+      legacyCompany.id,
+    );
+  });
+
   test(
       'wizard draft posts canonical policy and dedupes Party customer company and vehicle',
       () async {

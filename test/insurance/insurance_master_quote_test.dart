@@ -90,6 +90,49 @@ void main() {
     );
   });
 
+  test('listProducts bootstraps defaults for legacy company without products',
+      () async {
+    final company = await InsuranceMasterDataService.createCompany(
+      code: 'AUTO-PRODUCTS',
+      name: 'Auto Products Insurance',
+      defaultCommissionRate: 12.5,
+    );
+
+    final before = await db.query(
+      'insurance_products',
+      where: 'company_id=?',
+      whereArgs: [company.id],
+    );
+    expect(before, isEmpty);
+
+    final products = await InsuranceMasterDataService.listProducts(
+      companyId: company.id,
+    );
+
+    expect(products, hasLength(2));
+    expect(
+      products.map((item) => item.productType).toSet(),
+      {'THIRD_PARTY', 'COMPREHENSIVE'},
+    );
+    expect(products.every((item) => item.isActive), isTrue);
+    expect(
+      products.every((item) => item.defaultCommissionRate == 12.5),
+      isTrue,
+    );
+
+    final second = await InsuranceMasterDataService.listProducts(
+      companyId: company.id,
+    );
+    expect(second, hasLength(2));
+
+    final persisted = await db.query(
+      'insurance_products',
+      where: 'company_id=?',
+      whereArgs: [company.id],
+    );
+    expect(persisted, hasLength(2));
+  });
+
   test('quote has zero GL until accepted quote becomes a policy', () async {
     final prospect = await InsuranceCrmService.createProspect(
       name: 'عميل عرض سعر',
