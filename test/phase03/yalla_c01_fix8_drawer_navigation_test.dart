@@ -20,14 +20,13 @@ void main() {
 
     final nav = source.substring(start.start, start.start + end!.start);
 
-    expect(nav, contains('final compactNavigation = !context.isDesktopWidth;'));
     expect(nav, contains('final drawerNavigator = Navigator.of(context);'));
-    expect(nav, contains('rootNavigator: compactNavigation'));
+    expect(nav, contains('rootNavigator: true'));
     expect(nav, contains('drawerNavigator.pop();'));
     expect(nav, contains('WidgetsBinding.instance.addPostFrameCallback'));
     expect(nav, contains('if (!targetNavigator.mounted)'));
     expect(nav, contains('targetNavigator.pushNamed(route)'));
     expect(nav, isNot(contains('targetNavigator.pushNamedAndRemoveUntil(')));
-    expect(nav, contains('targetNavigator.pushReplacementNamed(route)'));
+    expect(nav, isNot(contains('targetNavigator.pushReplacementNamed(route)')));
   });
 }

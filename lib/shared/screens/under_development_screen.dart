@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 class UnderDevelopmentScreen extends StatelessWidget {
   final String featureName;
@@ -12,14 +13,7 @@ class UnderDevelopmentScreen extends StatelessWidget {
         title: const Text('تحت التطوير'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            final navigator = Navigator.of(context);
-            if (navigator.canPop()) {
-              navigator.pop();
-            } else {
-              navigator.pushReplacementNamed('/dashboard');
-            }
-          },
+          onPressed: () => AppRoutes.popOrDashboard(context),
         ),
       ),
       body: Center(
@@ -45,9 +39,7 @@ class UnderDevelopmentScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushReplacementNamed('/dashboard');
-                },
+                onPressed: () => AppRoutes.popOrDashboard(context),
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('العودة إلى لوحة التحكم'),
                 style: ElevatedButton.styleFrom(

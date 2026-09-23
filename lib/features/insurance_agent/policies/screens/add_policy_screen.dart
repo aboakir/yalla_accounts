@@ -9,6 +9,7 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 import 'package:yalla_accounts/features/insurance_agent/policies/models/policy_draft.dart';
 
@@ -146,7 +147,7 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
     );
 
     // ✅ المطلوب: الرجوع لقائمة التأمينات + إشارة نجاح
-    Navigator.pop(context, true);
+    AppRoutes.popOrDashboard(context, true);
   }
 
   @override
@@ -158,6 +159,11 @@ class _AddPolicyScreenState extends State<AddPolicyScreen> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: AppColors.primary,
+          leading: IconButton(
+            tooltip: 'رجوع',
+            onPressed: _busy ? null : () => AppRoutes.popOrDashboard(context),
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
           title: const Text(
             'إضافة تأمين جديد',
             style: TextStyle(color: Colors.white),

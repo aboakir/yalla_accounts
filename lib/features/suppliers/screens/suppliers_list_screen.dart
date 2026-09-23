@@ -4,6 +4,7 @@
 // -----------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 
@@ -48,7 +49,7 @@ class _SupplierListScreenState extends ConsumerState<SupplierListScreen> {
                   ? null
                   : IconButton(
                       icon: const Icon(Icons.arrow_back),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => AppRoutes.popOrDashboard(context),
                     ),
             ),
 

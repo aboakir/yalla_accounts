@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_bottom_nav.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 
 void main() {
@@ -17,13 +18,117 @@ void main() {
       'lib/core/widgets/mobile/yalla_mobile_bottom_nav.dart',
     ).readAsStringSync();
 
-    expect(sidebar, contains('? targetNavigator.pushNamed(route)'));
-    expect(
-      sidebar,
-      isNot(contains('? targetNavigator.pushNamedAndRemoveUntil(')),
-    );
-    expect(bottom, contains('pushReplacementNamed(route)'));
+    expect(sidebar, contains('rootNavigator: true'));
+    expect(sidebar, contains('targetNavigator.pushNamed(route)'));
+    expect(sidebar, isNot(contains('targetNavigator.pushReplacementNamed(route)')));
+    expect(sidebar, isNot(contains('pushNamedAndRemoveUntil(')));
+    expect(bottom, contains('rootNavigator: true'));
+    expect(bottom, contains('pushNamed(route)'));
+    expect(bottom, isNot(contains('pushReplacementNamed(route)')));
     expect(bottom, isNot(contains('pushNamedAndRemoveUntil(route')));
+  });
+
+  test('ROOT-ISSUE-NAV-001 startup creates one route with no hidden splash',
+      () {
+    final routes = AppRoutes.generateInitialRoutes(AppRoutes.startup);
+
+    expect(routes, hasLength(1));
+    expect(routes.single.settings.name, AppRoutes.startup);
+
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    expect(
+      mainSource,
+      contains('onGenerateInitialRoutes: AppRoutes.generateInitialRoutes'),
+    );
+  });
+
+  testWidgets(
+      'ROOT-ISSUE-NAV-001 bottom tab Back returns to dashboard, never bootstrap',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    final navigatorKey = GlobalKey<NavigatorState>();
+
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+        navigatorKey: navigatorKey,
+        home: const Scaffold(body: Text('BOOTSTRAP')),
+        onGenerateRoute: (settings) => MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => Scaffold(
+            body: Center(child: Text('TARGET:${settings.name}')),
+          ),
+        ),
+      ),
+    ));
+
+    navigatorKey.currentState!.push(MaterialPageRoute<void>(
+      settings: const RouteSettings(name: AppRoutes.dashboard),
+      builder: (_) => Scaffold(
+        body: Column(
+          children: [
+            const Text('DASHBOARD'),
+            YallaMobileBottomNav(
+              currentRoute: AppRoutes.dashboard,
+              onMore: () {},
+            ),
+          ],
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.car_repair_outlined));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('TARGET:${AppRoutes.repairsDashboard}'),
+      findsOneWidget,
+    );
+
+    navigatorKey.currentState!.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('DASHBOARD'), findsOneWidget);
+    expect(find.text('BOOTSTRAP'), findsNothing);
+
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets(
+      'ROOT-ISSUE-NAV-001 root Back falls back to dashboard, never blank',
+      (tester) async {
+    final navigatorKey = GlobalKey<NavigatorState>();
+
+    await tester.pumpWidget(MaterialApp(
+      navigatorKey: navigatorKey,
+      initialRoute: '/orphan',
+      onGenerateInitialRoutes: (initialRoute) => <Route<dynamic>>[
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: initialRoute),
+          builder: (_) => Scaffold(
+            body: Builder(
+              builder: (context) => FilledButton(
+                onPressed: () => AppRoutes.popOrDashboard(context),
+                child: const Text('BACK'),
+              ),
+            ),
+          ),
+        ),
+      ],
+      onGenerateRoute: (settings) => MaterialPageRoute<void>(
+        settings: settings,
+        builder: (_) => Scaffold(
+          body: Center(child: Text('ROUTE:${settings.name}')),
+        ),
+      ),
+    ));
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('BACK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ROUTE:${AppRoutes.dashboard}'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
   testWidgets(

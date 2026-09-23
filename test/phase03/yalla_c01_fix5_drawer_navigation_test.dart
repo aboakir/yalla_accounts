@@ -20,7 +20,6 @@ void main() {
 
     final nav = source.substring(start.start, start.start + end!.start);
 
-    expect(nav, contains('final compactNavigation = !context.isDesktopWidth;'));
     expect(nav, contains('final drawerNavigator = Navigator.of(context);'));
     expect(nav, contains('final targetNavigator ='));
     expect(nav, contains('scaffoldState?.isDrawerOpen == true'));
@@ -28,7 +27,7 @@ void main() {
     expect(nav, contains('drawerNavigator.pop();'));
     expect(nav, contains('targetNavigator.pushNamed(route)'));
     expect(nav, isNot(contains('targetNavigator.pushNamedAndRemoveUntil(')));
-    expect(nav, contains('targetNavigator.pushReplacementNamed(route)'));
+    expect(nav, isNot(contains('targetNavigator.pushReplacementNamed(route)')));
     expect(nav, contains('if (!targetNavigator.mounted)'));
 
     expect(source, contains('rRepairsDashboard'));

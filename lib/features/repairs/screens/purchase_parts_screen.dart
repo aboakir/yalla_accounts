@@ -1,6 +1,7 @@
 // 📁 lib/features/repairs/screens/purchase_parts_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/features/repairs/models/purchase_part.dart';
@@ -235,7 +236,7 @@ class _PurchasePartsScreenState extends ConsumerState<PurchasePartsScreen> {
             const Text('🧩 قطع الغيار', style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => AppRoutes.popOrDashboard(context),
         ),
       ),
       body: AdaptiveRow(

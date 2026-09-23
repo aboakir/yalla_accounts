@@ -370,6 +370,7 @@ class MyApp extends ConsumerWidget {
 
         /// التشغيل الطبيعي يبدأ من startup.
         initialRoute: AppRoutes.startup,
+        onGenerateInitialRoutes: AppRoutes.generateInitialRoutes,
         onGenerateRoute: AppRoutes.onGenerateRoute,
 
         // ✅ أهم نقطة: Locale عربي لكن بأرقام إنجليزية

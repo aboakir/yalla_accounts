@@ -1,6 +1,7 @@
 // 📁 lib/core/widgets/under_construction_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
@@ -37,9 +38,7 @@ class UnderConstructionScreen extends StatelessWidget {
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.arrow_back_ios),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                        onPressed: () => AppRoutes.popOrDashboard(context),
                       ),
               ),
               body: Center(

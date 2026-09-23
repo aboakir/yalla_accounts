@@ -503,11 +503,35 @@ class AppRoutes {
   static bool isRegisteredRoute(String route) =>
       registeredRoutes.contains(route);
 
+  /// Build exactly one initial route.
+  ///
+  /// Flutter's default named-route bootstrap can prepend `/` before a named
+  /// initial route such as `/startup`. That leaves Splash/Startup underneath
+  /// the first visible screen and lets Back reveal a stale loading route.
+  static List<Route<dynamic>> generateInitialRoutes(String initialRoute) =>
+      <Route<dynamic>>[
+        onGenerateRoute(RouteSettings(name: initialRoute)),
+      ];
+
+  static void popOrDashboard<T extends Object?>(
+    BuildContext context, [
+    T? result,
+  ]) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    if (navigator.canPop()) {
+      navigator.pop<T>(result);
+      return;
+    }
+
+    if (ModalRoute.of(context)?.settings.name == dashboard) return;
+    navigator.pushReplacementNamed(dashboard);
+  }
+
   static Future<T?> pushNamedSafe<T extends Object?>(
     BuildContext context,
     String route, {
     Object? arguments,
-    bool rootNavigator = false,
+    bool rootNavigator = true,
   }) {
     if (!isRegisteredRoute(route)) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(

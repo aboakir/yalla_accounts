@@ -1,5 +1,6 @@
 // 📁 lib/features/repairs/screens/repairs_files_screen.dart
 import 'package:flutter/material.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/shared/widgets/responsive.dart';
@@ -22,7 +23,7 @@ class RepairsFilesScreen extends ConsumerWidget {
         backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => AppRoutes.popOrDashboard(context),
         ),
         title:
             const Text('كشوف الإصلاح', style: TextStyle(color: Colors.white)),

@@ -226,10 +226,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       return;
     }
 
-    final compactNavigation = !context.isDesktopWidth;
     final drawerNavigator = Navigator.of(context);
-    final targetNavigator =
-        Navigator.of(context, rootNavigator: compactNavigation);
+    final targetNavigator = Navigator.of(context, rootNavigator: true);
     final scaffoldState = Scaffold.maybeOf(context);
     final drawerIsOpen = scaffoldState?.isDrawerOpen == true ||
         scaffoldState?.isEndDrawerOpen == true;
@@ -255,13 +253,9 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         return;
       }
 
-      // ROOT-ISSUE-NAV-001: on phones the first route can be the bootstrap/auth
-      // loading route. Keeping only r.isFirst made Back reveal that stale route,
-      // producing the permanent white + green spinner across unrelated screens.
-      // Preserve the real visible route on compact layouts so Back is a true pop.
-      final Future<dynamic> navigation = compactNavigation
-          ? targetNavigator.pushNamed(route)
-          : targetNavigator.pushReplacementNamed(route);
+      // ROOT-ISSUE-NAV-001: preserve the visible route on every platform.
+      // Replacing desktop routes can expose a stale bootstrap/loading route.
+      final Future<dynamic> navigation = targetNavigator.pushNamed(route);
 
       navigation
           .catchError((Object _) => null)

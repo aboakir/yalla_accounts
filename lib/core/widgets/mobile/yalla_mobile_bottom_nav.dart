@@ -26,9 +26,9 @@ class YallaMobileBottomNav extends StatelessWidget {
       );
       return;
     }
-    // Primary-tab switching must never expose the bootstrap/loading route on Back.
-    // Replace the visible tab route instead of pruning the stack to r.isFirst.
-    Navigator.of(context).pushReplacementNamed(route);
+    // Keep the currently visible route in history. Replacing it can expose a
+    // hidden bootstrap/loading route when Back is pressed after a tab switch.
+    Navigator.of(context, rootNavigator: true).pushNamed(route);
   }
 
   @override

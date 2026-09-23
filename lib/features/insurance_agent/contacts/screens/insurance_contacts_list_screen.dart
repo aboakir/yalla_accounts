@@ -539,15 +539,7 @@ class _InsuranceContactsListScreenState
         leading: IconButton(
           tooltip: 'رجوع',
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('ℹ️ لا يوجد صفحة سابقة للرجوع')),
-              );
-            }
-          },
+          onPressed: () => AppRoutes.popOrDashboard(context),
         ),
 
         actions: [

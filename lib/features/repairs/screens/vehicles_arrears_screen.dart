@@ -245,7 +245,7 @@ class _VehiclesArrearsScreenState extends State<VehiclesArrearsScreen> {
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => AppRoutes.popOrDashboard(context),
         ),
         title: const Text('💳 ذمم المركبات'),
         centerTitle: true,
