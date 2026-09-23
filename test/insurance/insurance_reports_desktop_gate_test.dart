@@ -146,10 +146,13 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.runAsync(() async {
-        await Future<void>.delayed(const Duration(milliseconds: 300));
-      });
-      await tester.pump();
+      for (var i = 0; i < 50; i++) {
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pump();
+        if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+      }
       await tester.pump(const Duration(milliseconds: 250));
       expect(tester.takeException(), isNull);
     }
