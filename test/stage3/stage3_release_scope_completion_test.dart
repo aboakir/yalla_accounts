@@ -8,7 +8,7 @@ void main() {
   group('Stage 3 release scope', () {
     test('release scope exposes the approved operational modules', () {
       final text = source('lib/core/release/release_scope_config.dart');
-      expect(text, contains('repairReportExportsEnabled = false'));
+      expect(text, contains('repairReportExportsEnabled = true'));
       expect(text, contains('employeeAdvancesEnabled = true'));
       expect(text, contains('extendedFinanceEnabled = true'));
       expect(text, contains('chequesEnabled = true'));

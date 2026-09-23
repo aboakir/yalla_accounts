@@ -133,7 +133,7 @@ class ReportsDashboardScreen extends StatelessWidget {
         Icons.inventory_2_outlined,
         'المواد والمخزون',
         'الرصيد ومتوسط التكلفة والقيمة وإعادة الطلب من Canonical Ledger',
-        Colors.green,
+        AppColors.primary,
         AppRoutes.inventory
       ),
       (

@@ -53,7 +53,7 @@ void main() {
     expect(
       RegExp(
         r'if\s*\(\s*name\s*==\s*vehiclesList\s*\)\s*\{[\s\S]*?'
-        r'return\s+_page\s*\(\s*settings\s*,\s*const\s+VehiclesListScreen\s*\(\s*\)\s*\)',
+        r'return\s+_page\s*\(\s*settings\s*,[\s\S]*?VehiclesListScreen\s*\(',
       ).hasMatch(routes),
       isTrue,
       reason:

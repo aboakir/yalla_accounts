@@ -72,7 +72,7 @@ void main() {
     expect(version, greaterThanOrEqualTo(76));
     expect(
         routes, contains("static const vehiclesList = '/repairs/vehicles';"));
-    expect(routes, contains('const VehiclesListScreen()'));
+    expect(routes, contains('VehiclesListScreen(initialVehicleId: vehicleId)'));
     expect(
       routes,
       contains('return _page(settings, const ClientEditScreen());'),

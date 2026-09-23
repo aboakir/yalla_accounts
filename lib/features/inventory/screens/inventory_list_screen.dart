@@ -13,6 +13,7 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'package:yalla_accounts/features/inventory/services/canonical_inventory_service.dart';
 import 'package:yalla_accounts/features/inventory/services/inventory_operations_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_cost_service.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 class InventoryListScreen extends StatefulWidget {
   const InventoryListScreen({super.key, this.itemKind});
@@ -276,7 +277,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
     final controller = TextEditingController(text: initial ?? '');
     final value = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: Text(title),
         content: TextField(
           controller: controller,
@@ -345,7 +346,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
     if (!mounted) return;
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: Text('كرت الصنف — ${row.name}'),
         content: SizedBox(
           width: 720,
@@ -488,7 +489,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
     final issueId = await showDialog<String>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setLocal) => AlertDialog(
+        builder: (context, setLocal) => AdaptiveAlertDialog(
           title: const Text('اختيار حركة الصرف'),
           content: DropdownButtonFormField<String>(
             value: selected,

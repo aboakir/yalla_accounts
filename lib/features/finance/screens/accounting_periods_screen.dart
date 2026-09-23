@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:yalla_accounts/core/services/accounting_period_service.dart';
 import 'package:yalla_accounts/core/utils/user_facing_error.dart';
+import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 typedef AccountingPeriodsLoader = Future<List<Map<String, Object?>>> Function();
 typedef AccountingPeriodCloseAction = Future<void> Function(
@@ -73,7 +74,7 @@ class _AccountingPeriodsScreenState extends State<AccountingPeriodsScreen> {
     final controller = TextEditingController();
     final value = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) => AdaptiveAlertDialog(
         title: Text(title),
         content: TextField(
           controller: controller,

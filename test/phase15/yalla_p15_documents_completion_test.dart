@@ -52,10 +52,10 @@ void main() {
         'lib/features/account_statements/customers/screens/customer_account_statement_screen.dart',
       ).readAsStringSync();
       expect(invoice, contains('generateCustomerInvoicePdf'));
-      expect(invoice, contains('Printing.layoutPdf'));
+      expect(invoice, contains('YallaPdfPrintService.layoutPdf'));
       expect(invoice, contains('Printing.sharePdf'));
       expect(statement, contains('generateCustomerStatementPdf'));
-      expect(statement, contains('Printing.layoutPdf'));
+      expect(statement, contains('YallaPdfPrintService.layoutPdf'));
       expect(statement, contains('Printing.sharePdf'));
     });
 
@@ -83,7 +83,8 @@ void main() {
       ).readAsStringSync();
       expect(screen, contains('AppRoutes.invoiceView'));
       expect(screen, contains('AppRoutes.receiptVouchersList'));
-      expect(screen, contains('AppRoutes.chequesDashboard'));
+      expect(screen, contains('AppRoutes.chequesList'));
+      expect(screen, contains('AppRoutes.chequesEdit'));
       expect(screen, contains('AppRoutes.purchasesList'));
     });
 
