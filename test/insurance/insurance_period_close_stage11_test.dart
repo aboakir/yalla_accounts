@@ -316,6 +316,61 @@ void main() {
     );
   });
 
+  test('closed September does not freeze October operations', () async {
+    final september = await InsurancePeriodCloseService.closePeriod(
+      periodStart: DateTime(2026, 9, 1),
+      periodEnd: DateTime(2026, 9, 30),
+      closedBy: 'stage11-boundary-test',
+      database: db,
+    );
+    expect(september.status, 'CLOSED');
+
+    final octoberPolicy = await issue(
+      operationId: 'STAGE11-OCT-POLICY',
+      policyNumber: 'STAGE11-OCT-001',
+      postingDate: DateTime(2026, 10, 1),
+    );
+    await InsuranceFinancialService.collectPolicy(
+      operationId: 'STAGE11-OCT-RCPT',
+      policyId: octoberPolicy.policyId,
+      date: DateTime(2026, 10, 2),
+      database: db,
+      instruments: const [
+        ReceiptInstrumentInput(
+          instrumentKey: 'stage11-oct-cash',
+          method: 'cash',
+          amount: 400,
+        ),
+      ],
+    );
+    await InsuranceFinancialService.payInsuranceCompanyForPolicy(
+      operationId: 'STAGE11-OCT-PAY',
+      policyId: octoberPolicy.policyId,
+      amount: 300,
+      date: DateTime(2026, 10, 3),
+      method: 'CASH',
+      database: db,
+    );
+
+    final balances = await InsuranceFinancialService.balances(
+      octoberPolicy.policyId,
+      executor: db,
+    );
+    expect(balances.customerOutstanding, 2000);
+    expect(balances.insurerOutstanding, 1700);
+
+    final october = await InsurancePeriodCloseService.reconcile(
+      periodStart: DateTime(2026, 10, 1),
+      periodEnd: DateTime(2026, 10, 31),
+      executor: db,
+    );
+    expect(october.glDebit, october.glCredit);
+    expect(october.unbalancedGlEntries, 0);
+    expect(october.malformedPolicies, 0);
+    expect(october.malformedPayments, 0);
+    expect(october.foreignKeyViolations, 0);
+  });
+
   test('broken canonical payment link prevents period close', () async {
     final policy = await issue(
       operationId: 'STAGE11-BROKEN-POLICY',
