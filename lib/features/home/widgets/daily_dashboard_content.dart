@@ -7,6 +7,7 @@ import 'package:yalla_accounts/core/design/yalla_design_tokens.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import '../services/daily_dashboard_service.dart';
+import 'first_use_checklist_card.dart';
 
 class DailyDashboardContent extends StatelessWidget {
   const DailyDashboardContent(
@@ -54,6 +55,8 @@ class DailyDashboardContent extends StatelessWidget {
                 ))
             .toList(),
       ),
+      const SizedBox(height: 12),
+      FirstUseChecklistCard(profile: profile, data: data, onOpen: onOpen),
       const SizedBox(height: 12),
       _card(child: LayoutBuilder(builder: (context, box) {
         final metrics = [

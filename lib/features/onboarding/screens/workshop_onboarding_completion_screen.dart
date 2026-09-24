@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/core/experience/app_experience_profile.dart';
+import 'package:yalla_accounts/core/experience/app_experience_service.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/device_unlock_screen.dart';
@@ -31,6 +34,7 @@ class _CompletionState
   CommercialAccessDecision? _access;
   CommercialSettings? _settings;
   CountryPreset? _currency;
+  AppExperienceProfile _experience = AppExperienceProfile.defaults;
 
   @override
   void initState() {
@@ -64,6 +68,7 @@ class _CompletionState
       final settings = await ref
           .read(workshopOnboardingServiceProvider)
           .loadCommercialSettings();
+      final experience = await AppExperienceService.load(force: true);
       final matches = CommercialSettingsService.presets
           .where((preset) => preset.currencyCode == settings.baseCurrencyCode);
       if (!mounted) return;
@@ -71,6 +76,7 @@ class _CompletionState
         _access = access;
         _settings = settings;
         _currency = matches.isEmpty ? null : matches.first;
+        _experience = experience;
       });
     } catch (error) {
       if (mounted) setState(() => _error = _message(error));
@@ -97,6 +103,10 @@ class _CompletionState
             .read(workshopOnboardingServiceProvider)
             .saveCurrency(currency);
       }
+      if (_experience.activities.isEmpty) {
+        throw StateError('اختر نوع نشاط واحد على الأقل.');
+      }
+      await AppExperienceService.save(_experience);
       if (!mounted) return;
       final unlock = ref.read(deviceUnlockServiceProvider);
       // Always ask for the PIN here, even if an earlier partial write left a hash.
@@ -169,6 +179,22 @@ class _CompletionState
     }
   }
 
+  String _activityLabel(BusinessActivity activity) => switch (activity) {
+        BusinessActivity.garage => 'كراج دهان وإصلاح',
+        BusinessActivity.parts => 'محل قطع سيارات',
+        BusinessActivity.insurance => 'وكيل تأمين',
+      };
+
+  void _toggleActivity(BusinessActivity activity, bool selected) {
+    final activities = <BusinessActivity>{..._experience.activities};
+    if (selected) {
+      activities.add(activity);
+    } else if (activities.length > 1) {
+      activities.remove(activity);
+    }
+    setState(() => _experience = _experience.copyWith(activities: activities));
+  }
+
   Future<void> _cancel() async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -219,6 +245,45 @@ class _CompletionState
                             'الاشتراك للقراءة فقط. تبقى العملة الحالية دون تعديل ويمكنك حماية الدخول ونسخ البيانات.'),
                       if (_settings != null && !_backupStep) ...[
                         const SizedBox(height: 16),
+                        Text(
+                          'نوع النشاط',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'اختر النشاط الذي تعمل به الآن. يمكن إضافة نشاط آخر أو تخصيص الأقسام لاحقًا من الإعدادات.',
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final activity in BusinessActivity.values)
+                              if (activity != BusinessActivity.insurance ||
+                                  ReleaseScopeConfig.insurancePilotVisible)
+                                FilterChip(
+                                  label: Text(_activityLabel(activity)),
+                                  selected:
+                                      _experience.activities.contains(activity),
+                                  onSelected: _busy
+                                      ? null
+                                      : (value) =>
+                                          _toggleActivity(activity, value),
+                                ),
+                          ],
+                        ),
+                        if (!ReleaseScopeConfig.insurancePilotVisible)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text(
+                              'وحدة التأمين محفوظة لكنها غير معروضة في النسخة التجريبية الحالية.',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        const SizedBox(height: 18),
                         if (_currency != null)
                           DropdownButtonFormField<CountryPreset>(
                             value: _currency,

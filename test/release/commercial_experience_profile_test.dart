@@ -1,7 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/experience/app_experience_profile.dart';
 import 'package:yalla_accounts/core/experience/app_experience_service.dart';
+import 'package:yalla_accounts/core/routes/app_routes.dart';
+import 'package:yalla_accounts/features/finance/services/financial_overview_service.dart';
+import 'package:yalla_accounts/features/home/services/daily_dashboard_service.dart';
+import 'package:yalla_accounts/features/home/widgets/first_use_checklist_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -103,6 +108,66 @@ void main() {
     expect(reloaded.mode, ExperienceMode.advanced);
     expect(reloaded.moduleEnabled(AppModule.employees), isFalse);
     expect(reloaded.moduleEnabled(AppModule.inventory), isTrue);
+  });
+
+  testWidgets(
+      'first-use guide opens a real activity route and can be dismissed',
+      (tester) async {
+    final now = DateTime(2026, 9, 24);
+    final finance = FinancialOverviewSnapshot(
+      from: now,
+      to: now,
+      cashBalance: 0,
+      bankBalance: 0,
+      customerReceivables: 0,
+      customerCredits: 0,
+      supplierPayables: 0,
+      supplierAdvances: 0,
+      payrollPayables: 0,
+      revenue: 0,
+      expenses: 0,
+      collections: 0,
+      supplierPayments: 0,
+      payrollPayments: 0,
+      periodDebit: 0,
+      periodCredit: 0,
+      integrityIssueCount: 0,
+      topAccounts: const [],
+      recentEntries: const [],
+    );
+    final data = DailyDashboardData(
+      name: 'ورشتي',
+      currency: '₪',
+      today: finance,
+      period: finance,
+      cars: const [],
+      collectionItems: const [],
+      newFiles: 0,
+      previousFiles: 0,
+      materials: const [],
+      issues: const [],
+      now: now,
+    );
+    String? openedRoute;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FirstUseChecklistCard(
+            profile: AppExperienceProfile.defaults,
+            data: data,
+            onOpen: (route, _) => openedRoute = route,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('ابدأ أول عملية'), findsOneWidget);
+    await tester.tap(find.text('أنشئ أول ملف إصلاح'));
+    expect(openedRoute, AppRoutes.repairsAdd);
+    await tester.tap(find.byTooltip('إخفاء دليل البداية'));
+    await tester.pumpAndSettle();
+    expect(find.text('ابدأ أول عملية'), findsNothing);
   });
 
   test('module overrides hide routes without deleting activity choice', () {
