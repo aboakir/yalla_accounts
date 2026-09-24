@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_accounts/core/experience/app_experience_service.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_service.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -292,6 +294,11 @@ Future<void> configurePin(WidgetTester tester) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await AppExperienceService.resetForTesting();
+  });
 
   test(
       'signed setup eligibility rejects expired, frozen, demo and invalid entitlements',

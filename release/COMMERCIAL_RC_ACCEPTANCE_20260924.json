@@ -1,0 +1,42 @@
+{
+  "artifact": "Yallah Accounts Commercial RC",
+  "date": "2026-09-24",
+  "branch": "release/commercial-rc-20260924",
+  "code_gate_commit": "747e1fe2012be650e8ad5fef8d74dfc1e301f15c",
+  "release_tag": "commercial-rc-20260924-final",
+  "version": "1.0.3+22",
+  "database_schema": 85,
+  "compatibility_train": "UNIFIED-20260920",
+  "analyzer": {"status": "PASS", "issues": 0},
+  "gates": {
+    "stage_6_dashboard_notifications": {"passed": 15, "failed": 0},
+    "stage_7_8_search_navigation_pilot": {"passed": 36, "failed": 0},
+    "stage_9_10_financial_integrity": {"passed": 64, "failed": 0},
+    "stage_11_backup_restore": {"passed": 49, "skipped": 1, "failed": 0},
+    "stage_12_14_mobile_responsive": {"passed": 55, "failed": 0},
+    "stage_15_auth_license": {"passed": 79, "failed": 0},
+    "stage_15_18_release_readiness": {"passed": 97, "skipped": 2, "failed": 0},
+    "stage47_onboarding_current_contract": {"passed": 18, "failed": 0},
+    "final_serial_closure_gate": {"passed": 35, "failed": 0, "concurrency": 1}
+  },
+  "platforms": {
+    "windows_release": {
+      "status": "PASS",
+      "path": "build/windows/x64/runner/Release/yalla_accounts.exe",
+      "sha256": "430b5265e9ce6e1dd17e7cbaeda12b551588556d107ad7638088ebba3809b1db"
+    },
+    "android_emulator_api36": {"install": "PASS", "launch": "PASS", "fatal_exception": false},
+    "android_production_release": {"status": "BLOCKED_EXTERNAL", "reason": "production signing keystore not configured"},
+    "ios_production_release": {"status": "BLOCKED_EXTERNAL", "reason": "Apple signing/Codemagic environment required"}
+  },
+  "production_inputs": {
+    "production_defines_present_locally": false,
+    "production_keys_present_locally": false,
+    "temporary_auth_bypass": false
+  },
+  "notes": [
+    "Parallel stress execution produced migration timeouts; the official CI-compatible serial gate passed.",
+    "The release matrix compatibility train remains UNIFIED-20260920; COMMERCIAL-RC-20260924 is the release candidate label.",
+    "No production customer database or Yalla Control deployment was modified."
+  ]
+}

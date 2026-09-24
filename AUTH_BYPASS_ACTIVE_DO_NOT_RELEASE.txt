@@ -1,1 +1,1 @@
-﻿AUTH BYPASS ACTIVE - DO NOT SHIP PRODUCTION
+AUTH BYPASS DISABLED. Legacy marker filename retained for tooling/history. Verify lib/dev/temporary_auth_bypass.dart: kTemporaryAuthBypass = false before every commercial build.
