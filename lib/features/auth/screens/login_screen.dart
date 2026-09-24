@@ -7,6 +7,9 @@ import 'package:yalla_accounts/features/onboarding/services/workshop_onboarding_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/core/design/yalla_components.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factory.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/design/yalla_design_tokens.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/window/desktop_window_service.dart';
@@ -30,6 +33,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _customerCode = TextEditingController();
   final _username = TextEditingController();
   final _password = TextEditingController();
   bool _loading = true;
@@ -54,6 +58,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final session = ref.read(authSessionServiceProvider);
       final preferences = await session.loadLoginPreferences();
+      if (CommercialBackendEnvironment.enabled) {
+        _customerCode.text =
+            await createCommercialBackendService()!.currentCustomerCode() ?? '';
+      }
       final hasUsers = await ref.read(userServiceProvider).hasAnyUsers();
       final restored = await session.restoreSession();
       final protected = restored != null &&
@@ -77,6 +85,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<bool> _checkAccess(AppUser user) async {
+    if (CommercialBackendEnvironment.enabled) {
+      if (!CommercialBackendRuntimeAccess.canRead) {
+        setState(() {
+          _activationRequired = true;
+          _error = 'ترخيص هذا الجهاز لا يسمح بالدخول حاليًا.';
+        });
+        return false;
+      }
+      return true;
+    }
     final decision =
         await ref.read(commercialAccessGateServiceProvider).evaluate(user);
     if (!mounted) return false;
@@ -139,8 +157,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _login() => _run(() async {
+        if (CommercialBackendEnvironment.enabled) {
+          final expected =
+              await createCommercialBackendService()!.currentCustomerCode();
+          final entered = _customerCode.text.trim();
+          if (entered.isEmpty) {
+            setState(() => _error = 'أدخل كود العميل.');
+            return;
+          }
+          if (expected == null || entered != expected) {
+            setState(() =>
+                _error = 'كود العميل لا يطابق الشركة المرتبطة بهذا الجهاز.');
+            return;
+          }
+        }
         if (_username.text.trim().isEmpty || _password.text.isEmpty) {
-          setState(() => _error = 'أدخل اسم المستخدم وكلمة المرور.');
+          setState(() => _error = CommercialBackendEnvironment.enabled
+              ? 'أدخل كود العميل واسم المستخدم وكلمة المرور.'
+              : 'أدخل اسم المستخدم وكلمة المرور.');
           return;
         }
         final user = await ref
@@ -237,6 +271,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _customerCode.dispose();
     _username.dispose();
     _password.dispose();
     super.dispose();
@@ -270,7 +305,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= 760;
-    final cloudEnabled = ref.watch(cloudConfigProvider).enabled;
+    final cloudEnabled = !CommercialBackendEnvironment.enabled &&
+        ref.watch(cloudConfigProvider).enabled;
 
     InputDecoration fieldDecoration({required String labelText}) =>
         InputDecoration(
@@ -354,6 +390,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                         ),
                         SizedBox(height: isDesktop ? 24 : 22),
+                        if (CommercialBackendEnvironment.enabled) ...[
+                          TextField(
+                            controller: _customerCode,
+                            enabled: !_loading,
+                            autocorrect: false,
+                            textDirection: TextDirection.ltr,
+                            textInputAction: TextInputAction.next,
+                            decoration: fieldDecoration(
+                              labelText: 'كود العميل',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
                         TextField(
                           controller: _username,
                           enabled: !_loading,

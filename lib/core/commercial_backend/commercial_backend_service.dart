@@ -125,6 +125,12 @@ class CommercialBackendService {
     );
   }
 
+  Future<String?> currentCustomerCode() async {
+    final state = await _secureStore.read();
+    final code = state.customerCode?.trim();
+    return code == null || code.isEmpty ? null : code;
+  }
+
   Future<CommercialRegistrationState> localState() async {
     final state = await _secureStore.read();
     if (state.hasApprovedDevice) return CommercialRegistrationState.registered;
