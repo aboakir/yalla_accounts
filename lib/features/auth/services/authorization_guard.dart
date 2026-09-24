@@ -1,4 +1,6 @@
 import 'package:yalla_accounts/core/config/owner_local_access.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
 import 'package:yalla_accounts/core/licensing/entitlements/commercial_feature_catalog.dart';
 import 'package:yalla_accounts/core/licensing/entitlements/signed_feature_authorization_service.dart';
@@ -64,11 +66,15 @@ class AuthorizationGuard {
       PermissionKeys.backupExport,
     };
     if (!readPermissions.contains(permission)) {
-      final feature = CommercialFeatureCatalog.forPermission(permission);
-      if (feature == null) {
-        await LicenseRuntimeService().requireOperationalWrite(permission);
+      if (CommercialBackendEnvironment.enabled) {
+        CommercialBackendRuntimeAccess.requireWrite(permission);
       } else {
-        await SignedFeatureAuthorizationService().requireFeature(feature);
+        final feature = CommercialFeatureCatalog.forPermission(permission);
+        if (feature == null) {
+          await LicenseRuntimeService().requireOperationalWrite(permission);
+        } else {
+          await SignedFeatureAuthorizationService().requireFeature(feature);
+        }
       }
     }
     return actor;

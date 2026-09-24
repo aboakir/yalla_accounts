@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factory.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_models.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_service.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 
 class CommercialFirstRunScreen extends StatefulWidget {
@@ -72,6 +73,7 @@ class _CommercialFirstRunScreenState extends State<CommercialFirstRunScreen> {
       });
       return;
     }
+    CommercialBackendRuntimeAccess.applyAccessMode(license.accessMode);
     if (license.isBlocked) {
       setState(() {
         _state = CommercialRegistrationState.registered;

@@ -5,6 +5,7 @@ import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factory.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_models.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/features/commercial_registration/commercial_first_run_screen.dart';
 import 'package:yalla_accounts/core/window/desktop_window_service.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
@@ -55,6 +56,9 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
       try {
         final license = await service.checkCurrentLicense();
         if (!mounted) return;
+        if (license != null) {
+          CommercialBackendRuntimeAccess.applyAccessMode(license.accessMode);
+        }
         if (license == null || license.isBlocked) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute<void>(
@@ -67,6 +71,9 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
         try {
           final lease = await service.checkOfflineLease();
           if (!mounted) return;
+          if (lease != null) {
+            CommercialBackendRuntimeAccess.applyAccessMode(lease.accessMode);
+          }
           if (lease == null) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute<void>(
