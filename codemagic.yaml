@@ -94,6 +94,13 @@ workflows:
       - build/ios/ipa/Yalla_Accounts_Unsigned_iPhone.ipa
       - build/ios/ipa/SHA256.txt
       - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - aboakir.luay@gmail.com
+        notify:
+          success: true
+          failure: true
 
   ios_unified_owner:
     name: Yallah Accounts Owner iPhone 1.0.3+22 DB84 Startup Fix
