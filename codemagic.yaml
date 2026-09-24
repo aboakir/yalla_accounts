@@ -171,14 +171,14 @@ workflows:
           failure: true
 
   ios_unified_owner:
-    name: Yallah Accounts Owner iPhone 1.0.3+22 DB84 Startup Fix
+    name: Yallah Accounts Commercial RC Owner iPhone 1.0.3+22 DB85
     instance_type: mac_mini_m2
     max_build_duration: 60
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: 'codemagic/owner-unified-db84-20260920'
+        - pattern: 'codemagic/commercial-rc-db85-20260924'
           include: true
           source: true
       cancel_previous_builds: false

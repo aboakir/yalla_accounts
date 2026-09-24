@@ -22,5 +22,5 @@ record.update(bundleId=info['CFBundleIdentifier'], bundleVersion=str(info['CFBun
               signing='unsigned-owner-personal', physicalDeviceTested=False)
 (out / 'BUILD_MANIFEST.json').write_text(json.dumps(record, indent=2) + '\n')
 PY
-(cd "$OUT" && zip -qry Yallah_Accounts_Owner_1.0.3_22_DB84_iPhone.ipa Payload)
-shasum -a 256 "$OUT/Yallah_Accounts_Owner_1.0.3_22_DB84_iPhone.ipa" > "$OUT/SHA256.txt"
+(cd "$OUT" && zip -qry Yallah_Accounts_Owner_1.0.3_22_DB85_iPhone.ipa Payload)
+shasum -a 256 "$OUT/Yallah_Accounts_Owner_1.0.3_22_DB85_iPhone.ipa" > "$OUT/SHA256.txt"
