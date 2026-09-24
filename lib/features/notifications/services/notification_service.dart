@@ -18,26 +18,45 @@ class NotificationService {
   static Future<List<AppNotification>> load() async {
     final profile = await AppExperienceService.load();
     final db = await DBService.database;
-    final now = DateTime.now();
+    return loadOn(db, profile: profile);
+  }
+
+  static Future<List<AppNotification>> loadOn(
+    DatabaseExecutor db, {
+    AppExperienceProfile? profile,
+    DateTime? now,
+  }) async {
+    final activeProfile = profile ?? await AppExperienceService.load();
+    final currentTime = now ?? DateTime.now();
     final notifications = <AppNotification>[];
 
-    if (profile.moduleEnabled(AppModule.repairs)) {
-      await _safe(() async => notifications.addAll(await _repairs(db, now)));
-    }
-    if (profile.moduleEnabled(AppModule.finance)) {
+    if (activeProfile.moduleEnabled(AppModule.repairs)) {
       await _safe(
-        () async => notifications.addAll(await _receivables(db, now)),
+        () async => notifications.addAll(await _repairs(db, currentTime)),
       );
-      await _safe(() async => notifications.addAll(await _payables(db, now)));
     }
-    if (profile.moduleEnabled(AppModule.cheques)) {
-      await _safe(() async => notifications.addAll(await _cheques(db, now)));
+    if (activeProfile.moduleEnabled(AppModule.finance)) {
+      await _safe(
+        () async => notifications.addAll(await _receivables(db, currentTime)),
+      );
+      await _safe(
+        () async => notifications.addAll(await _payables(db, currentTime)),
+      );
     }
-    if (profile.moduleEnabled(AppModule.employees)) {
-      await _safe(() async => notifications.addAll(await _payroll(db, now)));
+    if (activeProfile.moduleEnabled(AppModule.cheques)) {
+      await _safe(
+        () async => notifications.addAll(await _cheques(db, currentTime)),
+      );
     }
-    if (profile.moduleEnabled(AppModule.inventory)) {
-      await _safe(() async => notifications.addAll(await _inventory(db, now)));
+    if (activeProfile.moduleEnabled(AppModule.employees)) {
+      await _safe(
+        () async => notifications.addAll(await _payroll(db, currentTime)),
+      );
+    }
+    if (activeProfile.moduleEnabled(AppModule.inventory)) {
+      await _safe(
+        () async => notifications.addAll(await _inventory(db, currentTime)),
+      );
     }
 
     final prefs = await SharedPreferences.getInstance();
