@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:uuid/uuid.dart';
-import 'package:yalla_accounts/core/device_identity/device_identity.dart';
 import 'package:yalla_accounts/core/device_identity/device_identity_service.dart';
 
 import 'commercial_backend_client.dart';

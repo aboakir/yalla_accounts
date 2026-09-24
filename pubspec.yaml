@@ -52,6 +52,7 @@ dependencies:
   path: ^1.9.0
   crypto: ^3.0.6
   cryptography: ^2.8.1
+  http: 1.6.0
 
   # PDF / ط·ط¨ط§ط¹ط© / طھطµط¯ظٹط± ظ…ظ„ظپط§طھ
   pdf: ^3.11.1
@@ -88,7 +89,6 @@ dependencies:
   meta: any
   provider: any
 dev_dependencies:
-  http: 1.6.0
   device_info_plus_platform_interface: ^7.0.3
   flutter_test:
     sdk: flutter
