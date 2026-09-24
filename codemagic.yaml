@@ -7,7 +7,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: 'codemagic/commercial-rc-db85-20260924'
+        - pattern: 'codemagic/commercial-prod-db85-20260924'
           include: true
           source: true
       cancel_previous_builds: false
@@ -93,6 +93,74 @@ workflows:
     artifacts:
       - build/ios/ipa/Yalla_Accounts_Unsigned_iPhone.ipa
       - build/ios/ipa/SHA256.txt
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - aboakir.luay@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  ios_rc_owner:
+    name: Yallah Accounts RC Owner iPhone 1.0.3+22 DB85
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'codemagic/commercial-rc-db85-20260924'
+          include: true
+          source: true
+      cancel_previous_builds: false
+    environment:
+      flutter: 3.44.8
+      node: 24
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Verify RC source
+        script: |
+          set -euo pipefail
+          grep -Eq '^version:[[:space:]]*1\.0\.3\+22[[:space:]]*$' pubspec.yaml
+          grep -Eq 'dbVersion[[:space:]]*=[[:space:]]*85' lib/core/services/db/database_constants.dart
+          flutter --version
+          xcodebuild -version
+      - name: Resolve locked dependencies
+        script: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile
+      - name: Analyze and verify RC contracts
+        script: |
+          set -euo pipefail
+          flutter analyze --no-pub
+          flutter test --no-pub --concurrency=1 test/commercial/ios_database_architecture_contract_test.dart test/release/commercial_experience_profile_test.dart test/commercial/stage47_onboarding_test.dart
+      - name: Install canonical CocoaPods input
+        script: |
+          set -euo pipefail
+          cp ci/Podfile ios/Podfile
+          (cd ios && pod install --repo-update)
+      - name: Build owner iPhone application
+        script: |
+          set -euo pipefail
+          flutter build ios --release --no-pub --no-codesign \
+            --dart-define=YALLA_OWNER_LOCAL_FULL_ACCESS=true \
+            --dart-define=YALLA_INSURANCE_PILOT_VISIBLE=false
+      - name: Package and hash owner IPA
+        script: |
+          set -euo pipefail
+          APP="build/ios/iphoneos/Runner.app"
+          OUT="build/ios/owner_rc_ipa"
+          test -d "$APP"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/Payload"
+          cp -R "$APP" "$OUT/Payload/Runner.app"
+          (cd "$OUT" && zip -qry "Yallah_Accounts_RC_Owner_1.0.3_22_DB85_Unsigned.ipa" Payload)
+          shasum -a 256 "$OUT/Yallah_Accounts_RC_Owner_1.0.3_22_DB85_Unsigned.ipa" > "$OUT/SHA256.txt"
+    artifacts:
+      - build/ios/owner_rc_ipa/Yallah_Accounts_RC_Owner_1.0.3_22_DB85_Unsigned.ipa
+      - build/ios/owner_rc_ipa/SHA256.txt
       - /tmp/xcodebuild_logs/*.log
     publishing:
       email:
