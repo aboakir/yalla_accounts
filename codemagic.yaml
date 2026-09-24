@@ -209,7 +209,10 @@ workflows:
       - name: Full regression including both migration lineages
         script: |
           set -euo pipefail
-          flutter test --no-pub --concurrency=4 --timeout=90s --reporter=json 2>&1 | tee build/ios/unified_evidence/tests.jsonl
+          flutter test --no-pub --concurrency=4 --timeout=90s --reporter=json \
+            --dart-define=YALLA_OWNER_LOCAL_FULL_ACCESS=true \
+            --dart-define=YALLA_INSURANCE_PILOT_VISIBLE=true \
+            2>&1 | tee build/ios/unified_evidence/tests.jsonl
       - name: Prepare iOS dependencies
         script: |
           set -euo pipefail
@@ -219,7 +222,10 @@ workflows:
         script: |
           set -euo pipefail
           git diff --exit-code -- lib assets pubspec.yaml pubspec.lock
-          flutter build ios --release --no-pub --no-codesign --dart-define=YALLA_OWNER_LOCAL_FULL_ACCESS=true 2>&1 | tee build/ios/unified_evidence/ios_build.log
+          flutter build ios --release --no-pub --no-codesign \
+            --dart-define=YALLA_OWNER_LOCAL_FULL_ACCESS=true \
+            --dart-define=YALLA_INSURANCE_PILOT_VISIBLE=true \
+            2>&1 | tee build/ios/unified_evidence/ios_build.log
       - name: Verify package identity and create IPA
         script: |
           set -euo pipefail

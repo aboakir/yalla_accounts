@@ -12,7 +12,7 @@ void main() {
       expect(text, contains('employeeAdvancesEnabled = true'));
       expect(text, contains('extendedFinanceEnabled = true'));
       expect(text, contains('chequesEnabled = true'));
-      expect(text, contains('dashboardFrozen = true'));
+      expect(text, contains('dashboardFrozen = false'));
     });
 
     test('sidebar exposes operational modules without a deferred placeholder',
