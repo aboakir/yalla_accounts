@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/features/onboarding/screens/workshop_onboarding_completion_screen.dart';
 import 'package:yalla_accounts/features/onboarding/services/workshop_onboarding_service.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_logo_service.dart';
@@ -110,7 +112,14 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
           }
           return;
         }
-        if (await ref
+        if (CommercialBackendEnvironment.enabled) {
+          if (!CommercialBackendRuntimeAccess.canWrite) {
+            if (mounted) {
+              _fail('يلزم ترخيص FULL صالح لهذا الجهاز قبل إنشاء الحساب.');
+            }
+            return;
+          }
+        } else if (await ref
                 .read(workshopOnboardingServiceProvider)
                 .loadSetupLicense() ==
             null) {
@@ -175,9 +184,15 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       if (user == null) {
         throw StateError('تعذر قراءة حساب المالك. عُد إلى تسجيل الدخول.');
       }
-      final access =
-          await ref.read(commercialAccessGateServiceProvider).evaluate(user);
-      if (!access.allowed) throw StateError(access.message);
+      if (CommercialBackendEnvironment.enabled) {
+        if (!CommercialBackendRuntimeAccess.canRead) {
+          throw StateError('Commercial backend access is not available.');
+        }
+      } else {
+        final access =
+            await ref.read(commercialAccessGateServiceProvider).evaluate(user);
+        if (!access.allowed) throw StateError(access.message);
+      }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
         builder: (_) => WorkshopOnboardingCompletionScreen(user: user),

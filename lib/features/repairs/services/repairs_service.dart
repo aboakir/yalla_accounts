@@ -1,4 +1,5 @@
 import 'package:yalla_accounts/core/services/sync/sync_foundation_service.dart';
+import 'package:yalla_accounts/core/services/sync/sync_file_metadata_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 // 📁 lib/features/repairs/services/repairs_service.dart
 //
@@ -324,6 +325,19 @@ class RepairsService {
       },
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
+    final ext = p.extension(path).toLowerCase();
+    final mimeType = switch (ext) {
+      '.png' => 'image/png',
+      '.webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+    await SyncFileMetadataService.registerStoredFile(
+      db,
+      entityType: 'repair',
+      localEntityId: repairId,
+      storedPath: path,
+      mimeType: mimeType,
+    );
 
     // تحديث الغلاف تلقائياً
     try {
@@ -348,6 +362,7 @@ class RepairsService {
     } catch (_) {}
 
     await YallaStorageService.deleteStoredFile(path);
+    await SyncFileMetadataService.removeByPath(db, path);
 
     await db.delete('repairs_images', where: 'path = ?', whereArgs: [path]);
 

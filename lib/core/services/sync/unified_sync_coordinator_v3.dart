@@ -9,6 +9,7 @@ import '../db/db_service.dart';
 import '../db/tables/sync_foundation_tables.dart';
 import 'sync_state_service.dart';
 import 'sync_v3_transport.dart';
+import 'unified_sync_bootstrap_service.dart';
 import 'unified_sync_queue_service.dart';
 
 typedef SyncV3InboundApplier = Future<void> Function(
@@ -214,10 +215,36 @@ class UnifiedSyncCoordinatorV3 with WidgetsBindingObserver {
       final applier = _inboundApplier;
       if (applier != null) {
         try {
-          for (var page = 0; page < 5; page++) {
+          final organizationId = await _currentOrganization(db);
+          Future<void> applyRemote(
+            DatabaseExecutor txn,
+            InboundSyncChange change,
+          ) async {
+            final local = await txn.query(
+              SyncFoundationTables.changes,
+              columns: ['change_id'],
+              where: 'change_id=? AND origin=\'local\'',
+              whereArgs: [change.changeId],
+              limit: 1,
+            );
+            if (local.isEmpty) await applier(txn, change);
+          }
+
+          pulled += await UnifiedSyncBootstrapService.runIfRequired(
+            db,
+            organizationId: organizationId,
+            transport: transport,
+            apply: applyRemote,
+          );
+          final initialCheckpoint =
+              await UnifiedSyncQueueService.checkpointFor(db, organizationId);
+          final maxPullPages = transport is SyncV3BootstrapTransport
+              ? 5
+              : (initialCheckpoint == 0 ? 100 : 5);
+          for (var page = 0; page < maxPullPages; page++) {
             final checkpoint = await UnifiedSyncQueueService.checkpointFor(
               db,
-              (await _currentOrganization(db)),
+              organizationId,
             );
             final response = await transport.pull(
               afterServerSequence: checkpoint,
@@ -242,18 +269,9 @@ class UnifiedSyncCoordinatorV3 with WidgetsBindingObserver {
             if (inbound.isNotEmpty) {
               await UnifiedSyncQueueService.applyInboundBatch(
                 db,
-                organizationId: await _currentOrganization(db),
+                organizationId: organizationId,
                 changes: inbound,
-                apply: (txn, change) async {
-                  final local = await txn.query(
-                    SyncFoundationTables.changes,
-                    columns: ['change_id'],
-                    where: 'change_id=? AND origin=\'local\'',
-                    whereArgs: [change.changeId],
-                    limit: 1,
-                  );
-                  if (local.isEmpty) await applier(txn, change);
-                },
+                apply: applyRemote,
               );
               pulled += inbound.length;
             }

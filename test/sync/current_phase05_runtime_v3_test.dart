@@ -46,15 +46,16 @@ class FakeTransport implements SyncV3Transport {
   Future<SyncV3PullResponse> pull(
       {required int afterServerSequence, int limit = 200}) async {
     pulls += 1;
-    final available = pullChanges
+    final all = pullChanges
         .where((c) => c.serverSequence > afterServerSequence)
         .toList();
+    final available = all.take(limit).toList(growable: false);
     return SyncV3PullResponse(
       fromSequence: afterServerSequence,
       nextSequence: available.isEmpty
           ? afterServerSequence
           : available.last.serverSequence,
-      hasMore: false,
+      hasMore: all.length > available.length,
       changes: available,
     );
   }
@@ -203,6 +204,69 @@ void main() {
       await dir.delete(recursive: true);
     }
   });
+  test('bootstrap from checkpoint zero drains more than five pull pages',
+      () async {
+    final dir =
+        await Directory.systemTemp.createTemp('phase05_bootstrap_pages_');
+    final db = await databaseFactoryFfi.openDatabase('${dir.path}/db.sqlite');
+    try {
+      await db.execute(
+          'CREATE TABLE organization_identity(singleton_id INTEGER PRIMARY KEY,organization_id TEXT)');
+      await db.insert(
+          'organization_identity', {'singleton_id': 1, 'organization_id': org});
+      await db.execute(
+          'CREATE TABLE installation_identity(singleton_id INTEGER PRIMARY KEY,organization_id TEXT,device_id TEXT)');
+      await db.insert('installation_identity',
+          {'singleton_id': 1, 'organization_id': org, 'device_id': device});
+      await db.execute(
+          'CREATE TABLE applied_remote(id TEXT PRIMARY KEY,notes TEXT)');
+      await db.execute('''CREATE TABLE accounts(
+        id INTEGER PRIMARY KEY,code TEXT,name TEXT,type TEXT,
+        normal_balance TEXT,report_class TEXT,is_postable INTEGER,
+        is_system INTEGER,is_active INTEGER,parent_id INTEGER)''');
+      await db.execute('''CREATE TABLE party_roles(
+        party_id INTEGER NOT NULL,role TEXT NOT NULL,legacy_id INTEGER)''');
+      await TechnicalTables.createAllTables(db);
+      await SyncFoundationTables.ensure(db);
+      await UnifiedSyncTables.ensure(db);
+
+      final remote = List<SyncV3PullChange>.generate(1201, (index) {
+        final sequence = index + 1;
+        final suffix = sequence.toString().padLeft(12, '0');
+        return SyncV3PullChange(
+          serverSequence: sequence,
+          changeId: '10000000-0000-4000-8000-$suffix',
+          organizationId: org,
+          entityType: 'repair',
+          entityId: 'remote-$sequence',
+          entityUuid: '20000000-0000-4000-8000-$suffix',
+          operation: 'UPSERT',
+          revision: 1,
+          occurredAt: DateTime.utc(2026, 9, 16, 10),
+          payload: {'notes': 'bootstrap-$sequence'},
+        );
+      });
+      final transport = FakeTransport(pullChanges: remote);
+      final coordinator = UnifiedSyncCoordinatorV3(status: SyncStateService());
+      coordinator.configureTransport(transport);
+      coordinator.configureInboundApplier((txn, change) async {
+        await txn.insert('applied_remote', {
+          'id': change.entityId,
+          'notes': change.payload['notes']?.toString(),
+        });
+      });
+
+      final result = await coordinator.cycle(database: db);
+      expect(result.pulled, 1201);
+      expect(await UnifiedSyncQueueService.checkpointFor(db, org), 1201);
+      expect(transport.pulls, 7);
+      expect(await db.query('applied_remote'), hasLength(1201));
+    } finally {
+      await db.close();
+      await dir.delete(recursive: true);
+    }
+  });
+
   test('HTTP v3 transport signs canonical request and sends exact headers',
       () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);

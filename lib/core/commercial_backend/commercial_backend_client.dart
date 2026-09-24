@@ -142,7 +142,8 @@ class CommercialBackendClient {
     if (_baseUri.scheme == 'https' && _baseUri.host.isNotEmpty) return;
     final loopback = _baseUri.host == 'localhost' ||
         _baseUri.host == '127.0.0.1' ||
-        _baseUri.host == '::1';
+        _baseUri.host == '::1' ||
+        _baseUri.host == '10.0.2.2';
     if (allowInsecureLoopbackForTesting &&
         _baseUri.scheme == 'http' &&
         loopback) {

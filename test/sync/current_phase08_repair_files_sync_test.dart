@@ -184,6 +184,7 @@ void main() {
     final coordinatorB = UnifiedSyncCoordinatorV3(status: SyncStateService());
     coordinatorA.configureTransport(server);
     coordinatorB.configureTransport(server);
+    coordinatorA.configureInboundApplier(UnifiedSyncInboundRouter.apply);
     coordinatorB.configureInboundApplier(UnifiedSyncInboundRouter.apply);
 
     try {
@@ -442,6 +443,84 @@ void main() {
       expect(updatedB['is_active'], 1);
       expect(updatedB['isArchived'], 0);
       expect(updatedB['notes'], 'Restored repair');
+
+      // Full two-device direction: B edits the replicated repair and A receives it.
+      await SyncFoundationService.transaction(dbB, (txn) async {
+        await txn.update(
+          'repairs',
+          {
+            'notes': 'Edited on mobile B',
+            'updated_at': DateTime.utc(2026, 9, 16, 18, 25).toIso8601String(),
+          },
+          where: 'id=?',
+          whereArgs: [repairIdB],
+        );
+      });
+      expect((await coordinatorB.cycle(database: dbB)).acknowledged,
+          greaterThanOrEqualTo(1));
+      expect((await coordinatorA.cycle(database: dbA)).pulled,
+          greaterThanOrEqualTo(1));
+      expect(
+        (await dbA.query('repairs', where: 'id=?', whereArgs: [repairIdA]))
+            .single['notes'],
+        'Edited on mobile B',
+      );
+
+      // Both devices work offline on different entities, then reconnect.
+      coordinatorA.clearTransport();
+      coordinatorB.clearTransport();
+      await SyncFoundationService.transaction(dbA, (txn) async {
+        await txn.update(
+          'repairs',
+          {
+            'notes': 'Offline edit on PC A',
+            'updated_at': DateTime.utc(2026, 9, 16, 18, 30).toIso8601String(),
+          },
+          where: 'id=?',
+          whereArgs: [repairIdA],
+        );
+      });
+      final partyIdentityB = (await dbB.query(
+        SyncFoundationTables.registry,
+        where: 'entity_type=? AND entity_uuid=?',
+        whereArgs: ['party', partyUuid],
+      ))
+          .single;
+      final partyIdB = partyIdentityB['local_id']!.toString();
+      await SyncFoundationService.transaction(dbB, (txn) async {
+        await txn.update(
+          'parties',
+          {
+            'phone': '0599222222',
+            'updated_at': DateTime.utc(2026, 9, 16, 18, 31).toIso8601String(),
+          },
+          where: 'id=?',
+          whereArgs: [partyIdB],
+        );
+      });
+      expect(await _pendingCount(dbA), greaterThanOrEqualTo(1));
+      expect(await _pendingCount(dbB), greaterThanOrEqualTo(1));
+
+      coordinatorA.configureTransport(server);
+      coordinatorB.configureTransport(server);
+      await coordinatorA.cycle(database: dbA);
+      await coordinatorB.cycle(database: dbB);
+      await coordinatorA.cycle(database: dbA);
+      await coordinatorB.cycle(database: dbB);
+
+      expect(
+        (await dbB.query('repairs', where: 'id=?', whereArgs: [repairIdB]))
+            .single['notes'],
+        'Offline edit on PC A',
+      );
+      expect(
+        (await dbA.query('parties', where: 'id=?', whereArgs: [partyA['id']]))
+            .single['phone'],
+        '0599222222',
+      );
+      expect(await _pendingCount(dbA), 0);
+      expect(await _pendingCount(dbB), 0);
+
       final checkpointBefore = (await dbB.query(
         UnifiedSyncTables.checkpoint,
       ))

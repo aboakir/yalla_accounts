@@ -17,6 +17,7 @@ import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/device_unlock_screen.dart';
+import 'package:yalla_accounts/features/auth/screens/register_user_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
@@ -567,9 +568,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ? null
                                   : () => Navigator.of(context).push(
                                         MaterialPageRoute<void>(
-                                          builder: (_) => const CloudAuthScreen(
-                                            onboarding: true,
-                                          ),
+                                          builder: (_) =>
+                                              CommercialBackendEnvironment
+                                                      .enabled
+                                                  ? const RegisterUserScreen()
+                                                  : const CloudAuthScreen(
+                                                      onboarding: true,
+                                                    ),
                                         ),
                                       ),
                               icon: const Icon(Icons.add_business_outlined),

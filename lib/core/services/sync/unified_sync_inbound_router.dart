@@ -7,6 +7,7 @@ import 'package:yalla_accounts/features/vehicles/services/vehicle_sync_service.d
 
 import 'financial_hr_sync_service.dart';
 import 'insurance_sync_service.dart';
+import 'sync_file_metadata_service.dart';
 import 'unified_sync_queue_service.dart';
 
 class UnifiedSyncInboundRouter {
@@ -29,6 +30,9 @@ class UnifiedSyncInboundRouter {
     if (change.entityType == 'account') return;
 
     switch (change.entityType) {
+      case 'file_ref':
+        await SyncFileMetadataService.applyInbound(transaction, change);
+        return;
       case 'party':
         await PartySyncService.applyInbound(transaction, change);
         return;

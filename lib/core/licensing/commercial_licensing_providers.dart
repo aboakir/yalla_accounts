@@ -2,6 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_service.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_secure_store.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factory.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'activation/activation_service.dart';
 import 'activation/activation_transport.dart';
 import 'customer_bearer_token_provider.dart';
@@ -12,8 +16,14 @@ import '../services/sync/unified_sync_coordinator_v3.dart';
 import '../services/sync/unified_sync_inbound_router.dart';
 import '../services/sync/sync_v3_transport.dart';
 
-final customerBearerTokenProvider = Provider<CustomerBearerTokenProvider>(
-    (ref) => ref.watch(supabaseIdentityProvider).verifiedAccessToken);
+final customerBearerTokenProvider =
+    Provider<CustomerBearerTokenProvider>((ref) {
+  if (CommercialBackendEnvironment.enabled) {
+    final store = CommercialBackendSecureStore();
+    return () async => (await store.read()).deviceToken;
+  }
+  return ref.watch(supabaseIdentityProvider).verifiedAccessToken;
+});
 final activationTransportProvider = Provider<ActivationTransport>((ref) {
   final client = HttpClient();
   ref.onDispose(() => client.close(force: true));
@@ -32,9 +42,14 @@ final licenseLifecycleTransportProvider =
 final secureSyncTransportProvider = Provider<SyncV3Transport?>((ref) {
   final client = HttpClient();
   ref.onDispose(() => client.close(force: true));
+  final phpBackend = CommercialBackendEnvironment.enabled;
   final transport = HttpSyncV3Transport(
+    baseUri: phpBackend ? CommercialBackendEnvironment.baseUri : null,
     httpClient: client,
     bearerTokenProvider: ref.watch(customerBearerTokenProvider),
+    allowInsecureLoopbackForTesting:
+        phpBackend && CommercialBackendEnvironment.allowInsecureLoopback,
+    phpCommercialBackend: phpBackend,
   );
   return transport.isConfigured ? transport : null;
 });
@@ -64,11 +79,19 @@ final periodicLicenseValidationServiceProvider = Provider((ref) =>
     PeriodicLicenseValidationService(
         lifecycleService: ref.watch(licenseLifecycleServiceProvider)));
 final commercialValidationSchedulerProvider = Provider<void>((ref) {
-  final service = ref.watch(periodicLicenseValidationServiceProvider);
   var active = true;
   Future<void> evaluate(String reason) async {
     if (!active) return;
     try {
+      if (CommercialBackendEnvironment.enabled) {
+        final service = createCommercialBackendService();
+        final license = await service?.checkCurrentLicense();
+        if (license != null) {
+          CommercialBackendRuntimeAccess.applyAccessMode(license.accessMode);
+        }
+        return;
+      }
+      final service = ref.read(periodicLicenseValidationServiceProvider);
       await service.evaluate(reason: reason);
     } catch (_) {
       // Existing signed offline deadlines remain authoritative on failure.

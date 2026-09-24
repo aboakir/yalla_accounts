@@ -40,6 +40,11 @@ class CommercialBackendService {
       'email': email?.trim(),
       'country_code': countryCode.trim().toUpperCase(),
       'installation_id': identity.installationId,
+      'organization_id': identity.organizationId,
+      'device_id': identity.deviceId,
+      'public_key': identity.publicKeyBase64Url,
+      'public_key_algorithm': 'ED25519',
+      'public_key_sha256': identity.publicKeySha256,
       'platform': identity.platform,
       'device_name': identity.deviceId,
       'app_version': identity.appVersion,
@@ -63,6 +68,11 @@ class CommercialBackendService {
     final result = await _client.requestDevice(payload: {
       'customer_code': customerCode.trim(),
       'installation_id': identity.installationId,
+      'organization_id': identity.organizationId,
+      'device_id': identity.deviceId,
+      'public_key': identity.publicKeyBase64Url,
+      'public_key_algorithm': 'ED25519',
+      'public_key_sha256': identity.publicKeySha256,
       'device_request_id': requestId,
       'activation_secret': activationSecret,
       'platform': identity.platform,
@@ -86,6 +96,7 @@ class CommercialBackendService {
     );
     if (result.status == 'APPROVED' && result.deviceToken?.isNotEmpty == true) {
       await _secureStore.saveApprovedDeviceToken(result.deviceToken!);
+      await _deviceIdentityService.markBound();
       await _secureStore.clearPendingSecrets();
     }
     return result;

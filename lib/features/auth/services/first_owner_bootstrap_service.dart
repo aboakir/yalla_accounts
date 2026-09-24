@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/owner_bootstrap_tables.dart';
@@ -84,13 +86,6 @@ class FirstOwnerBootstrapService {
 
     final db = await _databaseProvider();
     await OwnerBootstrapTables.ensure(db);
-    final activation = _activationStateRepository ??
-        ActivationStateRepository(databaseProvider: _databaseProvider);
-    if (!await activation.hasUsableActivationForCurrentInstallation()) {
-      throw const FirstOwnerBootstrapException(
-        'Verified online activation is required before First Owner setup.',
-      );
-    }
 
     final identityRows = await db.query(
       'installation_identity',
@@ -105,22 +100,42 @@ class FirstOwnerBootstrapService {
     final installationId = identity['installation_id']!.toString();
     final deviceId = identity['device_id']!.toString();
 
-    final activationRows = await db.query(
-      'license_activation_state',
-      where: 'singleton_id = 1 AND status = ? AND organization_id = ? '
-          'AND installation_id = ? AND device_id = ?',
-      whereArgs: ['ACTIVE', organizationId, installationId, deviceId],
-      limit: 1,
-    );
-    if (activationRows.length != 1) {
-      throw const FirstOwnerBootstrapException(
-        'Active activation receipt is missing.',
+    final useCommercialBackend = CommercialBackendEnvironment.enabled;
+    Map<String, Object?>? activationRow;
+    late final String activationId;
+
+    if (useCommercialBackend) {
+      if (!CommercialBackendRuntimeAccess.canWrite) {
+        throw const FirstOwnerBootstrapException(
+          'A FULL commercial license is required before First Owner setup.',
+        );
+      }
+      activationId = 'PHP-COMMERCIAL:$installationId';
+    } else {
+      final activation = _activationStateRepository ??
+          ActivationStateRepository(databaseProvider: _databaseProvider);
+      if (!await activation.hasUsableActivationForCurrentInstallation()) {
+        throw const FirstOwnerBootstrapException(
+          'Verified online activation is required before First Owner setup.',
+        );
+      }
+      final activationRows = await db.query(
+        'license_activation_state',
+        where: 'singleton_id = 1 AND status = ? AND organization_id = ? '
+            'AND installation_id = ? AND device_id = ?',
+        whereArgs: ['ACTIVE', organizationId, installationId, deviceId],
+        limit: 1,
       );
-    }
-    final activationRow = Map<String, Object?>.from(activationRows.single);
-    final activationId = activationRow['activation_id']?.toString() ?? '';
-    if (activationId.isEmpty) {
-      throw const FirstOwnerBootstrapException('Activation ID is missing.');
+      if (activationRows.length != 1) {
+        throw const FirstOwnerBootstrapException(
+          'Active activation receipt is missing.',
+        );
+      }
+      activationRow = Map<String, Object?>.from(activationRows.single);
+      activationId = activationRow['activation_id']?.toString() ?? '';
+      if (activationId.isEmpty) {
+        throw const FirstOwnerBootstrapException('Activation ID is missing.');
+      }
     }
 
     final recoveryCode = _generateRecoveryCode();
@@ -154,27 +169,29 @@ class FirstOwnerBootstrapService {
         );
       }
 
-      final liveActivation = await txn.query(
-        'license_activation_state',
-        where: 'singleton_id = 1 AND status = ? AND organization_id = ? '
-            'AND installation_id = ? AND device_id = ? AND activation_id = ?',
-        whereArgs: [
-          'ACTIVE',
-          organizationId,
-          installationId,
-          deviceId,
-          activationId,
-        ],
-        limit: 1,
-      );
-      if (liveActivation.length != 1 ||
-          liveActivation.single['signed_license_envelope_json']?.toString() !=
-              activationRow['signed_license_envelope_json']?.toString() ||
-          liveActivation.single['verification_keyset_json']?.toString() !=
-              activationRow['verification_keyset_json']?.toString()) {
-        throw const FirstOwnerBootstrapException(
-          'Activation state changed during First Owner bootstrap.',
+      if (!useCommercialBackend) {
+        final liveActivation = await txn.query(
+          'license_activation_state',
+          where: 'singleton_id = 1 AND status = ? AND organization_id = ? '
+              'AND installation_id = ? AND device_id = ? AND activation_id = ?',
+          whereArgs: [
+            'ACTIVE',
+            organizationId,
+            installationId,
+            deviceId,
+            activationId,
+          ],
+          limit: 1,
         );
+        if (liveActivation.length != 1 ||
+            liveActivation.single['signed_license_envelope_json']?.toString() !=
+                activationRow!['signed_license_envelope_json']?.toString() ||
+            liveActivation.single['verification_keyset_json']?.toString() !=
+                activationRow['verification_keyset_json']?.toString()) {
+          throw const FirstOwnerBootstrapException(
+            'Activation state changed during First Owner bootstrap.',
+          );
+        }
       }
 
       await txn.insert('users', {

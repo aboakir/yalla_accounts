@@ -10,6 +10,8 @@ class UnifiedSyncTables {
   static const outbox = 'sync_outbox';
   static const inbox = 'sync_inbox';
   static const checkpoint = 'sync_checkpoint';
+  static const bootstrapState = 'sync_bootstrap_state';
+  static const fileRefs = 'sync_file_refs';
   static String _wirePayload(String row) {
     final raw = "COALESCE($row.after_json,$row.before_json,'{}')";
     final vehicle = "json_remove($raw,'\$.id','\$.client_id')";
@@ -280,6 +282,28 @@ class UnifiedSyncTables {
       last_server_sequence INTEGER NOT NULL CHECK(last_server_sequence >= 0),
       updated_at TEXT NOT NULL
     )''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS $bootstrapState (
+      organization_id TEXT PRIMARY KEY NOT NULL,
+      state TEXT NOT NULL CHECK(state IN ('IN_PROGRESS','READY')),
+      snapshot_server_sequence INTEGER NOT NULL CHECK(snapshot_server_sequence >= 0),
+      cursor_server_sequence INTEGER NOT NULL CHECK(cursor_server_sequence >= 0),
+      updated_at TEXT NOT NULL
+    )''');
+    await db.execute('''CREATE TABLE IF NOT EXISTS $fileRefs (
+      file_id TEXT PRIMARY KEY NOT NULL,
+      organization_id TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_uuid TEXT NOT NULL,
+      stored_path TEXT NOT NULL,
+      sha256 TEXT NOT NULL CHECK(length(sha256)=64),
+      size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
+      mime_type TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(organization_id,entity_type,entity_uuid,stored_path)
+    )''');
+    await db.execute('''CREATE INDEX IF NOT EXISTS idx_sync_file_refs_entity
+      ON $fileRefs(organization_id,entity_type,entity_uuid)''');
 
     final wirePayload = _wirePayload('NEW');
     await db.execute('DROP TRIGGER IF EXISTS trg_sync_v3_change_to_outbox');

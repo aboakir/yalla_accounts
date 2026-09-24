@@ -67,6 +67,21 @@ class SyncV3PullResponse {
   final List<SyncV3PullChange> changes;
 }
 
+class SyncV3BootstrapResponse {
+  const SyncV3BootstrapResponse({
+    required this.snapshotSequence,
+    required this.cursorSequence,
+    required this.nextCursorSequence,
+    required this.hasMore,
+    required this.changes,
+  });
+  final int snapshotSequence;
+  final int cursorSequence;
+  final int nextCursorSequence;
+  final bool hasMore;
+  final List<SyncV3PullChange> changes;
+}
+
 class SyncV3ConflictResolutionResponse {
   const SyncV3ConflictResolutionResponse({
     required this.conflictId,
@@ -85,6 +100,14 @@ class SyncV3ConflictResolutionResponse {
   final int? serverSequence;
   final String? correctionChangeId;
   final String? requiredAction;
+}
+
+abstract interface class SyncV3BootstrapTransport {
+  Future<SyncV3BootstrapResponse> bootstrap({
+    int cursorServerSequence = 0,
+    int? snapshotServerSequence,
+    int limit = SyncContractV3.pullMaxChanges,
+  });
 }
 
 abstract interface class SyncV3ConflictResolutionTransport {
@@ -116,14 +139,18 @@ class SyncV3TransportException implements Exception {
 }
 
 class HttpSyncV3Transport
-    implements SyncV3Transport, SyncV3ConflictResolutionTransport {
+    implements
+        SyncV3Transport,
+        SyncV3BootstrapTransport,
+        SyncV3ConflictResolutionTransport {
   HttpSyncV3Transport(
       {Uri? baseUri,
       HttpClient? httpClient,
       required this.bearerTokenProvider,
       DeviceIdentityService? deviceIdentityService,
       this.timeout = const Duration(seconds: 20),
-      this.allowInsecureLoopbackForTesting = false})
+      this.allowInsecureLoopbackForTesting = false,
+      this.phpCommercialBackend = false})
       : _baseUri = baseUri ?? _environmentBaseUri(),
         _httpClient = httpClient ?? HttpClient(),
         _deviceIdentity = deviceIdentityService ?? DeviceIdentityService();
@@ -134,6 +161,7 @@ class HttpSyncV3Transport
   final DeviceIdentityService _deviceIdentity;
   final Duration timeout;
   final bool allowInsecureLoopbackForTesting;
+  final bool phpCommercialBackend;
   static const _uuid = Uuid();
 
   @override
@@ -160,7 +188,11 @@ class HttpSyncV3Transport
       'device_id': identity.deviceId,
       'changes': changes,
     });
-    final response = await _post('/v1/sync/push', body, identity);
+    final response = await _post(
+      phpCommercialBackend ? 'api/v1/sync/push.php' : '/v1/sync/push',
+      body,
+      identity,
+    );
     final raw = response['results'];
     if (raw is! List) {
       throw const SyncV3TransportException('Sync push results are invalid.');
@@ -184,6 +216,45 @@ class HttpSyncV3Transport
   }
 
   @override
+  Future<SyncV3BootstrapResponse> bootstrap({
+    int cursorServerSequence = 0,
+    int? snapshotServerSequence,
+    int limit = SyncContractV3.pullMaxChanges,
+  }) async {
+    SyncContractV3.requireCheckpoint(cursorServerSequence);
+    if (snapshotServerSequence != null) {
+      SyncContractV3.requireCheckpoint(snapshotServerSequence);
+    }
+    SyncContractV3.requirePullLimit(limit);
+    final identity = await _deviceIdentity.ensureCurrent();
+    final body = await _signedBody(identity, <String, Object?>{
+      'sync_contract_version': SyncContractV3.version,
+      'request_id': _uuid.v4(),
+      'organization_id': identity.organizationId,
+      'installation_id': identity.installationId,
+      'device_id': identity.deviceId,
+      'cursor_server_sequence': cursorServerSequence,
+      if (snapshotServerSequence != null)
+        'snapshot_server_sequence': snapshotServerSequence,
+      'limit': limit,
+    });
+    final response = await _post(
+      phpCommercialBackend ? 'api/v1/sync/bootstrap.php' : '/v1/sync/bootstrap',
+      body,
+      identity,
+    );
+    final changes = _parseChanges(response['changes']);
+    return SyncV3BootstrapResponse(
+      snapshotSequence: (response['snapshot_server_sequence'] as num).toInt(),
+      cursorSequence: (response['cursor_server_sequence'] as num).toInt(),
+      nextCursorSequence:
+          (response['next_cursor_server_sequence'] as num).toInt(),
+      hasMore: response['has_more'] == true,
+      changes: changes,
+    );
+  }
+
+  @override
   Future<SyncV3PullResponse> pull(
       {required int afterServerSequence,
       int limit = SyncContractV3.pullMaxChanges}) async {
@@ -199,7 +270,11 @@ class HttpSyncV3Transport
       'after_server_sequence': afterServerSequence,
       'limit': limit,
     });
-    final response = await _post('/v1/sync/pull', body, identity);
+    final response = await _post(
+      phpCommercialBackend ? 'api/v1/sync/pull.php' : '/v1/sync/pull',
+      body,
+      identity,
+    );
     final raw = response['changes'];
     if (raw is! List) {
       throw const SyncV3TransportException('Sync pull changes are invalid.');
@@ -234,6 +309,34 @@ class HttpSyncV3Transport
     );
   }
 
+  List<SyncV3PullChange> _parseChanges(Object? raw) {
+    if (raw is! List) {
+      throw const SyncV3TransportException('Sync changes are invalid.');
+    }
+    return raw.map((item) {
+      if (item is! Map) {
+        throw const SyncV3TransportException('Sync change is invalid.');
+      }
+      final map = Map<String, Object?>.from(item);
+      final payload = map['payload'];
+      if (payload is! Map) {
+        throw const SyncV3TransportException('Sync payload is invalid.');
+      }
+      return SyncV3PullChange(
+        serverSequence: (map['server_sequence'] as num).toInt(),
+        changeId: _requiredString(map, 'change_id'),
+        organizationId: _requiredString(map, 'organization_id'),
+        entityType: _requiredString(map, 'entity_type'),
+        entityId: _requiredString(map, 'entity_id'),
+        entityUuid: _requiredString(map, 'entity_uuid'),
+        operation: _requiredString(map, 'operation'),
+        revision: (map['revision'] as num).toInt(),
+        occurredAt: DateTime.parse(_requiredString(map, 'occurred_at')).toUtc(),
+        payload: Map<String, Object?>.from(payload),
+      );
+    }).toList(growable: false);
+  }
+
   @override
   Future<SyncV3ConflictResolutionResponse> resolveConflict({
     required String conflictId,
@@ -262,7 +365,11 @@ class HttpSyncV3Transport
         'correction_change_id': correctionChangeId!.trim(),
     };
     final body = await _signedBody(identity, unsigned);
-    final response = await _post('/v1/sync/resolve', body, identity);
+    final response = await _post(
+      phpCommercialBackend ? 'api/v1/sync/resolve.php' : '/v1/sync/resolve',
+      body,
+      identity,
+    );
     return SyncV3ConflictResolutionResponse(
       conflictId: _requiredString(response, 'conflict_id'),
       status: _requiredString(response, 'status'),
@@ -331,7 +438,8 @@ class HttpSyncV3Transport
     }
     final loopback = base.host == '127.0.0.1' ||
         base.host == 'localhost' ||
-        base.host == '::1';
+        base.host == '::1' ||
+        base.host == '10.0.2.2';
     if (!(base.scheme == 'https' && base.host.isNotEmpty) &&
         !(allowInsecureLoopbackForTesting &&
             base.scheme == 'http' &&
