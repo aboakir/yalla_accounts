@@ -4,6 +4,8 @@ import 'package:yalla_accounts/core/utils/user_facing_error.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/services/global_search_service.dart';
+import 'package:yalla_accounts/core/experience/app_experience_service.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
 import 'package:yalla_accounts/features/clients/services/client_service.dart';
@@ -32,6 +34,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   @override
   void initState() {
     super.initState();
+    AppExperienceService.load();
     // افتح الكيبورد مباشرة
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focus.requestFocus();
@@ -78,8 +81,15 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     });
     try {
       final hits = await GlobalSearchService.search(q);
+      final profile = AppExperienceService.current.value;
+      final visibleHits = hits
+          .where((hit) => profile.isSearchSourceVisible(
+                hit.source,
+                insurancePilotVisible: ReleaseScopeConfig.insurancePilotVisible,
+              ))
+          .toList();
       if (!mounted) return;
-      setState(() => _hits = hits);
+      setState(() => _hits = visibleHits);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

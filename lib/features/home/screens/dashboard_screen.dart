@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/design/yalla_breakpoints.dart';
 import 'package:yalla_accounts/core/design/yalla_design_tokens.dart';
+import 'package:yalla_accounts/core/experience/app_experience_profile.dart';
+import 'package:yalla_accounts/core/experience/app_experience_service.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:yalla_accounts/core/widgets/sidebar/yalla_sidebar.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_bottom_nav.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_database_service.dart';
+import 'package:yalla_accounts/features/notifications/widgets/notification_bell_button.dart';
 import 'package:yalla_accounts/features/settings/widgets/weekly_backup_guardian_dialog.dart';
 import '../services/daily_dashboard_service.dart';
 import '../widgets/daily_dashboard_content.dart';
@@ -19,6 +22,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   DailyDashboardData? _data;
   DashboardPeriod _period = DashboardPeriod.today;
+  AppExperienceProfile _profile = AppExperienceProfile.defaults;
+  DateTime? _customFrom;
+  DateTime? _customTo;
   bool _loading = true;
   bool _error = false;
   int _request = 0;
@@ -39,15 +45,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _error = false;
     });
     try {
-      final data = await DailyDashboardService.load(_period);
+      final profile = await AppExperienceService.load(force: true);
+      final data = await DailyDashboardService.load(
+        _period,
+        customFrom: _customFrom,
+        customTo: _customTo,
+      );
       if (!mounted || request != _request) return;
-      setState(() => _data = data);
+      setState(() {
+        _profile = profile;
+        _data = data;
+      });
     } catch (_) {
       if (!mounted || request != _request) return;
       setState(() => _error = true);
     } finally {
       if (mounted && request == _request) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _selectPeriod(DashboardPeriod period) async {
+    if (period == DashboardPeriod.custom) {
+      final now = DateTime.now();
+      final range = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(now.year - 5),
+        lastDate: DateTime(now.year + 1),
+        initialDateRange: _customFrom != null && _customTo != null
+            ? DateTimeRange(start: _customFrom!, end: _customTo!)
+            : DateTimeRange(start: now, end: now),
+      );
+      if (range == null || !mounted) return;
+      _customFrom = range.start;
+      _customTo = range.end;
+    }
+    setState(() => _period = period);
+    await _load();
   }
 
   Future<void> _open(String route, String? repairId) async {
@@ -99,11 +132,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     return DailyDashboardContent(
       data: _data!,
+      profile: _profile,
       period: _period,
-      onPeriod: (period) {
-        setState(() => _period = period);
-        _load();
-      },
+      onPeriod: _selectPeriod,
       onOpen: _open,
       onEntry: () async {
         final id = _data?.lastEntry?['id'];
@@ -147,6 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       actions: [
+        const NotificationBellButton(),
         if (_data?.logo?.isNotEmpty ?? false)
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 16),

@@ -17,6 +17,13 @@ class ReleaseScopeConfig {
   /// Cheque management screens are exposed in navigation.
   static const bool chequesEnabled = true;
 
-  /// P3-06: dashboard is approved/frozen and must not be modified in Stage 3.
-  static const bool dashboardFrozen = true;
+  /// Trial/pilot commercial builds keep the insurance UI hidden by default.
+  /// Internal engineering builds may explicitly enable it for architecture tests.
+  static const bool insurancePilotVisible = bool.fromEnvironment(
+    'YALLA_INSURANCE_PILOT_VISIBLE',
+    defaultValue: false,
+  );
+
+  /// The dashboard is active work in the commercial RC and is not frozen.
+  static const bool dashboardFrozen = false;
 }

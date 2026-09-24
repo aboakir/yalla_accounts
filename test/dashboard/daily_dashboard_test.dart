@@ -348,7 +348,7 @@ void main() {
                                   onOpen: (_, __) {},
                                   onEntry: () {}))))))));
       await tester.pump();
-      expect(Directionality.of(tester.element(find.text('أفضل خطوة'))),
+      expect(Directionality.of(tester.element(find.text('المساعد الذكي'))),
           TextDirection.rtl);
       expect(tester.takeException(), isNull);
       await tester.drag(
@@ -358,8 +358,7 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
-  testWidgets(
-      'steps rotate, navigate manually, select period and dispose timer',
+  testWidgets('steps stay stable and navigate manually without auto rotation',
       (tester) async {
     DashboardPeriod? selected;
     String? route;
@@ -381,14 +380,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text(steps[1].title), findsOneWidget);
+    expect(find.text(steps[0].title), findsOneWidget);
     await tester.tap(find.bySemanticsLabel('الخطوة 3 من 3'));
     await tester.pump();
     expect(find.text(steps[2].title), findsOneWidget);
     await tester.tap(find.text(steps[2].action));
     expect(route, steps[2].route);
-    await tester.tap(find.text('الشهر'));
-    expect(selected, DashboardPeriod.month);
+    expect(selected, isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(seconds: 4));
     expect(tester.takeException(), isNull);

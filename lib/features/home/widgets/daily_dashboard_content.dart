@@ -1,4 +1,5 @@
-import 'dart:async';
+import 'package:yalla_accounts/core/experience/app_experience_profile.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/storage/yalla_stored_image.dart';
 import 'package:flutter/material.dart';
@@ -11,11 +12,13 @@ class DailyDashboardContent extends StatelessWidget {
   const DailyDashboardContent(
       {super.key,
       required this.data,
+      this.profile = AppExperienceProfile.defaults,
       required this.period,
       required this.onPeriod,
       required this.onOpen,
       required this.onEntry});
   final DailyDashboardData data;
+  final AppExperienceProfile profile;
   final DashboardPeriod period;
   final ValueChanged<DashboardPeriod> onPeriod;
   final void Function(String route, String? repairId) onOpen;
@@ -23,18 +26,40 @@ class DailyDashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final steps = DailyDashboardService.recommendations(data, period);
+    final steps = DailyDashboardService.recommendations(data, period)
+        .where((step) => profile.isRouteVisible(
+              step.route,
+              insurancePilotVisible: ReleaseScopeConfig.insurancePilotVisible,
+            ))
+        .toList(growable: false);
+    final showGarage = profile.moduleEnabled(AppModule.repairs);
+    final showParts = profile.moduleEnabled(AppModule.inventory);
     final alerts = [
-      ...data.issues,
+      ...data.issues.where((issue) => profile.isRouteVisible(
+            issue.route,
+            insurancePilotVisible: ReleaseScopeConfig.insurancePilotVisible,
+          )),
       ...steps.where(
           (s) => s.priority >= 75 && !data.issues.any((i) => i.id == s.id))
     ].take(3).toList();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Wrap(
+        spacing: 8,
+        runSpacing: 6,
+        children: DashboardPeriod.values
+            .map((p) => ChoiceChip(
+                  label: Text(p.label),
+                  selected: period == p,
+                  onSelected: (_) => onPeriod(p),
+                ))
+            .toList(),
+      ),
+      const SizedBox(height: 12),
       _card(child: LayoutBuilder(builder: (context, box) {
         final metrics = [
           _amount(
-              'صافي اليوم',
-              data.money(data.today.receipts - data.today.payments),
+              'صافي ${period.label}',
+              data.money(data.period.receipts - data.period.payments),
               'المقبوضات − المدفوعات',
               YallaColors.brand),
           _amount(
@@ -61,76 +86,86 @@ class DailyDashboardContent extends StatelessWidget {
           summary,
           const Divider(height: 20),
           Wrap(spacing: 20, runSpacing: 4, children: [
-            Text('قبض ${data.money(data.today.receipts)}',
+            Text('قبض ${data.money(data.period.receipts)}',
                 style: const TextStyle(
                     fontSize: 12, color: YallaColors.brandDark)),
-            Text('صرف ${data.money(data.today.payments)}',
+            Text('صرف ${data.money(data.period.payments)}',
                 style:
                     const TextStyle(fontSize: 12, color: YallaColors.danger)),
           ])
         ]);
       })),
       const SizedBox(height: 18),
-      BestStepCard(
-          steps: steps, period: period, onPeriod: onPeriod, onOpen: onOpen),
-      _heading('مراحل إصلاح السيارات'),
-      if (data.cars.isEmpty)
-        const Text('لا توجد سيارات قيد العمل.',
-            style: TextStyle(color: YallaColors.textMuted))
-      else
-        SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(children: [
-              for (final stage in data.cars.map((c) => c.stage).toSet())
-                Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8),
-                    child: ActionChip(
-                        avatar:
-                            const Icon(Icons.directions_car_outlined, size: 18),
-                        label: Text(
-                            '$stage · ${data.cars.where((c) => c.stage == stage).length}'),
-                        onPressed: () => _showCars(context, stage))),
-            ])),
+      if (steps.isNotEmpty)
+        BestStepCard(
+            steps: steps, period: period, onPeriod: onPeriod, onOpen: onOpen),
+      if (showGarage) ...[
+        _heading('مراحل إصلاح السيارات'),
+        if (data.cars.isEmpty)
+          const Text('لا توجد سيارات قيد العمل.',
+              style: TextStyle(color: YallaColors.textMuted))
+        else
+          SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                for (final stage in data.cars.map((c) => c.stage).toSet())
+                  Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 8),
+                      child: ActionChip(
+                          avatar: const Icon(Icons.directions_car_outlined,
+                              size: 18),
+                          label: Text(
+                              '$stage · ${data.cars.where((c) => c.stage == stage).length}'),
+                          onPressed: () => _showCars(context, stage))),
+              ])),
+      ],
       _heading('إجراءات سريعة'),
       LayoutBuilder(builder: (context, box) {
         final columns = box.maxWidth < 330 ? 2 : 3;
         final items = <(String, IconData, Color, String)>[
-          (
-            'ملف إصلاح',
-            Icons.car_repair,
-            YallaColors.brand,
-            AppRoutes.repairsAdd
-          ),
-          (
-            'سند قبض',
-            Icons.south_west,
-            YallaColors.brandDark,
-            AppRoutes.receiptVoucher
-          ),
-          (
-            'سند صرف',
-            Icons.north_east,
-            YallaColors.danger,
-            AppRoutes.paymentVoucher
-          ),
-          (
-            'مشتريات',
-            Icons.shopping_bag_outlined,
-            YallaColors.warning,
-            AppRoutes.purchaseCreate
-          ),
-          (
-            'حاسبة التأمين',
-            Icons.calculate_outlined,
-            YallaColors.info,
-            AppRoutes.insuranceAgentCalculator
-          ),
-          (
-            'عميل / مورد',
-            Icons.people_outline,
-            YallaColors.textMuted,
-            AppRoutes.clients
-          ),
+          if (profile.moduleEnabled(AppModule.repairs))
+            (
+              'ملف إصلاح',
+              Icons.car_repair,
+              YallaColors.brand,
+              AppRoutes.repairsAdd
+            ),
+          if (profile.moduleEnabled(AppModule.vouchers)) ...[
+            (
+              'سند قبض',
+              Icons.south_west,
+              YallaColors.brandDark,
+              AppRoutes.receiptVoucher
+            ),
+            (
+              'سند صرف',
+              Icons.north_east,
+              YallaColors.danger,
+              AppRoutes.paymentVoucher
+            ),
+          ],
+          if (profile.moduleEnabled(AppModule.purchases))
+            (
+              'مشتريات',
+              Icons.shopping_bag_outlined,
+              YallaColors.warning,
+              AppRoutes.purchaseCreate
+            ),
+          if (ReleaseScopeConfig.insurancePilotVisible &&
+              profile.moduleEnabled(AppModule.insurance))
+            (
+              'تأمين',
+              Icons.shield_outlined,
+              YallaColors.info,
+              AppRoutes.insuranceAgentHome
+            ),
+          if (profile.moduleEnabled(AppModule.parties))
+            (
+              'عميل / مورد',
+              Icons.people_outline,
+              YallaColors.textMuted,
+              AppRoutes.clients
+            ),
         ];
         return Wrap(
             spacing: 8,
@@ -161,55 +196,79 @@ class DailyDashboardContent extends StatelessWidget {
                                 ]))))))
                 .toList());
       }),
-      Padding(
-          padding: const EdgeInsets.only(top: 16),
-          child: Row(children: [
-            const Expanded(
-                child: Text('آخر ملفات الإصلاح',
-                    style:
-                        TextStyle(fontSize: 19, fontWeight: FontWeight.w800))),
-            TextButton(
-                onPressed: () => onOpen(AppRoutes.repairs, null),
-                child: const Text('عرض الكل')),
-          ])),
-      _card(
-          child: data.recentFiles.isEmpty
-              ? const Text('ستظهر ملفات الإصلاح هنا بعد إضافتها.',
-                  style: TextStyle(color: YallaColors.textMuted))
-              : Column(children: [
-                  for (final file in data.recentFiles) ...[
-                    if (file != data.recentFiles.first)
-                      const Divider(height: 1),
-                    ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: _RepairThumbnail(id: '${file['id']}'),
-                        title: Text(
-                            [
-                              file['vehicleType'],
-                              file['vehicleModel'],
-                              file['vehicleNumber']
-                            ]
-                                .where((v) => v != null && '$v'.isNotEmpty)
-                                .join(' • '),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: Text(
-                            [
-                              file['beneficiaryName'],
-                              file['vehicleStatus'],
-                              file['receivedDate']
-                            ]
-                                .where((v) => v != null && '$v'.isNotEmpty)
-                                .join(' • '),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis),
-                        trailing: const Icon(Icons.chevron_left),
-                        onTap: () =>
-                            onOpen(AppRoutes.repairs, '${file['id']}')),
-                  ]
-                ])),
+      if (showGarage) ...[
+        Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Row(children: [
+              const Expanded(
+                  child: Text('آخر ملفات الإصلاح',
+                      style: TextStyle(
+                          fontSize: 19, fontWeight: FontWeight.w800))),
+              TextButton(
+                  onPressed: () => onOpen(AppRoutes.repairs, null),
+                  child: const Text('عرض الكل')),
+            ])),
+        _card(
+            child: data.recentFiles.isEmpty
+                ? const Text('ستظهر ملفات الإصلاح هنا بعد إضافتها.',
+                    style: TextStyle(color: YallaColors.textMuted))
+                : Column(children: [
+                    for (final file in data.recentFiles) ...[
+                      if (file != data.recentFiles.first)
+                        const Divider(height: 1),
+                      ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: _RepairThumbnail(id: '${file['id']}'),
+                          title: Text(
+                              [
+                                file['vehicleType'],
+                                file['vehicleModel'],
+                                file['vehicleNumber']
+                              ]
+                                  .where((v) => v != null && '$v'.isNotEmpty)
+                                  .join(' • '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: Text(
+                              [
+                                file['beneficiaryName'],
+                                file['vehicleStatus'],
+                                file['receivedDate']
+                              ]
+                                  .where((v) => v != null && '$v'.isNotEmpty)
+                                  .join(' • '),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                          trailing: const Icon(Icons.chevron_left),
+                          onTap: () =>
+                              onOpen(AppRoutes.repairs, '${file['id']}')),
+                    ]
+                  ])),
+      ],
+      if (showParts) ...[
+        _heading('قطع السيارات والمخزون'),
+        _card(
+          child: Wrap(
+            spacing: 20,
+            runSpacing: 12,
+            children: [
+              _inventoryMetric('الأصناف', '${data.inventory.itemCount}'),
+              _inventoryMetric(
+                  'قيمة المخزون', data.money(data.inventory.stockValue)),
+              _inventoryMetric(
+                  'منخفض المخزون', '${data.inventory.lowStockCount}'),
+              _inventoryMetric('مشتريات ${period.label}',
+                  data.money(data.inventory.periodPurchases)),
+              _inventoryMetric('حركات بيع', '${data.inventory.saleMovements}'),
+              _inventoryMetric('بطيئة الحركة', '${data.inventory.slowItems}'),
+              if (data.inventory.topSellingItem != null)
+                _inventoryMetric('الأكثر حركة', data.inventory.topSellingItem!),
+            ],
+          ),
+        ),
+      ],
       if (alerts.isNotEmpty) ...[
         _heading('يحتاج انتباهك'),
         _card(
@@ -226,19 +285,21 @@ class DailyDashboardContent extends StatelessWidget {
                 onTap: () => onOpen(s.route, s.repairId))
         ])),
       ],
-      _heading('حركة اليوم المالية', subtitle: 'حركات اليوم من دفتر الأستاذ'),
+      _heading('الحركة المالية — ${period.label}',
+          subtitle: 'حركات مثبتة في دفتر الأستاذ'),
       _card(
           child: Column(children: [
-        _line('المقبوضات', data.money(data.today.receipts),
+        _line('المقبوضات', data.money(data.period.receipts),
             YallaColors.brandDark),
         const Divider(height: 24),
-        _line('المدفوعات', data.money(data.today.payments), YallaColors.danger),
+        _line(
+            'المدفوعات', data.money(data.period.payments), YallaColors.danger),
         const Divider(height: 24),
-        _line('الصندوق الآن', data.money(data.today.cashBalance),
+        _line('الصندوق الآن', data.money(data.period.cashBalance),
             YallaColors.text),
         const Divider(height: 24),
-        _line(
-            'البنك الآن', data.money(data.today.bankBalance), YallaColors.text),
+        _line('البنك الآن', data.money(data.period.bankBalance),
+            YallaColors.text),
       ])),
       _heading('آخر حركة موثقة'),
       _card(
@@ -381,6 +442,18 @@ class DailyDashboardContent extends StatelessWidget {
     );
   }
 
+  static Widget _inventoryMetric(String label, String value) => SizedBox(
+      width: 150,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: const TextStyle(fontSize: 12, color: YallaColors.textMuted)),
+        const SizedBox(height: 4),
+        Text(value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+      ]));
+
   static Widget _line(String label, String amount, Color color) =>
       Row(children: [
         Expanded(child: Text(label)),
@@ -478,60 +551,21 @@ class BestStepCard extends StatefulWidget {
   State<BestStepCard> createState() => _BestStepCardState();
 }
 
-class _BestStepCardState extends State<BestStepCard>
-    with WidgetsBindingObserver {
-  Timer? _timer;
+class _BestStepCardState extends State<BestStepCard> {
   int _index = 0;
-  bool _active = true;
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _restart();
-  }
-
-  void _restart() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (mounted &&
-          _active &&
-          (ModalRoute.of(context)?.isCurrent ?? true) &&
-          !MediaQuery.of(context).disableAnimations &&
-          !MediaQuery.of(context).accessibleNavigation) {
-        setState(() => _index = (_index + 1) % widget.steps.length);
-      }
-    });
-  }
 
   @override
   void didUpdateWidget(covariant BestStepCard old) {
     super.didUpdateWidget(old);
-    if (old.period != widget.period) {
-      _index = 0;
-      _restart();
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _active = state == AppLifecycleState.resumed;
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
+    if (old.period != widget.period) _index = 0;
   }
 
   void _go(int index) {
     setState(
         () => _index = (index + widget.steps.length) % widget.steps.length);
-    _restart();
   }
 
   Future<void> _details(DashboardStep step) async {
-    _active = false;
     await showModalBottomSheet<void>(
         context: context,
         useSafeArea: true,
@@ -563,17 +597,13 @@ class _BestStepCardState extends State<BestStepCard>
                               },
                               child: Text(step.action)),
                         ])))));
-    if (mounted) {
-      _active = true;
-      _restart();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final step = widget.steps[_index];
     return Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
             color: YallaColors.successSurface,
             borderRadius: BorderRadius.circular(YallaRadii.card),
@@ -584,20 +614,10 @@ class _BestStepCardState extends State<BestStepCard>
             Icon(Icons.bolt_rounded, color: YallaColors.brand),
             SizedBox(width: 6),
             Expanded(
-                child: Text('أفضل خطوة',
+                child: Text('المساعد الذكي',
                     style:
-                        TextStyle(fontWeight: FontWeight.w900, fontSize: 18)))
+                        TextStyle(fontWeight: FontWeight.w900, fontSize: 16)))
           ]),
-          const SizedBox(height: 4),
-          Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: DashboardPeriod.values
-                  .map((p) => ChoiceChip(
-                      label: Text(p.label),
-                      selected: widget.period == p,
-                      onSelected: (_) => widget.onPeriod(p)))
-                  .toList()),
           const SizedBox(height: 6),
           GestureDetector(
               onTap: () => _details(step),

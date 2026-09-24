@@ -8,6 +8,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/config/owner_local_access.dart';
+import 'package:yalla_accounts/core/experience/app_experience_profile.dart';
+import 'package:yalla_accounts/core/experience/app_experience_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
@@ -15,7 +17,6 @@ import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_theme.dart';
 
 import 'sidebar_header.dart';
-import 'sidebar_search.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 
@@ -35,7 +36,8 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   late final AnimationController _ctrl;
   late final Animation<double> _widthAnim;
   bool _isCollapsed = false;
-  String _searchQuery = '';
+  final String _searchQuery = '';
+  AppExperienceProfile _profile = AppExperienceProfile.defaults;
   bool _isNavigating = false; // Debounce
 
   // ===== Routes =====
@@ -131,12 +133,12 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
   static const rInventory = AppRoutes.inventory;
   static const rRawMaterials = AppRoutes.rawMaterials;
 
-// ===== السندات المالية =====
+  // ===== السندات المالية =====
   static const rReceiptVoucher = AppRoutes.receiptVoucher;
   static const rReceiptVouchersList = AppRoutes.receiptVouchersList;
   static const rPaymentVoucher = AppRoutes.paymentVoucher;
   static const rPaymentVouchersList = AppRoutes.paymentVouchersList;
-// ===== وكيل التأمين =====
+  // ===== وكيل التأمين =====
   static const rInsuranceRoot = AppRoutes.insuranceAgentRoot;
   static const rInsuranceHome = AppRoutes.insuranceAgentHome;
   static const rInsuranceMasterData = AppRoutes.insuranceAgentMasterData;
@@ -164,14 +166,24 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       vsync: this,
       duration: const Duration(milliseconds: 220),
     );
-    _widthAnim = Tween<double>(begin: 300, end: 80).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _widthAnim = Tween<double>(
+      begin: 300,
+      end: 80,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    AppExperienceService.current.addListener(_onExperienceChanged);
+    _profile = AppExperienceService.current.value;
+    AppExperienceService.load();
     _restoreCollapse();
+  }
+
+  void _onExperienceChanged() {
+    if (!mounted) return;
+    setState(() => _profile = AppExperienceService.current.value);
   }
 
   @override
   void dispose() {
+    AppExperienceService.current.removeListener(_onExperienceChanged);
     _ctrl.dispose();
     super.dispose();
   }
@@ -253,9 +265,11 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         return;
       }
 
-      // ROOT-ISSUE-NAV-001: preserve the visible route on every platform.
-      // Replacing desktop routes can expose a stale bootstrap/loading route.
-      final Future<dynamic> navigation = targetNavigator.pushNamed(route);
+      // Compact/mobile navigation preserves history so Back never exposes
+      // bootstrap. Desktop keeps direct replacement to avoid route stacking.
+      final Future<dynamic> navigation = context.isDesktopWidth
+          ? targetNavigator.pushReplacementNamed(route)
+          : targetNavigator.pushNamed(route);
 
       navigation
           .catchError((Object _) => null)
@@ -280,14 +294,17 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         content: const Text('اختر نوع الذمم:'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop('ar'),
-              child: const Text('ذمم العملاء')),
+            onPressed: () => Navigator.of(ctx).pop('ar'),
+            child: const Text('ذمم العملاء'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop('ap'),
-              child: const Text('ذمم الموردين')),
+            onPressed: () => Navigator.of(ctx).pop('ap'),
+            child: const Text('ذمم الموردين'),
+          ),
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('إلغاء')),
+            onPressed: () => Navigator.of(ctx).pop(null),
+            child: const Text('إلغاء'),
+          ),
         ],
       ),
     );
@@ -298,6 +315,12 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   bool _isRouteVisible(String route) {
     if (AppRoutes.isInsuranceAgentFrozenRoute(route)) return false;
+    if (!_profile.isRouteVisible(
+      route,
+      insurancePilotVisible: ReleaseScopeConfig.insurancePilotVisible,
+    )) {
+      return false;
+    }
     if (!ReleaseScopeConfig.chequesEnabled && route.startsWith('/cheques')) {
       return false;
     }
@@ -389,20 +412,18 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
   @override
   Widget build(BuildContext context) {
-    final hasSearch = _searchQuery.trim().isNotEmpty;
-
     // 1) إصلاح المركبات
     final repairsItems = [
       (
         Icons.dashboard_customize_outlined,
         'نظرة عامة للإصلاحات',
-        rRepairsOverview
+        rRepairsOverview,
       ),
       (Icons.dashboard, 'شاشة الإصلاحات', rRepairsDashboard),
       (
         Icons.folder_copy_outlined,
         'قائمة ملفات الإصلاح',
-        AppRoutes.repairsList
+        AppRoutes.repairsList,
       ),
       (Icons.add, 'إدخال مركبة جديدة', rRepairsAdd),
       (Icons.list, 'قائمة المركبات', rVehiclesList),
@@ -445,7 +466,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (
         Icons.account_balance_outlined,
         'إيداع للتحصيل / قيد التحصيل',
-        rChequesCollection
+        rChequesCollection,
       ),
       (Icons.verified_outlined, 'شيكات محصلة', rChequesCollected),
       (Icons.schedule_outlined, 'شيكات مستحقة وآجلة', rChequesPostdated),
@@ -458,62 +479,86 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
     // 5) العملاء والموردون
     final clientsSuppliersItems = <Widget>[];
     if (_matches('الجهات وكشف الحساب الشامل')) {
-      clientsSuppliersItems.add(_tile(
+      clientsSuppliersItems.add(
+        _tile(
           icon: Icons.contact_page,
           title: 'الجهات وكشف الحساب الشامل',
-          route: '/parties'));
+          route: '/parties',
+        ),
+      );
     }
     if (_matches('إضافة جهة')) {
-      clientsSuppliersItems.add(_actionTile(
-        icon: Icons.person_add_alt_1,
-        title: 'إضافة جهة',
-        onTap: _navigateAddParty,
-      ));
+      clientsSuppliersItems.add(
+        _actionTile(
+          icon: Icons.person_add_alt_1,
+          title: 'إضافة جهة',
+          onTap: _navigateAddParty,
+        ),
+      );
     }
     if (_matches('قائمة العملاء')) {
       clientsSuppliersItems.add(
-          _tile(icon: Icons.people, title: 'قائمة العملاء', route: rClients));
+        _tile(icon: Icons.people, title: 'قائمة العملاء', route: rClients),
+      );
     }
     if (_matches('إضافة عميل')) {
-      clientsSuppliersItems.add(_tile(
+      clientsSuppliersItems.add(
+        _tile(
           icon: Icons.person_add_outlined,
           title: 'إضافة عميل',
-          route: rClientAdd));
+          route: rClientAdd,
+        ),
+      );
     }
     if (_matches('ذمم العملاء')) {
-      clientsSuppliersItems.add(_tile(
-          icon: Icons.request_page, title: 'ذمم العملاء', route: rClientAR));
+      clientsSuppliersItems.add(
+        _tile(icon: Icons.request_page, title: 'ذمم العملاء', route: rClientAR),
+      );
     }
     if (_matches('قائمة الموردين')) {
-      clientsSuppliersItems.add(_tile(
+      clientsSuppliersItems.add(
+        _tile(
           icon: Icons.local_shipping_outlined,
           title: 'قائمة الموردين',
-          route: rSuppliers));
+          route: rSuppliers,
+        ),
+      );
     }
     if (_matches('إضافة مورد')) {
-      clientsSuppliersItems.add(_tile(
+      clientsSuppliersItems.add(
+        _tile(
           icon: Icons.person_add_alt_outlined,
           title: 'إضافة مورد',
-          route: rSupplierAdd));
+          route: rSupplierAdd,
+        ),
+      );
     }
     if (_matches('ذمم الموردين')) {
-      clientsSuppliersItems.add(_tile(
+      clientsSuppliersItems.add(
+        _tile(
           icon: Icons.account_balance_wallet_outlined,
           title: 'ذمم الموردين',
-          route: AppRoutes.suppliersPayablesList));
+          route: AppRoutes.suppliersPayablesList,
+        ),
+      );
     }
     if (_matches('ديون الموردين')) {
-      clientsSuppliersItems.add(_tile(
+      clientsSuppliersItems.add(
+        _tile(
           icon: Icons.receipt_long_outlined,
           title: 'ديون الموردين',
-          route: AppRoutes.suppliersDebts));
+          route: AppRoutes.suppliersDebts,
+        ),
+      );
     }
     if (_matches('الذمم المدينة والدائنة')) {
-      clientsSuppliersItems.add(_actionTile(
-        icon: Icons.compare_arrows,
-        title: 'الذمم المدينة والدائنة',
-        onTap: _navigateAgingBoth,
-      ));
+      clientsSuppliersItems.add(
+        _actionTile(
+          icon: Icons.compare_arrows,
+          title: 'الذمم المدينة والدائنة',
+          onTap: _navigateAgingBoth,
+        ),
+      );
     }
 
     // 6) المالية والمحاسبة
@@ -524,14 +569,14 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (
         Icons.collections_bookmark_outlined,
         'التحصيل والذمم',
-        rCollectionDashboard
+        rCollectionDashboard,
       ),
       (Icons.payments_outlined, 'حركات الدفع والتحصيل', AppRoutes.payments),
       (Icons.stacked_bar_chart, 'قائمة الدخل', rIncomeStatement),
       (
         Icons.account_balance_wallet,
         'الميزانية العمومية',
-        rReportsBalanceSheet
+        rReportsBalanceSheet,
       ),
       (Icons.list_alt, 'قيود اليومية', rJournalEntries),
       (Icons.menu_book, 'دفتر الأستاذ', rFinanceAccountLedger),
@@ -547,14 +592,18 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (Icons.arrow_upward, 'سند صرف', rPaymentVoucher),
       (Icons.list, 'قائمة سندات الصرف', rPaymentVouchersList),
     ].where((e) => _matches(e.$2)).toList();
-// ===== NEW: وكيل التأمين =====
+    // ===== NEW: وكيل التأمين =====
     final insuranceAgentItems = [
-      (Icons.dataset_outlined, '\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629', rInsuranceMasterData),
+      (
+        Icons.dataset_outlined,
+        '\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629',
+        rInsuranceMasterData,
+      ),
       (Icons.home, 'الشاشة الرئيسية', rInsuranceHome),
       (
         Icons.receipt_long_outlined,
         'فواتير التأمين',
-        AppRoutes.insuranceInvoices
+        AppRoutes.insuranceInvoices,
       ),
       (Icons.request_quote_outlined, 'العروض', rInsuranceQuotes),
       (Icons.add_circle_outline, 'إضافة تأمين جديد', rInsuranceAddNew),
@@ -567,7 +616,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (
         Icons.autorenew,
         '\u0627\u0644\u062a\u062c\u062f\u064a\u062f\u0627\u062a',
-        rInsuranceRenewals
+        rInsuranceRenewals,
       ),
       (Icons.account_balance_wallet, 'المالية', rInsuranceFinance),
       (Icons.notifications_active, 'التنبيهات والمتابعة', rInsuranceAlerts),
@@ -590,7 +639,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       (
         Icons.account_balance_wallet_outlined,
         'الميزانية العمومية',
-        rReportsBalanceSheet
+        rReportsBalanceSheet,
       ),
       (Icons.check_circle, 'تقرير الحضور والغياب', rReportsAttendance),
       (Icons.payments_outlined, 'تقرير الرواتب', rReportsPayroll),
@@ -616,38 +665,37 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                   onToggle: _toggleCollapse,
                   showToggle: context.isDesktopWidth,
                 ),
-// البحث داخل عناصر القائمة
-                Visibility(
-                  visible: true,
-                  maintainState: false,
-                  maintainAnimation: false,
-                  maintainSize: false,
-                  child: (!_isCollapsed)
-                      ? Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: SidebarSearch(
-                            initialQuery: _searchQuery,
-                            onChanged: (q) => setState(() => _searchQuery = q),
-                            hintText: 'بحث...',
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
+                if (!_isCollapsed)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.search),
+                      title: const Text('البحث الشامل'),
+                      subtitle: const Text(
+                        'ملفات، عملاء، فواتير، شيكات ومخزون',
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
+                      ),
+                      onTap: () => _navigate(rGlobalSearch),
+                    ),
+                  ),
                 Expanded(
                   child: ListView(
                     padding: EdgeInsets.zero,
                     children: [
                       _tile(
-                          icon: Icons.dashboard,
-                          title: 'لوحة التحكم',
-                          route: rDashboard),
-                      _tile(
-                          icon: Icons.search,
-                          title: 'البحث الشامل',
-                          route: rGlobalSearch),
-
+                        icon: Icons.dashboard,
+                        title: 'لوحة التحكم',
+                        route: rDashboard,
+                      ),
                       // إصلاح المركبات
-                      if (repairsItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.repairs) &&
+                          repairsItems.isNotEmpty)
                         _group(
                           icon: Icons.build,
                           title: 'إصلاح المركبات',
@@ -655,12 +703,15 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               widget.currentRoute?.startsWith(rRepairsRoot) ??
                                   false,
                           children: repairsItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
                       // ===== NEW: وكيل التأمين =====
-                      if (insuranceAgentItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.insurance) &&
+                          insuranceAgentItems.isNotEmpty)
                         _group(
                           icon: Icons.verified_user,
                           title: 'التأمين',
@@ -668,26 +719,32 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               widget.currentRoute?.startsWith(rInsuranceRoot) ??
                                   false,
                           children: insuranceAgentItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
                       // ===== NEW: السندات المالية =====
-                      if (vouchersItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.vouchers) &&
+                          vouchersItems.isNotEmpty)
                         _group(
                           icon: Icons.receipt_long,
                           title: 'السندات المالية',
                           isInitiallyExpanded:
                               widget.currentRoute?.contains('voucher') ?? false,
                           children: vouchersItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
                       // شؤون الموظفين
-                      if (employeesItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.employees) &&
+                          employeesItems.isNotEmpty)
                         _group(
                           icon: Icons.people_alt,
                           title: 'شؤون الموظفين',
@@ -695,13 +752,16 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               widget.currentRoute?.startsWith(rEmpRoot) ??
                                   false,
                           children: employeesItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
                       // المشتريات والمصروفات
-                      if (purchasesItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.purchases) &&
+                          purchasesItems.isNotEmpty)
                         _group(
                           icon: Icons.shopping_cart,
                           title: 'المشتريات',
@@ -709,18 +769,23 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               (widget.currentRoute?.startsWith(rPurchRoot) ??
                                   false),
                           children: purchasesItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
                       // العملاء والموردون
-                      _tile(
+                      if (_profile.moduleEnabled(AppModule.finance))
+                        _tile(
                           icon: Icons.receipt_long_outlined,
                           title: 'المصروفات',
-                          route: rExpenses),
+                          route: rExpenses,
+                        ),
 
-                      if (clientsSuppliersItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.parties) &&
+                          clientsSuppliersItems.isNotEmpty)
                         _group(
                           icon: Icons.group,
                           title: 'العملاء والموردون',
@@ -735,21 +800,27 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                         ),
 
                       // المالية والمحاسبة
-                      if (financeItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.finance) &&
+                          financeItems.isNotEmpty)
                         _group(
                           icon: Icons.account_balance,
-                          title: 'المالية والمحاسبة',
+                          title: _profile.mode == ExperienceMode.simple
+                              ? 'المال والتحصيل'
+                              : 'المالية والمحاسبة',
                           isInitiallyExpanded:
                               widget.currentRoute?.startsWith(rFinanceRoot) ??
                                   false,
                           children: financeItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
                       // الشيكات
-                      if (chequesItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.cheques) &&
+                          chequesItems.isNotEmpty)
                         _group(
                           icon: Icons.receipt_long,
                           title: 'الشيكات',
@@ -757,27 +828,34 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               widget.currentRoute?.startsWith(rChequesRoot) ??
                                   false,
                           children: chequesItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
                       // المخزون والمواد
-                      if (inventoryItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.inventory) &&
+                          inventoryItems.isNotEmpty)
                         _group(
                           icon: Icons.inventory_2_outlined,
                           title: 'المخزون والمواد',
-                          isInitiallyExpanded: widget.currentRoute
-                                  ?.startsWith('/raw_materials') ??
+                          isInitiallyExpanded: widget.currentRoute?.startsWith(
+                                '/raw_materials',
+                              ) ??
                               false,
                           children: inventoryItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
                       // التقارير
-                      if (reportsItems.isNotEmpty || !hasSearch)
+                      if (_profile.moduleEnabled(AppModule.reports) &&
+                          reportsItems.isNotEmpty)
                         _group(
                           icon: Icons.assessment_outlined,
                           title: 'التقارير',
@@ -785,8 +863,10 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                               widget.currentRoute?.startsWith(rReportsRoot) ??
                                   false,
                           children: reportsItems
-                              .map((e) =>
-                                  _tile(icon: e.$1, title: e.$2, route: e.$3))
+                              .map(
+                                (e) =>
+                                    _tile(icon: e.$1, title: e.$2, route: e.$3),
+                              )
                               .toList(),
                         ),
 
@@ -799,44 +879,59 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                                 false,
                         children: [
                           _tile(
-                              icon: Icons.store,
-                              title: 'إعدادات الورشة',
-                              route: rSettingsWorkshop),
+                            icon: Icons.store,
+                            title: 'إعدادات الورشة',
+                            route: rSettingsWorkshop,
+                          ),
                           _tile(
-                              icon: Icons.shield_outlined,
-                              title: 'حماية البيانات',
-                              route: rSettingsSecurityData),
-                          if (!OwnerLocalAccess.enabled)
-                            _tile(
-                                icon: Icons.sync_problem,
-                                title: 'تعارضات المزامنة',
-                                route: rSettingsSyncConflicts),
-                          if (!OwnerLocalAccess.enabled)
-                            _tile(
-                                icon: Icons.verified_outlined,
-                                title: 'حالة الاشتراك',
-                                route: '/current-subscription'),
-                          if (!OwnerLocalAccess.enabled)
-                            _tile(
-                                icon: Icons.workspace_premium_outlined,
-                                title: 'الاشتراك والخطط',
-                                route: rSubscription),
+                            icon: Icons.tune,
+                            title: 'نوع النشاط والأقسام',
+                            route: AppRoutes.settingsExperience,
+                          ),
                           _tile(
-                              icon: Icons.support_agent,
-                              title: 'الدعم الفني',
-                              route: rTechnicalSupport),
+                            icon: Icons.shield_outlined,
+                            title: 'حماية البيانات',
+                            route: rSettingsSecurityData,
+                          ),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                              icon: Icons.sync_problem,
+                              title: 'تعارضات المزامنة',
+                              route: rSettingsSyncConflicts,
+                            ),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                              icon: Icons.verified_outlined,
+                              title: 'حالة الاشتراك',
+                              route: '/current-subscription',
+                            ),
+                          if (!OwnerLocalAccess.enabled)
+                            _tile(
+                              icon: Icons.workspace_premium_outlined,
+                              title: 'الاشتراك والخطط',
+                              route: rSubscription,
+                            ),
+                          _tile(
+                            icon: Icons.support_agent,
+                            title: 'الدعم الفني',
+                            route: rTechnicalSupport,
+                          ),
                           if (!OwnerLocalAccess.enabled)
                             ListTile(
-                              leading: const Icon(Icons.logout,
-                                  color: Colors.redAccent),
+                              leading: const Icon(
+                                Icons.logout,
+                                color: Colors.redAccent,
+                              ),
                               title: _isCollapsed
                                   ? const SizedBox.shrink()
-                                  : const Text('تسجيل خروج',
-                                      style:
-                                          TextStyle(color: Colors.redAccent)),
+                                  : const Text(
+                                      'تسجيل خروج',
+                                      style: TextStyle(color: Colors.redAccent),
+                                    ),
                               dense: true,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               onTap: () {
                                 final scaffoldState = Scaffold.maybeOf(context);
                                 if (scaffoldState?.isDrawerOpen == true) {
@@ -898,7 +993,7 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ),
-                )
+                ),
               ]
             : children,
       ),

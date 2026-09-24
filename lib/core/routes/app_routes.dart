@@ -6,6 +6,8 @@ import 'package:yalla_accounts/features/parties/screens/parties_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/config/owner_local_access.dart';
+import 'package:yalla_accounts/core/experience/experience_route_gate.dart';
+import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
 import 'package:yalla_accounts/features/activation/screens/activation_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/login_screen.dart';
@@ -135,6 +137,7 @@ import 'package:yalla_accounts/features/employees/screens/attendance_report_scre
 
 // ===== Search =====
 import 'package:yalla_accounts/features/search/screens/global_search_screen.dart';
+import 'package:yalla_accounts/features/notifications/screens/notifications_screen.dart';
 
 // ===== Subscription =====
 import 'package:yalla_accounts/features/subscription/screens/subscription_screen.dart';
@@ -143,6 +146,7 @@ import 'package:yalla_accounts/features/subscription/screens/pending_subscriptio
 
 // ===== Settings =====
 import 'package:yalla_accounts/features/settings/screens/workshop_settings_screen.dart';
+import 'package:yalla_accounts/features/settings/screens/experience_settings_screen.dart';
 import 'package:yalla_accounts/features/settings/screens/security_data_screen.dart';
 import 'package:yalla_accounts/features/settings/screens/sync_conflicts_screen.dart';
 import 'package:yalla_accounts/features/support/screens/technical_support_screen.dart';
@@ -177,7 +181,7 @@ import 'package:yalla_accounts/features/startup/startup_screen.dart';
 class AppRoutes {
   AppRoutes._();
   // ===== Session check =====
-//  static Future<bool> _isLoggedIn() async {
+  //  static Future<bool> _isLoggedIn() async {
   // final prefs = await SharedPreferences.getInstance();
   // return prefs.getBool('loggedIn') == true;
   // }
@@ -193,7 +197,7 @@ class AppRoutes {
   static const homeDashboard = '/home/dashboard';
   static const forgotAccess = '/forgot-access';
 
-// ===== Startup / Activation =====
+  // ===== Startup / Activation =====
   static const startup = '/startup';
   static const activation = '/activation';
   static const trialExpired = '/trial-expired';
@@ -228,7 +232,7 @@ class AppRoutes {
   static const financeDashboard = '/finance/dashboard';
   static const collectionDashboard = '/finance/collections';
   static const payments = '/finance/payments';
-// ===== Vouchers =====
+  // ===== Vouchers =====
   static const receiptVoucher = '/finance/receipt-voucher';
   static const paymentVoucher = '/finance/payment-voucher';
   static const paymentVouchersList = '/finance/payment-vouchers';
@@ -287,7 +291,7 @@ class AppRoutes {
   static const parties = '/parties';
   static const partyAdd = '/parties/add';
 
-// ===== Suppliers =====
+  // ===== Suppliers =====
   static const suppliers = '/suppliers'; // SupplierListScreen
   static const suppliersPayablesList = '/suppliers/payables-list';
 
@@ -305,7 +309,7 @@ class AppRoutes {
 
   // ===== Insurance =====
   static const insuranceInvoices = '/insurance/invoices';
-// ===== Insurance Agent (وكيل التأمين) =====
+  // ===== Insurance Agent (وكيل التأمين) =====
   static const insuranceAgentRoot = '/insurance-agent';
   static const insuranceAgentHome = '/insurance-agent/home';
   static const insurancePoliciesList = '/insurance-agent/policies';
@@ -341,8 +345,9 @@ class AppRoutes {
   static const reportsAdvances = '/reports/advances';
   static const reportsPayroll = '/reports/payroll';
 
-  // ===== Search =====
+  // ===== Search / Notifications =====
   static const globalSearch = '/search';
+  static const notifications = '/notifications';
 
   // ===== Settings / Subscription =====
   static const settings = '/settings';
@@ -352,6 +357,7 @@ class AppRoutes {
   static const settingsSupport = '/settings/support';
   static const settingsSecurityData = '/settings/security-data';
   static const settingsSyncConflicts = '/settings/sync-conflicts';
+  static const settingsExperience = '/settings/experience';
   static const subscription = '/subscription';
   static const subscriptionScreen = subscription;
   static const currentSubscription = '/current-subscription';
@@ -486,6 +492,7 @@ class AppRoutes {
     reportsAdvances,
     reportsPayroll,
     globalSearch,
+    notifications,
     settings,
     settingsWorkshop,
     settingsUser,
@@ -493,6 +500,7 @@ class AppRoutes {
     settingsSupport,
     settingsSecurityData,
     settingsSyncConflicts,
+    settingsExperience,
     subscription,
     currentSubscription,
     adminSubscriptions,
@@ -509,9 +517,7 @@ class AppRoutes {
   /// initial route such as `/startup`. That leaves Splash/Startup underneath
   /// the first visible screen and lets Back reveal a stale loading route.
   static List<Route<dynamic>> generateInitialRoutes(String initialRoute) =>
-      <Route<dynamic>>[
-        onGenerateRoute(RouteSettings(name: initialRoute)),
-      ];
+      <Route<dynamic>>[onGenerateRoute(RouteSettings(name: initialRoute))];
 
   static void popOrDashboard<T extends Object?>(
     BuildContext context, [
@@ -539,8 +545,10 @@ class AppRoutes {
       );
       return Future<T?>.value();
     }
-    return Navigator.of(context, rootNavigator: rootNavigator)
-        .pushNamed<T>(route, arguments: arguments);
+    return Navigator.of(
+      context,
+      rootNavigator: rootNavigator,
+    ).pushNamed<T>(route, arguments: arguments);
   }
 
   // ===== P1.002 Auth guards =====
@@ -563,6 +571,7 @@ class AppRoutes {
     settingsUI,
     settingsSecurityData,
     settingsSyncConflicts,
+    settingsExperience,
     subscription,
     currentSubscription,
     adminSubscriptions,
@@ -570,10 +579,7 @@ class AppRoutes {
   };
 
   // ===== Helpers =====
-  static MaterialPageRoute<T> _page<T>(
-    RouteSettings settings,
-    Widget child,
-  ) {
+  static MaterialPageRoute<T> _page<T>(RouteSettings settings, Widget child) {
     final routeName = settings.name ?? '';
     final isPublic = _publicRoutes.contains(routeName);
     final ownerOnly = _ownerRoutes.contains(routeName);
@@ -583,9 +589,12 @@ class AppRoutes {
           ? child
           : AuthenticatedRouteGate(
               ownerOnly: ownerOnly,
-              child: YallaMobileRouteFrame(
+              child: ExperienceRouteGate(
                 routeName: routeName,
-                child: child,
+                child: YallaMobileRouteFrame(
+                  routeName: routeName,
+                  child: child,
+                ),
               ),
             ),
       settings: settings,
@@ -608,8 +617,10 @@ class AppRoutes {
   }
 
   // ===== Router =====
-  // All validated insurance routes are available in the commercial module.
-  static bool isInsuranceAgentFrozenRoute(String route) => false;
+  // Pilot builds keep all insurance destinations hidden without deleting code/data.
+  static bool isInsuranceAgentFrozenRoute(String route) =>
+      !ReleaseScopeConfig.insurancePilotVisible &&
+      (route.startsWith(insuranceAgentRoot) || route == insuranceInvoices);
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final name = settings.name ?? '';
@@ -621,25 +632,25 @@ class AppRoutes {
             name == forgotAccess ||
             name == activation ||
             name == trialExpired)) {
-      return _page(
-        const RouteSettings(name: startup),
-        const StartupScreen(),
-      );
+      return _page(const RouteSettings(name: startup), const StartupScreen());
     }
 
     if (isInsuranceAgentFrozenRoute(name)) {
       return _page(
-          settings,
-          Scaffold(
-            appBar: AppBar(title: const Text('وكيل التأمين')),
-            body: const Center(
-                child: Padding(
+        settings,
+        Scaffold(
+          appBar: AppBar(title: const Text('وكيل التأمين')),
+          body: const Center(
+            child: Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                  'هذا القسم غير مفعّل حاليًا. حاسبة التأمين متاحة من القائمة.',
-                  textAlign: TextAlign.center),
-            )),
-          ));
+                'قسم التأمين غير متاح في النسخة التجريبية الحالية.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     if (name == login) {
@@ -681,10 +692,7 @@ class AppRoutes {
       final rawId = args is Map ? args['vehicleId'] : args;
       final vehicleId =
           rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
-      return _page(
-        settings,
-        VehiclesListScreen(initialVehicleId: vehicleId),
-      );
+      return _page(settings, VehiclesListScreen(initialVehicleId: vehicleId));
     }
 
     if (name == repairs) {
@@ -811,10 +819,7 @@ class AppRoutes {
       if (args is Map) {
         repairId = (args['relatedRepairId'] ?? args['repairId'])?.toString();
       }
-      return _page(
-        settings,
-        JournalEntriesScreen(initialRepairId: repairId),
-      );
+      return _page(settings, JournalEntriesScreen(initialRepairId: repairId));
     }
     if (name == incomeStatement) {
       return _page(settings, const IncomeStatementScreen());
@@ -871,7 +876,7 @@ class AppRoutes {
         'تعذر فتح الفاتورة لأن رقمها غير متاح. أعدناك إلى اللوحة المالية.',
       );
     }
-// Finance - Vouchers
+    // Finance - Vouchers
     if (name == receiptVoucher) {
       final args = settings.arguments;
       if (args is Map) {
@@ -896,11 +901,11 @@ class AppRoutes {
     if (name == paymentVoucher) {
       return _page(settings, const PaymentVoucherScreen());
     }
-// LIST — Payment Vouchers
+    // LIST — Payment Vouchers
     if (name == paymentVouchersList) {
       return _page(settings, const PaymentVoucherListScreen());
     }
-// LIST — Receipt Vouchers
+    // LIST — Receipt Vouchers
     if (name == receiptVouchersList) {
       return _page(settings, const ReceiptVoucherListScreen());
     }
@@ -1092,7 +1097,7 @@ class AppRoutes {
     if (name == insuranceInvoices) {
       return _page(settings, const InsuranceInvoiceListScreen());
     }
-// Insurance Agent (وكيل التأمين)
+    // Insurance Agent (وكيل التأمين)
     if (name == insuranceAgentRoot || name == insuranceAgentHome) {
       return _page(settings, const InsuranceAgentHomeScreen());
     }
@@ -1189,7 +1194,7 @@ class AppRoutes {
       return _page(settings, const InventoryListScreen());
     }
 
-// ===== Suppliers =====
+    // ===== Suppliers =====
     if (name == suppliersPayablesList) {
       return _page(settings, const SupplierPayablesListScreen());
     }
@@ -1248,7 +1253,7 @@ class AppRoutes {
     if (name == reportsBalanceSheet) {
       return _page(settings, const BalanceSheetScreen());
     }
-// Supplier Cheques
+    // Supplier Cheques
     if (name == supplierCheques) {
       final args = settings.arguments;
 
@@ -1288,6 +1293,9 @@ class AppRoutes {
     if (name == globalSearch) {
       return _page(settings, const GlobalSearchScreen());
     }
+    if (name == notifications) {
+      return _page(settings, const NotificationsScreen());
+    }
 
     // Settings
     if (name == AppRoutes.settings || name == settingsWorkshop) {
@@ -1304,6 +1312,9 @@ class AppRoutes {
     }
     if (name == settingsSyncConflicts) {
       return _page(settings, const SyncConflictsScreen());
+    }
+    if (name == settingsExperience) {
+      return _page(settings, const ExperienceSettingsScreen());
     }
     if (name == settingsSupport || name == technicalSupport) {
       return _page(settings, const TechnicalSupportScreen());
@@ -1340,7 +1351,9 @@ class AppRoutes {
   }
 
   static Future<void> openInvoice(
-      BuildContext context, String invoiceId) async {
+    BuildContext context,
+    String invoiceId,
+  ) async {
     await Navigator.of(context).pushNamed(invoiceView, arguments: invoiceId);
   }
 
@@ -1370,14 +1383,19 @@ class AppRoutes {
   }
 
   static Future<void> openEmployeePayroll(
-      BuildContext context, Employee employee) async {
+    BuildContext context,
+    Employee employee,
+  ) async {
     await Navigator.of(context).pushNamed(employeePayroll, arguments: employee);
   }
 
   static Future<void> openEmployeeAdvances(
-      BuildContext context, Employee employee) async {
-    await Navigator.of(context)
-        .pushNamed(employeeAdvances, arguments: employee);
+    BuildContext context,
+    Employee employee,
+  ) async {
+    await Navigator.of(
+      context,
+    ).pushNamed(employeeAdvances, arguments: employee);
   }
 
   // ===== Raw materials helpers =====
@@ -1386,12 +1404,17 @@ class AppRoutes {
   }
 
   static Future<void> openRawMaterialEdit(
-      BuildContext context, rm.RawMaterial material) async {
+    BuildContext context,
+    rm.RawMaterial material,
+  ) async {
     await Navigator.of(context).pushNamed(rawMaterialEdit, arguments: material);
   }
 
-  static Future<void> openSupplierLedger(BuildContext context,
-      {required String supplierId, required String supplierName}) async {
+  static Future<void> openSupplierLedger(
+    BuildContext context, {
+    required String supplierId,
+    required String supplierName,
+  }) async {
     await Navigator.of(context).pushNamed(
       purchasesSupplierLedger,
       arguments: {'supplierId': supplierId, 'supplierName': supplierName},
@@ -1416,10 +1439,7 @@ class AppRoutes {
 }
 
 class _RouteFallbackNotice extends StatefulWidget {
-  const _RouteFallbackNotice({
-    required this.message,
-    required this.child,
-  });
+  const _RouteFallbackNotice({required this.message, required this.child});
 
   final String message;
   final Widget child;
@@ -1434,9 +1454,9 @@ class _RouteFallbackNoticeState extends State<_RouteFallbackNotice> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(content: Text(widget.message)),
-      );
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(widget.message)));
     });
   }
 

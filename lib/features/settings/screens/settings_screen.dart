@@ -15,6 +15,7 @@ import 'package:yalla_accounts/features/settings/services/workshop_settings_serv
 import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'data_health_screen.dart';
 import 'commercial_settings_screen.dart';
+import 'experience_settings_screen.dart';
 import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
@@ -154,9 +155,7 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Directionality(
@@ -186,6 +185,27 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
                 label: const Text("حفظ جميع الإعدادات"),
               ),
               const SizedBox(height: 24),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.tune),
+                  title: const Text(
+                    'نوع النشاط والأقسام الظاهرة',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    'تجربة بسيطة أو متقدمة وتخصيص الأقسام بدون حذف البيانات',
+                  ),
+                  trailing: const Icon(Icons.chevron_left),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ExperienceSettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.public_outlined),
@@ -238,31 +258,42 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          const Text("بيانات الورشة",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const Divider(),
-          AdaptiveRow(children: [
-            _logoPath != null
-                ? Image.file(File(_logoPath!), width: 70, height: 70)
-                : const Icon(Icons.image, size: 70),
-            const SizedBox(width: 12),
-            ElevatedButton(
-                onPressed: _pickLogo, child: const Text("اختيار شعار")),
-          ]),
-          TextField(
+        child: Column(
+          children: [
+            const Text(
+              "بيانات الورشة",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            AdaptiveRow(
+              children: [
+                _logoPath != null
+                    ? Image.file(File(_logoPath!), width: 70, height: 70)
+                    : const Icon(Icons.image, size: 70),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: _pickLogo,
+                  child: const Text("اختيار شعار"),
+                ),
+              ],
+            ),
+            TextField(
               inputFormatters: const [YallaDigitNormalizer()],
               controller: _nameCtrl,
-              decoration: const InputDecoration(labelText: "اسم الورشة")),
-          TextField(
+              decoration: const InputDecoration(labelText: "اسم الورشة"),
+            ),
+            TextField(
               inputFormatters: const [YallaDigitNormalizer()],
               controller: _addressCtrl,
-              decoration: const InputDecoration(labelText: "العنوان")),
-          TextField(
+              decoration: const InputDecoration(labelText: "العنوان"),
+            ),
+            TextField(
               inputFormatters: const [YallaDigitNormalizer()],
               controller: _cityCtrl,
-              decoration: const InputDecoration(labelText: "المدينة")),
-        ]),
+              decoration: const InputDecoration(labelText: "المدينة"),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -271,28 +302,35 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          const Text("إعدادات الدوام",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ListTile(
-            title: const Text("بداية الدوام"),
-            subtitle: Text(_fmt(_start)),
-            onTap: () async {
-              final t =
-                  await showTimePicker(context: context, initialTime: _start);
-              if (t != null) setState(() => _start = t);
-            },
-          ),
-          ListTile(
-            title: const Text("نهاية الدوام"),
-            subtitle: Text(_fmt(_end)),
-            onTap: () async {
-              final t =
-                  await showTimePicker(context: context, initialTime: _end);
-              if (t != null) setState(() => _end = t);
-            },
-          ),
-          WorkScheduleFields(
+        child: Column(
+          children: [
+            const Text(
+              "إعدادات الدوام",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            ListTile(
+              title: const Text("بداية الدوام"),
+              subtitle: Text(_fmt(_start)),
+              onTap: () async {
+                final t = await showTimePicker(
+                  context: context,
+                  initialTime: _start,
+                );
+                if (t != null) setState(() => _start = t);
+              },
+            ),
+            ListTile(
+              title: const Text("نهاية الدوام"),
+              subtitle: Text(_fmt(_end)),
+              onTap: () async {
+                final t = await showTimePicker(
+                  context: context,
+                  initialTime: _end,
+                );
+                if (t != null) setState(() => _end = t);
+              },
+            ),
+            WorkScheduleFields(
               days: _weekWorkdays,
               hours: _dailyHours,
               breakMinutes: _breakMinutes,
@@ -300,8 +338,10 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
               onDays: (v) => setState(() => _weekWorkdays = v),
               onHours: (v) => _dailyHours = v,
               onBreak: (v) => _breakMinutes = v,
-              onOvertime: (v) => _overtimeRate = v),
-        ]),
+              onOvertime: (v) => _overtimeRate = v,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -310,25 +350,32 @@ class _WorkshopSettingsScreenState extends State<WorkshopSettingsScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text("إعدادات الأمان",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const Divider(),
-          TextField(
-            inputFormatters: const [YallaDigitNormalizer()],
-            controller: _q1Ctrl,
-            decoration:
-                const InputDecoration(labelText: "ما أول اسم لورشتك بالعربية؟"),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            inputFormatters: const [YallaDigitNormalizer()],
-            controller: _q2Ctrl,
-            decoration:
-                const InputDecoration(labelText: "ما هو رقم هوية صاحب الورشة؟"),
-            keyboardType: TextInputType.number,
-          ),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "إعدادات الأمان",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
+              controller: _q1Ctrl,
+              decoration: const InputDecoration(
+                labelText: "ما أول اسم لورشتك بالعربية؟",
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              inputFormatters: const [YallaDigitNormalizer()],
+              controller: _q2Ctrl,
+              decoration: const InputDecoration(
+                labelText: "ما هو رقم هوية صاحب الورشة؟",
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
       ),
     );
   }

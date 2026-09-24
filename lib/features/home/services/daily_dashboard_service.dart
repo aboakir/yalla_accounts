@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/core/utils/money_formatter.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
+import 'package:yalla_accounts/core/services/db/tables/inventory_tables.dart';
 import 'package:yalla_accounts/features/finance/services/financial_overview_service.dart';
 import 'package:yalla_accounts/features/repairs/services/repair_financial_truth_service.dart';
 import 'package:yalla_accounts/features/settings/services/workshop_settings_service.dart';
@@ -12,7 +13,8 @@ import 'package:yalla_accounts/features/settings/services/commercial_settings_se
 enum DashboardPeriod {
   today('اليوم'),
   week('الأسبوع'),
-  month('الشهر');
+  month('الشهر'),
+  custom('مخصص');
 
   const DashboardPeriod(this.label);
   final String label;
@@ -22,6 +24,7 @@ enum DashboardPeriod {
       today => day,
       week => day.subtract(Duration(days: now.weekday % 7)),
       month => DateTime(now.year, now.month),
+      custom => day,
     };
   }
 }
@@ -61,6 +64,35 @@ class DashboardCollectionItem {
   final String invoiceId;
 }
 
+class DashboardInventorySummary {
+  const DashboardInventorySummary({
+    required this.itemCount,
+    required this.lowStockCount,
+    required this.stockValue,
+    required this.periodPurchases,
+    required this.saleMovements,
+    this.topSellingItem,
+    required this.slowItems,
+  });
+
+  static const empty = DashboardInventorySummary(
+    itemCount: 0,
+    lowStockCount: 0,
+    stockValue: 0,
+    periodPurchases: 0,
+    saleMovements: 0,
+    slowItems: 0,
+  );
+
+  final int itemCount;
+  final int lowStockCount;
+  final double stockValue;
+  final double periodPurchases;
+  final int saleMovements;
+  final String? topSellingItem;
+  final int slowItems;
+}
+
 class DailyDashboardData {
   const DailyDashboardData(
       {required this.name,
@@ -73,6 +105,7 @@ class DailyDashboardData {
       required this.newFiles,
       required this.previousFiles,
       required this.materials,
+      this.inventory = DashboardInventorySummary.empty,
       required this.issues,
       required this.now,
       this.lastEntry,
@@ -85,6 +118,7 @@ class DailyDashboardData {
   final List<Map<String, Object?>> recentFiles;
   final int newFiles, previousFiles;
   final List<String> materials;
+  final DashboardInventorySummary inventory;
   final List<DashboardStep> issues;
   final DateTime now;
   final Map<String, Object?>? lastEntry;
@@ -97,14 +131,26 @@ class DailyDashboardData {
 /// Read-only dashboard projection. Cash and liabilities use the existing GL
 /// overview; repair balances use the canonical receipt SQL, never paid caches.
 class DailyDashboardService {
-  static Future<DailyDashboardData> load(DashboardPeriod period) async {
+  static Future<DailyDashboardData> load(
+    DashboardPeriod period, {
+    DateTime? customFrom,
+    DateTime? customTo,
+  }) async {
     final settings = await WorkshopSettingsService.instance.getSettings();
     final currency = await CommercialSettingsService.instance.get();
     final db = await DBService.database;
-    return db.transaction((tx) => loadOn(tx, period, DateTime.now(),
+    return db.transaction(
+      (tx) => loadOn(
+        tx,
+        period,
+        DateTime.now(),
         name: settings?.workshopName ?? 'ورشتي',
         logo: settings?.logoPath,
-        currency: currency.currencySymbol));
+        currency: currency.currencySymbol,
+        customFrom: customFrom,
+        customTo: customTo,
+      ),
+    );
   }
 
   static String stage(String? workflow, String legacy) {
@@ -125,14 +171,31 @@ class DailyDashboardService {
   }
 
   static Future<DailyDashboardData> loadOn(
-      DatabaseExecutor db, DashboardPeriod selected, DateTime now,
-      {String name = 'ورشتي', String? logo, String? currency}) async {
+    DatabaseExecutor db,
+    DashboardPeriod selected,
+    DateTime now, {
+    String name = 'ورشتي',
+    String? logo,
+    String? currency,
+    DateTime? customFrom,
+    DateTime? customTo,
+  }) async {
     currency ??= MoneyFormatter.symbol;
-    final start = selected.start(now);
     final day = DashboardPeriod.today.start(now);
-    final end = day.add(const Duration(days: 1));
-    final finance =
-        await FinancialOverviewService.loadOn(db, from: start, to: now);
+    final currentEnd = day.add(const Duration(days: 1));
+    final start = selected == DashboardPeriod.custom && customFrom != null
+        ? DateTime(customFrom.year, customFrom.month, customFrom.day)
+        : selected.start(now);
+    final periodEnd = selected == DashboardPeriod.custom && customTo != null
+        ? DateTime(customTo.year, customTo.month, customTo.day)
+            .add(const Duration(days: 1))
+        : currentEnd;
+    final financeTo = selected == DashboardPeriod.custom ? periodEnd : now;
+    final finance = await FinancialOverviewService.loadOn(
+      db,
+      from: start,
+      to: financeTo,
+    );
     final today = selected == DashboardPeriod.today
         ? finance
         : await FinancialOverviewService.loadOn(db, from: day, to: now);
@@ -166,7 +229,7 @@ class DailyDashboardService {
       LEFT JOIN ($costs) c ON c.repair_id=r.id
       WHERE COALESCE(r.isArchived,0)=0 AND UPPER(COALESCE(r.status,'')) NOT IN ('CANCELLED','VOID')
         AND substr(r.receivedDate,1,10) < substr(?,1,10)
-    ''', [end.toIso8601String()]);
+    ''', [currentEnd.toIso8601String()]);
     double d(Object? v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
 
     // Financial collectability is deliberately independent from vehicle stage.
@@ -218,8 +281,8 @@ class DailyDashboardService {
       return (result.first['n'] as num).toInt();
     }
 
-    final elapsed = end.difference(start);
-    final newFiles = await count(start, end);
+    final elapsed = periodEnd.difference(start);
+    final newFiles = await count(start, periodEnd);
     final previousFiles = await count(start.subtract(elapsed), start);
     final materials = !tables.contains('raw_materials')
         ? <Map<String, Object?>>[]
@@ -230,7 +293,7 @@ class DailyDashboardService {
         "SELECT receipt_number FROM receipt_headers WHERE LOWER(status)='posted' AND allocated_amount=0 AND date>=? AND date<? LIMIT 1",
         [
           start.toIso8601String().substring(0, 10),
-          end.toIso8601String().substring(0, 10)
+          periodEnd.toIso8601String().substring(0, 10)
         ]);
     if (receipts.isNotEmpty) {
       issues.add(DashboardStep(
@@ -246,7 +309,7 @@ class DailyDashboardService {
         "SELECT id FROM vouchers WHERE UPPER(status) NOT IN ('VOID','REVERSED','CANCELLED') AND (TRIM(COALESCE(party_type,''))='' OR TRIM(COALESCE(party_id,''))='') AND date>=? AND date<? LIMIT 1",
         [
           start.toIso8601String().substring(0, 10),
-          end.toIso8601String().substring(0, 10)
+          periodEnd.toIso8601String().substring(0, 10)
         ]);
     if (vouchers.isNotEmpty) {
       issues.add(DashboardStep(
@@ -277,7 +340,14 @@ class DailyDashboardService {
       WHERE UPPER(COALESCE(status,'')) NOT IN ('CANCELLED','VOID')
         AND substr(receivedDate,1,10) < substr(?,1,10)
       ORDER BY receivedDate DESC, id DESC LIMIT 5
-    """, [end.toIso8601String()]);
+    """, [currentEnd.toIso8601String()]);
+    final inventory = await _inventorySummary(
+      db,
+      tables: tables,
+      from: start,
+      to: periodEnd,
+      now: now,
+    );
     final last = await db.rawQuery(
         'SELECT id,date,ref,source_number,note,created_at FROM gl_entries ORDER BY COALESCE(created_at,date) DESC,id DESC LIMIT 1');
     return DailyDashboardData(
@@ -292,9 +362,139 @@ class DailyDashboardService {
         newFiles: newFiles,
         previousFiles: previousFiles,
         materials: materials.map((m) => '${m['name']}').toList(),
+        inventory: inventory,
         issues: issues,
         now: now,
         lastEntry: last.isEmpty ? null : last.first);
+  }
+
+  static Future<DashboardInventorySummary> _inventorySummary(
+    DatabaseExecutor db, {
+    required Set<Object?> tables,
+    required DateTime from,
+    required DateTime to,
+    required DateTime now,
+  }) async {
+    if (!tables.contains(InventoryTables.items) ||
+        !tables.contains(InventoryTables.movements)) {
+      return DashboardInventorySummary.empty;
+    }
+
+    double number(Object? value) =>
+        value is num ? value.toDouble() : double.tryParse('$value') ?? 0.0;
+
+    final itemCountRows = await db.rawQuery(
+      'SELECT COUNT(*) AS n FROM ${InventoryTables.items} WHERE is_active=1',
+    );
+    final itemCount = (itemCountRows.first['n'] as num?)?.toInt() ?? 0;
+
+    final ledger = await db.rawQuery('''
+      SELECT m.item_id,m.warehouse_id,m.on_hand_delta,m.unit_cost,m.landed_cost,
+             i.default_purchase_price
+      FROM ${InventoryTables.movements} m
+      JOIN ${InventoryTables.items} i ON i.id=m.item_id
+      WHERE i.is_active=1
+      ORDER BY m.item_id,m.warehouse_id,datetime(m.occurred_at),m.id
+    ''');
+    final states = <String, List<double>>{};
+    for (final row in ledger) {
+      final key = '${row['item_id']}:${row['warehouse_id']}';
+      final state = states.putIfAbsent(key, () => <double>[0, 0]);
+      final delta = number(row['on_hand_delta']);
+      if (delta.abs() <= 0.000001) continue;
+      final onHand = state[0];
+      final currentAverage = onHand.abs() <= 0.000001 ? 0.0 : state[1] / onHand;
+      final explicitCost = row['landed_cost'] ?? row['unit_cost'];
+      final fallback = number(row['default_purchase_price']);
+      final cost = explicitCost == null
+          ? (currentAverage > 0 ? currentAverage : fallback)
+          : number(explicitCost);
+      state[0] = onHand + delta;
+      state[1] = state[1] + delta * cost;
+      if (state[0].abs() <= 0.000001) {
+        state[0] = 0;
+        state[1] = 0;
+      }
+    }
+    final stockValue =
+        states.values.fold<double>(0, (sum, state) => sum + state[1]);
+
+    var lowStockCount = 0;
+    if (tables.contains('inventory_reorder_levels')) {
+      final lowRows = await db.rawQuery('''
+        SELECT COUNT(*) AS n
+        FROM inventory_reorder_levels r
+        LEFT JOIN (
+          SELECT item_id,warehouse_id,
+            COALESCE(SUM(on_hand_delta),0)-COALESCE(SUM(reserved_delta),0) AS available
+          FROM ${InventoryTables.movements}
+          GROUP BY item_id,warehouse_id
+        ) s ON s.item_id=r.item_id AND s.warehouse_id=r.warehouse_id
+        WHERE r.reorder_level>0 AND COALESCE(s.available,0)<=r.reorder_level
+      ''');
+      lowStockCount = (lowRows.first['n'] as num?)?.toInt() ?? 0;
+    }
+
+    var periodPurchases = 0.0;
+    if (tables.contains('purchase_invoices')) {
+      final rows = await db.rawQuery(
+        """SELECT COALESCE(SUM(COALESCE(NULLIF(total,0),amount_total,0)),0) AS total
+           FROM purchase_invoices
+           WHERE COALESCE(is_active,1)=1
+             AND UPPER(COALESCE(status,'')) NOT IN ('VOID','CANCELLED','REVERSED')
+             AND date>=? AND date<?""",
+        [
+          from.toIso8601String().substring(0, 10),
+          to.toIso8601String().substring(0, 10),
+        ],
+      );
+      periodPurchases = number(rows.first['total']);
+    }
+
+    final saleRows = await db.rawQuery(
+      """SELECT COUNT(*) AS n
+         FROM ${InventoryTables.movements}
+         WHERE movement_type='SALE' AND occurred_at>=? AND occurred_at<?""",
+      [from.toIso8601String(), to.toIso8601String()],
+    );
+    final saleMovements = (saleRows.first['n'] as num?)?.toInt() ?? 0;
+
+    final topRows = await db.rawQuery(
+      """SELECT i.name
+         FROM ${InventoryTables.movements} m
+         JOIN ${InventoryTables.items} i ON i.id=m.item_id
+         WHERE m.movement_type='SALE' AND m.occurred_at>=? AND m.occurred_at<?
+         GROUP BY m.item_id
+         ORDER BY SUM(ABS(m.on_hand_delta)) DESC
+         LIMIT 1""",
+      [from.toIso8601String(), to.toIso8601String()],
+    );
+
+    final slowCutoff = now.subtract(const Duration(days: 90)).toIso8601String();
+    final slowRows = await db.rawQuery('''
+      SELECT COUNT(*) AS n FROM ${InventoryTables.items} i
+      WHERE i.is_active=1
+        AND COALESCE((
+          SELECT SUM(m.on_hand_delta)
+          FROM ${InventoryTables.movements} m
+          WHERE m.item_id=i.id
+        ),0)>0
+        AND NOT EXISTS(
+          SELECT 1 FROM ${InventoryTables.movements} s
+          WHERE s.item_id=i.id AND s.movement_type='SALE' AND s.occurred_at>=?
+        )
+    ''', [slowCutoff]);
+
+    return DashboardInventorySummary(
+      itemCount: itemCount,
+      lowStockCount: lowStockCount,
+      stockValue: double.parse(stockValue.toStringAsFixed(2)),
+      periodPurchases: periodPurchases,
+      saleMovements: saleMovements,
+      topSellingItem:
+          topRows.isEmpty ? null : topRows.first['name']?.toString(),
+      slowItems: (slowRows.first['n'] as num?)?.toInt() ?? 0,
+    );
   }
 
   /// Ranking favors immediate cash, urgency and a traceable document. No write

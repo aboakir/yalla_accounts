@@ -19,8 +19,9 @@ void main() {
     ).readAsStringSync();
 
     expect(sidebar, contains('rootNavigator: true'));
+    expect(sidebar, contains('context.isDesktopWidth'));
     expect(sidebar, contains('targetNavigator.pushNamed(route)'));
-    expect(sidebar, isNot(contains('targetNavigator.pushReplacementNamed(route)')));
+    expect(sidebar, contains('pushReplacementNamed(route)'));
     expect(sidebar, isNot(contains('pushNamedAndRemoveUntil(')));
     expect(bottom, contains('rootNavigator: true'));
     expect(bottom, contains('pushNamed(route)'));
