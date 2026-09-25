@@ -52,16 +52,14 @@ jobs:
       - name: Materialize production defines from secrets
         shell: pwsh
         env:
-          LICENSE_PIN: ${{ secrets.YALLA_LICENSE_TRUSTED_KEY_SHA256 }}
           SUPABASE_URL: ${{ secrets.YALLA_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.YALLA_SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          $required = @($env:LICENSE_PIN,$env:SUPABASE_URL,$env:SUPABASE_KEY)
+          $required = @($env:SUPABASE_URL,$env:SUPABASE_KEY)
           if ($required | Where-Object { [string]::IsNullOrWhiteSpace($_) }) { throw 'Required release configuration is missing.' }
           $data = [ordered]@{
             YALLAH_COMMERCIAL_BACKEND_URL = 'https://api.yallah.ps'
             YALLA_LICENSING_BASE_URL = 'https://api.yallah.ps'
-            YALLA_LICENSE_TRUSTED_KEY_SHA256 = $env:LICENSE_PIN
             YALLA_SUPABASE_URL = $env:SUPABASE_URL
             YALLA_SUPABASE_PUBLISHABLE_KEY = $env:SUPABASE_KEY
             YALLA_CLOUD_AUTH_RELEASE_READY = $true

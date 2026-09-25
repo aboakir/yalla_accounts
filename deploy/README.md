@@ -2,7 +2,7 @@
 
 `production_defines.example.json` is a non-secret template for Flutter `--dart-define-from-file`. Replace every placeholder before a commercial build.
 
-For production on `yallah.ps`, both `YALLAH_COMMERCIAL_BACKEND_URL` and `YALLA_LICENSING_BASE_URL` must resolve to the same PHP API origin: `https://api.yallah.ps`. `YALLA_LICENSE_TRUSTED_KEY_SHA256` pins the approved Ed25519 signing public key set. Never place private signing keys, database credentials, Supabase Service Role keys, or passwords in this file.
+For production on `yallah.ps`, both `YALLAH_COMMERCIAL_BACKEND_URL` and `YALLA_LICENSING_BASE_URL` must resolve to the same PHP API origin: `https://api.yallah.ps`. The legacy `YALLA_LICENSE_TRUSTED_KEY_SHA256` is optional and is used only by the older signed-license authority when that PHP commercial backend is not enabled. Never place private signing keys, database credentials, Supabase Service Role keys, or passwords in this file.
 
 Cloud Auth uses only the Supabase publishable key. Store builds require HTTPS legal/privacy/account-deletion URLs and `YALLA_STORE_DISTRIBUTION=true`.
 

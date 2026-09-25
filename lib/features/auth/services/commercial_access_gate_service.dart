@@ -1,3 +1,5 @@
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/subscription_access_policy.dart';
 import 'package:yalla_accounts/core/services/db/tables/license_runtime_tables.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,7 +39,7 @@ class CommercialAccessDecision {
     required bool readOnly,
     required String code,
     required String message,
-    required VerifiedLicense license,
+    VerifiedLicense? license,
   }) : this._(
           allowed: true,
           readOnly: readOnly,
@@ -235,6 +237,43 @@ class CommercialAccessGateService {
       return const CommercialAccessDecision.deny(
         code: 'OWNER_LINK_MISMATCH',
         message: 'حساب المالك لا يطابق مالك المنشأة المعتمد.',
+      );
+    }
+
+    if (CommercialBackendEnvironment.enabled) {
+      final runtimeOrganization =
+          CommercialBackendRuntimeAccess.organizationId?.trim() ?? '';
+      final runtimeSubscription =
+          CommercialBackendRuntimeAccess.subscriptionId?.trim() ?? '';
+      if (!CommercialBackendRuntimeAccess.canRead) {
+        return const CommercialAccessDecision.deny(
+          code: 'PHP_ACCESS_BLOCKED',
+          message: 'الحساب أو الاشتراك غير متاح حاليًا.',
+          requiresActivation: true,
+        );
+      }
+      if (runtimeOrganization.isEmpty ||
+          runtimeOrganization != organizationId) {
+        return const CommercialAccessDecision.deny(
+          code: 'PHP_ORGANIZATION_MISMATCH',
+          message: 'ترخيص الخادم لا يطابق المنشأة الحالية.',
+          requiresActivation: true,
+        );
+      }
+      if (runtimeSubscription.isEmpty) {
+        return const CommercialAccessDecision.deny(
+          code: 'PHP_SUBSCRIPTION_MISSING',
+          message: 'لا يوجد اشتراك خادم معتمد لهذه المنشأة.',
+          requiresActivation: true,
+        );
+      }
+      final readOnly = !CommercialBackendRuntimeAccess.canWrite;
+      return CommercialAccessDecision.allow(
+        readOnly: readOnly,
+        code: readOnly ? 'PHP_READ_ONLY' : 'PHP_WRITABLE',
+        message: readOnly
+            ? 'الحساب مرتبط بالخادم ويعمل حاليًا بوضع القراءة فقط.'
+            : 'تم التحقق من المستخدم والمنشأة والترخيص عبر PHP Backend.',
       );
     }
 

@@ -4,6 +4,7 @@ import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factor
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_models.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_offline_lease.dart';
+import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
 import 'package:yalla_accounts/core/constants/colors.dart';
 import 'package:yalla_accounts/core/legal/support_complaint_button.dart';
 import 'package:yalla_accounts/core/privacy/account_deletion_request_button.dart';
@@ -49,6 +50,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       final result = await service.checkCurrentLicense();
       if (result != null) {
         CommercialBackendRuntimeAccess.applyLicense(result);
+        await LicenseRuntimeService().refreshFromStoredLicense(
+          now: result.serverTime,
+        );
       }
       if (!mounted) return;
       setState(() {
@@ -62,6 +66,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         final lease = await service.checkOfflineLease();
         if (lease != null) {
           CommercialBackendRuntimeAccess.applyOfflineLease(lease);
+          await LicenseRuntimeService().refreshFromStoredLicense(
+            now: lease.issuedAt,
+          );
           if (!mounted) return;
           setState(() {
             _online = null;

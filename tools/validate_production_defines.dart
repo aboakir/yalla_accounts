@@ -26,7 +26,6 @@ void validateProductionDefines(Map<String, Object?> data) {
   const required = <String>{
     'YALLAH_COMMERCIAL_BACKEND_URL',
     'YALLA_LICENSING_BASE_URL',
-    'YALLA_LICENSE_TRUSTED_KEY_SHA256',
     'YALLA_SUPABASE_URL',
     'YALLA_SUPABASE_PUBLISHABLE_KEY',
     'YALLA_CLOUD_AUTH_RELEASE_READY',
@@ -59,12 +58,16 @@ void validateProductionDefines(Map<String, Object?> data) {
     originOnly: true,
   );
   final hashes = data['YALLA_LICENSE_TRUSTED_KEY_SHA256'];
-  if (hashes is! String ||
-      hashes
-          .split(',')
-          .map((value) => value.trim())
-          .any((value) => !RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(value))) {
-    throw _invalid('YALLA_LICENSE_TRUSTED_KEY_SHA256 must contain 64-hex pins');
+  if (hashes != null &&
+      (hashes is! String ||
+          hashes.trim().isEmpty ||
+          hashes
+              .split(',')
+              .map((value) => value.trim())
+              .any((value) => !RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(value)))) {
+    throw _invalid(
+      'Optional YALLA_LICENSE_TRUSTED_KEY_SHA256 must contain 64-hex pins',
+    );
   }
 
   final publicKey = data['YALLA_SUPABASE_PUBLISHABLE_KEY'];

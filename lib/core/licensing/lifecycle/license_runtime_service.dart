@@ -1,6 +1,9 @@
 import 'subscription_access_policy.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
+
 import 'package:yalla_accounts/core/services/db/db_service.dart';
 import 'package:yalla_accounts/core/services/db/tables/license_runtime_tables.dart';
 import 'package:yalla_accounts/core/services/db/tables/license_validation_tables.dart';
@@ -51,9 +54,65 @@ class LicenseRuntimeService {
   final RuntimeDatabaseProvider _databaseProvider;
   final ActivationStateRepository _activationStateRepository;
 
+  Future<LicenseRuntimeDecision> projectCommercialBackendAccess({
+    required String accessMode,
+    required String subscriptionStatus,
+    String? organizationId,
+    String? subscriptionId,
+    DateTime? verifiedAt,
+    DateTime? expiresAt,
+  }) async {
+    final db = await _databaseProvider();
+    await LicenseRuntimeTables.ensure(db);
+
+    final mode = _commercialMode(accessMode, subscriptionStatus);
+    final effective = (verifiedAt ?? DateTime.now()).toUtc();
+    final reason = 'PHP backend access=' +
+        accessMode.trim().toUpperCase() +
+        ' status=' +
+        subscriptionStatus.trim().toUpperCase() +
+        '.';
+    final decision = LicenseRuntimeDecision(mode: mode, reason: reason);
+
+    await db.insert(
+      LicenseRuntimeTables.table,
+      <String, Object?>{
+        'singleton_id': 1,
+        'mode': mode,
+        'reason': reason,
+        'organization_id': organizationId,
+        'subscription_id': subscriptionId,
+        'license_id': subscriptionId == null || subscriptionId.trim().isEmpty
+            ? null
+            : 'PHP:' + subscriptionId.trim(),
+        'effective_at': effective.toIso8601String(),
+        'license_expires_at': expiresAt?.toUtc().toIso8601String(),
+        'source': 'SERVER_LIFECYCLE',
+        'last_verified_at': effective.toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return decision;
+  }
+
   Future<LicenseRuntimeDecision> refreshFromStoredLicense({
     DateTime? now,
   }) async {
+    if (CommercialBackendEnvironment.enabled ||
+        CommercialBackendRuntimeAccess.mode !=
+            CommercialBackendRuntimeMode.unknown) {
+      return projectCommercialBackendAccess(
+        accessMode: _commercialAccessModeName(),
+        subscriptionStatus:
+            CommercialBackendRuntimeAccess.subscriptionStatus ?? 'UNKNOWN',
+        organizationId: CommercialBackendRuntimeAccess.organizationId,
+        subscriptionId: CommercialBackendRuntimeAccess.subscriptionId,
+        verifiedAt: now,
+        expiresAt: CommercialBackendRuntimeAccess.expiresAt,
+      );
+    }
+
     final db = await _databaseProvider();
     await LicenseRuntimeTables.ensure(db);
 
@@ -136,6 +195,21 @@ class LicenseRuntimeService {
   }
 
   Future<void> requireOperationalWrite([String? operation]) async {
+    if (CommercialBackendEnvironment.enabled) {
+      if (!CommercialBackendRuntimeAccess.canWrite) {
+        throw ReadOnlyOperationException(
+          _commercialMode(
+            _commercialAccessModeName(),
+            CommercialBackendRuntimeAccess.subscriptionStatus ?? 'UNKNOWN',
+          ),
+          operation == null
+              ? 'Commercial backend access is not writable.'
+              : operation + ' is unavailable for the current PHP subscription.',
+        );
+      }
+      return;
+    }
+
     // Re-evaluate the signed expiry before allowing a high-level write. DB
     // triggers independently provide a second enforcement layer.
     final decision = await refreshFromStoredLicense();
@@ -147,6 +221,30 @@ class LicenseRuntimeService {
             : '$operation is unavailable: ${decision.reason}',
       );
     }
+  }
+
+  static String _commercialAccessModeName() {
+    return switch (CommercialBackendRuntimeAccess.mode) {
+      CommercialBackendRuntimeMode.full => 'FULL',
+      CommercialBackendRuntimeMode.readOnly => 'READ_ONLY',
+      CommercialBackendRuntimeMode.blocked => 'BLOCKED',
+      CommercialBackendRuntimeMode.unknown => 'UNKNOWN',
+    };
+  }
+
+  static String _commercialMode(String accessMode, String subscriptionStatus) {
+    final access = accessMode.trim().toUpperCase();
+    final status = subscriptionStatus.trim().toUpperCase();
+    if (access == 'FULL') return LicenseRuntimeMode.writable;
+    if (status == 'EXPIRED') return LicenseRuntimeMode.readOnlyExpired;
+    if (status == 'SUSPENDED') return LicenseRuntimeMode.readOnlySuspended;
+    if (status == 'CANCELLED' || access == 'BLOCKED') {
+      return LicenseRuntimeMode.readOnlyRevoked;
+    }
+    if (access == 'READ_ONLY') {
+      return LicenseRuntimeMode.readOnlyValidationRequired;
+    }
+    return LicenseRuntimeMode.activationRequired;
   }
 
   Future<DateTime> _trustedTimeFloor(

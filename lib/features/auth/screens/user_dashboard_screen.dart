@@ -3,7 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factory.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
+import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
@@ -58,6 +62,68 @@ class _UserDashboardScreenState extends ConsumerState<UserDashboardScreen> {
   }
 
   Future<void> _loadCommercialStatus() async {
+    if (CommercialBackendEnvironment.enabled) {
+      final service = createCommercialBackendService();
+      try {
+        final online = await service?.checkCurrentLicense();
+        if (online != null) {
+          CommercialBackendRuntimeAccess.applyLicense(online);
+          await LicenseRuntimeService().refreshFromStoredLicense(
+            now: online.serverTime,
+          );
+        }
+      } catch (_) {
+        try {
+          final lease = await service?.checkOfflineLease();
+          if (lease != null) {
+            CommercialBackendRuntimeAccess.applyOfflineLease(lease);
+            await LicenseRuntimeService().refreshFromStoredLicense(
+              now: lease.issuedAt,
+            );
+          }
+        } catch (_) {
+          // Keep the last verified PHP/offline runtime state.
+        }
+      }
+
+      if (!mounted || _navigated) return;
+      if (!CommercialBackendRuntimeAccess.canRead) {
+        setState(() {
+          subscriptionType = 'غير مفعل';
+          subscriptionEndDateDisplay = 'غير محدد';
+          remainingDays = 0;
+          isSubscriptionActive = false;
+        });
+        _navigated = true;
+        Navigator.pushReplacementNamed(context, AppRoutes.subscription);
+        return;
+      }
+
+      final expiry = CommercialBackendRuntimeAccess.expiresAt;
+      final days =
+          expiry == null ? 0 : expiry.difference(DateTime.now().toUtc()).inDays;
+      setState(() {
+        subscriptionType = CommercialBackendRuntimeAccess.planName ??
+            CommercialBackendRuntimeAccess.planCode ??
+            CommercialBackendRuntimeAccess.subscriptionStatus ??
+            'نشط';
+        subscriptionEndDateDisplay =
+            expiry == null ? 'غير محدد' : _formatDate(expiry);
+        remainingDays = days < 0 ? 0 : days;
+        isSubscriptionActive = true;
+      });
+      if (expiry != null && remainingDays <= 3) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تنبيه: الترخيص الحالي ينتهي بعد $remainingDays يوم'),
+            duration: const Duration(seconds: 5),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
+      }
+      return;
+    }
+
     final license = await ActivationStateRepository()
         .loadAuthenticLicenseForCurrentInstallation(allowExpired: true);
     if (!mounted || _navigated) return;

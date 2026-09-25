@@ -17,7 +17,6 @@ void main() {
     for (final key in const [
       'YALLAH_COMMERCIAL_BACKEND_URL',
       'YALLA_LICENSING_BASE_URL',
-      'YALLA_LICENSE_TRUSTED_KEY_SHA256',
       'YALLA_SUPABASE_URL',
       'YALLA_SUPABASE_PUBLISHABLE_KEY',
       'YALLA_CLOUD_AUTH_RELEASE_READY',
@@ -65,6 +64,8 @@ void main() {
         contains("'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.ps'"));
     expect(codemagic,
         contains("'YALLA_LICENSING_BASE_URL': 'https://api.yallah.ps'"));
+    expect(codemagic,
+        isNot(contains("YALLA_LICENSE_TRUSTED_KEY_SHA256': os.environ")));
   });
 
   test('Phase 11 real production define file is excluded from source control',
@@ -93,7 +94,6 @@ void main() {
     final valid = <String, Object?>{
       'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.invalid',
       'YALLA_LICENSING_BASE_URL': 'https://api.yallah.invalid',
-      'YALLA_LICENSE_TRUSTED_KEY_SHA256': 'a' * 64,
       'YALLA_SUPABASE_URL': 'https://project.supabase.co',
       'YALLA_SUPABASE_PUBLISHABLE_KEY': 'sb_publishable_12345678901234567890',
       'YALLA_CLOUD_AUTH_RELEASE_READY': true,

@@ -40,7 +40,6 @@ workflows:
           python3 - <<'PY'
           import json, os
           required = [
-            'YALLA_LICENSE_TRUSTED_KEY_SHA256',
             'YALLA_SUPABASE_URL','YALLA_SUPABASE_PUBLISHABLE_KEY'
           ]
           missing = [k for k in required if not os.environ.get(k, '').strip()]
@@ -48,7 +47,6 @@ workflows:
           data = {
             'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.ps',
             'YALLA_LICENSING_BASE_URL': 'https://api.yallah.ps',
-            'YALLA_LICENSE_TRUSTED_KEY_SHA256': os.environ['YALLA_LICENSE_TRUSTED_KEY_SHA256'],
             'YALLA_SUPABASE_URL': os.environ['YALLA_SUPABASE_URL'],
             'YALLA_SUPABASE_PUBLISHABLE_KEY': os.environ['YALLA_SUPABASE_PUBLISHABLE_KEY'],
             'YALLA_CLOUD_AUTH_RELEASE_READY': True,

@@ -10,6 +10,7 @@ import 'activation/activation_service.dart';
 import 'activation/activation_transport.dart';
 import 'customer_bearer_token_provider.dart';
 import 'lifecycle/license_lifecycle_service.dart';
+import 'lifecycle/license_runtime_service.dart';
 import 'lifecycle/license_lifecycle_transport.dart';
 import 'validation/periodic_license_validation_service.dart';
 import '../services/sync/unified_sync_coordinator_v3.dart';
@@ -85,16 +86,32 @@ final commercialValidationSchedulerProvider = Provider<void>((ref) {
     try {
       if (CommercialBackendEnvironment.enabled) {
         final service = createCommercialBackendService();
-        final license = await service?.checkCurrentLicense();
-        if (license != null) {
-          CommercialBackendRuntimeAccess.applyAccessMode(license.accessMode);
+        try {
+          final license = await service?.checkCurrentLicense();
+          if (license != null) {
+            CommercialBackendRuntimeAccess.applyLicense(license);
+            await LicenseRuntimeService().refreshFromStoredLicense(
+              now: license.serverTime,
+            );
+            return;
+          }
+        } catch (_) {
+          final lease = await service?.checkOfflineLease();
+          if (lease != null) {
+            CommercialBackendRuntimeAccess.applyOfflineLease(lease);
+            await LicenseRuntimeService().refreshFromStoredLicense(
+              now: lease.issuedAt,
+            );
+            return;
+          }
+          rethrow;
         }
         return;
       }
       final service = ref.read(periodicLicenseValidationServiceProvider);
       await service.evaluate(reason: reason);
     } catch (_) {
-      // Existing signed offline deadlines remain authoritative on failure.
+      // Existing PHP/offline or signed deadlines remain authoritative on failure.
     }
   }
 

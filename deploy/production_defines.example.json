@@ -1,7 +1,6 @@
 {
   "YALLAH_COMMERCIAL_BACKEND_URL": "https://api.yallah.ps",
   "YALLA_LICENSING_BASE_URL": "https://api.yallah.ps",
-  "YALLA_LICENSE_TRUSTED_KEY_SHA256": "REPLACE_WITH_64_HEX_SHA256",
   "YALLA_SUPABASE_URL": "https://project-ref.supabase.co",
   "YALLA_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_REPLACE_ME",
   "YALLA_CLOUD_AUTH_RELEASE_READY": true,

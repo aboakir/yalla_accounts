@@ -46,6 +46,10 @@ class CommercialBackendRuntimeAccess {
   static String? _organizationId;
   static String? _subscriptionId;
   static String? _planCode;
+  static String? _planName;
+  static String? _subscriptionStatus;
+  static DateTime? _expiresAt;
+  static DateTime? _graceUntil;
   static int _revision = 0;
   static Map<String, CommercialFeatureEntitlement> _features = const {};
   static Map<String, CommercialLimitEntitlement> _limits = const {};
@@ -58,6 +62,10 @@ class CommercialBackendRuntimeAccess {
   static String? get organizationId => _organizationId;
   static String? get subscriptionId => _subscriptionId;
   static String? get planCode => _planCode;
+  static String? get planName => _planName;
+  static String? get subscriptionStatus => _subscriptionStatus;
+  static DateTime? get expiresAt => _expiresAt;
+  static DateTime? get graceUntil => _graceUntil;
   static int get entitlementRevision => _revision;
   static int get maxUsers => _limits['MAX_USERS']?.value ?? 0;
   static int get maxDevices => _limits['MAX_DEVICES']?.value ?? 0;
@@ -75,6 +83,10 @@ class CommercialBackendRuntimeAccess {
     _organizationId = result.organizationId;
     _subscriptionId = result.subscriptionId;
     _planCode = result.planCode;
+    _planName = result.planName;
+    _subscriptionStatus = result.subscriptionStatus;
+    _expiresAt = result.expiresAt;
+    _graceUntil = result.graceUntil;
     _revision = result.entitlementRevision;
     _features = Map.unmodifiable(result.features);
     _limits = Map.unmodifiable(result.limits);
@@ -85,6 +97,10 @@ class CommercialBackendRuntimeAccess {
     _organizationId = lease.organizationId;
     _subscriptionId = lease.subscriptionId;
     _planCode = lease.planCode;
+    _planName = lease.planName;
+    _subscriptionStatus = lease.subscriptionStatus;
+    _expiresAt = lease.expiresAt;
+    _graceUntil = lease.graceUntil;
     _revision = lease.entitlementRevision;
     _features = Map.unmodifiable(lease.features);
     _limits = Map.unmodifiable(lease.limits);
@@ -104,6 +120,10 @@ class CommercialBackendRuntimeAccess {
     _organizationId = null;
     _subscriptionId = null;
     _planCode = null;
+    _planName = null;
+    _subscriptionStatus = null;
+    _expiresAt = null;
+    _graceUntil = null;
     _revision = 0;
     _features = const {};
     _limits = const {};

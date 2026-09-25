@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
 import 'package:yalla_accounts/core/routes/app_routes.dart';
 import 'package:yalla_accounts/features/auth/screens/register_user_screen.dart';
@@ -17,6 +19,7 @@ class WorkshopOnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingState extends ConsumerState<WorkshopOnboardingScreen> {
   bool _busy = true;
   bool _existing = false;
+  bool _phpReady = false;
   VerifiedLicense? _license;
   String? _error;
 
@@ -33,12 +36,23 @@ class _OnboardingState extends ConsumerState<WorkshopOnboardingScreen> {
     });
     try {
       final existing = await ref.read(userServiceProvider).hasAnyUsers();
-      final license =
-          await ref.read(workshopOnboardingServiceProvider).loadSetupLicense();
+      final phpMode = CommercialBackendEnvironment.enabled;
+      final license = phpMode
+          ? null
+          : await ref
+              .read(workshopOnboardingServiceProvider)
+              .loadSetupLicense();
+      final phpReady = phpMode &&
+          CommercialBackendRuntimeAccess.canWrite &&
+          (CommercialBackendRuntimeAccess.organizationId?.trim().isNotEmpty ??
+              false) &&
+          (CommercialBackendRuntimeAccess.subscriptionId?.trim().isNotEmpty ??
+              false);
       if (mounted) {
         setState(() {
           _existing = existing;
           _license = license;
+          _phpReady = phpReady;
         });
       }
     } catch (_) {
@@ -87,24 +101,62 @@ class _OnboardingState extends ConsumerState<WorkshopOnboardingScreen> {
                                     AppRoutes.login, (_) => false),
                             child: const Text('الدخول إلى الورشة الحالية')),
                       ],
-                      if (_license != null)
-                        VerifiedSetupPlan(license: _license!),
-                      if (!_existing && _license != null)
-                        FilledButton(
-                            onPressed: () => Navigator.of(context)
-                                .pushReplacement(MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        const RegisterUserScreen())),
-                            child: const Text('متابعة إنشاء حساب المالك')),
-                      if (_license == null) ...[
-                        const Text(
-                            'يلزم رمز تفعيل صالح لهذا الجهاز. التفعيل الأول يحتاج اتصالًا بالإنترنت.'),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                            onPressed: () => Navigator.of(context)
-                                .pushNamed(AppRoutes.activation),
-                            icon: const Icon(Icons.verified_user_outlined),
-                            label: const Text('بدء تفعيل الجهاز')),
+                      if (CommercialBackendEnvironment.enabled) ...[
+                        Card(
+                          child: ListTile(
+                            leading: Icon(
+                              _phpReady
+                                  ? Icons.verified_user_outlined
+                                  : Icons.pending_actions_outlined,
+                            ),
+                            title: Text(
+                              _phpReady
+                                  ? (CommercialBackendRuntimeAccess.planName ??
+                                      CommercialBackendRuntimeAccess.planCode ??
+                                      'حزمة Yallah Accounts')
+                                  : 'الحساب أو الجهاز بانتظار صلاحية FULL',
+                            ),
+                            subtitle: Text(
+                              _phpReady
+                                  ? 'تم اعتماد الجهاز والاشتراك من PHP Backend ويمكن إنشاء حساب المالك.'
+                                  : 'أكمل اعتماد الجهاز والحزمة من Yallah Control ثم أعد المحاولة.',
+                            ),
+                          ),
+                        ),
+                        if (!_existing && _phpReady)
+                          FilledButton(
+                              onPressed: () => Navigator.of(context)
+                                  .pushReplacement(MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          const RegisterUserScreen())),
+                              child: const Text('متابعة إنشاء حساب المالك')),
+                        if (!_phpReady)
+                          FilledButton.icon(
+                              onPressed: () => Navigator.of(context)
+                                  .pushNamed(AppRoutes.subscription),
+                              icon:
+                                  const Icon(Icons.workspace_premium_outlined),
+                              label: const Text('فحص الحزمة والاشتراك')),
+                      ] else ...[
+                        if (_license != null)
+                          VerifiedSetupPlan(license: _license!),
+                        if (!_existing && _license != null)
+                          FilledButton(
+                              onPressed: () => Navigator.of(context)
+                                  .pushReplacement(MaterialPageRoute<void>(
+                                      builder: (_) =>
+                                          const RegisterUserScreen())),
+                              child: const Text('متابعة إنشاء حساب المالك')),
+                        if (_license == null) ...[
+                          const Text(
+                              'يلزم رمز تفعيل صالح لهذا الجهاز. التفعيل الأول يحتاج اتصالًا بالإنترنت.'),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                              onPressed: () => Navigator.of(context)
+                                  .pushNamed(AppRoutes.activation),
+                              icon: const Icon(Icons.verified_user_outlined),
+                              label: const Text('بدء تفعيل الجهاز')),
+                        ],
                       ],
                       const SizedBox(height: 12),
                       TextButton(
