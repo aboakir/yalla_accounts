@@ -15,6 +15,7 @@ void main() {
       jsonDecode(file.readAsStringSync()) as Map,
     );
     for (final key in const [
+      'YALLAH_COMMERCIAL_BACKEND_URL',
       'YALLA_LICENSING_BASE_URL',
       'YALLA_LICENSE_TRUSTED_KEY_SHA256',
       'YALLA_SUPABASE_URL',
@@ -24,7 +25,11 @@ void main() {
     ]) {
       expect(values.containsKey(key), isTrue, reason: 'Missing $key');
     }
+    final commercial =
+        Uri.parse(values['YALLAH_COMMERCIAL_BACKEND_URL']! as String);
     final licensing = Uri.parse(values['YALLA_LICENSING_BASE_URL']! as String);
+    expect(commercial.origin, 'https://api.yallah.ps');
+    expect(commercial.origin, licensing.origin);
     expect(licensing.scheme, 'https');
     expect(licensing.host, isNotEmpty);
     expect(licensing.userInfo, isEmpty);
@@ -52,6 +57,16 @@ void main() {
     }
   });
 
+  test('Phase 11 CodeMagic targets the official yallah.ps production release',
+      () {
+    final codemagic = File('codemagic.yaml').readAsStringSync();
+    expect(codemagic, contains("pattern: 'release/production-yallah-ps'"));
+    expect(codemagic,
+        contains("'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.ps'"));
+    expect(codemagic,
+        contains("'YALLA_LICENSING_BASE_URL': 'https://api.yallah.ps'"));
+  });
+
   test('Phase 11 real production define file is excluded from source control',
       () {
     final ignore = File('.gitignore').readAsStringSync();
@@ -76,7 +91,8 @@ void main() {
       throwsFormatException,
     );
     final valid = <String, Object?>{
-      'YALLA_LICENSING_BASE_URL': 'https://control.yalla.invalid',
+      'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.invalid',
+      'YALLA_LICENSING_BASE_URL': 'https://api.yallah.invalid',
       'YALLA_LICENSE_TRUSTED_KEY_SHA256': 'a' * 64,
       'YALLA_SUPABASE_URL': 'https://project.supabase.co',
       'YALLA_SUPABASE_PUBLISHABLE_KEY': 'sb_publishable_12345678901234567890',

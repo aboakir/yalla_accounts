@@ -2,7 +2,7 @@
 
 `production_defines.example.json` is a non-secret template for Flutter `--dart-define-from-file`. Replace every placeholder before a commercial build.
 
-The licensing/control URL must be the exact HTTPS `CONTROL_PUBLIC_ORIGIN` exposed by Yalla Control. `YALLA_LICENSE_TRUSTED_KEY_SHA256` pins the approved Ed25519 signing public key set. Never place private signing keys, database credentials, Supabase Service Role keys, or passwords in this file.
+For production on `yallah.ps`, both `YALLAH_COMMERCIAL_BACKEND_URL` and `YALLA_LICENSING_BASE_URL` must resolve to the same PHP API origin: `https://api.yallah.ps`. `YALLA_LICENSE_TRUSTED_KEY_SHA256` pins the approved Ed25519 signing public key set. Never place private signing keys, database credentials, Supabase Service Role keys, or passwords in this file.
 
 Cloud Auth uses only the Supabase publishable key. Store builds require HTTPS legal/privacy/account-deletion URLs and `YALLA_STORE_DISTRIBUTION=true`.
 
@@ -19,4 +19,4 @@ Before any release build, validate the real file:
 The validator rejects missing keys, placeholder values, non-HTTPS origins, malformed signing-key pins, service-role/private/database secret material, and a Cloud Auth configuration that is not marked release-ready. A release build must not proceed after validator failure.
 
 ## Official Control authority
-For V1, `YALLA_LICENSING_BASE_URL` must point to the HTTPS origin of the official PHP Backend/Web Control deployment (`D:\YALLAH_BACKEND`, `public/admin` + `public/api`). Legacy Flutter Yalla Control projects are archive-only and must not be used as a second production authority.
+For V1, the official PHP backend/API origin is `https://api.yallah.ps`. Flutter Web is intended for `https://app.yallah.ps`, while the PHP Control is intended for `https://control.yallah.ps`. Both Flutter backend URL defines must use the API origin. Legacy Flutter Yalla Control projects are archive-only and must not be used as a second production authority.

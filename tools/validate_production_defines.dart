@@ -24,6 +24,7 @@ Uri _httpsUri(Object? raw, String name, {bool originOnly = false}) {
 
 void validateProductionDefines(Map<String, Object?> data) {
   const required = <String>{
+    'YALLAH_COMMERCIAL_BACKEND_URL',
     'YALLA_LICENSING_BASE_URL',
     'YALLA_LICENSE_TRUSTED_KEY_SHA256',
     'YALLA_SUPABASE_URL',
@@ -37,11 +38,21 @@ void validateProductionDefines(Map<String, Object?> data) {
     throw _invalid('missing ${missing.join(', ')}');
   }
 
-  _httpsUri(
+  final commercialBackend = _httpsUri(
+    data['YALLAH_COMMERCIAL_BACKEND_URL'],
+    'YALLAH_COMMERCIAL_BACKEND_URL',
+    originOnly: true,
+  );
+  final licensingBackend = _httpsUri(
     data['YALLA_LICENSING_BASE_URL'],
     'YALLA_LICENSING_BASE_URL',
     originOnly: true,
   );
+  if (commercialBackend.origin != licensingBackend.origin) {
+    throw _invalid(
+      'YALLAH_COMMERCIAL_BACKEND_URL and YALLA_LICENSING_BASE_URL must use the same origin',
+    );
+  }
   _httpsUri(
     data['YALLA_SUPABASE_URL'],
     'YALLA_SUPABASE_URL',

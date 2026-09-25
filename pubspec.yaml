@@ -1,8 +1,8 @@
 name: yalla_accounts
-description: طھط·ط¨ظٹظ‚ Yalla ط§ظ„ظ…ط­ط§ط³ط¨ظٹ
+description: تطبيق Yallah المحاسبي
 publish_to: 'none'
 
-version: 1.0.3+22
+version: 1.0.4+23
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

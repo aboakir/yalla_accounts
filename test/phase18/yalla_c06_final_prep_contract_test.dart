@@ -29,7 +29,7 @@ void main() {
       final pubspec = read('pubspec.yaml');
       final gradle = read('android/app/build.gradle.kts');
 
-      expect(pubspec, contains('version: 1.0.3+22'));
+      expect(pubspec, contains('version: 1.0.4+23'));
       expect(gradle, contains('keystorePropertiesFile'));
       expect(gradle, contains('signingConfigs'));
       expect(gradle, contains('prepare_android_signing.ps1'));

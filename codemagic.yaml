@@ -1,13 +1,13 @@
 workflows:
   ios_verification:
-    name: Yallah Accounts Commercial RC iPhone 1.0.3+22 DB85
+    name: Yallah Accounts Production iPhone 1.0.4+23 DB85
     instance_type: mac_mini_m2
     max_build_duration: 60
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: 'codemagic/commercial-prod-db85-20260924'
+        - pattern: 'release/production-yallah-ps'
           include: true
           source: true
       cancel_previous_builds: false
@@ -40,13 +40,14 @@ workflows:
           python3 - <<'PY'
           import json, os
           required = [
-            'YALLA_LICENSING_BASE_URL','YALLA_LICENSE_TRUSTED_KEY_SHA256',
+            'YALLA_LICENSE_TRUSTED_KEY_SHA256',
             'YALLA_SUPABASE_URL','YALLA_SUPABASE_PUBLISHABLE_KEY'
           ]
           missing = [k for k in required if not os.environ.get(k, '').strip()]
           if missing: raise SystemExit('Missing protected release inputs: ' + ','.join(missing))
           data = {
-            'YALLA_LICENSING_BASE_URL': os.environ['YALLA_LICENSING_BASE_URL'],
+            'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.ps',
+            'YALLA_LICENSING_BASE_URL': 'https://api.yallah.ps',
             'YALLA_LICENSE_TRUSTED_KEY_SHA256': os.environ['YALLA_LICENSE_TRUSTED_KEY_SHA256'],
             'YALLA_SUPABASE_URL': os.environ['YALLA_SUPABASE_URL'],
             'YALLA_SUPABASE_PUBLISHABLE_KEY': os.environ['YALLA_SUPABASE_PUBLISHABLE_KEY'],

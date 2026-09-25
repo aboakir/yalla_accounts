@@ -3,11 +3,15 @@ import 'package:flutter/foundation.dart';
 class CommercialBackendEnvironment {
   const CommercialBackendEnvironment._();
 
-  static const _rawBaseUrl =
+  static const _rawCommercialBaseUrl =
       String.fromEnvironment('YALLAH_COMMERCIAL_BACKEND_URL');
+  static const _rawLicensingBaseUrl =
+      String.fromEnvironment('YALLA_LICENSING_BASE_URL');
 
   static Uri? get baseUri {
-    final raw = _rawBaseUrl.trim();
+    final commercial = _rawCommercialBaseUrl.trim();
+    final raw =
+        commercial.isNotEmpty ? commercial : _rawLicensingBaseUrl.trim();
     return raw.isEmpty ? null : Uri.tryParse(raw);
   }
 
