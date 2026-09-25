@@ -37,7 +37,7 @@ void main() {
       () async {
     final dir = await Directory.systemTemp.createTemp('php_runtime_bridge_');
     final db = await DatabaseMigration.initDatabase(
-      pathOverride: dir.path + '/test.db',
+      pathOverride: '${dir.path}/test.db',
     );
     addTearDown(() async {
       CommercialBackendRuntimeAccess.reset();

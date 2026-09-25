@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factory.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/services/db_service.dart';
@@ -143,7 +144,24 @@ class FirstOwnerBootstrapService {
     final now = DateTime.now().toUtc().toIso8601String();
     final countryCode = _countryCode(request.country);
 
-    await db.transaction((txn) async {
+    var backendSeatReserved = false;
+    if (useCommercialBackend) {
+      final backend = createCommercialBackendService();
+      if (backend == null) {
+        throw const FirstOwnerBootstrapException(
+          'Commercial backend is not configured.',
+        );
+      }
+      await backend.setUserSeat(
+        userId: ownerUserId,
+        organizationId: organizationId,
+        active: true,
+      );
+      backendSeatReserved = true;
+    }
+
+    try {
+      await db.transaction((txn) async {
       final stateRows = await txn.query(
         'owner_bootstrap_state',
         where: 'singleton_id = 1 AND organization_id = ?',
@@ -273,7 +291,22 @@ class FirstOwnerBootstrapService {
           'Could not close First Owner bootstrap atomically.',
         );
       }
-    });
+      });
+    } catch (error) {
+      if (backendSeatReserved) {
+        try {
+          final backend = createCommercialBackendService();
+          await backend?.setUserSeat(
+            userId: ownerUserId,
+            organizationId: organizationId,
+            active: false,
+          );
+        } catch (_) {
+          // Conservative server seat may remain allocated and can be reconciled.
+        }
+      }
+      rethrow;
+    }
 
     await OwnerBootstrapTables.validate(db);
     return FirstOwnerBootstrapResult(

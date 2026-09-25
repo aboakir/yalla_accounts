@@ -535,7 +535,7 @@ void main() {
     final session = Session();
     await harness(tester, const RegisterUserScreen(),
         users: users, phone: phone, unlock: unlock, session: session);
-    await setField(tester, 'اسم المالك', 'مالك الورشة');
+    await setField(tester, 'اسم المستخدم', 'مالك الورشة');
     await setField(tester, 'كلمة المرور', 'password123');
     await setField(tester, 'تأكيد كلمة المرور', 'password123');
     await tap(tester, 'التالي');

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../commercial_backend/php_backend_endpoint.dart';
 import '../../device_identity/device_identity.dart';
 import '../../device_identity/device_identity_service.dart';
 import '../../licensing/customer_bearer_token_provider.dart';
@@ -452,8 +453,10 @@ class HttpSyncV3Transport
           'Authenticated customer session is required.');
     }
     try {
-      final request =
-          await _httpClient.postUrl(base.resolve(path)).timeout(timeout);
+      final uri = phpCommercialBackend
+          ? resolvePhpBackendEndpoint(base, path)
+          : base.resolve(path);
+      final request = await _httpClient.postUrl(uri).timeout(timeout);
       request.headers.contentType = ContentType.json;
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');

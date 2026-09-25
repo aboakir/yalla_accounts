@@ -173,6 +173,28 @@ class CommercialBackendService {
     );
   }
 
+  Future<void> setUserSeat({
+    required String userId,
+    required String organizationId,
+    required bool active,
+  }) async {
+    final state = await _secureStore.read();
+    if (!state.hasApprovedDevice) {
+      throw const CommercialBackendException(
+        'DEVICE_NOT_AUTHORIZED',
+        'This device is not authorized for user seat management.',
+      );
+    }
+    final identity = await _deviceIdentityService.ensureCurrent();
+    await _client.setUserSeat(
+      installationId: identity.installationId,
+      deviceToken: state.deviceToken!,
+      organizationId: organizationId,
+      userId: userId,
+      active: active,
+    );
+  }
+
   Future<PasswordResetChallengeResult> requestPasswordReset() async {
     final state = await _secureStore.read();
     if (!state.hasApprovedDevice) {

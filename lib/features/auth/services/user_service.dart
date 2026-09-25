@@ -7,6 +7,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_factory.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/licensing/entitlements/licensed_user_seat_service.dart';
@@ -75,6 +76,46 @@ class UserService {
             databaseProvider: _databaseProvider,
           ),
         );
+  }
+
+  Future<void> _setBackendSeat({
+    required String userId,
+    required String organizationId,
+    required bool active,
+  }) async {
+    if (!CommercialBackendEnvironment.enabled) return;
+    final backend = createCommercialBackendService();
+    if (backend == null) {
+      throw StateError('Commercial backend is not configured.');
+    }
+    await backend.setUserSeat(
+      userId: userId,
+      organizationId: organizationId,
+      active: active,
+    );
+  }
+
+  Future<void> _registerExistingActiveSeats(
+    Database db,
+    String organizationId,
+  ) async {
+    if (!CommercialBackendEnvironment.enabled) return;
+    final rows = await db.query(
+      'users',
+      columns: ['id'],
+      where: "(status IS NULL OR status = 'active') AND organization_id = ?",
+      whereArgs: [organizationId],
+    );
+    for (final row in rows) {
+      final id = row['id']?.toString() ?? '';
+      if (id.isNotEmpty) {
+        await _setBackendSeat(
+          userId: id,
+          organizationId: organizationId,
+          active: true,
+        );
+      }
+    }
   }
 
   Future<void> _assertActiveSeatAvailable(
@@ -326,35 +367,58 @@ class UserService {
     final db = await _db();
     final now = DateTime.now().toUtc().toIso8601String();
     final targetUserId = const Uuid().v4();
-    await db.transaction((txn) async {
-      final duplicate = await txn.rawQuery(
-        'SELECT 1 FROM users WHERE name = ? COLLATE NOCASE LIMIT 1',
-        [name],
+    var backendSeatReserved = false;
+    if (seatEntitlement != null && CommercialBackendEnvironment.enabled) {
+      await _registerExistingActiveSeats(db, seatEntitlement.organizationId);
+      await _setBackendSeat(
+        userId: targetUserId,
+        organizationId: seatEntitlement.organizationId,
+        active: true,
       );
-      if (duplicate.isNotEmpty) {
-        throw StateError('Username already exists.');
-      }
+      backendSeatReserved = true;
+    }
+    try {
+      await db.transaction((txn) async {
+        final duplicate = await txn.rawQuery(
+          'SELECT 1 FROM users WHERE name = ? COLLATE NOCASE LIMIT 1',
+          [name],
+        );
+        if (duplicate.isNotEmpty) {
+          throw StateError('Username already exists.');
+        }
 
-      if (seatEntitlement != null) {
-        await _assertActiveSeatAvailable(txn, seatEntitlement);
-      }
+        if (seatEntitlement != null) {
+          await _assertActiveSeatAvailable(txn, seatEntitlement);
+        }
 
-      await txn.insert('users', {
-        'id': targetUserId,
-        'name': name,
-        'email': user.email.trim(),
-        'password': PasswordHasher.hash(password),
-        'role': user.role,
-        'status': status,
-        'created_at': now,
-        'organization_id': actor.organizationId,
-        'is_owner': 0,
-        'must_change_password': 1,
-        'failed_login_count': 0,
-        'locked_until': null,
-        'password_changed_at': now,
+        await txn.insert('users', {
+          'id': targetUserId,
+          'name': name,
+          'email': user.email.trim(),
+          'password': PasswordHasher.hash(password),
+          'role': user.role,
+          'status': status,
+          'created_at': now,
+          'organization_id': actor.organizationId,
+          'is_owner': 0,
+          'must_change_password': 1,
+          'failed_login_count': 0,
+          'locked_until': null,
+          'password_changed_at': now,
+        });
       });
-    });
+    } catch (_) {
+      if (backendSeatReserved && seatEntitlement != null) {
+        try {
+          await _setBackendSeat(
+            userId: targetUserId,
+            organizationId: seatEntitlement.organizationId,
+            active: false,
+          );
+        } catch (_) {}
+      }
+      rethrow;
+    }
     await AuditTrailService.log(
       executor: db,
       actorUserId: actor.id,
@@ -554,6 +618,8 @@ class UserService {
 
     final consumesNewSeat =
         !target.isOwner && target.status != 'active' && nextStatus == 'active';
+    final releasesSeat =
+        !target.isOwner && target.status == 'active' && nextStatus != 'active';
     final seatEntitlement =
         consumesNewSeat ? await _seatEntitlements().requireCurrent() : null;
     if (seatEntitlement != null &&
@@ -564,24 +630,56 @@ class UserService {
       );
     }
 
-    await db.transaction((txn) async {
-      if (seatEntitlement != null) {
-        await _assertActiveSeatAvailable(txn, seatEntitlement);
+    final seatOrganization =
+        seatEntitlement?.organizationId ?? target.organizationId ?? '';
+    var backendSeatChanged = false;
+    var backendTargetActive = false;
+    if ((consumesNewSeat || releasesSeat) &&
+        CommercialBackendEnvironment.enabled &&
+        seatOrganization.isNotEmpty) {
+      if (consumesNewSeat) {
+        await _registerExistingActiveSeats(db, seatOrganization);
       }
-
-      await txn.update(
-        'users',
-        {
-          'name': user.name.trim(),
-          'email': user.email.trim(),
-          'role': target.isOwner ? RoleKeys.owner : nextRole,
-          'status': target.isOwner ? 'active' : nextStatus,
-          'is_owner': target.isOwner ? 1 : 0,
-        },
-        where: 'id = ?',
-        whereArgs: [target.id],
+      backendTargetActive = consumesNewSeat;
+      await _setBackendSeat(
+        userId: target.id,
+        organizationId: seatOrganization,
+        active: backendTargetActive,
       );
-    });
+      backendSeatChanged = true;
+    }
+
+    try {
+      await db.transaction((txn) async {
+        if (seatEntitlement != null) {
+          await _assertActiveSeatAvailable(txn, seatEntitlement);
+        }
+
+        await txn.update(
+          'users',
+          {
+            'name': user.name.trim(),
+            'email': user.email.trim(),
+            'role': target.isOwner ? RoleKeys.owner : nextRole,
+            'status': target.isOwner ? 'active' : nextStatus,
+            'is_owner': target.isOwner ? 1 : 0,
+          },
+          where: 'id = ?',
+          whereArgs: [target.id],
+        );
+      });
+    } catch (_) {
+      if (backendSeatChanged) {
+        try {
+          await _setBackendSeat(
+            userId: target.id,
+            organizationId: seatOrganization,
+            active: !backendTargetActive,
+          );
+        } catch (_) {}
+      }
+      rethrow;
+    }
 
     if (nextRole != target.role || nextStatus != target.status) {
       await AuthSessionService(
@@ -645,6 +743,7 @@ class UserService {
 
     final previousStatus = rows.first['status']?.toString() ?? 'active';
     final consumesNewSeat = previousStatus != 'active' && status == 'active';
+    final releasesSeat = previousStatus == 'active' && status != 'active';
     final seatEntitlement =
         consumesNewSeat ? await _seatEntitlements().requireCurrent() : null;
     if (seatEntitlement != null &&
@@ -655,22 +754,55 @@ class UserService {
       );
     }
 
-    await db.transaction((txn) async {
-      if (seatEntitlement != null) {
-        await _assertActiveSeatAvailable(txn, seatEntitlement);
+    final seatOrganization = seatEntitlement?.organizationId ??
+        rows.first['organization_id']?.toString() ??
+        '';
+    var backendSeatChanged = false;
+    var backendTargetActive = false;
+    if ((consumesNewSeat || releasesSeat) &&
+        CommercialBackendEnvironment.enabled &&
+        seatOrganization.isNotEmpty) {
+      if (consumesNewSeat) {
+        await _registerExistingActiveSeats(db, seatOrganization);
       }
-
-      await txn.update(
-        'users',
-        {
-          'status': status,
-          if (status == 'active') 'failed_login_count': 0,
-          if (status == 'active') 'locked_until': null,
-        },
-        where: 'id = ?',
-        whereArgs: [id],
+      backendTargetActive = consumesNewSeat;
+      await _setBackendSeat(
+        userId: id,
+        organizationId: seatOrganization,
+        active: backendTargetActive,
       );
-    });
+      backendSeatChanged = true;
+    }
+
+    try {
+      await db.transaction((txn) async {
+        if (seatEntitlement != null) {
+          await _assertActiveSeatAvailable(txn, seatEntitlement);
+        }
+
+        await txn.update(
+          'users',
+          {
+            'status': status,
+            if (status == 'active') 'failed_login_count': 0,
+            if (status == 'active') 'locked_until': null,
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      });
+    } catch (_) {
+      if (backendSeatChanged) {
+        try {
+          await _setBackendSeat(
+            userId: id,
+            organizationId: seatOrganization,
+            active: !backendTargetActive,
+          );
+        } catch (_) {}
+      }
+      rethrow;
+    }
 
     await AuthSessionService(
       databaseProvider: _databaseProvider,

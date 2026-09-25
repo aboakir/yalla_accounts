@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/theme/yalla_button_themes.dart';
+import 'package:yalla_accounts/core/theme/yalla_web_premium_theme.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show Intl;
@@ -406,7 +407,7 @@ class MyApp extends ConsumerWidget {
         },
         scrollBehavior: YallaScrollBehavior(),
 
-        theme: ThemeData(
+        theme: kIsWeb ? YallaWebPremiumTheme.theme : ThemeData(
           useMaterial3: true,
           brightness: Brightness.light,
           fontFamily: 'Cairo',

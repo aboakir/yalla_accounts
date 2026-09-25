@@ -9,6 +9,7 @@ import 'package:yalla_accounts/features/settings/providers/workshop_settings_pro
 // ---------------------------------------------------------------
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -132,10 +133,11 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final displayName = (identity?.workshopName?.trim().isNotEmpty ?? false)
         ? identity!.workshopName!
         : workshopName;
+    final premiumWeb = kIsWeb && MediaQuery.sizeOf(context).width >= 900;
 
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
           fontSize: 16,
-          color: Colors.white,
+          color: premiumWeb ? const Color(0xFF344047) : Colors.white,
           fontWeight: FontWeight.w600,
           overflow: TextOverflow.ellipsis,
         );
@@ -146,10 +148,16 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
     ];
 
     return AppBar(
-      backgroundColor: AppColors.primary,
+      backgroundColor: premiumWeb ? Colors.white : AppColors.primary,
+      foregroundColor: premiumWeb ? const Color(0xFF344047) : Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: premiumWeb
+          ? const Border(bottom: BorderSide(color: Color(0xFFDDE8DC)))
+          : null,
       automaticallyImplyLeading: false,
-      titleSpacing: 16,
+      titleSpacing: premiumWeb ? 22 : 16,
       leading: leading ?? _defaultLeading(context),
       title: AdaptiveRow(
         children: [
@@ -180,7 +188,38 @@ class YallaAppBar extends ConsumerWidget implements PreferredSizeWidget {
           ),
 
           // 🔎 زر البحث
-          if (showSearch)
+          if (showSearch && premiumWeb)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: InkWell(
+                onTap: () => _handle(onSearchTap),
+                borderRadius: BorderRadius.circular(13),
+                child: Container(
+                  height: 42,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFCFA),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: const Color(0xFFDDE8DC)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.search, size: 20, color: Color(0xFF718078)),
+                      SizedBox(width: 8),
+                      Text(
+                        'بحث سريع في Yallah Accounts',
+                        style: TextStyle(
+                          color: Color(0xFF77817D),
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else if (showSearch)
             IconButton(
               tooltip: 'بحث عام',
               icon: const Icon(Icons.search, color: Colors.white),

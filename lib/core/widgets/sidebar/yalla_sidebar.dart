@@ -6,6 +6,7 @@
 //
 // ——————————————————————————————————————————————
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/config/owner_local_access.dart';
 import 'package:yalla_accounts/core/experience/app_experience_profile.dart';
@@ -343,12 +344,13 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     final bool active = (widget.currentRoute == route) ||
         (ModalRoute.of(context)?.settings.name == route);
+    final premiumWeb = kIsWeb && context.isDesktopWidth;
 
     final line = Container(
       width: 3,
       height: 26,
       decoration: BoxDecoration(
-        color: active ? AppColors.primary : Colors.transparent,
+        color: active && !premiumWeb ? AppColors.primary : Colors.transparent,
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -357,14 +359,24 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
       children: [
         line,
         const SizedBox(width: 8),
-        Icon(icon, color: active ? AppColors.primary : null),
+        Icon(
+          icon,
+          color: active
+              ? (premiumWeb ? Colors.white : AppColors.primary)
+              : const Color(0xFF6F7B74),
+        ),
         const SizedBox(width: 8),
         if (!_isCollapsed)
           Expanded(
             child: Text(
               title,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: active ? AppColors.primary : null),
+              style: TextStyle(
+                color: active
+                    ? (premiumWeb ? Colors.white : AppColors.primary)
+                    : const Color(0xFF435049),
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
           ),
       ],
@@ -372,12 +384,26 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
 
     final tile = ListTile(
       dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+      tileColor: premiumWeb && active ? AppColors.primary : null,
+      hoverColor: premiumWeb ? const Color(0xFFF1F7EE) : null,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: premiumWeb ? 12 : 10,
+        vertical: premiumWeb ? 2 : 0,
+      ),
       title: row,
       onTap: () => _navigate(route),
     );
 
-    return _isCollapsed ? Tooltip(message: title, child: tile) : tile;
+    final styledTile = premiumWeb
+        ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            child: tile,
+          )
+        : tile;
+    return _isCollapsed
+        ? Tooltip(message: title, child: styledTile)
+        : styledTile;
   }
 
   Widget _actionTile({
@@ -647,10 +673,12 @@ class _YallaSidebarState extends ConsumerState<YallaSidebar>
         (Icons.savings_outlined, 'تقرير السلف والمكافآت', rReportsAdvances),
     ].where((e) => _matches(e.$2) && _isRouteVisible(e.$3)).toList();
 
+    final premiumWeb = kIsWeb && context.isDesktopWidth;
+
     return AnimatedBuilder(
       animation: _widthAnim,
       builder: (_, __) => Material(
-        color: Theme.of(context).scaffoldBackgroundColor,
+        color: premiumWeb ? Colors.white : Theme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           child: SizedBox(
             width: context.isDesktopWidth

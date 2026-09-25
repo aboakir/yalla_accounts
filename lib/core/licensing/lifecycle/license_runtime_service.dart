@@ -67,11 +67,8 @@ class LicenseRuntimeService {
 
     final mode = _commercialMode(accessMode, subscriptionStatus);
     final effective = (verifiedAt ?? DateTime.now()).toUtc();
-    final reason = 'PHP backend access=' +
-        accessMode.trim().toUpperCase() +
-        ' status=' +
-        subscriptionStatus.trim().toUpperCase() +
-        '.';
+    final reason = 'PHP backend access=${accessMode.trim().toUpperCase()} '
+        'status=${subscriptionStatus.trim().toUpperCase()}.';
     final decision = LicenseRuntimeDecision(mode: mode, reason: reason);
 
     await db.insert(
@@ -84,7 +81,7 @@ class LicenseRuntimeService {
         'subscription_id': subscriptionId,
         'license_id': subscriptionId == null || subscriptionId.trim().isEmpty
             ? null
-            : 'PHP:' + subscriptionId.trim(),
+            : 'PHP:${subscriptionId.trim()}',
         'effective_at': effective.toIso8601String(),
         'license_expires_at': expiresAt?.toUtc().toIso8601String(),
         'source': 'SERVER_LIFECYCLE',
@@ -204,7 +201,7 @@ class LicenseRuntimeService {
           ),
           operation == null
               ? 'Commercial backend access is not writable.'
-              : operation + ' is unavailable for the current PHP subscription.',
+              : '$operation is unavailable for the current PHP subscription.',
         );
       }
       return;

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'commercial_backend_models.dart';
+import 'php_backend_endpoint.dart';
 
 class CommercialBackendClient {
   CommercialBackendClient({
@@ -160,6 +161,22 @@ class CommercialBackendClient {
     );
   }
 
+  Future<void> setUserSeat({
+    required String installationId,
+    required String deviceToken,
+    required String organizationId,
+    required String userId,
+    required bool active,
+  }) async {
+    await _post('api/v1/user-seat.php', {
+      'installation_id': installationId,
+      'device_token': deviceToken,
+      'organization_id': organizationId,
+      'user_id': userId,
+      'action': active ? 'ACTIVATE' : 'DEACTIVATE',
+    });
+  }
+
   Future<PasswordResetChallengeResult> requestPasswordReset({
     required String installationId,
     required String deviceToken,
@@ -212,7 +229,7 @@ class CommercialBackendClient {
     Map<String, Object?> payload,
   ) async {
     _assertSecureBaseUri();
-    final uri = _baseUri.resolve(path);
+    final uri = resolvePhpBackendEndpoint(_baseUri, path);
     final response = await _httpClient.post(
       uri,
       headers: const {

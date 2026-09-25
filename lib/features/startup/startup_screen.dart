@@ -63,6 +63,7 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
           await LicenseRuntimeService().refreshFromStoredLicense(
             now: license.serverTime,
           );
+          if (!mounted) return;
         }
         if (license == null || license.isBlocked) {
           Navigator.of(context).pushReplacement(
@@ -81,6 +82,7 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
             await LicenseRuntimeService().refreshFromStoredLicense(
               now: lease.issuedAt,
             );
+            if (!mounted) return;
           }
           if (lease == null) {
             Navigator.of(context).pushReplacement(
