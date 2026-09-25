@@ -1,4 +1,4 @@
-name: Yalla Accounts Release Candidate
+name: Yallah Accounts Production Release
 
 on:
   workflow_dispatch:
@@ -52,15 +52,15 @@ jobs:
       - name: Materialize production defines from secrets
         shell: pwsh
         env:
-          LICENSING_URL: ${{ secrets.YALLA_LICENSING_BASE_URL }}
           LICENSE_PIN: ${{ secrets.YALLA_LICENSE_TRUSTED_KEY_SHA256 }}
           SUPABASE_URL: ${{ secrets.YALLA_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.YALLA_SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          $required = @($env:LICENSING_URL,$env:LICENSE_PIN,$env:SUPABASE_URL,$env:SUPABASE_KEY)
+          $required = @($env:LICENSE_PIN,$env:SUPABASE_URL,$env:SUPABASE_KEY)
           if ($required | Where-Object { [string]::IsNullOrWhiteSpace($_) }) { throw 'Required release configuration is missing.' }
           $data = [ordered]@{
-            YALLA_LICENSING_BASE_URL = $env:LICENSING_URL
+            YALLAH_COMMERCIAL_BACKEND_URL = 'https://api.yallah.ps'
+            YALLA_LICENSING_BASE_URL = 'https://api.yallah.ps'
             YALLA_LICENSE_TRUSTED_KEY_SHA256 = $env:LICENSE_PIN
             YALLA_SUPABASE_URL = $env:SUPABASE_URL
             YALLA_SUPABASE_PUBLISHABLE_KEY = $env:SUPABASE_KEY
@@ -101,17 +101,31 @@ jobs:
         shell: pwsh
         run: flutter build windows --release --build-number ${{ github.run_number }} --dart-define-from-file=deploy/production_defines.json
 
-      - name: Package release candidate
+      - name: Build Flutter Web release
+        shell: pwsh
+        run: |
+          flutter build web --release --dart-define-from-file=deploy/production_defines.json
+          @(
+            'RewriteEngine On',
+            'RewriteBase /',
+            'RewriteCond %{REQUEST_FILENAME} !-f',
+            'RewriteCond %{REQUEST_FILENAME} !-d',
+            'RewriteRule . /index.html [L]'
+          ) | Set-Content build\web\.htaccess -Encoding ascii
+
+      - name: Package production release
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item build\app\outputs\flutter-apk\app-release.apk dist\Yalla_Accounts_Android.apk
-          Copy-Item build\app\outputs\bundle\release\app-release.aab dist\Yalla_Accounts_Android.aab
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Yalla_Accounts_Windows.zip -Force
-          node tools/release/write_artifact_manifest.mjs --component accounts --artifact dist/Yalla_Accounts_Android.apk --artifact dist/Yalla_Accounts_Android.aab --artifact dist/Yalla_Accounts_Windows.zip --out dist/release-manifest.json
-          Get-FileHash dist\Yalla_Accounts_Android.apk -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt
-          Get-FileHash dist\Yalla_Accounts_Android.aab -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt -Append
-          Get-FileHash dist\Yalla_Accounts_Windows.zip -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt -Append
+          Copy-Item build\app\outputs\flutter-apk\app-release.apk dist\Yallah_Accounts_Android.apk
+          Copy-Item build\app\outputs\bundle\release\app-release.aab dist\Yallah_Accounts_Android.aab
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath dist\Yallah_Accounts_Windows.zip -Force
+          Compress-Archive -Path build\web\* -DestinationPath dist\Yallah_Accounts_Web.zip -Force
+          node tools/release/write_artifact_manifest.mjs --component accounts --artifact dist/Yallah_Accounts_Android.apk --artifact dist/Yallah_Accounts_Android.aab --artifact dist/Yallah_Accounts_Windows.zip --artifact dist/Yallah_Accounts_Web.zip --out dist/release-manifest.json
+          Get-FileHash dist\Yallah_Accounts_Android.apk -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt
+          Get-FileHash dist\Yallah_Accounts_Android.aab -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt -Append
+          Get-FileHash dist\Yallah_Accounts_Windows.zip -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt -Append
+          Get-FileHash dist\Yallah_Accounts_Web.zip -Algorithm SHA256 | Format-List | Out-File dist\SHA256.txt -Append
       - name: Remove transient release inputs
         if: always()
         shell: pwsh
@@ -120,10 +134,10 @@ jobs:
           Remove-Item android\key.properties -Force -ErrorAction SilentlyContinue
           Remove-Item android\app\yalla-release.jks -Force -ErrorAction SilentlyContinue
 
-      - name: Upload release candidate
+      - name: Upload production artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: yalla-accounts-rc-${{ github.sha }}
+          name: yallah-accounts-production-${{ github.sha }}
           path: dist/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30

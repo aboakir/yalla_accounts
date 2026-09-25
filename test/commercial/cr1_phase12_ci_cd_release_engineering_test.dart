@@ -59,6 +59,11 @@ void main() {
     expect(rc, contains('flutter build apk --release'));
     expect(rc, contains('flutter build appbundle --release'));
     expect(rc, contains('flutter build windows --release'));
+    expect(rc, contains('flutter build web --release'));
+    expect(rc, contains('Yallah_Accounts_Web.zip'));
+    expect(rc,
+        contains("YALLAH_COMMERCIAL_BACKEND_URL = 'https://api.yallah.ps'"));
+    expect(rc, contains("YALLA_LICENSING_BASE_URL = 'https://api.yallah.ps'"));
     expect(
         rc, contains('--dart-define-from-file=deploy/production_defines.json'));
     expect(manifest, contains('source_commit'));
