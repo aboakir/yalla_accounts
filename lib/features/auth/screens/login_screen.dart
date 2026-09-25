@@ -17,7 +17,7 @@ import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 import 'package:yalla_accounts/features/auth/models/app_user.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/screens/device_unlock_screen.dart';
-import 'package:yalla_accounts/features/auth/screens/register_user_screen.dart';
+import 'package:yalla_accounts/features/commercial_registration/commercial_first_run_screen.dart';
 import 'package:yalla_accounts/features/auth/screens/reset_password_screen.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
 import 'package:yalla_accounts/features/auth/services/authorization_guard.dart';
@@ -40,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _loading = true;
   bool _keepSignedIn = false;
   bool _firstOwner = false;
+  bool _commercialLinked = false;
   bool _activationRequired = false;
   String? _error;
   AppUser? _unlockUser;
@@ -74,6 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _username.text = preferences.rememberedUsername ?? '';
         _keepSignedIn = preferences.keepSignedIn;
         _firstOwner = !hasUsers;
+        _commercialLinked = _customerCode.text.trim().isNotEmpty;
         _unlockUser = protected ? restored : null;
       });
     } catch (_) {
@@ -161,21 +163,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (CommercialBackendEnvironment.enabled) {
           final expected =
               await createCommercialBackendService()!.currentCustomerCode();
-          final entered = _customerCode.text.trim();
-          if (entered.isEmpty) {
-            setState(() => _error = 'أدخل كود العميل.');
-            return;
-          }
-          if (expected == null || entered != expected) {
-            setState(() =>
-                _error = 'كود العميل لا يطابق الشركة المرتبطة بهذا الجهاز.');
+          if (expected == null || expected.trim().isEmpty) {
+            setState(() {
+              _activationRequired = true;
+              _error = 'هذا الجهاز غير مرتبط بحساب Yallah مفعل.';
+            });
             return;
           }
         }
         if (_username.text.trim().isEmpty || _password.text.isEmpty) {
-          setState(() => _error = CommercialBackendEnvironment.enabled
-              ? 'أدخل كود العميل واسم المستخدم وكلمة المرور.'
-              : 'أدخل اسم المستخدم وكلمة المرور.');
+          setState(() => _error = 'أدخل اسم المستخدم وكلمة المرور.');
           return;
         }
         final user = await ref
@@ -391,15 +388,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                         ),
                         SizedBox(height: isDesktop ? 24 : 22),
-                        if (CommercialBackendEnvironment.enabled) ...[
-                          TextField(
-                            controller: _customerCode,
-                            enabled: !_loading,
-                            autocorrect: false,
-                            textDirection: TextDirection.ltr,
-                            textInputAction: TextInputAction.next,
-                            decoration: fieldDecoration(
-                              labelText: 'كود العميل',
+                        if (CommercialBackendEnvironment.enabled &&
+                            _customerCode.text.trim().isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: YallaColors.successSurface,
+                              borderRadius:
+                                  BorderRadius.circular(YallaRadii.compact),
+                              border: Border.all(color: YallaColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.verified_user_outlined,
+                                  color: YallaColors.brandDark,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'الحساب التجاري المرتبط بهذا الجهاز',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: YallaColors.textMuted,
+                                        ),
+                                      ),
+                                      Directionality(
+                                        textDirection: TextDirection.ltr,
+                                        child: Text(
+                                          _customerCode.text,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: YallaColors.text,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -496,7 +530,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
-                        if (cloudEnabled || _firstOwner) ...[
+                        if (cloudEnabled ||
+                            _firstOwner ||
+                            (CommercialBackendEnvironment.enabled &&
+                                !_commercialLinked)) ...[
                           const SizedBox(height: 4),
                           Row(
                             children: [
@@ -549,9 +586,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
-                        if (cloudEnabled && _firstOwner)
+                        if (CommercialBackendEnvironment.enabled &&
+                            !_commercialLinked) ...[
                           const SizedBox(height: 10),
-                        if (_firstOwner)
                           SizedBox(
                             height: 48,
                             child: FilledButton.icon(
@@ -569,12 +606,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   : () => Navigator.of(context).push(
                                         MaterialPageRoute<void>(
                                           builder: (_) =>
-                                              CommercialBackendEnvironment
-                                                      .enabled
-                                                  ? const RegisterUserScreen()
-                                                  : const CloudAuthScreen(
-                                                      onboarding: true,
-                                                    ),
+                                              const CommercialFirstRunScreen(),
+                                        ),
+                                      ),
+                              icon: const Icon(Icons.add_business_outlined),
+                              label: const Text(
+                                'إنشاء حساب جديد',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 46,
+                            child: OutlinedButton.icon(
+                              onPressed: _loading
+                                  ? null
+                                  : () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              const CommercialFirstRunScreen(
+                                            initialExistingCustomer: true,
+                                          ),
+                                        ),
+                                      ),
+                              icon: const Icon(Icons.devices_other_outlined),
+                              label: const Text(
+                                'لدي حساب قائم',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ] else if (_firstOwner) ...[
+                          if (cloudEnabled) const SizedBox(height: 10),
+                          SizedBox(
+                            height: 48,
+                            child: FilledButton.icon(
+                              onPressed: _loading
+                                  ? null
+                                  : () => Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              const CloudAuthScreen(
+                                            onboarding: true,
+                                          ),
                                         ),
                                       ),
                               icon: const Icon(Icons.add_business_outlined),
@@ -584,6 +659,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
+                        ],
                         if (_activationRequired) ...[
                           const SizedBox(height: 8),
                           TextButton.icon(

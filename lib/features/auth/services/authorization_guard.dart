@@ -73,7 +73,11 @@ class AuthorizationGuard {
         if (feature == null) {
           await LicenseRuntimeService().requireOperationalWrite(permission);
         } else {
-          await SignedFeatureAuthorizationService().requireFeature(feature);
+          await SignedFeatureAuthorizationService().requireFeature(
+            feature,
+            limitCode: CommercialFeatureCatalog.limitForPermission(permission),
+            delta: 1,
+          );
         }
       }
     }

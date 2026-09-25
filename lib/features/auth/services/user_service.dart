@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/licensing/entitlements/licensed_user_seat_service.dart';
 import 'package:yalla_accounts/core/security/authorization_policy.dart';
@@ -899,6 +901,43 @@ class UserService {
       'Direct owner reset is disabled. '
       'Use a one-time recovery grant.',
     );
+  }
+
+  Future<bool> resetOwnerPasswordAfterVerifiedEmail({
+    required String newPassword,
+    required bool backendAuthorized,
+  }) async {
+    if (!backendAuthorized ||
+        !CommercialBackendEnvironment.enabled ||
+        !CommercialBackendRuntimeAccess.canRead) {
+      return false;
+    }
+    final policyError = validatePasswordPolicy(newPassword);
+    if (policyError != null) {
+      throw ArgumentError(policyError);
+    }
+    final owner = await getOwner();
+    if (owner == null) return false;
+
+    final db = await _db();
+    final now = DateTime.now().toUtc().toIso8601String();
+    await db.update(
+      'users',
+      {
+        'password': PasswordHasher.hash(newPassword),
+        'must_change_password': 0,
+        'password_changed_at': now,
+        'failed_login_count': 0,
+        'locked_until': null,
+      },
+      where: 'id = ?',
+      whereArgs: [owner.id],
+    );
+
+    await AuthSessionService(
+      databaseProvider: _databaseProvider,
+    ).revokeAllForUser(owner.id);
+    return true;
   }
 
   Future<bool> changeOwnerUsername(

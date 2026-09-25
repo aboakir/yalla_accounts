@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'commercial_backend_models.dart';
+
 class CommercialOfflineLease {
   const CommercialOfflineLease({
     required this.customerId,
@@ -11,6 +13,20 @@ class CommercialOfflineLease {
     required this.subscriptionStatus,
     required this.issuedAt,
     required this.leaseUntil,
+    this.organizationId,
+    this.subscriptionId,
+    this.planCode,
+    this.planName,
+    this.billingPeriod = 'MONTHLY',
+    this.monthlyPrice = 0,
+    this.annualPrice = 0,
+    this.currency = 'USD',
+    this.startsAt,
+    this.expiresAt,
+    this.graceUntil,
+    this.entitlementRevision = 0,
+    this.features = const {},
+    this.limits = const {},
   });
 
   final String customerId;
@@ -20,6 +36,20 @@ class CommercialOfflineLease {
   final String subscriptionStatus;
   final DateTime issuedAt;
   final DateTime leaseUntil;
+  final String? organizationId;
+  final String? subscriptionId;
+  final String? planCode;
+  final String? planName;
+  final String billingPeriod;
+  final double monthlyPrice;
+  final double annualPrice;
+  final String currency;
+  final DateTime? startsAt;
+  final DateTime? expiresAt;
+  final DateTime? graceUntil;
+  final int entitlementRevision;
+  final Map<String, CommercialFeatureEntitlement> features;
+  final Map<String, CommercialLimitEntitlement> limits;
 
   bool get isFull => accessMode == 'FULL';
   bool get isReadOnly => accessMode == 'READ_ONLY';
@@ -40,7 +70,6 @@ class CommercialOfflineLease {
       utf8.encode(deviceToken),
     ).convert(ascii.encode(parts[0])).bytes;
     final actual = _decode(parts[1]);
-
     if (!_constantTimeEquals(expected, actual)) {
       throw const FormatException('Invalid offline lease signature.');
     }
@@ -52,7 +81,6 @@ class CommercialOfflineLease {
     final map = decoded.map<String, Object?>(
       (key, value) => MapEntry(key.toString(), value),
     );
-
     final installationId = _requiredString(map, 'installation_id');
     if (installationId != expectedInstallationId) {
       throw const FormatException('Offline lease belongs to another device.');
@@ -73,7 +101,8 @@ class CommercialOfflineLease {
     }
     if (current.isBefore(issuedAt)) {
       throw const FormatException(
-          'Device clock is earlier than lease issue time.');
+        'Device clock is earlier than lease issue time.',
+      );
     }
     if (current.isAfter(leaseUntil)) {
       throw const FormatException('Offline lease expired.');
@@ -87,7 +116,49 @@ class CommercialOfflineLease {
       subscriptionStatus: _requiredString(map, 'subscription_status'),
       issuedAt: issuedAt,
       leaseUntil: leaseUntil,
+      organizationId: _optionalString(map, 'organization_id'),
+      subscriptionId: _optionalString(map, 'subscription_id'),
+      planCode: _optionalString(map, 'plan'),
+      planName: _optionalString(map, 'plan_name'),
+      billingPeriod: _optionalString(map, 'billing_period') ?? 'MONTHLY',
+      monthlyPrice: _double(map['monthly_price']),
+      annualPrice: _double(map['annual_price']),
+      currency: _optionalString(map, 'currency') ?? 'USD',
+      startsAt: _date(map['starts_at']),
+      expiresAt: _date(map['expires_at']),
+      graceUntil: _date(map['grace_until']),
+      entitlementRevision: _int(map['entitlement_revision']),
+      features: _features(map['features']),
+      limits: _limits(map['limits']),
     );
+  }
+
+  static Map<String, CommercialFeatureEntitlement> _features(Object? raw) {
+    if (raw is! Map) return const {};
+    final out = <String, CommercialFeatureEntitlement>{};
+    for (final entry in raw.entries) {
+      if (entry.value is! Map) continue;
+      final map = (entry.value as Map).map<String, Object?>(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      out[entry.key.toString()] =
+          CommercialFeatureEntitlement.fromMap(entry.key.toString(), map);
+    }
+    return out;
+  }
+
+  static Map<String, CommercialLimitEntitlement> _limits(Object? raw) {
+    if (raw is! Map) return const {};
+    final out = <String, CommercialLimitEntitlement>{};
+    for (final entry in raw.entries) {
+      if (entry.value is! Map) continue;
+      final map = (entry.value as Map).map<String, Object?>(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      out[entry.key.toString()] =
+          CommercialLimitEntitlement.fromMap(entry.key.toString(), map);
+    }
+    return out;
   }
 
   static List<int> _decode(String value) {
@@ -106,21 +177,40 @@ class CommercialOfflineLease {
   }
 
   static String _requiredString(Map<String, Object?> map, String key) {
-    final value = map[key]?.toString().trim() ?? '';
-    if (value.isEmpty) {
+    final value = _optionalString(map, key);
+    if (value == null) {
       throw FormatException('Missing offline lease field: $key.');
     }
     return value;
   }
 
+  static String? _optionalString(Map<String, Object?> map, String key) {
+    final value = map[key]?.toString().trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
   static int _requiredInt(Map<String, Object?> map, String key) {
-    final value = map[key];
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    final parsed = int.tryParse(value?.toString() ?? '');
-    if (parsed == null) {
+    final parsed = _int(map[key], fallback: -1);
+    if (parsed < 0) {
       throw FormatException('Invalid offline lease field: $key.');
     }
     return parsed;
+  }
+
+  static int _int(Object? value, {int fallback = 0}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static double _double(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static DateTime? _date(Object? value) {
+    final text = value?.toString();
+    if (text == null || text.isEmpty) return null;
+    return DateTime.tryParse(text.replaceFirst(' ', 'T'))?.toUtc();
   }
 }

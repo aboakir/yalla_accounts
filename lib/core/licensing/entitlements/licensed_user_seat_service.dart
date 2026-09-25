@@ -1,15 +1,16 @@
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_runtime_access.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
+import 'package:yalla_accounts/core/services/db/tables/license_runtime_tables.dart';
+
 import '../lifecycle/subscription_access_policy.dart';
-import '../../services/db/tables/license_runtime_tables.dart';
 import 'commercial_entitlement_policy.dart';
 
 class LicensedUserSeatException implements Exception {
   const LicensedUserSeatException(this.code, this.message);
-
   final String code;
   final String message;
-
   @override
   String toString() => 'LicensedUserSeatException[$code]: $message';
 }
@@ -44,6 +45,31 @@ class LicensedUserSeatService implements UserSeatEntitlementProvider {
 
   @override
   Future<LicensedUserSeatEntitlement> requireCurrent() async {
+    if (CommercialBackendEnvironment.enabled) {
+      final organizationId =
+          CommercialBackendRuntimeAccess.organizationId?.trim() ?? '';
+      final subscriptionId =
+          CommercialBackendRuntimeAccess.subscriptionId?.trim() ?? '';
+      final maxUsers = CommercialBackendRuntimeAccess.maxUsers;
+      if (!CommercialBackendRuntimeAccess.canWrite ||
+          organizationId.isEmpty ||
+          subscriptionId.isEmpty ||
+          maxUsers < 1) {
+        throw const LicensedUserSeatException(
+          'SIGNED_ACCESS_DENIED',
+          'The current PHP entitlement snapshot cannot grant another user seat.',
+        );
+      }
+      return LicensedUserSeatEntitlement(
+        organizationId: organizationId,
+        licenseId:
+            'php-entitlement-${CommercialBackendRuntimeAccess.entitlementRevision}',
+        subscriptionId: subscriptionId,
+        entitlementRevision: CommercialBackendRuntimeAccess.entitlementRevision,
+        maxUsers: maxUsers,
+      );
+    }
+
     final license = await _activationStateRepository
         .loadVerifiedLicenseForCurrentInstallation();
     if (license == null) {
@@ -52,7 +78,6 @@ class LicensedUserSeatService implements UserSeatEntitlementProvider {
         'A valid signed license is required before another active user can consume a licensed seat.',
       );
     }
-
     return fromVerifiedLicense(license);
   }
 
@@ -75,7 +100,6 @@ class LicensedUserSeatService implements UserSeatEntitlementProvider {
         'Restrictive or incomplete signed authority cannot grant another seat.',
       );
     }
-
     return LicensedUserSeatEntitlement(
       organizationId: license.organizationId,
       licenseId: license.licenseId,

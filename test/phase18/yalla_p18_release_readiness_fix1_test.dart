@@ -67,8 +67,8 @@ void main() {
         expect(subscription, isNot(contains('أرغب بالاشتراك')));
         expect(subscription, isNot(contains('+970598888888')));
         expect(subscription, contains('لا يوجد شراء أو تجديد مدفوع ذاتي'));
-        expect(File('assets/legal/privacy_ps_v1.html').existsSync(), isTrue);
-        expect(File('assets/legal/terms_ps_v1.html').existsSync(), isTrue);
+        expect(File('assets/legal/privacy_ps_v2.html').existsSync(), isTrue);
+        expect(File('assets/legal/terms_ps_v2.html').existsSync(), isTrue);
       },
     );
 

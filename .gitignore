@@ -54,6 +54,7 @@ app.*.map.json
 # Unified release hygiene: private data and generated artifacts stay outside source.
 /release_evidence/
 /.vscode/
+/.tools/
 /_audit_index/
 /.m*_backup/
 /.yalla*backup/

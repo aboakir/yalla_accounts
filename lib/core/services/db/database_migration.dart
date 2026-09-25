@@ -87,7 +87,7 @@ class DatabaseMigration {
     if (res.isEmpty) {
       await db.insert('suppliers', {'name': 'المصاريف العامة'});
       ReleaseDiagnostics.debug(
-        "أ¢إ“â€‌ ط·ع¾ط¸â€¦ ط·آ¥ط¸â€ ط·آ´ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط¸ث†ط·آ±ط·آ¯ ط·آ§ط¸â€‍ط·آ§ط¸ظ¾ط·ع¾ط·آ±ط·آ§ط·آ¶ط¸ظ¹ S0000 ط¸â€‍ط¸â€‍ط¸â€¦ط·آµط·آ§ط·آ±ط¸ظ¹ط¸ظ¾ ط·آ§ط¸â€‍ط·آ¹ط·آ§ط¸â€¦ط·آ©",
+        "General expense supplier S0000 created",
       );
     }
   }
@@ -486,7 +486,7 @@ class DatabaseMigration {
 
       if (!hasRemaining) {
         ReleaseDiagnostics.debug(
-          "ظ‹ع؛â€؛آ  Adding remaining column to purchase_invoicesأ¢â‚¬آ¦",
+          "Adding remaining column to purchase_invoices",
         );
         await db.execute(
           "ALTER TABLE purchase_invoices ADD COLUMN remaining REAL DEFAULT 0;",
@@ -571,7 +571,7 @@ class DatabaseMigration {
     if (oldV < 68) {
       await LicenseRuntimeTables.ensure(db);
       ReleaseDiagnostics.debug(
-        "أ¢إ“â€¦ Upgrade v68 expiry/read-only lifecycle guards applied",
+        "Upgrade v68 expiry/read-only lifecycle guards applied",
       );
     }
 
@@ -580,7 +580,7 @@ class DatabaseMigration {
       await LicenseValidationTables.ensure(db);
       await LicenseRuntimeTables.upgradeForSec012(db);
       ReleaseDiagnostics.debug(
-        "أ¢إ“â€¦ Upgrade v69 periodic validation/grace enforcement applied",
+        "Upgrade v69 periodic validation/grace enforcement applied",
       );
     }
 
@@ -1809,7 +1809,7 @@ class DatabaseMigration {
         "ALTER TABLE cheques RENAME COLUMN linked_payment_id TO linked_payment_ids;",
       );
       ReleaseDiagnostics.debug(
-        "أ¢إ“â€‌ ط·آ¥ط·آ¹ط·آ§ط·آ¯ط·آ© ط·ع¾ط·آ³ط¸â€¦ط¸ظ¹ط·آ© ط·آ§ط¸â€‍ط·آ¹ط¸â€¦ط¸ث†ط·آ¯ ط·ع¾ط¸â€¦ط·ع¾ ط·آ¨ط¸â€ ط·آ¬ط·آ§ط·آ­",
+        "cheques.linked_payment_id renamed to linked_payment_ids",
       );
       return;
     }

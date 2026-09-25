@@ -10,6 +10,7 @@ import 'package:yalla_accounts/features/commercial_registration/commercial_first
 import 'package:yalla_accounts/core/window/desktop_window_service.dart';
 import 'package:yalla_accounts/features/auth/providers/current_user_provider.dart';
 import 'package:yalla_accounts/features/auth/services/auth_session_service.dart';
+import 'package:yalla_accounts/features/auth/services/user_service.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_screen.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_service.dart';
 
@@ -57,7 +58,7 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
         final license = await service.checkCurrentLicense();
         if (!mounted) return;
         if (license != null) {
-          CommercialBackendRuntimeAccess.applyAccessMode(license.accessMode);
+          CommercialBackendRuntimeAccess.applyLicense(license);
         }
         if (license == null || license.isBlocked) {
           Navigator.of(context).pushReplacement(
@@ -72,7 +73,7 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
           final lease = await service.checkOfflineLease();
           if (!mounted) return;
           if (lease != null) {
-            CommercialBackendRuntimeAccess.applyAccessMode(lease.accessMode);
+            CommercialBackendRuntimeAccess.applyOfflineLease(lease);
           }
           if (lease == null) {
             Navigator.of(context).pushReplacement(
@@ -93,6 +94,16 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
         }
       }
       if (!mounted) return;
+      final hasUsers = await ref.read(userServiceProvider).hasAnyUsers();
+      if (!mounted) return;
+      if (!hasUsers) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const CommercialFirstRunScreen(),
+          ),
+        );
+        return;
+      }
       Navigator.of(context).pushReplacementNamed(AppRoutes.login);
       return;
     }

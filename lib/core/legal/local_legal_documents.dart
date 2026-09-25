@@ -20,54 +20,54 @@ class LocalLegalDocument {
 class LocalLegalDocuments {
   const LocalLegalDocuments._();
 
-  static const effectiveDate = '18/09/2026';
+  static const effectiveDate = '25/09/2026';
 
   static const terms = LocalLegalDocument(
     id: 'terms_ps',
     title: 'شروط الاستخدام',
-    version: 'terms_ps_v1',
-    assetPath: 'assets/legal/terms_ps_v1.html',
-    sha256: '63e269d87e39c6a375179e3b9084c997ede81f2c8438aae7e855bb112aa170a2',
+    version: 'terms_ps_v2',
+    assetPath: 'assets/legal/terms_ps_v2.html',
+    sha256: '29e41d52985a4aa48f585ec30ef149806483d4ff21661525f03f0f5c3f125502',
   );
 
   static const privacy = LocalLegalDocument(
     id: 'privacy_ps',
     title: 'سياسة الخصوصية',
-    version: 'privacy_ps_v1',
-    assetPath: 'assets/legal/privacy_ps_v1.html',
-    sha256: 'fd4d27a032b7103682334eb9bbedbe704a1d567e96a66fee2a02c92c51ee4080',
+    version: 'privacy_ps_v2',
+    assetPath: 'assets/legal/privacy_ps_v2.html',
+    sha256: '2c2a92f9665f466d725a16e733ea3c9142bbb113bd8e1914df9f4116fc754890',
   );
 
   static const deletion = LocalLegalDocument(
     id: 'deletion_ps',
     title: 'حذف الحساب والبيانات',
-    version: 'deletion_ps_v1',
-    assetPath: 'assets/legal/account_deletion_ps_v1.html',
-    sha256: '704ac6b2c8fbfa667c6af5a39c9f77904c956dae9fac42dcff4feb35816695c8',
+    version: 'deletion_ps_v2',
+    assetPath: 'assets/legal/account_deletion_ps_v2.html',
+    sha256: 'c052c1aafc08b0ae0ee56d76987506c2df22e279e2e2d7da85e51548d3de90b3',
   );
 
   static const refund = LocalLegalDocument(
     id: 'refund_ps',
     title: 'الإلغاء والاسترداد',
-    version: 'refund_ps_v1',
-    assetPath: 'assets/legal/refund_ps_v1.html',
-    sha256: '44c19a098c8a231e94c94598ea4866e0eebbd1e8f81a6c5987e6e8b0a35b5c61',
+    version: 'refund_ps_v2',
+    assetPath: 'assets/legal/refund_ps_v2.html',
+    sha256: '8c6ebdc170eaf194f3c512cb807b2548c51fa9aecc545c37beb27b1f2c29c956',
   );
 
   static const support = LocalLegalDocument(
     id: 'support_ps',
     title: 'الدعم والشكاوى',
-    version: 'support_ps_v1',
-    assetPath: 'assets/legal/support_ps_v1.html',
-    sha256: 'a64ab7b0478c633711e454392318b6f71446d27c02f412e82862b30056044b06',
+    version: 'support_ps_v2',
+    assetPath: 'assets/legal/support_ps_v2.html',
+    sha256: '4337f2538d1afcfe10aca0bdb6c7932a07f9b8c8eccee7f562d39fd19d8a3a86',
   );
 
   static const contact = LocalLegalDocument(
     id: 'contact_ps',
     title: 'اتصل بنا',
-    version: 'contact_ps_v1',
-    assetPath: 'assets/legal/contact_ps_v1.html',
-    sha256: 'fda201c8d3fe1120fd1ab487fd57699efc21ea3ebe8dda0d6646743f43e9c828',
+    version: 'contact_ps_v2',
+    assetPath: 'assets/legal/contact_ps_v2.html',
+    sha256: 'f760e03004ee482af7abd678c558583f8c3ec5c786de732fac61364147a151c9',
   );
 
   static const all = <LocalLegalDocument>[

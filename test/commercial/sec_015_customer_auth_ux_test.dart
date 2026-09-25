@@ -72,7 +72,7 @@ void main() {
     final bootstrap =
         read('lib/features/auth/services/first_owner_bootstrap_service.dart');
 
-    expect(register, contains('إعداد حساب مالك المنشأة'));
+    expect(register, contains('إنشاء بيانات دخول المالك'));
     expect(register, contains('hasAnyUsers'));
     expect(bootstrap, contains('Verified online activation is required'));
     expect(bootstrap, contains("'status': 'COMPLETED'"));

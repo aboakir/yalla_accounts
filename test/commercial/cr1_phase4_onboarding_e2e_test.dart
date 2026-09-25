@@ -136,8 +136,8 @@ void main() {
     );
     try {
       final accepted = await legal.accept(source: 'SIGNUP');
-      expect(accepted.termsVersion, 'terms_ps_v1');
-      expect(accepted.privacyVersion, 'privacy_ps_v1');
+      expect(accepted.termsVersion, 'terms_ps_v2');
+      expect(accepted.privacyVersion, 'privacy_ps_v2');
     } finally {
       legal.dispose();
     }

@@ -32,8 +32,8 @@ class HttpLegalAcceptanceService {
   })  : baseUri = baseUri ?? configuredBaseUri,
         _httpClient = httpClient ?? HttpClient();
 
-  static const termsVersion = 'terms_ps_v1';
-  static const privacyVersion = 'privacy_ps_v1';
+  static const termsVersion = 'terms_ps_v2';
+  static const privacyVersion = 'privacy_ps_v2';
   final Uri? baseUri;
   final Future<String?> Function() bearerTokenProvider;
   final HttpClient _httpClient;

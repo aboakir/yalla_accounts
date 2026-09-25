@@ -17,3 +17,6 @@ Before any release build, validate the real file:
 `dart run tools/validate_production_defines.dart deploy/production_defines.json`
 
 The validator rejects missing keys, placeholder values, non-HTTPS origins, malformed signing-key pins, service-role/private/database secret material, and a Cloud Auth configuration that is not marked release-ready. A release build must not proceed after validator failure.
+
+## Official Control authority
+For V1, `YALLA_LICENSING_BASE_URL` must point to the HTTPS origin of the official PHP Backend/Web Control deployment (`D:\YALLAH_BACKEND`, `public/admin` + `public/api`). Legacy Flutter Yalla Control projects are archive-only and must not be used as a second production authority.

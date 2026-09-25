@@ -18,7 +18,18 @@ import 'package:yalla_accounts/shared/widgets/adaptive_layout.dart';
 import 'package:yalla_accounts/core/utils/yalla_digits.dart';
 
 class RegisterUserScreen extends ConsumerStatefulWidget {
-  const RegisterUserScreen({super.key});
+  const RegisterUserScreen({
+    super.key,
+    this.initialUsername,
+    this.initialEmail,
+    this.initialPhone,
+    this.initialWorkshopName,
+  });
+
+  final String? initialUsername;
+  final String? initialEmail;
+  final String? initialPhone;
+  final String? initialWorkshopName;
 
   @override
   ConsumerState<RegisterUserScreen> createState() => _RegisterUserScreenState();
@@ -54,10 +65,26 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
     'سوريا': ['دمشق', 'حلب'],
   };
 
+  @override
+  void initState() {
+    super.initState();
+    _ownerName.text = widget.initialUsername?.trim() ?? '';
+    _ownerEmail.text = widget.initialEmail?.trim() ?? '';
+    _phone.text = widget.initialPhone?.trim() ?? '';
+    _workshopName.text = widget.initialWorkshopName?.trim() ?? '';
+    if (CommercialBackendEnvironment.enabled) {
+      _recoveryAcknowledged = true;
+    }
+  }
+
   bool _validateCurrentStep() {
     switch (_step) {
       case 0:
-        if (_ownerName.text.trim().length < 2) return _fail('أدخل اسم المالك.');
+        if (_ownerName.text.trim().length < 2) return _fail('أدخل اسم المستخدم.');
+        if (CommercialBackendEnvironment.enabled &&
+            _ownerEmail.text.trim().isEmpty) {
+          return _fail('البريد الإلكتروني الموثق مطلوب.');
+        }
         if (_password.text.length < 10 ||
             !RegExp(r'\d').hasMatch(_password.text)) {
           return _fail(
@@ -242,7 +269,9 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
           child: Scaffold(
             backgroundColor: AppColors.scaffoldBg,
             appBar: AppBar(
-              title: const Text('تأسيس الورشة'),
+              title: Text(CommercialBackendEnvironment.enabled
+                  ? 'إنشاء بيانات دخول المالك'
+                  : 'تأسيس الورشة'),
               centerTitle: false,
             ),
             body: SafeArea(
@@ -310,14 +339,16 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
     switch (_step) {
       case 0:
         return _CardSection(
-          title: '1/3 — حساب المالك',
+          title: '1/3 — بيانات دخول المالك',
           subtitle:
-              'إعداد حساب مالك المنشأة — بيانات الدخول الأساسية للمالك الأول.',
+              'اختر اسم المستخدم وكلمة المرور لهذا الجهاز. بيانات المنشأة الأساسية مأخوذة من الحساب الموثق.',
           children: [
-            _field(_ownerName, 'اسم المالك', Icons.person_outline),
-            _field(_ownerEmail, 'البريد الإلكتروني (اختياري)',
+            _field(_ownerName, 'اسم المستخدم', Icons.person_outline),
+            _field(_ownerEmail, 'البريد الإلكتروني الموثق',
                 Icons.email_outlined,
-                keyboard: TextInputType.emailAddress),
+                keyboard: TextInputType.emailAddress,
+                locked: CommercialBackendEnvironment.enabled &&
+                    (widget.initialEmail?.trim().isNotEmpty ?? false)),
             _field(_password, 'كلمة المرور', Icons.lock_outline,
                 obscure: _obscure,
                 suffix: IconButton(
@@ -343,7 +374,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
             const SizedBox(height: 12),
             const _InfoBanner(
               text:
-                  'لا يُطلب رمز SMS لإنشاء الحساب. يجب أن يكون الجهاز مفعّلًا بترخيص صالح صادر من Yalla Control قبل تأسيس المالك الأول.',
+                  'تم التحقق من البريد إلكترونيًا واعتماد هذا الجهاز من Yallah Accounts. رقم الهاتف هنا للتواصل وبيانات المنشأة المحلية.',
             ),
           ],
         );
@@ -397,6 +428,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
   Widget _field(TextEditingController controller, String label, IconData icon,
       {TextInputType? keyboard,
       bool obscure = false,
+      bool locked = false,
       Widget? suffix,
       ValueChanged<String>? onChanged}) {
     return Padding(
@@ -404,7 +436,7 @@ class _RegisterUserScreenState extends ConsumerState<RegisterUserScreen> {
       child: TextField(
         inputFormatters: const [YallaDigitNormalizer()],
         controller: controller,
-        enabled: !_loading,
+        enabled: !_loading && !locked,
         keyboardType: keyboard,
         obscureText: obscure,
         onChanged: onChanged,

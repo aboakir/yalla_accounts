@@ -6,6 +6,7 @@ import 'package:yalla_accounts/features/parties/screens/parties_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:yalla_accounts/core/config/owner_local_access.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_route_entitlement_gate.dart';
 import 'package:yalla_accounts/core/experience/experience_route_gate.dart';
 import 'package:yalla_accounts/core/release/release_scope_config.dart';
 import 'package:yalla_accounts/core/widgets/mobile/yalla_mobile_route_frame.dart';
@@ -591,9 +592,12 @@ class AppRoutes {
               ownerOnly: ownerOnly,
               child: ExperienceRouteGate(
                 routeName: routeName,
-                child: YallaMobileRouteFrame(
+                child: CommercialRouteEntitlementGate(
                   routeName: routeName,
-                  child: child,
+                  child: YallaMobileRouteFrame(
+                    routeName: routeName,
+                    child: child,
+                  ),
                 ),
               ),
             ),

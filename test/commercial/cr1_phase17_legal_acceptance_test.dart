@@ -23,8 +23,8 @@ void main() {
         );
         expect(request.headers.value('x-yalla-contract-version'), '2');
         final body = jsonDecode(await utf8.decoder.bind(request).join()) as Map;
-        expect(body['terms_version'], 'terms_ps_v1');
-        expect(body['privacy_version'], 'privacy_ps_v1');
+        expect(body['terms_version'], 'terms_ps_v2');
+        expect(body['privacy_version'], 'privacy_ps_v2');
         expect(body['terms_accepted'], isTrue);
         expect(body['privacy_accepted'], isTrue);
         expect(body['acceptance_source'], 'SIGNUP');
@@ -34,8 +34,8 @@ void main() {
         request.response.write(
           jsonEncode({
             'acceptance_id': '11111111-1111-4111-8111-111111111111',
-            'terms_version': 'terms_ps_v1',
-            'privacy_version': 'privacy_ps_v1',
+            'terms_version': 'terms_ps_v2',
+            'privacy_version': 'privacy_ps_v2',
             'accepted_at': '2026-09-18T10:00:00Z',
             'acceptance_source': 'SIGNUP',
           }),
@@ -52,8 +52,8 @@ void main() {
       final result = await service.accept(source: 'SIGNUP');
       await handled;
       expect(result.acceptanceId, '11111111-1111-4111-8111-111111111111');
-      expect(result.termsVersion, 'terms_ps_v1');
-      expect(result.privacyVersion, 'privacy_ps_v1');
+      expect(result.termsVersion, 'terms_ps_v2');
+      expect(result.privacyVersion, 'privacy_ps_v2');
     },
   );
 
@@ -93,7 +93,7 @@ void main() {
     },
   );
 
-  test('Phase 17 canonical legal v1 documents are bundled and hash-locked', () {
+  test('Phase 17 canonical legal v2 documents are bundled and hash-locked', () {
     for (final document in LocalLegalDocuments.all) {
       final file = File(document.assetPath);
       expect(file.existsSync(), isTrue, reason: document.assetPath);
@@ -107,7 +107,7 @@ void main() {
       expect(text, isNot(contains('DRAFT')));
       expect(text, isNot(contains('TODO')));
       expect(text, isNot(contains('{{SUPPORT_EMAIL}}')));
-      expect(text, contains('yalla.accou@gmail.com'));
+      expect(text, contains('@yallah.ps'));
     }
   });
 

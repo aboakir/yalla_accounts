@@ -50,12 +50,24 @@ class CommercialBackendSecureStore {
   CommercialBackendSecureStore({CommercialSecretStorage? storage})
       : _storage = storage ?? FlutterCommercialSecretStorage();
 
-  static const _customerCodeKey = 'yallah_commercial_customer_code_v1';
-  static const _requestIdKey = 'yallah_commercial_request_id_v1';
-  static const _activationSecretKey = 'yallah_commercial_activation_secret_v1';
-  static const _deviceTokenKey = 'yallah_commercial_device_token_v1';
-  static const _leaseTokenKey = 'yallah_commercial_lease_token_v1';
-  static const _trustedServerTimeKey = 'yallah_commercial_server_time_v1';
+  static const _storageNamespace =
+      String.fromEnvironment('YALLA_COMMERCIAL_STORAGE_NAMESPACE');
+
+  static String _key(String base) =>
+      _storageNamespace.trim().isEmpty ? base : '${_storageNamespace.trim()}__$base';
+
+  static String get _customerCodeKey =>
+      _key('yallah_commercial_customer_code_v1');
+  static String get _requestIdKey =>
+      _key('yallah_commercial_request_id_v1');
+  static String get _activationSecretKey =>
+      _key('yallah_commercial_activation_secret_v1');
+  static String get _deviceTokenKey =>
+      _key('yallah_commercial_device_token_v1');
+  static String get _leaseTokenKey =>
+      _key('yallah_commercial_lease_token_v1');
+  static String get _trustedServerTimeKey =>
+      _key('yallah_commercial_server_time_v1');
 
   final CommercialSecretStorage _storage;
 
