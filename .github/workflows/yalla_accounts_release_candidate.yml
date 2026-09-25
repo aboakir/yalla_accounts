@@ -49,24 +49,11 @@ jobs:
         shell: pwsh
         run: node tools/release/validate_release_matrix.mjs
 
-      - name: Materialize production defines from secrets
+      - name: Materialize production defines
         shell: pwsh
-        env:
-          SUPABASE_URL: ${{ secrets.YALLA_SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.YALLA_SUPABASE_PUBLISHABLE_KEY }}
         run: |
-          $required = @($env:SUPABASE_URL,$env:SUPABASE_KEY)
-          if ($required | Where-Object { [string]::IsNullOrWhiteSpace($_) }) { throw 'Required release configuration is missing.' }
-          $data = [ordered]@{
-            YALLAH_COMMERCIAL_BACKEND_URL = 'https://api.yallah.ps'
-            YALLA_LICENSING_BASE_URL = 'https://api.yallah.ps'
-            YALLA_SUPABASE_URL = $env:SUPABASE_URL
-            YALLA_SUPABASE_PUBLISHABLE_KEY = $env:SUPABASE_KEY
-            YALLA_CLOUD_AUTH_RELEASE_READY = $true
-            YALLA_CLOUD_OAUTH_ENABLED = $false
-            YALLA_STORE_DISTRIBUTION = $true
-          }
-          $data | ConvertTo-Json | Set-Content deploy\production_defines.json -Encoding utf8
+          if (-not (Test-Path deploy\production_public_config.json)) { throw 'Production public config is missing.' }
+          Copy-Item deploy\production_public_config.json deploy\production_defines.json -Force
           dart run tools/validate_production_defines.dart deploy/production_defines.json
 
       - name: Release gate tests

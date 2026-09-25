@@ -34,27 +34,11 @@ workflows:
           set -euo pipefail
           flutter pub get --enforce-lockfile
 
-      - name: Materialize protected production defines
+      - name: Materialize production defines
         script: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json, os
-          required = [
-            'YALLA_SUPABASE_URL','YALLA_SUPABASE_PUBLISHABLE_KEY'
-          ]
-          missing = [k for k in required if not os.environ.get(k, '').strip()]
-          if missing: raise SystemExit('Missing protected release inputs: ' + ','.join(missing))
-          data = {
-            'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.ps',
-            'YALLA_LICENSING_BASE_URL': 'https://api.yallah.ps',
-            'YALLA_SUPABASE_URL': os.environ['YALLA_SUPABASE_URL'],
-            'YALLA_SUPABASE_PUBLISHABLE_KEY': os.environ['YALLA_SUPABASE_PUBLISHABLE_KEY'],
-            'YALLA_CLOUD_AUTH_RELEASE_READY': True,
-            'YALLA_CLOUD_OAUTH_ENABLED': False,
-            'YALLA_STORE_DISTRIBUTION': True,
-          }
-          open('deploy/production_defines.json','w',encoding='utf-8').write(json.dumps(data))
-          PY
+          test -f deploy/production_public_config.json
+          cp deploy/production_public_config.json deploy/production_defines.json
           dart run tools/validate_production_defines.dart deploy/production_defines.json
           node tools/release/validate_release_matrix.mjs
       - name: Analyze and verify iOS contract
@@ -86,11 +70,11 @@ workflows:
           rm -rf "$OUT"
           mkdir -p "$OUT/Payload"
           cp -R "$APP" "$OUT/Payload/Runner.app"
-          (cd "$OUT" && zip -qry "Yalla_Accounts_Unsigned_iPhone.ipa" Payload)
-          shasum -a 256 "$OUT/Yalla_Accounts_Unsigned_iPhone.ipa" > "$OUT/SHA256.txt"
+          (cd "$OUT" && zip -qry "Yallah_Accounts_1.0.4_23_Unsigned_iPhone.ipa" Payload)
+          shasum -a 256 "$OUT/Yallah_Accounts_1.0.4_23_Unsigned_iPhone.ipa" > "$OUT/SHA256.txt"
           rm -f deploy/production_defines.json
     artifacts:
-      - build/ios/ipa/Yalla_Accounts_Unsigned_iPhone.ipa
+      - build/ios/ipa/Yallah_Accounts_1.0.4_23_Unsigned_iPhone.ipa
       - build/ios/ipa/SHA256.txt
       - /tmp/xcodebuild_logs/*.log
     publishing:

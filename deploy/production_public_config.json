@@ -1,0 +1,9 @@
+{
+    "YALLAH_COMMERCIAL_BACKEND_URL":  "https://api.yallah.ps",
+    "YALLA_LICENSING_BASE_URL":  "https://api.yallah.ps",
+    "YALLA_SUPABASE_URL":  "https://srkskbuoyedwovxvvtvs.supabase.co",
+    "YALLA_SUPABASE_PUBLISHABLE_KEY":  "sb_publishable_6WbY9HxKgXTA2WGf4UPfRg_TPAMK043",
+    "YALLA_CLOUD_AUTH_RELEASE_READY":  true,
+    "YALLA_CLOUD_OAUTH_ENABLED":  false,
+    "YALLA_STORE_DISTRIBUTION":  true
+}

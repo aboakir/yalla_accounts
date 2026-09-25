@@ -61,9 +61,18 @@ void main() {
     expect(rc, contains('flutter build windows --release'));
     expect(rc, contains('flutter build web --release'));
     expect(rc, contains('Yallah_Accounts_Web.zip'));
-    expect(rc,
-        contains("YALLAH_COMMERCIAL_BACKEND_URL = 'https://api.yallah.ps'"));
-    expect(rc, contains("YALLA_LICENSING_BASE_URL = 'https://api.yallah.ps'"));
+    expect(rc, contains('deploy\\production_public_config.json'));
+    final publicConfig = jsonDecode(
+      read('deploy/production_public_config.json'),
+    ) as Map<String, dynamic>;
+    expect(
+      publicConfig['YALLAH_COMMERCIAL_BACKEND_URL'],
+      'https://api.yallah.ps',
+    );
+    expect(
+      publicConfig['YALLA_LICENSING_BASE_URL'],
+      'https://api.yallah.ps',
+    );
     expect(
         rc, contains('--dart-define-from-file=deploy/production_defines.json'));
     expect(manifest, contains('source_commit'));
@@ -87,7 +96,8 @@ void main() {
 
   test('Phase 12 release candidate fails closed on protected inputs', () {
     final rc = read('.github/workflows/yalla_accounts_release_candidate.yml');
-    expect(rc, contains('Required release configuration is missing.'));
+    expect(rc, contains('Production public config is missing.'));
+    expect(rc, contains('deploy\\production_public_config.json'));
     expect(rc, contains('Android release signing secrets are missing.'));
     expect(rc, contains('dart run tools/validate_production_defines.dart'));
     expect(rc, contains('node tools/release/validate_release_matrix.mjs'));

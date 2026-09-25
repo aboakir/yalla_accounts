@@ -59,13 +59,22 @@ void main() {
   test('Phase 11 CodeMagic targets the official yallah.ps production release',
       () {
     final codemagic = File('codemagic.yaml').readAsStringSync();
+    final publicConfig = Map<String, Object?>.from(
+      jsonDecode(
+        File('deploy/production_public_config.json').readAsStringSync(),
+      ) as Map,
+    );
     expect(codemagic, contains("pattern: 'release/production-yallah-ps'"));
-    expect(codemagic,
-        contains("'YALLAH_COMMERCIAL_BACKEND_URL': 'https://api.yallah.ps'"));
-    expect(codemagic,
-        contains("'YALLA_LICENSING_BASE_URL': 'https://api.yallah.ps'"));
-    expect(codemagic,
-        isNot(contains("YALLA_LICENSE_TRUSTED_KEY_SHA256': os.environ")));
+    expect(codemagic, contains('deploy/production_public_config.json'));
+    expect(
+      publicConfig['YALLAH_COMMERCIAL_BACKEND_URL'],
+      'https://api.yallah.ps',
+    );
+    expect(
+      publicConfig['YALLA_LICENSING_BASE_URL'],
+      'https://api.yallah.ps',
+    );
+    expect(codemagic, isNot(contains('YALLA_LICENSE_TRUSTED_KEY_SHA256')));
   });
 
   test('Phase 11 real production define file is excluded from source control',
