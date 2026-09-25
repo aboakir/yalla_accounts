@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 /// Registers the private URI scheme used by Supabase email callbacks.
 ///
 /// HKCU is intentional: no administrator rights are required and the protocol
 /// follows the currently installed/running Yallah Accounts executable.
 Future<bool> ensureWindowsAuthCallbackRegistration() async {
-  if (!Platform.isWindows) return false;
+  if (kIsWeb || !Platform.isWindows) return false;
 
   const root = r'HKCU\Software\Classes\yallaaccounts';
   final executable = Platform.resolvedExecutable;

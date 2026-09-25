@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -57,7 +58,18 @@ class DefaultDeviceFingerprintProvider implements DeviceFingerprintProvider {
 
     // Best-effort fallback only. The fingerprint is a risk signal, not the
     // cryptographic device identity and never authorizes a license by itself.
-    if (selected.isEmpty) {
+    if (kIsWeb) {
+      for (final key in const [
+        'browserName',
+        'platform',
+        'userAgent',
+        'vendor'
+      ]) {
+        final value = _clean(info.data[key]);
+        if (value != null) selected['web_$key'] = value;
+      }
+      if (selected.isEmpty) selected['web_runtime'] = 'browser';
+    } else if (selected.isEmpty) {
       selected['os'] = Platform.operatingSystem;
       selected['computer'] =
           Platform.environment['COMPUTERNAME']?.trim() ?? 'unknown';
@@ -79,8 +91,10 @@ class DefaultDeviceFingerprintProvider implements DeviceFingerprintProvider {
 
     return DeviceFingerprintSnapshot(
       sha256Hex: digest,
-      platform: Platform.operatingSystem,
-      platformVersion: Platform.operatingSystemVersion.trim(),
+      platform: kIsWeb ? 'web' : Platform.operatingSystem,
+      platformVersion: kIsWeb
+          ? _clean(info.data['userAgent'])
+          : Platform.operatingSystemVersion.trim(),
       appVersion: appVersion,
     );
   }

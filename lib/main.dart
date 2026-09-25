@@ -14,8 +14,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show Intl;
 
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqflite/sqflite.dart' as sq;
+import 'package:yalla_accounts/core/bootstrap/ffi_init.dart';
 
 import 'package:yalla_accounts/core/services/db_service.dart';
 import 'package:yalla_accounts/core/services/sync/unified_sync_coordinator_v3.dart';
@@ -89,7 +88,8 @@ class YallaScrollBehavior extends MaterialScrollBehavior {
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   ReleaseDiagnostics.markStartupPhase(StartupPhase.preparing);
-  final authCallbackRegistered = await ensureWindowsAuthCallbackRegistration();
+  final authCallbackRegistered =
+      kIsWeb ? false : await ensureWindowsAuthCallbackRegistration();
   ReleaseDiagnostics.debug(
     'Windows auth callback registration: $authCallbackRegistered',
   );
@@ -98,16 +98,12 @@ Future<void> _bootstrap() async {
   // ✅ هذا أهم سطر: يخلي intl (DateFormat/NumberFormat) يستخدم أرقام 0-9
   Intl.defaultLocale = 'ar-u-nu-latn';
 
-  final isDesktop = !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.linux ||
-          defaultTargetPlatform == TargetPlatform.macOS);
-
-  if (isDesktop) {
-    sqfliteFfiInit();
-    sq.databaseFactory = databaseFactoryFfi;
-    ReleaseDiagnostics.debug('Using sqflite_common_ffi (Desktop mode)');
-  }
+  await initFfiIfNeeded();
+  ReleaseDiagnostics.debug(
+    kIsWeb
+        ? 'Using sqflite_common_ffi_web (IndexedDB-backed Web SQLite)'
+        : 'Database factory initialized for current platform',
+  );
 
   try {
     ReleaseDiagnostics.markStartupPhase(StartupPhase.databasePath);
@@ -148,7 +144,7 @@ Future<void> _bootstrap() async {
     // directly; it sends a device-signed challenge/complete exchange to the
     // configured Yalla server, which is the only component allowed to journal
     // the mutation through the server-authorized RPC.
-    if (!OwnerLocalAccess.enabled) {
+    if (!OwnerLocalAccess.enabled && !kIsWeb) {
       await UnifiedSyncCoordinatorV3.instance.start();
     }
 
@@ -407,34 +403,36 @@ class MyApp extends ConsumerWidget {
         },
         scrollBehavior: YallaScrollBehavior(),
 
-        theme: kIsWeb ? YallaWebPremiumTheme.theme : ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.light,
-          fontFamily: 'Cairo',
-          colorScheme: const ColorScheme.light(
-            primary: AppColors.primary,
-            onPrimary: Colors.white,
-            primaryContainer: AppColors.lightGreen,
-            onPrimaryContainer: AppColors.textDark,
-            secondary: AppColors.secondary,
-            onSecondary: Colors.white,
-            secondaryContainer: Color(0xFFF0F1F2),
-            onSecondaryContainer: AppColors.textDark,
-            surface: Colors.white,
-            onSurface: AppColors.textDark,
-            error: AppColors.danger,
-            onError: Colors.white,
-          ),
-          appBarTheme: AppBarTheme(
-            centerTitle: true,
-            elevation: 0,
-          ),
-          elevatedButtonTheme: YallaButtonThemes.elevated,
-          filledButtonTheme: YallaButtonThemes.filled,
-          textButtonTheme: YallaButtonThemes.text,
-          outlinedButtonTheme: YallaButtonThemes.outlined,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-        ),
+        theme: kIsWeb
+            ? YallaWebPremiumTheme.theme
+            : ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.light,
+                fontFamily: 'Cairo',
+                colorScheme: const ColorScheme.light(
+                  primary: AppColors.primary,
+                  onPrimary: Colors.white,
+                  primaryContainer: AppColors.lightGreen,
+                  onPrimaryContainer: AppColors.textDark,
+                  secondary: AppColors.secondary,
+                  onSecondary: Colors.white,
+                  secondaryContainer: Color(0xFFF0F1F2),
+                  onSecondaryContainer: AppColors.textDark,
+                  surface: Colors.white,
+                  onSurface: AppColors.textDark,
+                  error: AppColors.danger,
+                  onError: Colors.white,
+                ),
+                appBarTheme: AppBarTheme(
+                  centerTitle: true,
+                  elevation: 0,
+                ),
+                elevatedButtonTheme: YallaButtonThemes.elevated,
+                filledButtonTheme: YallaButtonThemes.filled,
+                textButtonTheme: YallaButtonThemes.text,
+                outlinedButtonTheme: YallaButtonThemes.outlined,
+                visualDensity: VisualDensity.adaptivePlatformDensity,
+              ),
       ),
     );
   }

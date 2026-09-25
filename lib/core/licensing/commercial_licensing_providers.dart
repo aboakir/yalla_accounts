@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yalla_accounts/features/cloud_auth/cloud_auth_service.dart';
 import 'package:yalla_accounts/core/commercial_backend/commercial_backend_environment.dart';
@@ -41,6 +42,10 @@ final licenseLifecycleTransportProvider =
       bearerTokenProvider: ref.watch(customerBearerTokenProvider));
 });
 final secureSyncTransportProvider = Provider<SyncV3Transport?>((ref) {
+  // The current SyncV3 HTTP transport uses dart:io HttpClient.
+  // Web startup must not construct it until the browser transport is wired.
+  if (kIsWeb) return null;
+
   final client = HttpClient();
   ref.onDispose(() => client.close(force: true));
   final phpBackend = CommercialBackendEnvironment.enabled;

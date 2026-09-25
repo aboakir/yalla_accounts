@@ -16,6 +16,10 @@ class DatabasePlatformPolicy {
   static Future<void> configure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON;');
 
+    // Browser SQLite runs behind the sqflite web worker/IndexedDB VFS.
+    // Do not force WAL/checkpoint tuning that assumes a filesystem-backed DB.
+    if (kIsWeb) return;
+
     // SqfliteDarwin can surface Code=0 "not an error" for runtime tuning
     // PRAGMAs during database open. Do not force those PRAGMAs on iOS.
     if (isIOS) return;
@@ -32,7 +36,7 @@ class DatabasePlatformPolicy {
     Database db, {
     String mode = 'TRUNCATE',
   }) async {
-    if (isIOS) return;
+    if (kIsWeb || isIOS) return;
 
     final normalized = mode.toUpperCase();
     const allowed = {'PASSIVE', 'FULL', 'RESTART', 'TRUNCATE'};

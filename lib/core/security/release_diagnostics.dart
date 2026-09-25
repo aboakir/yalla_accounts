@@ -33,8 +33,9 @@ class ReleaseDiagnostics {
   }) {
     // Release builds never expose raw errors in the UI. A locally-set,
     // test-only path can capture diagnostics while validating a build.
-    final diagnosticsPath =
-        Platform.environment['YALLA_RELEASE_DIAGNOSTICS_LOG']?.trim();
+    final diagnosticsPath = kIsWeb
+        ? null
+        : Platform.environment['YALLA_RELEASE_DIAGNOSTICS_LOG']?.trim();
     if (diagnosticsPath != null && diagnosticsPath.isNotEmpty) {
       try {
         File(diagnosticsPath).writeAsStringSync(

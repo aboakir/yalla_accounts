@@ -1,6 +1,7 @@
 // 📁 lib/core/services/db/database_constants.dart
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as paths;
 import 'package:uuid/uuid.dart';
@@ -30,8 +31,9 @@ class DatabaseConstants {
   /// Mobile platforms keep their own sandboxed database policy.
   /// YALLA_ACCOUNTS_DB_DIR is an explicit support/testing override.
   static bool get isTestProcess =>
-      Platform.environment['FLUTTER_TEST'] == 'true' ||
-      Platform.environment['YALLAH_FINANCIAL_QA'] == '1';
+      !kIsWeb &&
+      (Platform.environment['FLUTTER_TEST'] == 'true' ||
+          Platform.environment['YALLAH_FINANCIAL_QA'] == '1');
 
   /// Fail before any file/database access to a live installation during tests.
   static void assertSafeTestPath(String value) {
@@ -54,6 +56,8 @@ class DatabaseConstants {
   }
 
   static Future<String> dbFilePath() async {
+    if (kIsWeb) return dbName;
+
     final override = Platform.environment['YALLA_ACCOUNTS_DB_DIR']?.trim();
     if (isTestProcess && (override == null || override.isEmpty)) {
       throw StateError(

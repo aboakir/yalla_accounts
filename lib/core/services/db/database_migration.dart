@@ -225,27 +225,35 @@ class DatabaseMigration {
       '[DB] opening v${DatabaseConstants.dbVersion} @ $path',
     );
 
-    final recoveredInterruptedRestore = await Directory(
-      '$path.restore-journal',
-    ).exists();
-    await RestoreFileJournal.recover(path);
-    ReleaseDiagnostics.markStartupPhase(StartupPhase.journalRecovery);
-    await DatabaseEncryptionService.recoverInterruptedCanonicalWrite(path);
-    ReleaseDiagnostics.markStartupPhase(StartupPhase.versionCheck);
-    if (await databaseExists(path)) {
-      final version = await _readExistingVersion(
-        path,
-        retryAfterRestore: recoveredInterruptedRestore,
-      );
-      if (version > DatabaseConstants.dbVersion) {
-        throw StateError(
-          'Database version $version is newer than supported '
-          '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.',
+    var recoveredInterruptedRestore = false;
+    if (kIsWeb) {
+      // Web SQLite is persisted by the sqflite web worker in IndexedDB.
+      // Filesystem restore journals and SQLCipher file migration do not apply.
+      ReleaseDiagnostics.markStartupPhase(StartupPhase.journalRecovery);
+      ReleaseDiagnostics.markStartupPhase(StartupPhase.versionCheck);
+    } else {
+      recoveredInterruptedRestore = await Directory(
+        '$path.restore-journal',
+      ).exists();
+      await RestoreFileJournal.recover(path);
+      ReleaseDiagnostics.markStartupPhase(StartupPhase.journalRecovery);
+      await DatabaseEncryptionService.recoverInterruptedCanonicalWrite(path);
+      ReleaseDiagnostics.markStartupPhase(StartupPhase.versionCheck);
+      if (await databaseExists(path)) {
+        final version = await _readExistingVersion(
+          path,
+          retryAfterRestore: recoveredInterruptedRestore,
         );
+        if (version > DatabaseConstants.dbVersion) {
+          throw StateError(
+            'Database version $version is newer than supported '
+            '${DatabaseConstants.dbVersion}; no downgrade or reset was performed.',
+          );
+        }
       }
     }
     ReleaseDiagnostics.markStartupPhase(StartupPhase.encryption);
-    final encryption = pathOverride == null
+    final encryption = !kIsWeb && pathOverride == null
         ? await DatabaseEncryptionService.prepareCanonical(path)
         : null;
 
@@ -1216,42 +1224,56 @@ class DatabaseMigration {
     // P1.001 - lifecycle/database normalization.
     // Never replay the full historical upgrade chain on every normal startup.
     await SupplierTables.ensureSuppliersSchema(db);
+    ReleaseDiagnostics.debug('[DB] postInit A suppliers ready');
     await RepairTables.ensureRepairsSchema(db);
+    ReleaseDiagnostics.debug('[DB] postInit B repairs ready');
 
     // P05 - canonical clients/vehicles master-data foundation.
     await VehicleTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit C vehicles ready');
 
     // SEC.001 - stable local organization identity foundation.
     await OrganizationIdentityTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit D organization ready');
 
     // SEC.005 - device identity metadata; private key material is external.
     await DeviceIdentityTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit E device identity tables ready');
 
     // SEC.006 - public signed activation receipt only.
     await LicenseActivationTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit F activation tables ready');
 
     // SEC.011/SEC.012 - operational runtime projection, periodic validation
     // window and DB-level write-guard triggers.
     await LicenseValidationTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit G validation tables ready');
     await LicenseRuntimeTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit H runtime tables ready');
 
     // P04.2C - current databases are already v69, so the Outbox compatibility
     // upgrade must run in the normal idempotent post-init path, not only in an
     // historical onUpgrade branch.
     await TechnicalTables.ensureP04OutboxSchema(db);
+    ReleaseDiagnostics.debug('[DB] postInit I outbox schema ready');
     await OfflineOutboxService.resetInterruptedSending(db);
+    ReleaseDiagnostics.debug('[DB] postInit J interrupted sending reset');
 
     // SEC.007 - local one-time First Owner bootstrap state.
     await OwnerBootstrapTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit K owner bootstrap ready');
 
     // SEC.008 - canonical local authorization catalog and role guards.
     await UserAuthorizationTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit L authorization ready');
 
     // P16 - append-only audit + backup guardian / recovery metadata.
     // Authorization and backup metadata are included in versioned initialization.
     await P16SecurityTables.ensure(db);
+    ReleaseDiagnostics.debug('[DB] postInit M security tables ready');
 
     await ChequeTables.ensureChequesSchema(db);
+    ReleaseDiagnostics.debug('[DB] postInit N cheque schema ready');
     await AccountingTables.ensureInvoicesSchema(db);
     await PaymentsTables.ensurePaymentsSchema(db);
     await ReceiptTables.createAllTables(db);
