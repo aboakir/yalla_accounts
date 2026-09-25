@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:yalla_accounts/core/commercial_backend/commercial_backend_models.dart';
 import 'package:yalla_accounts/core/licensing/activation/activation_state_repository.dart';
 import 'package:yalla_accounts/core/licensing/activation/license_envelope_verifier.dart';
 import 'package:yalla_accounts/core/licensing/lifecycle/license_runtime_service.dart';
@@ -332,16 +333,29 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(
+        MaterialApp(
           home: CurrentSubscriptionScreen(
-              load: () async => LicenseRuntimeDecision(
-                  mode: 'READ_ONLY_SUSPENDED',
-                  reason: '',
-                  license: license('FROZEN', now)))));
+            load: () async => LicenseCheckResult(
+              customerId: 'customer',
+              customerCode: 'YALLA-TEST',
+              accessMode: 'READ_ONLY',
+              subscriptionStatus: 'FROZEN',
+              deviceId: 'device',
+              serverTime: now,
+              leaseUntil: now.add(const Duration(days: 1)),
+              leaseToken: null,
+              planCode: 'GARAGE_BASIC',
+              planName: 'الكراج الأساسية',
+              expiresAt: now.add(const Duration(days: 30)),
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
-      expect(find.text('حالة الاشتراك: مجمّد'), findsOneWidget);
-      expect(find.text('القراءة فقط'), findsOneWidget);
-      expect(find.textContaining('تاريخ الانتهاء:'), findsOneWidget);
+      expect(find.text('قراءة فقط · FROZEN'), findsOneWidget);
+      expect(find.text('الكراج الأساسية'), findsOneWidget);
+      expect(find.textContaining('الانتهاء:'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

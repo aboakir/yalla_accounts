@@ -11,7 +11,9 @@ import 'package:yalla_accounts/core/privacy/account_deletion_request_button.dart
 import 'package:yalla_accounts/core/release/widgets/release_legal_links.dart';
 
 class SubscriptionScreen extends StatefulWidget {
-  const SubscriptionScreen({super.key});
+  const SubscriptionScreen({super.key, this.load});
+
+  final Future<LicenseCheckResult?> Function()? load;
 
   @override
   State<SubscriptionScreen> createState() => _SubscriptionScreenState();
@@ -36,6 +38,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         _error = null;
       });
     }
+    final injectedLoad = widget.load;
+    if (injectedLoad != null) {
+      try {
+        final result = await injectedLoad();
+        if (!mounted) return;
+        setState(() {
+          _online = result;
+          _offline = null;
+          _loading = false;
+          _error = result == null
+              ? StateError('No subscription fixture was returned.')
+              : null;
+        });
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _error = error;
+        });
+      }
+      return;
+    }
+
     final service = createCommercialBackendService();
     if (service == null) {
       if (mounted) {
@@ -187,21 +212,47 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                        Icons.workspace_premium_outlined),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        planName ?? 'حزمة غير معروفة',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge,
-                                      ),
-                                    ),
-                                    _StatusChip(access: access, status: status),
-                                  ],
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final planTitle = Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.workspace_premium_outlined,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            planName ?? 'حزمة غير معروفة',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleLarge,
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                    final statusChip = _StatusChip(
+                                      access: access,
+                                      status: status,
+                                    );
+                                    if (constraints.maxWidth < 420) {
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          planTitle,
+                                          const SizedBox(height: 8),
+                                          statusChip,
+                                        ],
+                                      );
+                                    }
+                                    return Row(
+                                      children: [
+                                        Expanded(child: planTitle),
+                                        const SizedBox(width: 12),
+                                        statusChip,
+                                      ],
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 14),
                                 Wrap(
