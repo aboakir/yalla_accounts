@@ -34,8 +34,7 @@ class _CommercialFirstRunScreenState extends State<CommercialFirstRunScreen> {
   late bool _existingCustomer;
   bool _emailVerificationRequired = false;
   String? _emailMasked;
-  CommercialRegistrationState _state =
-      CommercialRegistrationState.unregistered;
+  CommercialRegistrationState _state = CommercialRegistrationState.unregistered;
   String? _message;
 
   @override
@@ -92,7 +91,7 @@ class _CommercialFirstRunScreenState extends State<CommercialFirstRunScreen> {
       return;
     }
 
-    CommercialBackendRuntimeAccess.applyAccessMode(license.accessMode);
+    CommercialBackendRuntimeAccess.applyLicense(license);
 
     if (license.isBlocked) {
       setState(() {

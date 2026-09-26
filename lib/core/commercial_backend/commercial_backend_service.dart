@@ -6,6 +6,7 @@ import 'package:yalla_accounts/core/device_identity/device_identity_service.dart
 
 import 'commercial_backend_client.dart';
 import 'commercial_backend_models.dart';
+import 'commercial_organization_binding_service.dart';
 import 'commercial_backend_secure_store.dart';
 import 'commercial_offline_lease.dart';
 
@@ -140,6 +141,12 @@ class CommercialBackendService {
       deviceToken: state.deviceToken!,
       appVersion: identity.appVersion,
     );
+    final canonicalOrganizationId = result.organizationId?.trim() ?? '';
+    if (canonicalOrganizationId.isNotEmpty) {
+      await CommercialOrganizationBindingService().reconcile(
+        canonicalOrganizationId,
+      );
+    }
     if (result.leaseToken?.isNotEmpty == true) {
       await _secureStore.saveLease(
         leaseToken: result.leaseToken!,
